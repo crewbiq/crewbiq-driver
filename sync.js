@@ -1,18 +1,18 @@
 /**
- * FleetIQ Sync Module v0.2.0 — Two-Way Sync
- * SRM Labs — Extracted from index.html
+ * CrewBIQ Sync Module v0.2.0 — Two-Way Sync
+ * CrewBIQ Technologies — Extracted from index.html
  *
  * FIX v0.1.1: index.html declares driver/loads/ptiLog with `let`,
  * so they are NOT on window.*. Worse — loads and ptiLog are frequently
  * reassigned (loads = loads.map(...)), so a one-time window reference
  * would go stale immediately.
  *
- * Solution: accessor functions passed in via FleetIQSync.init().
+ * Solution: accessor functions passed in via CrewBIQSync.init().
  * index.html calls init() once after boot, providing getters/setters
  * and saveAll. sync.js never touches window.* for state.
  *
  * index.html must call once after loadAll():
- *   FleetIQSync.init({
+ *   CrewBIQSync.init({
  *     getDriver: () => driver,
  *     getLoads:  () => loads,
  *     setLoads:  (v) => { loads = v; },
@@ -27,12 +27,12 @@
 (function (global) {
   'use strict';
 
-  const Core = global.FleetIQCore;
+  const Core = global.CrewBIQCore;
 
   const K = 'fiqD_';
 
   if (!Core) {
-    console.error('[FleetIQ Sync] FleetIQCore not found. Load core.js first.');
+    console.error('[CrewBIQ Sync] CrewBIQCore not found. Load core.js first.');
     return;
   }
 
@@ -67,12 +67,12 @@
       if (typeof global.renderAll === 'function') global.renderAll();
     });
     _ready = true;
-    console.info('[FleetIQ Sync] init() complete');
+    console.info('[CrewBIQ Sync] init() complete');
   }
 
   function assertReady() {
     if (!_ready) {
-      console.error('[FleetIQ Sync] Not initialized. Call FleetIQSync.init() first.');
+      console.error('[CrewBIQ Sync] Not initialized. Call CrewBIQSync.init() first.');
       return false;
     }
     return true;
@@ -381,7 +381,7 @@
       _saveAll();
       Core.events.emit('sync:pti_sent', { entryId: entry.id });
     } catch (e) {
-      console.warn('[FleetIQ Sync] syncPTIEntry silent fail:', e.message);
+      console.warn('[CrewBIQ Sync] syncPTIEntry silent fail:', e.message);
     }
   }
 
@@ -405,7 +405,7 @@
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
 
-  const FleetIQSync = {
+  const CrewBIQSync = {
     version: '0.2.0',
     init,
     buildSyncPayload,
@@ -418,7 +418,7 @@
     scheduleAutoSync,
   };
 
-  global.FleetIQSync = FleetIQSync;
+  global.CrewBIQSync = CrewBIQSync;
 
   // Backward compat — index.html calls these by name directly
   global.doSync           = doSync;
@@ -430,6 +430,6 @@
   global.scheduleAutoSync = scheduleAutoSync;
   global.buildSyncPayload = buildSyncPayload;
 
-  console.info('[FleetIQ Sync] v0.2.0 loaded');
+  console.info('[CrewBIQ Sync] v0.2.0 loaded');
 
 })(window);
