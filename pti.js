@@ -1,6 +1,6 @@
 /**
- * FleetIQ PTI Module v0.1.0
- * SRM Labs — Extracted from index.html
+ * CrewBIQ PTI Module v0.1.0
+ * CrewBIQ Technologies — Extracted from index.html
  *
  * Handles all Pre-Trip Inspection logic:
  *   - Default checklist items (daily + weekly)
@@ -35,9 +35,9 @@
 (function (global) {
   'use strict';
 
-  const Core = global.FleetIQCore;
+  const Core = global.CrewBIQCore;
   if (!Core) {
-    console.error('[FleetIQ PTI] FleetIQCore not found. Load core.js first.');
+    console.error('[CrewBIQ PTI] CrewBIQCore not found. Load core.js first.');
     return;
   }
 
@@ -82,12 +82,12 @@
     _set.ptiCustom = opts.setPtiCustom;
     _saveAll       = opts.saveAll;
     _ready = true;
-    console.info('[FleetIQ PTI] init() complete');
+    console.info('[CrewBIQ PTI] init() complete');
   }
 
   function assertReady() {
     if (!_ready) {
-      console.error('[FleetIQ PTI] Not initialized. Call FleetIQPTI.init() first.');
+      console.error('[CrewBIQ PTI] Not initialized. Call CrewBIQPTI.init() first.');
       return false;
     }
     return true;
@@ -385,7 +385,7 @@
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
 
-  const FleetIQPTI = {
+  const CrewBIQPTI = {
     version: '0.1.0',
     init,
     // Core lifecycle
@@ -410,7 +410,7 @@
     DEFAULT_WEEKLY,
   };
 
-  global.FleetIQPTI = FleetIQPTI;
+  global.FleetIQPTI = CrewBIQPTI;
 
   // ── BACKWARD COMPATIBILITY ─────────────────────────────────────────────────
   // All functions called by name from HTML onclicks or index.html
@@ -431,6 +431,6 @@
   global.updatePtiToggleUI  = updatePtiToggleUI;
   global.getAllPtiItems      = getAllPtiItems;
 
-  console.info('[FleetIQ PTI] v0.1.0 loaded');
+  console.info('[CrewBIQ PTI] v0.1.0 loaded');
 
 })(window);
