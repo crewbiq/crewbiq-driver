@@ -303,9 +303,6 @@
   </style>
 </head>
 <body>
-<button class="mobile-menu-btn" onclick="toggleMobileNav()">☰</button>
-<div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileNav()"></div>
-
 
 <!-- ══════════════ SPLASH SCREEN ══════════════ -->
 <div id="splashScreen">
@@ -1782,8 +1779,6 @@ if(_savedSched && document.getElementById('setupPtiSchedule'))
   document.getElementById('setupPtiSchedule').value = _savedSched;
 document.getElementById('pickupDate').value = today();
 boot();
-
-<script>
 function toggleMobileNav(){
   document.getElementById('mainNav').classList.toggle('open');
   document.getElementById('mobileOverlay').classList.toggle('show');
