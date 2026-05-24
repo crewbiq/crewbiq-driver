@@ -8,7 +8,7 @@
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v3';
+const CACHE_NAME = 'crewbiq-driver-v4';
 
 // App shell — these files are cached on install
 const APP_SHELL = [
