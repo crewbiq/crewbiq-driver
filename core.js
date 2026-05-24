@@ -1,6 +1,6 @@
 /**
- * FleetIQ Core v0.1.0
- * SRM Labs — Foundation layer for modular architecture
+ * CrewBIQ Core v0.1.0
+ * CrewBIQ Technologies — Foundation layer for modular architecture
  *
  * Provides:
  *   Core.storage  — localStorage wrapper
@@ -13,7 +13,7 @@
  *   - Change any UI behavior
  *   - Break existing index.html functions
  *
- * Exposed as window.FleetIQCore for compatibility.
+ * Exposed as window.CrewBIQCore for compatibility.
  */
 
 (function (global) {
@@ -36,7 +36,7 @@
         const raw = localStorage.getItem(key);
         return raw !== null ? JSON.parse(raw) : fallback;
       } catch (e) {
-        console.warn('[FleetIQ Core] storage.get error:', key, e);
+        console.warn('[CrewBIQ Core] storage.get error:', key, e);
         return fallback;
       }
     },
@@ -52,7 +52,7 @@
         localStorage.setItem(key, JSON.stringify(value));
         return true;
       } catch (e) {
-        console.warn('[FleetIQ Core] storage.set error:', key, e);
+        console.warn('[CrewBIQ Core] storage.set error:', key, e);
         return false;
       }
     },
@@ -65,7 +65,7 @@
       try {
         localStorage.removeItem(key);
       } catch (e) {
-        console.warn('[FleetIQ Core] storage.remove error:', key, e);
+        console.warn('[CrewBIQ Core] storage.remove error:', key, e);
       }
     },
   };
@@ -88,7 +88,7 @@
      */
     on(event, handler) {
       if (typeof handler !== 'function') {
-        console.warn('[FleetIQ Core] events.on: handler must be a function');
+        console.warn('[CrewBIQ Core] events.on: handler must be a function');
         return;
       }
       if (!_listeners[event]) _listeners[event] = [];
@@ -118,7 +118,7 @@
         try {
           handler(payload);
         } catch (e) {
-          console.error('[FleetIQ Core] events.emit handler error:', event, e);
+          console.error('[CrewBIQ Core] events.emit handler error:', event, e);
         }
       });
     },
@@ -220,7 +220,7 @@
   };
 
   // ── EXPOSE GLOBALLY ───────────────────────────────────────────────────────
-  // Available as both window.FleetIQCore (explicit) and window.Core (shorthand).
+  // Available as both window.CrewBIQCore (explicit) and window.Core (shorthand).
   // index.html can use either.
 
   global.FleetIQCore = Core;
@@ -237,6 +237,6 @@
     setTimeout(() => Core.events.emit('core:ready', { version: Core.version }), 0);
   }
 
-  console.info(`[FleetIQ Core] v${Core.version} loaded`);
+  console.info(`[CrewBIQ Core] v${Core.version} loaded`);
 
 })(window);
