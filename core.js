@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Core v0.1.
+ * CrewBIQ Core v0.1.0
  * CrewBIQ Technologies — Foundation layer for modular architecture
  *
  * Provides:
