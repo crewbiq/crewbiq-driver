@@ -1,6 +1,6 @@
 /**
- * FleetIQ Driver — Service Worker v1.0.1
- * SRM Labs
+ * CrewBIQ Driver — Service Worker v1.0.1
+ * CrewBIQ Technologies
  *
  * Strategy:
  *   - App shell (index.html, core.js, sync.js, pti.js, loads.js) → Cache First
@@ -8,17 +8,17 @@
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'fleetiq-driver-v3';
+const CACHE_NAME = 'crewbiq-driver-v3';
 
 // App shell — these files are cached on install
 const APP_SHELL = [
-  '/fleetiq-driver/',
-  '/fleetiq-driver/index.html',
-  '/fleetiq-driver/core.js',
-  '/fleetiq-driver/sync.js',
-  '/fleetiq-driver/pti.js',
-  '/fleetiq-driver/loads.js',
-  '/fleetiq-driver/manifest.json',
+  '/crewbiq-driver/',
+  '/crewbiq-driver/index.html',
+  '/crewbiq-driver/core.js',
+  '/crewbiq-driver/sync.js',
+  '/crewbiq-driver/pti.js',
+  '/crewbiq-driver/loads.js',
+  '/crewbiq-driver/manifest.json',
 ];
 
 // ── INSTALL ────────────────────────────────────────────────────────────────
@@ -29,10 +29,10 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(APP_SHELL))
       .then(() => {
-        console.log('[FleetIQ SW] App shell cached');
+        console.log('[CrewBIQ SW] App shell cached');
         return self.skipWaiting(); // activate immediately
       })
-      .catch(err => console.warn('[FleetIQ SW] Cache install error:', err))
+      .catch(err => console.warn('[CrewBIQ SW] Cache install error:', err))
   );
 });
 
@@ -46,12 +46,12 @@ self.addEventListener('activate', (event) => {
         keys
           .filter(key => key !== CACHE_NAME)
           .map(key => {
-            console.log('[FleetIQ SW] Deleting old cache:', key);
+            console.log('[CrewBIQ SW] Deleting old cache:', key);
             return caches.delete(key);
           })
       ))
       .then(() => {
-        console.log('[FleetIQ SW] v1.0.1 activated');
+        console.log('[CrewBIQ SW] v1.0.1 activated');
         return self.clients.claim(); // take control immediately
       })
   );
@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
   // 2. App shell files → Cache First, then network
   //    If cached → serve instantly (works offline)
   //    If not cached → fetch and cache for next time
-  if (APP_SHELL.some(path => url.pathname === path || url.pathname.endsWith(path.replace('/fleetiq-driver', '')))) {
+  if (APP_SHELL.some(path => url.pathname === path || url.pathname.endsWith(path.replace('/crewbiq-driver', '')))) {
     event.respondWith(
       caches.match(event.request)
         .then(cached => {
