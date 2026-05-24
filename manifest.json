@@ -3,7 +3,7 @@
   "short_name": "CrewBIQ",
   "description": "Driver settlement, PTI, and load tracking by CrewBIQ",
   "start_url": "/crewbiq-driver/",
-  "scope": "/crewiq-driver/",
+  "scope": "/crewbiq-driver/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0e1a",
