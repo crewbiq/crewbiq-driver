@@ -1,2 +1,2 @@
 # crewbiq-driver
-CrewBIQ Driver App by CrewBIQ
+CrewBIQ Driver App by CrewBIQ Technologies
