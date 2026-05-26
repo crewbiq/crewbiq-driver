@@ -53,6 +53,7 @@
   };
   let _saveAll = null;
   let _ready = false;
+  let _eventForwardersRegistered = false;
 
   function init(opts) {
     _get.driver = opts.getDriver;
@@ -67,7 +68,20 @@
       if (typeof global.renderAll === 'function') global.renderAll();
     });
     _ready = true;
+    registerEventForwarders();
     console.info('[CrewBIQ Sync] init() complete');
+  }
+
+  function registerEventForwarders() {
+    if (_eventForwardersRegistered) return;
+    ['load:created', 'load:updated', 'load:deleted', 'pti:submitted'].forEach(eventName => {
+      Core.events.on(eventName, payload => {
+        forwardEventToOrchestrator(eventName, payload).catch(e => {
+          console.warn('[CrewBIQ Orchestrator] event forward failed', e);
+        });
+      });
+    });
+    _eventForwardersRegistered = true;
   }
 
   function assertReady() {
@@ -242,6 +256,64 @@
     } catch (e) {
       console.warn('[CrewBIQ Orchestrator] sync failed', {
         ok: false,
+        error: e.message,
+      });
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function forwardEventToOrchestrator(eventName, payload = {}) {
+    const orchestratorUrl =
+      localStorage.getItem(K + 'orchestratorUrl') ||
+      '';
+
+    if (!orchestratorUrl) {
+      return { ok: false, skipped: true, reason: 'no_orchestrator_url' };
+    }
+
+    const eventsUrl = orchestratorUrl.replace(/\/v1\/sync\/?$/, '/v1/events');
+
+    const body = {
+      record_id: 'evt_' + getDeviceId() + '_' + Date.now(),
+      event: eventName,
+      source: 'pwa',
+      timestamp: new Date().toISOString(),
+      module: String(eventName).split(':')[0] || 'unknown',
+      priority_hint: 'low',
+      payload,
+    };
+
+    try {
+      const resp = await fetch(eventsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      let result = {};
+      try { result = await resp.json(); } catch (e) {}
+
+      if (!resp.ok) {
+        console.warn('[CrewBIQ Orchestrator] event forward failed', {
+          ok: false,
+          event: eventName,
+          status: resp.status,
+          result,
+        });
+        return { ok: false, status: resp.status, result };
+      }
+
+      console.info('[CrewBIQ Orchestrator] event forwarded', {
+        ok: true,
+        event: eventName,
+        status: resp.status,
+        result,
+      });
+      return { ok: true, status: resp.status, result };
+    } catch (e) {
+      console.warn('[CrewBIQ Orchestrator] event forward failed', {
+        ok: false,
+        event: eventName,
         error: e.message,
       });
       return { ok: false, error: e.message };
@@ -498,6 +570,7 @@
     syncPTIEntry,
     setSyncUI,
     scheduleAutoSync,
+    forwardEventToOrchestrator,
   };
 
   global.CrewBIQSync = CrewBIQSync;
@@ -511,6 +584,7 @@
   global.setSyncUI        = setSyncUI;
   global.scheduleAutoSync = scheduleAutoSync;
   global.buildSyncPayload = buildSyncPayload;
+  global.forwardEventToOrchestrator = forwardEventToOrchestrator;
 
   console.info('[CrewBIQ Sync] v0.3.0 loaded');
 
