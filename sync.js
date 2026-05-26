@@ -108,6 +108,21 @@
     }
   }
 
+  function getOrchestratorSecret() {
+    try {
+      return localStorage.getItem(K + 'orchestratorSecret') || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function buildOrchestratorHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const secret = getOrchestratorSecret();
+    if (secret) headers['X-CrewBIQ-Secret'] = secret;
+    return headers;
+  }
+
   function makeSyncRecordId(forceAll = false) {
     return 'sync_' + getDeviceId() + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + (forceAll ? '_full' : '');
   }
@@ -237,7 +252,7 @@
     try {
       const resp = await fetch(orchestratorUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildOrchestratorHeaders(),
         body: JSON.stringify(body),
       });
 
@@ -292,7 +307,7 @@
     try {
       const resp = await fetch(eventsUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildOrchestratorHeaders(),
         body: JSON.stringify(body),
       });
 
