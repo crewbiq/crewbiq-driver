@@ -54,6 +54,7 @@
   let _saveAll = null;
   let _ready = false;
   let _eventForwardersRegistered = false;
+  let _syncInProgress = false;
 
   function init(opts) {
     _get.driver = opts.getDriver;
@@ -105,6 +106,10 @@
     } catch (e) {
       return 'dev_unknown';
     }
+  }
+
+  function makeSyncRecordId(forceAll = false) {
+    return 'sync_' + getDeviceId() + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + (forceAll ? '_full' : '');
   }
 
   function identitySlug(value){ return String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60); }
@@ -203,6 +208,7 @@
     const ptiLog = _get.ptiLog();
     return {
       type: 'driver_report',
+      record_id: makeSyncRecordId(forceAll),
       sentAt: new Date().toISOString(),
       deviceId: getDeviceId(),
       driver: cloneDriver(driver),
@@ -467,6 +473,13 @@
 
   async function doSync(options = {}) {
     if (!assertReady()) return;
+    if (_syncInProgress) {
+      console.info('[CrewBIQ Sync] Sync already in progress, skipping');
+      return { ok: false, skipped: true, reason: 'sync_in_progress' };
+    }
+    _syncInProgress = true;
+
+    try {
     const driver = _get.driver();
 
     if (!(driver && driver.syncUrl)) {
@@ -505,6 +518,9 @@
       setSyncUI('err', 'Failed: ' + e.message);
       Core.toast('Sync failed: ' + e.message, 'err');
       Core.events.emit('sync:error', { message: e.message });
+    }
+    } finally {
+      _syncInProgress = false;
     }
   }
 
