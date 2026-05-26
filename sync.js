@@ -198,6 +198,56 @@
     };
   }
 
+  async function pushToOrchestrator(payload) {
+    const orchestratorUrl =
+      localStorage.getItem(K + 'orchestratorUrl') ||
+      '';
+
+    if (!orchestratorUrl) {
+      return { ok: false, skipped: true, reason: 'no_orchestrator_url' };
+    }
+
+    const body = {
+      source: 'crewbiq_driver',
+      deviceId: payload && payload.deviceId ? payload.deviceId : getDeviceId(),
+      sentAt: payload && payload.sentAt ? payload.sentAt : new Date().toISOString(),
+      payload,
+    };
+
+    try {
+      const resp = await fetch(orchestratorUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      let result = {};
+      try { result = await resp.json(); } catch (e) {}
+
+      if (!resp.ok) {
+        console.warn('[CrewBIQ Orchestrator] sync failed', {
+          ok: false,
+          status: resp.status,
+          result,
+        });
+        return { ok: false, status: resp.status, result };
+      }
+
+      console.info('[CrewBIQ Orchestrator] sync ok', {
+        ok: true,
+        status: resp.status,
+        result,
+      });
+      return { ok: true, status: resp.status, result };
+    } catch (e) {
+      console.warn('[CrewBIQ Orchestrator] sync failed', {
+        ok: false,
+        error: e.message,
+      });
+      return { ok: false, error: e.message };
+    }
+  }
+
   // ── SYNC UI ────────────────────────────────────────────────────────────────
 
   function setSyncUI(state, msg) {
@@ -258,6 +308,7 @@
       ok: true,
       pushedLoads: syncedLoadIds.size,
       pushedPti: syncedPtiIds.size,
+      payload,
       result,
     };
   }
@@ -356,6 +407,11 @@
 
     try {
       const push = await pushToCloud(!!options.forceAll);
+      if (push && push.ok && !push.skipped && push.payload) {
+        pushToOrchestrator(push.payload).catch(e => {
+          console.warn('[CrewBIQ Orchestrator] sync failed', e);
+        });
+      }
       const pull = await pullFromCloud({ silent: true });
 
       const timeStr = new Date().toLocaleTimeString();
