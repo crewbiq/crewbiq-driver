@@ -651,6 +651,11 @@
         </select>
       </div>
       <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
+      <div class="sfield">
+        <div class="slabel">Orchestrator URL</div>
+        <input id="setOrchestratorUrl" placeholder="https://your-orchestrator.up.railway.app/v1/sync">
+        <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional — sends a parallel copy to CrewBIQ Orchestrator. Google Sheets sync remains primary.</div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button onclick="restoreFromCloud()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">⬇️ Pull from Cloud</button>
         <button onclick="forceFullSync()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">↕️ Full Sync</button>
@@ -1817,6 +1822,7 @@ function renderSettingsPage(){
   document.getElementById('setCpmBase').value = driver.cpmBase||'loaded';
   document.getElementById('setPtiSchedule').value = driver.ptiSchedule||'daily';
   document.getElementById('setSyncUrl').value = driver.syncUrl||'';
+  document.getElementById('setOrchestratorUrl').value = localStorage.getItem(K + 'orchestratorUrl') || '';
   let effEl = document.getElementById('setRateEffectiveDate');
   if(effEl && !effEl.value) effEl.value = today();
   toggleSetRateFields();
@@ -1850,6 +1856,7 @@ function saveSettings(){
   driver.cpmBase = document.getElementById('setCpmBase').value;
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
   driver.syncUrl = document.getElementById('setSyncUrl').value.trim();
+  localStorage.setItem(K + 'orchestratorUrl', document.getElementById('setOrchestratorUrl').value.trim());
   if(!driver.crewId) driver.crewId = generateCrewBIQId(driver.name, driver.email, driver.unitNumber);
   const newIdentityKey = getDriverIdentityKey(driver);
   if(oldIdentityKey && newIdentityKey && oldIdentityKey !== newIdentityKey){
