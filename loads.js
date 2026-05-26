@@ -108,6 +108,18 @@
   function _escHtml(s)    { return global.escHtml    ? global.escHtml(s)   : Core.utils.escHtml(s); }
   function _getWeekKey(d) { return global.getWeekKey ? global.getWeekKey(d): d; }
   function _toast(m, t)   { Core.toast(m, t); }
+  function loadEventPayload(load) {
+    const driver = _get.driver ? _get.driver() : null;
+    return {
+      loadId: load && load.loadId,
+      gross: Number(load && load.gross || 0),
+      loadedMiles: Number(load && load.loadedMiles || 0),
+      deadMiles: Number(load && load.deadMiles || 0),
+      status: load && load.status || 'active',
+      driverId: load && load.crewId || driver && driver.crewId || '',
+      timestamp: new Date().toISOString(),
+    };
+  }
 
   // ── DISPUTES STORAGE ──────────────────────────────────────────────────────
 
@@ -259,6 +271,8 @@
     if (_renderAll) _renderAll();
     _toast('Load saved');
     if (_doSync) _doSync();
+    const eventPayload = loadEventPayload(entry);
+    Core.events.emit(editId ? 'load:updated' : 'load:created', eventPayload);
     Core.events.emit('load:saved', { id: entry.id, loadId: entry.loadId, isEdit: !!editId });
   }
 
@@ -287,11 +301,12 @@
   function deleteLoad(id) {
     if (!assertReady()) return;
     if (!confirm('Delete this load?')) return;
+    const deleted = _get.loads().find(x => x.id === id);
     _set.loads(_get.loads().filter(x => x.id !== id));
     _saveAll();
     if (_renderAll) _renderAll();
     _toast('Deleted');
-    Core.events.emit('load:deleted', { id });
+    if (deleted) Core.events.emit('load:deleted', loadEventPayload(deleted));
   }
 
   function setLoadStatus(id, status) {
