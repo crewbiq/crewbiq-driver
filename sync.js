@@ -116,6 +116,51 @@
     }
   }
 
+  function normalizeOrchestratorSyncUrl(value) {
+    const url = String(value || '').trim();
+    if (!url) return '';
+    const trimmed = url.replace(/\/+$/, '');
+    if (/\/v1\/sync$/i.test(trimmed)) return trimmed;
+    if (/\/v1\/events$/i.test(trimmed)) return trimmed.replace(/\/v1\/events$/i, '/v1/sync');
+    return trimmed + '/v1/sync';
+  }
+
+  function getOrchestratorSyncUrl() {
+    try {
+      const raw = localStorage.getItem(K + 'orchestratorUrl') || '';
+      const normalized = normalizeOrchestratorSyncUrl(raw);
+      if (normalized && raw !== normalized) {
+        localStorage.setItem(K + 'orchestratorUrl', normalized);
+      }
+      return normalized;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function setLastOrchestratorCopyStatus(status) {
+    try {
+      const allowedReasons = ['ok', 'no_orchestrator_url', 'unauthorized', 'not_found', 'http_error', 'network_error'];
+      const safeStatus = {
+        ok: !!(status && status.ok),
+        skipped: !!(status && status.skipped),
+        status: status && typeof status.status === 'number' ? status.status : null,
+        reason: status && allowedReasons.includes(status.reason) ? status.reason : 'network_error',
+        at: status && status.at ? status.at : new Date().toISOString(),
+      };
+      localStorage.setItem('fiqD_lastOrchestratorCopyStatus', JSON.stringify(safeStatus));
+      if (typeof window !== 'undefined') window.lastOrchestratorSyncStatus = safeStatus;
+      global.lastOrchestratorSyncStatus = safeStatus;
+      return safeStatus;
+    } catch (e) {}
+  }
+
+  function orchestratorHttpFailureReason(statusCode) {
+    if (statusCode === 401) return 'unauthorized';
+    if (statusCode === 404) return 'not_found';
+    return 'http_error';
+  }
+
   function buildOrchestratorHeaders() {
     const headers = { 'Content-Type': 'application/json' };
     const secret = getOrchestratorSecret();
@@ -234,11 +279,15 @@
   }
 
   async function pushToOrchestrator(payload) {
-    const orchestratorUrl =
-      localStorage.getItem(K + 'orchestratorUrl') ||
-      '';
+    const orchestratorUrl = getOrchestratorSyncUrl();
 
     if (!orchestratorUrl) {
+      setLastOrchestratorCopyStatus({
+        ok: false,
+        skipped: true,
+        status: null,
+        reason: 'no_orchestrator_url',
+      });
       return { ok: false, skipped: true, reason: 'no_orchestrator_url' };
     }
 
@@ -260,6 +309,12 @@
       try { result = await resp.json(); } catch (e) {}
 
       if (!resp.ok) {
+        setLastOrchestratorCopyStatus({
+          ok: false,
+          skipped: false,
+          status: resp.status,
+          reason: orchestratorHttpFailureReason(resp.status),
+        });
         console.warn('[CrewBIQ Orchestrator] sync failed', {
           ok: false,
           status: resp.status,
@@ -268,6 +323,12 @@
         return { ok: false, status: resp.status, result };
       }
 
+      setLastOrchestratorCopyStatus({
+        ok: true,
+        skipped: false,
+        status: resp.status,
+        reason: 'ok',
+      });
       console.info('[CrewBIQ Orchestrator] sync ok', {
         ok: true,
         status: resp.status,
@@ -275,6 +336,12 @@
       });
       return { ok: true, status: resp.status, result };
     } catch (e) {
+      setLastOrchestratorCopyStatus({
+        ok: false,
+        skipped: false,
+        status: null,
+        reason: 'network_error',
+      });
       console.warn('[CrewBIQ Orchestrator] sync failed', {
         ok: false,
         error: e.message,
@@ -284,11 +351,15 @@
   }
 
   async function forwardEventToOrchestrator(eventName, payload = {}) {
-    const orchestratorUrl =
-      localStorage.getItem(K + 'orchestratorUrl') ||
-      '';
+    const orchestratorUrl = getOrchestratorSyncUrl();
 
     if (!orchestratorUrl) {
+      setLastOrchestratorCopyStatus({
+        ok: false,
+        skipped: true,
+        status: null,
+        reason: 'no_orchestrator_url',
+      });
       return { ok: false, skipped: true, reason: 'no_orchestrator_url' };
     }
 
@@ -315,6 +386,12 @@
       try { result = await resp.json(); } catch (e) {}
 
       if (!resp.ok) {
+        setLastOrchestratorCopyStatus({
+          ok: false,
+          skipped: false,
+          status: resp.status,
+          reason: orchestratorHttpFailureReason(resp.status),
+        });
         console.warn('[CrewBIQ Orchestrator] event forward failed', {
           ok: false,
           event: eventName,
@@ -324,6 +401,12 @@
         return { ok: false, status: resp.status, result };
       }
 
+      setLastOrchestratorCopyStatus({
+        ok: true,
+        skipped: false,
+        status: resp.status,
+        reason: 'ok',
+      });
       console.info('[CrewBIQ Orchestrator] event forwarded', {
         ok: true,
         event: eventName,
@@ -332,6 +415,12 @@
       });
       return { ok: true, status: resp.status, result };
     } catch (e) {
+      setLastOrchestratorCopyStatus({
+        ok: false,
+        skipped: false,
+        status: null,
+        reason: 'network_error',
+      });
       console.warn('[CrewBIQ Orchestrator] event forward failed', {
         ok: false,
         event: eventName,
@@ -602,6 +691,7 @@
     setSyncUI,
     scheduleAutoSync,
     forwardEventToOrchestrator,
+    normalizeOrchestratorSyncUrl,
   };
 
   global.CrewBIQSync = CrewBIQSync;
@@ -616,6 +706,7 @@
   global.scheduleAutoSync = scheduleAutoSync;
   global.buildSyncPayload = buildSyncPayload;
   global.forwardEventToOrchestrator = forwardEventToOrchestrator;
+  global.normalizeOrchestratorSyncUrl = normalizeOrchestratorSyncUrl;
 
   console.info('[CrewBIQ Sync] v0.3.0 loaded');
 

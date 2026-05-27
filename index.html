@@ -652,14 +652,18 @@
       </div>
       <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
       <div class="sfield">
-        <div class="slabel">Orchestrator URL</div>
-        <input id="setOrchestratorUrl" placeholder="https://your-orchestrator.up.railway.app/v1/sync">
+        <div class="slabel">Orchestrator Sync URL</div>
+        <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync">
         <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional — sends a parallel copy to CrewBIQ Orchestrator. Google Sheets sync remains primary.</div>
       </div>
       <div class="sfield">
         <div class="slabel">Orchestrator Secret</div>
         <input id="setOrchestratorSecret" placeholder="optional">
         <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional — required only when CrewBIQ Orchestrator secret protection is enabled.</div>
+      </div>
+      <div class="sfield">
+        <div class="slabel">Orchestrator Status</div>
+        <div id="orchestratorSettingsStatus" style="font-size:11px;color:var(--mu);line-height:1.6">URL configured: no<br>Secret configured: no<br>Last copy: skipped</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button onclick="restoreFromCloud()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">⬇️ Pull from Cloud</button>
@@ -1805,6 +1809,46 @@ function shareInvite(){
 // renderStats() → loads.js v0.2.0
 
 // ── SETTINGS PAGE ──
+const DEFAULT_ORCHESTRATOR_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app/v1/sync';
+
+function normalizeOrchestratorSyncUrl(value){
+  if(window.CrewBIQSync && typeof CrewBIQSync.normalizeOrchestratorSyncUrl === 'function'){
+    return CrewBIQSync.normalizeOrchestratorSyncUrl(value);
+  }
+  let url = String(value || '').trim();
+  if(!url) return '';
+  url = url.replace(/\/+$/, '');
+  if(/\/v1\/sync$/i.test(url)) return url;
+  if(/\/v1\/events$/i.test(url)) return url.replace(/\/v1\/events$/i, '/v1/sync');
+  return url + '/v1/sync';
+}
+
+function orchestratorLastCopyLabel(){
+  try{
+    const raw = localStorage.getItem(K + 'lastOrchestratorCopyStatus');
+    if(!raw) return 'skipped';
+    const data = JSON.parse(raw);
+    if(data.reason === 'ok') return 'ok';
+    if(data.reason === 'no_orchestrator_url' || data.skipped) return 'skipped';
+    if(data.status === 401 || data.reason === 'unauthorized') return '401';
+    if(data.status === 404 || data.reason === 'not_found') return '404';
+    return 'error';
+  }catch(e){
+    return 'error';
+  }
+}
+
+function renderOrchestratorSettingsStatus(){
+  const el = document.getElementById('orchestratorSettingsStatus');
+  if(!el) return;
+  const urlConfigured = !!(localStorage.getItem(K + 'orchestratorUrl') || '').trim();
+  const secretConfigured = !!(localStorage.getItem(K + 'orchestratorSecret') || '').trim();
+  el.innerHTML =
+    'URL configured: ' + (urlConfigured ? 'yes' : 'no') + '<br>' +
+    'Secret configured: ' + (secretConfigured ? 'yes' : 'no') + '<br>' +
+    'Last copy: ' + escHtml(orchestratorLastCopyLabel());
+}
+
 function renderSettingsPage(){
   if(!driver) return;
   let t = localStorage.getItem('fiqD_theme')||'dark';
@@ -1827,8 +1871,9 @@ function renderSettingsPage(){
   document.getElementById('setCpmBase').value = driver.cpmBase||'loaded';
   document.getElementById('setPtiSchedule').value = driver.ptiSchedule||'daily';
   document.getElementById('setSyncUrl').value = driver.syncUrl||'';
-  document.getElementById('setOrchestratorUrl').value = localStorage.getItem(K + 'orchestratorUrl') || '';
+  document.getElementById('setOrchestratorUrl').value = localStorage.getItem(K + 'orchestratorUrl') || DEFAULT_ORCHESTRATOR_SYNC_URL;
   document.getElementById('setOrchestratorSecret').value = localStorage.getItem(K + 'orchestratorSecret') || '';
+  renderOrchestratorSettingsStatus();
   let effEl = document.getElementById('setRateEffectiveDate');
   if(effEl && !effEl.value) effEl.value = today();
   toggleSetRateFields();
@@ -1862,7 +1907,7 @@ function saveSettings(){
   driver.cpmBase = document.getElementById('setCpmBase').value;
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
   driver.syncUrl = document.getElementById('setSyncUrl').value.trim();
-  localStorage.setItem(K + 'orchestratorUrl', document.getElementById('setOrchestratorUrl').value.trim());
+  localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(document.getElementById('setOrchestratorUrl').value));
   localStorage.setItem(K + 'orchestratorSecret', document.getElementById('setOrchestratorSecret').value.trim());
   if(!driver.crewId) driver.crewId = generateCrewBIQId(driver.name, driver.email, driver.unitNumber);
   const newIdentityKey = getDriverIdentityKey(driver);
