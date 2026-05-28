@@ -782,14 +782,32 @@
 
     } else if (format === 'pdf') {
       const html = buildReportHTML();
-      const win  = window.open('', '_blank');
-      if (!win) return _toast('Allow popups to generate PDF', 'err');
-      win.document.write(html);
-      win.document.close();
-      const tryPrint = () => { try { win.focus(); win.print(); } catch(e) {} };
-      if (win.document.readyState === 'complete') setTimeout(tryPrint, 700);
-      else win.addEventListener('load', () => setTimeout(tryPrint, 700));
-      _toast('PDF ready — use Print → Save as PDF 📄');
+      const safeUnit = String(driver.unitNumber || driver.name || 'driver').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '') || 'driver';
+      const filename = `CrewBIQ_${safeUnit}_${period}_${dateStr}.html`;
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+
+      if (!win) {
+        URL.revokeObjectURL(url);
+        downloadFile(html, 'text/html;charset=utf-8', filename);
+        return _toast('Popup blocked - printable HTML report downloaded', 'warn');
+      }
+
+      let printAttempted = false;
+      const tryPrint = () => {
+        if (printAttempted) return;
+        printAttempted = true;
+        try { win.focus(); win.print(); } catch(e) {}
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      };
+      try {
+        win.addEventListener('load', () => setTimeout(tryPrint, 700));
+      } catch(e) {
+        setTimeout(tryPrint, 1200);
+      }
+      setTimeout(tryPrint, 2000);
+      _toast('Report opened - use Print / Save as PDF');
     }
   }
 
