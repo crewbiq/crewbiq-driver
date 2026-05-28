@@ -272,22 +272,28 @@
   <div class="setup-logo" style="margin-top:32px">CREW<span>BIQ</span></div>
   <div class="setup-sub">Driver App · <span style="color:#3b82f6;font-size:11px">by CrewBIQ Tech</span></div>
   <div class="setup-card">
-    <div class="setup-title">🔐 CrewBIQ Login</div>
+    <div class="setup-title">Restore Existing Driver</div>
     <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:14px">
-      Existing driver? Enter your Email or CrewBIQ ID with the Sync URL to restore cloud data.
+      Existing driver? Enter your Sync URL and Sync Token to restore cloud data.
       New driver? Tap Create / Setup New Driver below. The app works locally/offline, and sync can be configured for cloud backup.
     </div>
     <div class="sfield">
-      <div class="slabel">Email or CrewBIQ ID</div>
+      <div class="slabel">Email or CrewBIQ ID (optional)</div>
       <input id="loginIdentity" placeholder="driver@email.com or CBQ-XXXXXX" maxlength="80">
-      <div class="muted" style="font-size:11px;margin-top:4px">Use this to restore your profile and loads after cache reset or on another device.</div>
+      <div class="muted" style="font-size:11px;margin-top:4px">Used only as a hint. Sync Token proves access.</div>
     </div>
     <div class="sfield">
       <div class="slabel">Sync URL</div>
       <input id="loginSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
       <div class="muted" style="font-size:11px;margin-top:4px">Google Sheets sync remains the primary cloud backup path.</div>
     </div>
-    <button class="btn primary" onclick="loginExistingAccount()">Sign In & Restore Cloud Data</button>
+    <div class="sfield">
+      <div class="slabel">Sync Token</div>
+      <input id="loginSyncToken" type="password" placeholder="cbq_sync_..." maxlength="160" autocomplete="off">
+      <div class="muted" style="font-size:11px;margin-top:4px">Required to restore private driver data.</div>
+    </div>
+    <button class="btn primary" onclick="loginExistingAccount()">Restore with Sync Token</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="clearSavedSyncToken()">Clear Saved Sync Token</button>
     <button class="btn ghost" style="margin-top:8px" onclick="showCreateAccountSetup()">Create / Setup New Driver</button>
     <div id="loginStatus" class="muted" style="font-size:12px;margin-top:10px;text-align:center"></div>
     <div id="createAccountSetup" style="display:none;margin-top:22px;border-top:1px solid var(--bd);padding-top:20px">
@@ -1126,6 +1132,20 @@ function setLoginStatus(msg,type=''){
   const el=document.getElementById('loginStatus');
   if(el){ el.textContent=msg; el.style.color=type==='err'?'var(--rd)':type==='ok'?'var(--gr)':'var(--mu)'; }
 }
+function getSavedSyncToken(){
+  try{ return localStorage.getItem(K+'syncToken') || ''; }catch(e){ return ''; }
+}
+function saveSyncToken(token){
+  token=String(token||'').trim();
+  if(token) localStorage.setItem(K+'syncToken', token);
+}
+function clearSavedSyncToken(){
+  try{ localStorage.removeItem(K+'syncToken'); }catch(e){}
+  const el=document.getElementById('loginSyncToken');
+  if(el) el.value='';
+  setLoginStatus('Saved Sync Token cleared');
+  toast('Sync Token cleared');
+}
 function makeOfflineDriverFromIdentity(identity, syncUrl){
   identity=(identity||'').trim();
   const isEmail=identity.includes('@');
@@ -1140,18 +1160,17 @@ function makeOfflineDriverFromIdentity(identity, syncUrl){
   };
 }
 async function loginExistingAccount(){
-  const identity=(document.getElementById('loginIdentity')||{}).value.trim();
   const syncUrl=(document.getElementById('loginSyncUrl')||{}).value.trim();
-  if(!identity) return setLoginStatus('Enter email or CrewBIQ ID','err');
+  const syncToken=((document.getElementById('loginSyncToken')||{}).value || getSavedSyncToken()).trim();
   if(!syncUrl) return setLoginStatus('Sync URL is required for cloud restore','err');
-  setLoginStatus('Signing in and pulling cloud data...');
-  driver = makeOfflineDriverFromIdentity(identity, syncUrl);
-  if(!driver.crewId && driver.email){ driver.crewId = ''; }
-  loadDriverScopedData(false);
-  saveAll();
+  if(!syncToken) return setLoginStatus('Sync Token required to restore cloud data.','err');
+  saveSyncToken(syncToken);
+  setLoginStatus('Restoring cloud data...');
+  driver = { name:'Driver', email:'', crewId:'', company:'', truckName:'', unitNumber:'', plate:'', teamDriver:'', teamRate:0, payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded', syncUrl, ptiSchedule:'daily' };
   try{
     if(typeof pullFromCloud==='function'){
-      const r = await pullFromCloud({silent:true, allowProfile:true});
+      const r = await pullFromCloud({silent:true, allowProfile:true, syncToken});
+      if(!r || r.ok === false) throw new Error((r && (r.error || r.reason)) || 'Cloud restore failed');
       if(r && r.profile && r.profile.driver){
         driver = {...driver, ...r.profile.driver, syncUrl: syncUrl || (r.profile.driver.syncUrl||'')};
         if(!driver.crewId && r.profile.crewId) driver.crewId = r.profile.crewId;
@@ -1164,7 +1183,6 @@ async function loginExistingAccount(){
         if(typeof r.pointsBalance === 'number') driver.points = r.pointsBalance;
         loadDriverScopedData(false);
         saveAll();
-        await pullFromCloud({silent:true, allowProfile:true});
       }
     }
     saveDriverProfile();
@@ -2117,10 +2135,13 @@ document.getElementById('splashScreen').addEventListener('animationend', functio
 // restore saved sync URL if starting fresh after driver reset
 let _savedUrl = localStorage.getItem(K+'_savedSyncUrl');
 let _savedSched = localStorage.getItem(K+'_savedPtiSched');
+let _savedToken = getSavedSyncToken();
 if(_savedUrl && document.getElementById('setupSyncUrl'))
   document.getElementById('setupSyncUrl').value = _savedUrl;
 if(_savedUrl && document.getElementById('loginSyncUrl'))
   document.getElementById('loginSyncUrl').value = _savedUrl;
+if(_savedToken && document.getElementById('loginSyncToken'))
+  document.getElementById('loginSyncToken').value = _savedToken;
 if(_savedSched && document.getElementById('setupPtiSchedule'))
   document.getElementById('setupPtiSchedule').value = _savedSched;
 document.getElementById('pickupDate').value = today();

@@ -116,6 +116,14 @@
     }
   }
 
+  function getSyncToken(options = {}) {
+    try {
+      return String(options.syncToken || localStorage.getItem(K + 'syncToken') || '').trim();
+    } catch (e) {
+      return String(options.syncToken || '').trim();
+    }
+  }
+
   function normalizeOrchestratorSyncUrl(value) {
     const url = String(value || '').trim();
     if (!url) return '';
@@ -268,6 +276,7 @@
     const ptiLog = _get.ptiLog();
     return {
       type: 'driver_report',
+      syncToken: getSyncToken(),
       record_id: makeSyncRecordId(forceAll),
       sentAt: new Date().toISOString(),
       deviceId: getDeviceId(),
@@ -453,6 +462,12 @@
       return { ok: false, skipped: true, reason: 'no_sync_url' };
     }
 
+    const syncToken = getSyncToken();
+    if (!syncToken) {
+      setSyncUI('err', 'Sync Token required');
+      return { ok: false, skipped: true, reason: 'missing_sync_token' };
+    }
+
     const payload = buildSyncPayload(forceAll);
 
     if ((payload.loads.length + payload.ptiLog.length) === 0 && !forceAll) {
@@ -475,7 +490,7 @@
     const text = await resp.text();
     let result = {};
     try { result = JSON.parse(text); } catch (e) {}
-    if (result.error) throw new Error(result.error);
+    if (result.error || result.ok === false) throw new Error(result.error || result.reason || 'Cloud returned error');
 
     _set.loads(_get.loads().map(x =>
       syncedLoadIds.has(x.id) ? { ...x, synced: true } : x
@@ -499,32 +514,42 @@
     if (!assertReady()) return { ok: false, reason: 'not_ready' };
     const driver = _get.driver();
     const silent = !!options.silent;
+    const syncToken = getSyncToken(options);
 
     if (!(driver && driver.syncUrl)) {
       if (!silent) setSyncUI('idle', 'No sync URL');
       return { ok: false, reason: 'no_sync_url' };
     }
 
+    if (!syncToken) {
+      if (!silent) {
+        setSyncUI('err', 'Sync Token required');
+        Core.toast('Sync Token required to restore cloud data.', 'err');
+      }
+      return { ok: false, reason: 'missing_sync_token', error: 'Sync Token required to restore cloud data.' };
+    }
+
     const unit = driver.unitNumber || '';
     const oKey = ownerKey(driver);
-    if (!unit && !oKey) {
-      if (!silent) setSyncUI('err', 'No driver ID or unit number');
-      return { ok: false, reason: 'no_identity' };
-    }
 
     try {
       if (!silent) setSyncUI('busy', 'Pulling cloud...');
-      const sep = driver.syncUrl.includes('?') ? '&' : '?';
-      const url = driver.syncUrl + sep + 'type=driver&unit=' + encodeURIComponent(unit) + '&crewId=' + encodeURIComponent(driver.crewId || '') + '&email=' + encodeURIComponent(driver.email || '') + '&ownerKey=' + encodeURIComponent(oKey) + '&ts=' + Date.now();
-      const resp = await fetch(url, {
-        method: 'GET',
+      const resp = await fetch(driver.syncUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          type: 'driver',
+          syncToken,
+          client: 'crewbiq-driver-pwa',
+          deviceId: getDeviceId(),
+        }),
         cache: 'no-store',
         redirect: 'follow',
       });
 
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
-      if (data.error || data.ok === false) throw new Error(data.error || 'Cloud returned error');
+      if (data.error || data.ok === false) throw new Error(data.error || data.reason || 'Cloud returned error');
 
       const profile = data.profile || null;
       const remoteLoads = (data.loads || []).filter(x => !oKey || x.ownerKey === oKey || x.crewId === driver.crewId || x.driverEmail === driver.email);
@@ -563,7 +588,12 @@
         loadsUpdated:  loadMerge.updated,
         ptiImported:   ptiMerge.imported,
         ptiUpdated:    ptiMerge.updated,
-        profile
+        profile,
+        driverId: data.driverId || '',
+        crewId: data.crewId || '',
+        email: data.email || '',
+        ownerKey: data.ownerKey || '',
+        pointsBalance: data.pointsBalance,
       };
     } catch (e) {
       if (!silent) {
@@ -596,6 +626,9 @@
 
     try {
       const push = await pushToCloud(!!options.forceAll);
+      if (push && push.reason === 'missing_sync_token') {
+        throw new Error('Sync Token required to restore cloud data.');
+      }
       if (push && push.ok && !push.skipped && push.payload) {
         pushToOrchestrator(push.payload).catch(e => {
           console.warn('[CrewBIQ Orchestrator] sync failed', e);
@@ -638,19 +671,29 @@
     if (!assertReady()) return;
     const driver = _get.driver();
     if (!(driver && driver.syncUrl)) return;
+    const syncToken = getSyncToken();
+    if (!syncToken) {
+      console.warn('[CrewBIQ Sync] syncPTIEntry skipped: missing sync token');
+      return;
+    }
 
     try {
-      await fetch(driver.syncUrl, {
+      const resp = await fetch(driver.syncUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           type: 'pti_report',
+          syncToken,
           sentAt: new Date().toISOString(),
           driver: cloneDriver(driver),
           pti: stampRecord(entry),
         }),
         redirect: 'follow',
       });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      let result = {};
+      try { result = await resp.json(); } catch (e) {}
+      if (result.error || result.ok === false) throw new Error(result.error || result.reason || 'Cloud returned error');
       entry.synced = true;
       _saveAll();
       Core.events.emit('sync:pti_sent', { entryId: entry.id });
