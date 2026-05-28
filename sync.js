@@ -116,11 +116,11 @@
     }
   }
 
-  function getSyncToken(options = {}) {
+  function getSessionToken(options = {}) {
     try {
-      return String(options.syncToken || localStorage.getItem(K + 'syncToken') || '').trim();
+      return String(options.sessionToken || localStorage.getItem(K + 'sessionToken') || '').trim();
     } catch (e) {
-      return String(options.syncToken || '').trim();
+      return String(options.sessionToken || '').trim();
     }
   }
 
@@ -276,7 +276,7 @@
     const ptiLog = _get.ptiLog();
     return {
       type: 'driver_report',
-      syncToken: getSyncToken(),
+      sessionToken: getSessionToken(),
       record_id: makeSyncRecordId(forceAll),
       sentAt: new Date().toISOString(),
       deviceId: getDeviceId(),
@@ -462,10 +462,10 @@
       return { ok: false, skipped: true, reason: 'no_sync_url' };
     }
 
-    const syncToken = getSyncToken();
-    if (!syncToken) {
-      setSyncUI('err', 'Sync Token required');
-      return { ok: false, skipped: true, reason: 'missing_sync_token' };
+    const sessionToken = getSessionToken();
+    if (!sessionToken) {
+      setSyncUI('err', 'Login required');
+      return { ok: false, skipped: true, reason: 'missing_session_token' };
     }
 
     const payload = buildSyncPayload(forceAll);
@@ -514,23 +514,20 @@
     if (!assertReady()) return { ok: false, reason: 'not_ready' };
     const driver = _get.driver();
     const silent = !!options.silent;
-    const syncToken = getSyncToken(options);
+    const sessionToken = getSessionToken(options);
 
     if (!(driver && driver.syncUrl)) {
       if (!silent) setSyncUI('idle', 'No sync URL');
       return { ok: false, reason: 'no_sync_url' };
     }
 
-    if (!syncToken) {
+    if (!sessionToken) {
       if (!silent) {
-        setSyncUI('err', 'Sync Token required');
-        Core.toast('Sync Token required to restore cloud data.', 'err');
+        setSyncUI('err', 'Login required');
+        Core.toast('Login required to restore cloud data.', 'err');
       }
-      return { ok: false, reason: 'missing_sync_token', error: 'Sync Token required to restore cloud data.' };
+      return { ok: false, reason: 'missing_session_token', error: 'Login required to restore cloud data.' };
     }
-
-    const unit = driver.unitNumber || '';
-    const oKey = ownerKey(driver);
 
     try {
       if (!silent) setSyncUI('busy', 'Pulling cloud...');
@@ -538,8 +535,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          type: 'driver',
-          syncToken,
+          type: 'auth_restore',
+          sessionToken,
           client: 'crewbiq-driver-pwa',
           deviceId: getDeviceId(),
         }),
@@ -552,8 +549,8 @@
       if (data.error || data.ok === false) throw new Error(data.error || data.reason || 'Cloud returned error');
 
       const profile = data.profile || null;
-      const remoteLoads = (data.loads || []).filter(x => !oKey || x.ownerKey === oKey || x.crewId === driver.crewId || x.driverEmail === driver.email);
-      const remotePti   = (data.ptiLog || []).filter(x => !oKey || x.ownerKey === oKey || x.crewId === driver.crewId || x.driverEmail === driver.email);
+      const remoteLoads = data.loads || [];
+      const remotePti   = data.ptiLog || [];
       const loadMerge = mergeById(_get.loads(), remoteLoads);
       const ptiMerge  = mergeById(_get.ptiLog(), remotePti);
 
@@ -626,8 +623,8 @@
 
     try {
       const push = await pushToCloud(!!options.forceAll);
-      if (push && push.reason === 'missing_sync_token') {
-        throw new Error('Sync Token required to restore cloud data.');
+      if (push && push.reason === 'missing_session_token') {
+        throw new Error('Login required to restore cloud data.');
       }
       if (push && push.ok && !push.skipped && push.payload) {
         pushToOrchestrator(push.payload).catch(e => {
@@ -671,9 +668,9 @@
     if (!assertReady()) return;
     const driver = _get.driver();
     if (!(driver && driver.syncUrl)) return;
-    const syncToken = getSyncToken();
-    if (!syncToken) {
-      console.warn('[CrewBIQ Sync] syncPTIEntry skipped: missing sync token');
+    const sessionToken = getSessionToken();
+    if (!sessionToken) {
+      console.warn('[CrewBIQ Sync] syncPTIEntry skipped: missing session token');
       return;
     }
 
@@ -683,7 +680,7 @@
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           type: 'pti_report',
-          syncToken,
+          sessionToken,
           sentAt: new Date().toISOString(),
           driver: cloneDriver(driver),
           pti: stampRecord(entry),

@@ -272,111 +272,53 @@
   <div class="setup-logo" style="margin-top:32px">CREW<span>BIQ</span></div>
   <div class="setup-sub">Driver App · <span style="color:#3b82f6;font-size:11px">by CrewBIQ Tech</span></div>
   <div class="setup-card">
-    <div class="setup-title">Restore Existing Driver</div>
+    <div class="setup-title">CrewBIQ Account</div>
     <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:14px">
-      Existing driver? Enter your Sync URL and Sync Token to restore cloud data.
-      New driver? Tap Create / Setup New Driver below. The app works locally/offline, and sync can be configured for cloud backup.
-    </div>
-    <div class="sfield">
-      <div class="slabel">Email or CrewBIQ ID (optional)</div>
-      <input id="loginIdentity" placeholder="driver@email.com or CBQ-XXXXXX" maxlength="80">
-      <div class="muted" style="font-size:11px;margin-top:4px">Used only as a hint. Sync Token proves access.</div>
+      Sign in or create an account to restore private driver data from the CrewBIQ sync backend.
     </div>
     <div class="sfield">
       <div class="slabel">Sync URL</div>
       <input id="loginSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
-      <div class="muted" style="font-size:11px;margin-top:4px">Google Sheets sync remains the primary cloud backup path.</div>
+      <div class="muted" style="font-size:11px;margin-top:4px">Google Apps Script remains the Driver Sync backend.</div>
     </div>
-    <div class="sfield">
-      <div class="slabel">Sync Token</div>
-      <input id="loginSyncToken" type="password" placeholder="cbq_sync_..." maxlength="160" autocomplete="off">
-      <div class="muted" style="font-size:11px;margin-top:4px">Required to restore private driver data.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 14px">
+      <button id="authLoginTab" class="btn primary" onclick="showAuthTab('login')">Login</button>
+      <button id="authSignupTab" class="btn ghost" onclick="showAuthTab('signup')">Sign Up</button>
     </div>
-    <button class="btn primary" onclick="loginExistingAccount()">Restore with Sync Token</button>
-    <button class="btn ghost" style="margin-top:8px" onclick="clearSavedSyncToken()">Clear Saved Sync Token</button>
-    <button class="btn ghost" style="margin-top:8px" onclick="showCreateAccountSetup()">Create / Setup New Driver</button>
+    <div id="authLoginPanel">
+      <div class="sfield">
+        <div class="slabel">Email or Nickname</div>
+        <input id="authLoginId" placeholder="driver@email.com or nickname" maxlength="80" autocomplete="username">
+      </div>
+      <div class="sfield">
+        <div class="slabel">Password</div>
+        <input id="authLoginPassword" type="password" placeholder="Password" maxlength="128" autocomplete="current-password">
+      </div>
+      <button class="btn primary" onclick="authLogin()">Login</button>
+    </div>
+    <div id="authSignupPanel" style="display:none">
+      <div class="sfield">
+        <div class="slabel">Email</div>
+        <input id="authSignupEmail" type="email" placeholder="driver@email.com" maxlength="80" autocomplete="email">
+      </div>
+      <div class="sfield">
+        <div class="slabel">Nickname</div>
+        <input id="authSignupNickname" placeholder="nickname" maxlength="40" autocomplete="nickname">
+      </div>
+      <div class="sfield">
+        <div class="slabel">Password</div>
+        <input id="authSignupPassword" type="password" placeholder="Password" maxlength="128" autocomplete="new-password">
+      </div>
+      <div class="muted" style="font-size:12px;margin:12px 0 8px">Optional initial assignment</div>
+      <div class="sfield"><div class="slabel">Company</div><input id="authSignupCompany" maxlength="60"></div>
+      <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="slabel">Unit Number</div><input id="authSignupUnit" maxlength="20"></div>
+        <div><div class="slabel">Plate</div><input id="authSignupPlate" maxlength="20"></div>
+      </div>
+      <div class="sfield"><div class="slabel">Truck Name</div><input id="authSignupTruckName" maxlength="40"></div>
+      <button class="btn primary" onclick="authSignup()">Create Account</button>
+    </div>
     <div id="loginStatus" class="muted" style="font-size:12px;margin-top:10px;text-align:center"></div>
-    <div id="createAccountSetup" style="display:none;margin-top:22px;border-top:1px solid var(--bd);padding-top:20px">
-    <div class="setup-title">🏢 Company Info</div>
-    <div class="sfield">
-      <div class="slabel">Company Name</div>
-      <input id="setupCompany" placeholder="IZZI Motors LLC" maxlength="60">
-    </div>
-    <div class="sfield">
-      <div class="slabel">Truck Name / Make</div>
-      <input id="setupTruckName" placeholder="Mack Anthem" maxlength="40">
-    </div>
-    <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div>
-        <div class="slabel">Unit Number</div>
-        <input id="setupUnit" placeholder="1919" maxlength="20">
-      </div>
-      <div>
-        <div class="slabel">License Plate</div>
-        <input id="setupPlate" placeholder="TX-1234" maxlength="15">
-      </div>
-    </div>
-
-    <div class="setup-title" style="margin-top:20px">👤 Driver Login / Info</div>
-    <div class="sfield">
-      <div class="slabel">Email Login</div>
-      <input id="setupEmail" type="email" placeholder="driver@email.com" maxlength="80" oninput="lookupSetupProfile()">
-      <div class="muted" style="font-size:11px;margin-top:4px">MVP: used as profile key on this device. Backend account login comes in Auth module.</div>
-    </div>
-    <div class="sfield">
-      <div class="slabel">CrewBIQ ID</div>
-      <input id="setupCrewId" placeholder="Auto-generated if empty" maxlength="32" oninput="lookupSetupProfile()">
-    </div>
-    <div class="sfield">
-      <div class="slabel">Your Name</div>
-      <input id="setupName" placeholder="John Smith" maxlength="40">
-    </div>
-    <div class="sfield">
-      <div class="slabel">Team Driver (optional)</div>
-      <input id="setupTeamDriver" placeholder="Jane Smith (leave empty if solo)" maxlength="40" oninput="toggleSetupRate()">
-    </div>
-    <div class="sfield">
-      <div class="slabel">Pay Type</div>
-      <select id="setupPayType" onchange="toggleSetupRate()">
-        <option value="cpm">CPM — per mile</option>
-        <option value="gross_percent">% of Gross</option>
-      </select>
-    </div>
-    <div class="sfield" id="setupCpmRow">
-      <div class="slabel">Rate $/mile</div>
-      <input type="number" step="0.01" id="setupCpmRate" placeholder="0.65">
-    </div>
-    <div class="sfield" id="setupGrossRow" style="display:none">
-      <div class="slabel">Gross %</div>
-      <input type="number" step="0.1" id="setupGrossPct" placeholder="28">
-    </div>
-    <div class="sfield" id="setupTeamRateRow" style="display:none">
-      <div class="slabel">Team Driver Rate (same type)</div>
-      <input type="number" step="0.01" id="setupTeamRate" placeholder="0.65">
-    </div>
-    <div class="sfield">
-      <div class="slabel">Miles Base</div>
-      <select id="setupCpmBase">
-        <option value="loaded">Loaded miles only</option>
-        <option value="total">Total miles (loaded + deadhead)</option>
-      </select>
-    </div>
-
-    <div class="setup-title" style="margin-top:20px">⚙️ App Settings</div>
-    <div class="sfield">
-      <div class="slabel">Sync URL (Fleet Manager Google Sheet)</div>
-      <input id="setupSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
-      <div class="muted" style="font-size:11px;margin-top:4px">You can start offline and keep this for cloud backup when available.</div>
-    </div>
-    <div class="sfield">
-      <div class="slabel">PTI Schedule</div>
-      <select id="setupPtiSchedule">
-        <option value="daily">Daily (every day)</option>
-        <option value="weekly">Weekly (every Monday)</option>
-      </select>
-    </div>
-    <button class="btn primary" style="margin-top:8px" onclick="saveSetup()">Create CrewBIQ ID & Start →</button>
-    </div>
   </div>
 </div>
 
@@ -576,6 +518,26 @@
       <div class="muted" style="font-size:12px;margin-bottom:10px">After changing settings, tap Save to apply them.</div>
       <button class="btn primary" onclick="saveSettings()" style="padding:12px;margin-bottom:16px">Save Settings</button>
 
+      <div style="font-size:13px;font-weight:700;color:var(--mu);margin-bottom:10px">Account</div>
+      <div class="sfield">
+        <div class="slabel">CrewBIQ ID</div>
+        <div id="settingsCrewId" style="font-size:14px;font-weight:800;color:var(--tx);padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--s2)">Not signed in</div>
+      </div>
+      <div class="sfield">
+        <div class="slabel">Current Assignment</div>
+        <div id="settingsAssignment" style="font-size:13px;color:var(--tx);line-height:1.4;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--s2)">No current assignment</div>
+      </div>
+      <div class="sfield" style="border-top:1px solid var(--bd);padding-top:12px">
+        <div class="slabel">Restore old unit data</div>
+        <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px">
+          <input id="legacyClaimUnit" placeholder="Unit Number">
+          <button class="btn ghost" onclick="previewLegacyClaim()" style="padding:10px 12px">Preview</button>
+          <button class="btn primary" onclick="confirmLegacyClaim()" style="padding:10px 12px">Confirm</button>
+        </div>
+        <div id="legacyClaimStatus" class="muted" style="font-size:11px;margin-top:6px"></div>
+      </div>
+      <button class="btn ghost" onclick="logoutDevice()" style="padding:12px;margin-bottom:16px">Logout / Clear Session</button>
+
       <div style="font-size:13px;font-weight:700;color:var(--mu);margin-bottom:10px">🏢 Company</div>
       <div class="sfield">
         <div class="slabel">Company Logo (for reports)</div>
@@ -601,7 +563,7 @@
 
       <div style="font-size:13px;font-weight:700;color:var(--mu);margin-bottom:10px;margin-top:4px">👤 Driver</div>
       <div class="sfield"><div class="slabel">Email Login</div><input id="setEmail" type="email" placeholder="driver@email.com"></div>
-      <div class="sfield"><div class="slabel">CrewBIQ ID</div><input id="setCrewId" placeholder="CBQ-1919"></div>
+      <div class="sfield"><div class="slabel">CrewBIQ ID</div><input id="setCrewId" placeholder="CBQ-..." readonly></div>
       <div class="sfield"><div class="slabel">Driver Name</div><input id="setName"></div>
       <div class="sfield"><div class="slabel">Team Driver (leave empty if solo)</div><input id="setTeamDriver" placeholder="optional" oninput="toggleSetRateFields()"></div>
       <div class="sfield"><div class="slabel">Pay Type</div>
@@ -986,7 +948,6 @@ function sortLoadsNewest(arr){
 }
 function loadDriverScopedData(allowLegacy=false){
   if(!driver){ loads=[]; ptiLog=[]; return; }
-  if(!driver.crewId) driver.crewId = generateCrewBIQId(driver.name, driver.email, driver.unitNumber);
   let scopedLoads = scopedLoad('loads', null);
   let scopedPti   = scopedLoad('ptiLog', null);
   // Legacy migration only for an already logged-in driver before this patch.
@@ -1005,7 +966,6 @@ function saveDriverScopedData(){
 }
 function loadAll(){
   driver = load('driver', null);
-  if(driver && !driver.crewId) driver.crewId = generateCrewBIQId(driver.name, driver.email, driver.unitNumber);
   ptiCustom = load('ptiCustom', []);
   loadDriverScopedData(!!driver);
 }
@@ -1121,156 +1081,285 @@ function lookupSetupProfile(){
   toggleSetupRate(); toast('Profile restored from this device');
 }
 
-function showCreateAccountSetup(){
-  const box=document.getElementById('createAccountSetup');
-  if(box) box.style.display='block';
-  const ident=(document.getElementById('loginIdentity')||{}).value||'';
-  if(ident.includes('@') && document.getElementById('setupEmail')) document.getElementById('setupEmail').value=ident.trim();
-  if(/^CBQ-/i.test(ident.trim()) && document.getElementById('setupCrewId')) document.getElementById('setupCrewId').value=ident.trim().toUpperCase();
-}
 function setLoginStatus(msg,type=''){
   const el=document.getElementById('loginStatus');
   if(el){ el.textContent=msg; el.style.color=type==='err'?'var(--rd)':type==='ok'?'var(--gr)':'var(--mu)'; }
 }
-function getSavedSyncToken(){
-  try{ return localStorage.getItem(K+'syncToken') || ''; }catch(e){ return ''; }
+function getSavedSessionToken(){
+  try{ return localStorage.getItem(K+'sessionToken') || ''; }catch(e){ return ''; }
 }
-function saveSyncToken(token){
+function saveSessionToken(token){
   token=String(token||'').trim();
-  if(token) localStorage.setItem(K+'syncToken', token);
+  if(token) localStorage.setItem(K+'sessionToken', token);
 }
-function clearSavedSyncToken(){
-  try{ localStorage.removeItem(K+'syncToken'); }catch(e){}
-  const el=document.getElementById('loginSyncToken');
-  if(el) el.value='';
-  setLoginStatus('Saved Sync Token cleared');
-  toast('Sync Token cleared');
+function clearSessionToken(){
+  try{ localStorage.removeItem(K+'sessionToken'); }catch(e){}
 }
-function makeOfflineDriverFromIdentity(identity, syncUrl){
-  identity=(identity||'').trim();
-  const isEmail=identity.includes('@');
-  const isCrew=/^CBQ-/i.test(identity);
-  return {
-    name: isEmail ? identity.split('@')[0] : (isCrew ? identity.toUpperCase() : 'Driver'),
-    email: isEmail ? identity.toLowerCase() : '',
-    crewId: isCrew ? identity.toUpperCase() : '',
-    company:'', truckName:'', unitNumber:'', plate:'', teamDriver:'', teamRate:0,
-    payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded',
-    syncUrl: syncUrl || '', ptiSchedule:'daily', createdAt:new Date().toISOString()
-  };
+function extractSessionToken(data){
+  return String(
+    (data && data.sessionToken) ||
+    (data && data.data && data.data.sessionToken) ||
+    (data && data.auth && data.auth.sessionToken) ||
+    (data && data.profile && data.profile.sessionToken) ||
+    ''
+  ).trim();
 }
-async function loginExistingAccount(){
-  const syncUrl=(document.getElementById('loginSyncUrl')||{}).value.trim();
-  const syncToken=((document.getElementById('loginSyncToken')||{}).value || getSavedSyncToken()).trim();
-  if(!syncUrl) return setLoginStatus('Sync URL is required for cloud restore','err');
-  if(!syncToken) return setLoginStatus('Sync Token required to restore cloud data.','err');
-  saveSyncToken(syncToken);
-  setLoginStatus('Restoring cloud data...');
-  driver = { name:'Driver', email:'', crewId:'', company:'', truckName:'', unitNumber:'', plate:'', teamDriver:'', teamRate:0, payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded', syncUrl, ptiSchedule:'daily' };
+function unwrapAuthResponse(data){
+  return (data && data.data && typeof data.data === 'object') ? data.data : (data || {});
+}
+function endpointError(endpoint, message){
+  const err = new Error(message || 'Request failed');
+  err.endpoint = endpoint;
+  return err;
+}
+function formatAuthError(err){
+  const endpoint = err && err.endpoint ? err.endpoint + ': ' : '';
+  return endpoint + ((err && err.message) || 'Request failed');
+}
+function getAuthSyncUrl(){
+  const input=(document.getElementById('loginSyncUrl')||{}).value || '';
+  const saved=localStorage.getItem(K+'_savedSyncUrl') || '';
+  return String(input || (driver&&driver.syncUrl) || saved || '').trim();
+}
+function getDeviceId(){
   try{
-    if(typeof pullFromCloud==='function'){
-      const r = await pullFromCloud({silent:true, allowProfile:true, syncToken});
-      if(!r || r.ok === false) throw new Error((r && (r.error || r.reason)) || 'Cloud restore failed');
-      if(r && r.profile && r.profile.driver){
-        driver = {...driver, ...r.profile.driver, syncUrl: syncUrl || (r.profile.driver.syncUrl||'')};
-        if(!driver.crewId && r.profile.crewId) driver.crewId = r.profile.crewId;
-        if(!driver.email && r.profile.email) driver.email = r.profile.email;
-        // Restore stable Driver ID and points from backend
-        if(r.driverId && (!driver.crewId || driver._idOffline)) {
-          driver.crewId = r.driverId;
-          delete driver._idOffline;
-        }
-        if(typeof r.pointsBalance === 'number') driver.points = r.pointsBalance;
-        loadDriverScopedData(false);
-        saveAll();
-      }
+    let id=localStorage.getItem(K+'deviceId');
+    if(!id){
+      id='dev_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);
+      localStorage.setItem(K+'deviceId', id);
     }
-    saveDriverProfile();
+    return id;
+  }catch(e){ return 'dev_unknown'; }
+}
+function showAuthTab(tab){
+  const isSignup = tab === 'signup';
+  const loginPanel=document.getElementById('authLoginPanel');
+  const signupPanel=document.getElementById('authSignupPanel');
+  const loginTab=document.getElementById('authLoginTab');
+  const signupTab=document.getElementById('authSignupTab');
+  if(loginPanel) loginPanel.style.display = isSignup ? 'none' : '';
+  if(signupPanel) signupPanel.style.display = isSignup ? '' : 'none';
+  if(loginTab) loginTab.className = 'btn ' + (isSignup ? 'ghost' : 'primary');
+  if(signupTab) signupTab.className = 'btn ' + (isSignup ? 'primary' : 'ghost');
+  setLoginStatus('');
+}
+async function authPost(type, payload={}, syncUrlOverride=''){
+  const syncUrl=String(syncUrlOverride || getAuthSyncUrl()).trim();
+  if(!syncUrl) throw new Error('Sync URL is required');
+  const resp=await fetch(syncUrl, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({type, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
+    cache:'no-store',
+    redirect:'follow'
+  });
+  const text=await resp.text();
+  let data={};
+  try{ data=JSON.parse(text); }catch(e){ throw endpointError(type, 'Invalid backend response'); }
+  if(!resp.ok || data.ok === false || data.error) {
+    throw endpointError(type, data.error || data.reason || ('HTTP '+resp.status));
+  }
+  if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
+  return data;
+}
+function currentAssignmentLabel(){
+  const a=(driver&&driver.currentAssignment) || {};
+  const parts=[a.company || driver?.company || '', a.unitNumber ? 'Unit '+a.unitNumber : (driver?.unitNumber ? 'Unit '+driver.unitNumber : ''), a.truckName || driver?.truckName || '', a.plate || driver?.plate || ''].filter(Boolean);
+  return parts.join(' / ') || 'No current assignment';
+}
+function applyAuthRestoreData(data, syncUrl){
+  data=unwrapAuthResponse(data);
+  const profile=data.profile || {};
+  const profileDriver=profile.driver || {};
+  const assignment=data.currentAssignment || profile.currentAssignment || null;
+  const email=data.email || profile.email || profileDriver.email || '';
+  const crewId=data.crewId || profile.crewId || profileDriver.crewId || data.driverId || profile.driverId || '';
+  const nickname=data.nickname || profile.nickname || profileDriver.nickname || '';
+  const base={
+    name:'Driver', email:'', nickname:'', crewId:'', driverId:'', ownerKey:'',
+    company:'', truckName:'', unitNumber:'', plate:'',
+    teamDriver:'', teamRate:0, payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded',
+    syncUrl:syncUrl || getAuthSyncUrl(), ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
+  };
+  driver={
+    ...base,
+    ...(driver||{}),
+    ...profileDriver,
+    email,
+    nickname,
+    crewId,
+    driverId:data.driverId || profile.driverId || profileDriver.driverId || crewId,
+    ownerKey:data.ownerKey || profile.ownerKey || profileDriver.ownerKey || '',
+    name:profileDriver.name || nickname || (email ? email.split('@')[0] : '') || (driver&&driver.name) || 'Driver',
+    syncUrl:syncUrl || (driver&&driver.syncUrl) || getAuthSyncUrl(),
+    assignments:data.assignments || profile.assignments || [],
+    currentAssignment:assignment,
+    currentAssignmentId:(assignment&&assignment.assignmentId) || profile.currentAssignmentId || profileDriver.currentAssignmentId || ''
+  };
+  if(assignment){
+    driver.company = assignment.company || driver.company || '';
+    driver.unitNumber = assignment.unitNumber || driver.unitNumber || '';
+    driver.truckName = assignment.truckName || driver.truckName || '';
+    driver.plate = assignment.plate || driver.plate || '';
+  }
+  if(typeof data.pointsBalance === 'number') driver.points = data.pointsBalance;
+  if(Array.isArray(data.loads)) loads = sortLoadsNewest(data.loads);
+  if(Array.isArray(data.ptiLog)) ptiLog = data.ptiLog;
+  save('authProfile', profile);
+  save('assignments', driver.assignments || []);
+  saveAll();
+  saveDriverProfile();
+  return data;
+}
+async function restoreSession(options={}){
+  const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
+  const syncUrl=String(options.syncUrl || getAuthSyncUrl()).trim();
+  if(!sessionToken) throw endpointError('auth_restore', 'sessionToken missing before restore');
+  const data=await authPost('auth_restore', {sessionToken}, syncUrl);
+  applyAuthRestoreData(data, syncUrl);
+  if(!options.silent) setLoginStatus('Restored cloud data','ok');
+  return data;
+}
+async function authLogin(){
+  const syncUrl=getAuthSyncUrl();
+  const emailOrNickname=((document.getElementById('authLoginId')||{}).value || '').trim();
+  const password=((document.getElementById('authLoginPassword')||{}).value || '').trim();
+  if(!syncUrl) return setLoginStatus('Sync URL is required','err');
+  if(!emailOrNickname || !password) return setLoginStatus('Email or nickname and password are required','err');
+  try{
+    setLoginStatus('Logging in...');
+    const loginRaw=await authPost('auth_login', {emailOrNickname, password}, syncUrl);
+    console.log('[CrewBIQ Auth] auth_login response:', loginRaw);
+    const login=unwrapAuthResponse(loginRaw);
+    const sessionToken=extractSessionToken(login);
+    if(!sessionToken) {
+      console.error('[CrewBIQ Auth] auth_login response missing sessionToken:', loginRaw);
+      throw endpointError('auth_login', 'sessionToken missing from response');
+    }
+    saveSessionToken(sessionToken);
+    applyAuthRestoreData(login, syncUrl);
+    const restored=await restoreSession({sessionToken, syncUrl, silent:true});
     document.getElementById('setupScreen').style.display='none';
-    setLoginStatus('Restored ✅','ok');
     boot();
-    toast('Signed in ✅');
+    setLoginStatus('Logged in','ok');
+    toast('Signed in');
+    return restored;
   }catch(e){
-    setLoginStatus('Restore failed: '+e.message,'err');
-    showCreateAccountSetup();
+    setLoginStatus('Login failed at '+formatAuthError(e),'err');
   }
 }
-function logoutDevice(){
-  if(!confirm('Log out from this device? Cloud data will remain.')) return;
+async function authSignup(){
+  const syncUrl=getAuthSyncUrl();
+  const email=((document.getElementById('authSignupEmail')||{}).value || '').trim();
+  const nickname=((document.getElementById('authSignupNickname')||{}).value || '').trim();
+  const password=((document.getElementById('authSignupPassword')||{}).value || '').trim();
+  if(!syncUrl) return setLoginStatus('Sync URL is required','err');
+  if(!email || !nickname || !password) return setLoginStatus('Email, nickname and password are required','err');
+  const assignment={
+    company:((document.getElementById('authSignupCompany')||{}).value || '').trim(),
+    unitNumber:((document.getElementById('authSignupUnit')||{}).value || '').trim(),
+    truckName:((document.getElementById('authSignupTruckName')||{}).value || '').trim(),
+    plate:((document.getElementById('authSignupPlate')||{}).value || '').trim()
+  };
+  let signup;
+  let sessionToken;
   try{
-    const url=(driver&&driver.syncUrl)||localStorage.getItem(K+'_savedSyncUrl')||'';
+    setLoginStatus('Creating account...');
+    signup=await authPost('auth_signup', {email, nickname, password, assignment}, syncUrl);
+    sessionToken=extractSessionToken(signup);
+    if(!sessionToken) throw endpointError('auth_signup', 'sessionToken missing from response');
+    saveSessionToken(sessionToken);
+    applyAuthRestoreData(signup, syncUrl);
+  }catch(e){
+    setLoginStatus('Sign up failed at '+formatAuthError(e),'err');
+    return;
+  }
+
+  try{
+    setLoginStatus('Account created. Restoring cloud data...');
+    const restored=await restoreSession({sessionToken, syncUrl, silent:true});
+    document.getElementById('setupScreen').style.display='none';
+    boot();
+    setLoginStatus('Account created','ok');
+    toast('Account created');
+    return restored;
+  }catch(e){
+    setLoginStatus('Account created, but restore failed at '+formatAuthError(e),'err');
+    return signup;
+  }
+}
+function loginExistingAccount(){
+  return authLogin();
+}
+function setLegacyClaimStatus(msg,type=''){
+  const el=document.getElementById('legacyClaimStatus');
+  if(el){ el.textContent=msg; el.style.color=type==='err'?'var(--rd)':type==='ok'?'var(--gr)':'var(--mu)'; }
+}
+async function previewLegacyClaim(){
+  const unitNumber=((document.getElementById('legacyClaimUnit')||{}).value || '').trim();
+  const sessionToken=getSavedSessionToken();
+  if(!sessionToken) return setLegacyClaimStatus('Login required','err');
+  if(!unitNumber) return setLegacyClaimStatus('Unit Number is required','err');
+  try{
+    setLegacyClaimStatus('Checking old unit data...');
+    const data=await authPost('claim_legacy_preview', {sessionToken, unitNumber});
+    const c=data.counts || {};
+    setLegacyClaimStatus(`Found loads=${c.loads||0}, PTI=${c.ptiLog||0}, odometer=${c.odometer||0}.`, 'ok');
+    return data;
+  }catch(e){
+    setLegacyClaimStatus('Preview failed: '+e.message,'err');
+  }
+}
+async function confirmLegacyClaim(){
+  const unitNumber=((document.getElementById('legacyClaimUnit')||{}).value || '').trim();
+  const sessionToken=getSavedSessionToken();
+  if(!sessionToken) return setLegacyClaimStatus('Login required','err');
+  if(!unitNumber) return setLegacyClaimStatus('Unit Number is required','err');
+  if(!confirm('Claim unowned legacy rows for Unit '+unitNumber+'?')) return;
+  try{
+    setLegacyClaimStatus('Claiming old unit data...');
+    const data=await authPost('claim_legacy_confirm', {sessionToken, unitNumber});
+    const loadsClaimed=data.loads_claimed ?? data.loadsClaimed ?? 0;
+    const ptiClaimed=data.pti_claimed ?? data.ptiClaimed ?? 0;
+    const odoClaimed=data.odometer_claimed ?? data.odometerClaimed ?? 0;
+    await restoreSession({sessionToken, silent:true});
+    renderAll();
+    setLegacyClaimStatus(`Claimed loads=${loadsClaimed}, PTI=${ptiClaimed}, odometer=${odoClaimed}.`, 'ok');
+    toast('Old unit data restored');
+    return data;
+  }catch(e){
+    setLegacyClaimStatus('Claim failed: '+e.message,'err');
+  }
+}
+async function logoutDevice(){
+  if(!confirm('Log out from this device? Cloud data will remain.')) return;
+  const sessionToken=getSavedSessionToken();
+  const syncUrl=(driver&&driver.syncUrl)||localStorage.getItem(K+'_savedSyncUrl')||'';
+  if(sessionToken && syncUrl){
+    try{ await authPost('auth_logout', {sessionToken}, syncUrl); }
+    catch(e){ console.warn('[CrewBIQ Auth] logout failed:', e.message); }
+  }
+  try{
     const sched=(driver&&driver.ptiSchedule)||'daily';
     localStorage.removeItem(K+'driver');
-    if(url) localStorage.setItem(K+'_savedSyncUrl', url);
+    clearSessionToken();
+    if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
     if(sched) localStorage.setItem(K+'_savedPtiSched', sched);
   }catch(e){}
   location.reload();
 }
 function toggleSetupRate(){
-  let pt = document.getElementById('setupPayType').value;
+  const payTypeEl=document.getElementById('setupPayType');
+  if(!payTypeEl) return;
+  let pt = payTypeEl.value;
   document.getElementById('setupCpmRow').style.display = pt==='cpm'?'':'none';
   document.getElementById('setupGrossRow').style.display = pt==='gross_percent'?'':'none';
   let hasTeam = document.getElementById('setupTeamDriver').value.trim();
   document.getElementById('setupTeamRateRow').style.display = hasTeam?'':'none';
 }
 async function saveSetup(){
-  let name = document.getElementById('setupName').value.trim();
-  let unit = document.getElementById('setupUnit').value.trim();
-  if(!name||!unit) return toast('Name and Unit are required','err');
-  const email   = (document.getElementById('setupEmail')||{}).value?.trim() || '';
-  const manualId= (document.getElementById('setupCrewId')||{}).value?.trim() || '';
-  const syncUrl = document.getElementById('setupSyncUrl').value.trim();
-
-  driver = {
-    name, unitNumber:unit, email,
-    crewId: manualId,
-    company: document.getElementById('setupCompany').value.trim(),
-    truckName: document.getElementById('setupTruckName').value.trim(),
-    plate: document.getElementById('setupPlate').value.trim(),
-    teamDriver: document.getElementById('setupTeamDriver').value.trim(),
-    teamRate: parseFloat(document.getElementById('setupTeamRate').value)||0,
-    payType: document.getElementById('setupPayType').value,
-    cpmRate: parseFloat(document.getElementById('setupCpmRate').value)||0,
-    grossPercent: parseFloat(document.getElementById('setupGrossPct').value)||0,
-    cpmBase: document.getElementById('setupCpmBase').value,
-    syncUrl: syncUrl,
-    ptiSchedule: document.getElementById('setupPtiSchedule').value,
-  };
-
-  // Fetch stable Driver ID from backend (never generate locally for new drivers)
-  if (!driver.crewId && syncUrl && (email || unit)) {
-    try {
-      const sep = syncUrl.includes('?') ? '&' : '?';
-      const idUrl = syncUrl + sep +
-        'type=identity' +
-        '&email=' + encodeURIComponent(email) +
-        '&name='  + encodeURIComponent(name) +
-        '&unit='  + encodeURIComponent(unit);
-      toast('Getting your CrewBIQ ID...', '');
-      const resp = await fetch(idUrl);
-      const data = await resp.json();
-      if (data.status === 'ok' && data.driverId) {
-        driver.crewId = data.driverId;
-        driver.points = data.points || 0;
-        toast(data.isNew ? 'CrewBIQ ID created: ' + data.driverId : 'Welcome back! ' + data.driverId, 'ok');
-      }
-    } catch(e) {
-      console.warn('[CrewBIQ] Could not fetch Driver ID from backend:', e.message);
-    }
-  }
-
-  // Fallback only if offline and no backend available
-  if (!driver.crewId) {
-    driver.crewId = generateCrewBIQId(driver.name, driver.email, driver.unitNumber);
-    driver._idOffline = true; // flag to re-sync ID when online
-  }
-
-  loadDriverScopedData(false);
-  saveAll();
-  saveDriverProfile();
-  if(typeof forceFullSync==='function') setTimeout(()=>forceFullSync(), 600);
-  document.getElementById('setupScreen').style.display='none';
-  boot();
+  showAuthTab('signup');
+  setLoginStatus('Create an account with email, nickname and password. CrewBIQ ID comes from the backend.', 'err');
 }
 
 // ── BOOT ──
@@ -1891,6 +1980,10 @@ function renderSettingsPage(){
   if(sel) sel.value = t;
   updatePtiToggleUI();
   loadWeekStartSetting();
+  const crewBox=document.getElementById('settingsCrewId');
+  if(crewBox) crewBox.textContent = driver.crewId || 'Not signed in';
+  const assignBox=document.getElementById('settingsAssignment');
+  if(assignBox) assignBox.textContent = currentAssignmentLabel();
   document.getElementById('setCompany').value = driver.company||'';
   document.getElementById('setTruckName').value = driver.truckName||'';
   document.getElementById('setUnit').value = driver.unitNumber||'';
@@ -1944,7 +2037,6 @@ function saveSettings(){
   driver.syncUrl = document.getElementById('setSyncUrl').value.trim();
   localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(document.getElementById('setOrchestratorUrl').value));
   localStorage.setItem(K + 'orchestratorSecret', document.getElementById('setOrchestratorSecret').value.trim());
-  if(!driver.crewId) driver.crewId = generateCrewBIQId(driver.name, driver.email, driver.unitNumber);
   const newIdentityKey = getDriverIdentityKey(driver);
   if(oldIdentityKey && newIdentityKey && oldIdentityKey !== newIdentityKey){
     saveDriverScopedData();
@@ -2135,17 +2227,21 @@ document.getElementById('splashScreen').addEventListener('animationend', functio
 // restore saved sync URL if starting fresh after driver reset
 let _savedUrl = localStorage.getItem(K+'_savedSyncUrl');
 let _savedSched = localStorage.getItem(K+'_savedPtiSched');
-let _savedToken = getSavedSyncToken();
 if(_savedUrl && document.getElementById('setupSyncUrl'))
   document.getElementById('setupSyncUrl').value = _savedUrl;
 if(_savedUrl && document.getElementById('loginSyncUrl'))
   document.getElementById('loginSyncUrl').value = _savedUrl;
-if(_savedToken && document.getElementById('loginSyncToken'))
-  document.getElementById('loginSyncToken').value = _savedToken;
 if(_savedSched && document.getElementById('setupPtiSchedule'))
   document.getElementById('setupPtiSchedule').value = _savedSched;
 document.getElementById('pickupDate').value = today();
-boot();
+const _savedSession = getSavedSessionToken();
+if(_savedSession && (_savedUrl || (driver && driver.syncUrl))){
+  restoreSession({sessionToken:_savedSession, syncUrl:_savedUrl || driver.syncUrl, silent:true})
+    .catch(e => console.warn('[CrewBIQ Auth] session restore failed:', e.message))
+    .finally(() => boot());
+} else {
+  boot();
+}
 </script>
 </body>
 </html>
