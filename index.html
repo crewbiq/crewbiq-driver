@@ -276,10 +276,13 @@
     <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:14px">
       Sign in or create an account to restore private driver data from the CrewBIQ sync backend.
     </div>
-    <div class="sfield">
-      <div class="slabel">Sync URL</div>
-      <input id="loginSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
-      <div class="muted" style="font-size:11px;margin-top:4px">Google Apps Script remains the Driver Sync backend.</div>
+    <button class="btn ghost" style="padding:8px 10px;margin-bottom:12px;font-size:12px" onclick="toggleLoginAdvancedSync()">Advanced sync settings</button>
+    <div id="loginAdvancedSync" style="display:none">
+      <div class="sfield">
+        <div class="slabel">Sync URL</div>
+        <input id="loginSyncUrl" value="https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec">
+        <div class="muted" style="font-size:11px;margin-top:4px">Only change this if CrewBIQ support tells you to.</div>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 14px">
       <button id="authLoginTab" class="btn primary" onclick="showAuthTab('login')">Login</button>
@@ -635,26 +638,30 @@
           <option value="weekly">Weekly (Monday)</option>
         </select>
       </div>
-      <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
-      <div class="sfield">
-        <div class="slabel">Orchestrator Sync URL</div>
-        <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync">
-        <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional — sends a parallel copy to CrewBIQ Orchestrator. Google Sheets sync remains primary.</div>
+      <button class="btn ghost" onclick="toggleSettingsAdvancedSync()" style="padding:10px;margin-top:4px">Advanced / Developer settings</button>
+      <div id="settingsAdvancedSync" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:12px">
+        <div class="muted" style="font-size:12px;margin-bottom:10px;color:var(--am)">Only change these if CrewBIQ support tells you to.</div>
+        <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
+        <div class="sfield">
+          <div class="slabel">Orchestrator Sync URL</div>
+          <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync">
+          <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional support setting. Google Apps Script sync remains primary.</div>
+        </div>
+        <div class="sfield">
+          <div class="slabel">Orchestrator Secret</div>
+          <input id="setOrchestratorSecret" placeholder="optional">
+          <div style="font-size:10px;color:var(--mu);margin-top:2px">Do not change unless CrewBIQ support provides a value.</div>
+        </div>
+        <div class="sfield">
+          <div class="slabel">Orchestrator Status</div>
+          <div id="orchestratorSettingsStatus" style="font-size:11px;color:var(--mu);line-height:1.6">URL configured: no<br>Secret configured: no<br>Last copy: skipped</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button onclick="restoreFromCloud()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">⬇️ Pull from Cloud</button>
+          <button onclick="forceFullSync()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">↕️ Full Sync</button>
+        </div>
+        <div id="restoreStatus" style="font-size:11px;color:var(--mu);margin-top:4px;text-align:center"></div>
       </div>
-      <div class="sfield">
-        <div class="slabel">Orchestrator Secret</div>
-        <input id="setOrchestratorSecret" placeholder="optional">
-        <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional — required only when CrewBIQ Orchestrator secret protection is enabled.</div>
-      </div>
-      <div class="sfield">
-        <div class="slabel">Orchestrator Status</div>
-        <div id="orchestratorSettingsStatus" style="font-size:11px;color:var(--mu);line-height:1.6">URL configured: no<br>Secret configured: no<br>Last copy: skipped</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button onclick="restoreFromCloud()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">⬇️ Pull from Cloud</button>
-        <button onclick="forceFullSync()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">↕️ Full Sync</button>
-      </div>
-      <div id="restoreStatus" style="font-size:11px;color:var(--mu);margin-top:4px;text-align:center"></div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn primary" onclick="saveSettings()" style="padding:12px">Save</button>
         <button class="btn ghost" onclick="doSync()" style="padding:12px">☁️ Sync</button>
@@ -889,6 +896,7 @@
 <script>
 const K = 'fiqD_';
 const APP_SCHEMA_VERSION = 2;
+const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec';
 function migrateStorage(){
   let v = parseInt(localStorage.getItem(K+'schemaVersion')||'1');
   if(v < 2){
@@ -1095,6 +1103,10 @@ function saveSessionToken(token){
 function clearSessionToken(){
   try{ localStorage.removeItem(K+'sessionToken'); }catch(e){}
 }
+function toggleLoginAdvancedSync(){
+  const box=document.getElementById('loginAdvancedSync');
+  if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
 function extractSessionToken(data){
   return String(
     (data && data.sessionToken) ||
@@ -1119,7 +1131,11 @@ function formatAuthError(err){
 function getAuthSyncUrl(){
   const input=(document.getElementById('loginSyncUrl')||{}).value || '';
   const saved=localStorage.getItem(K+'_savedSyncUrl') || '';
-  return String(input || (driver&&driver.syncUrl) || saved || '').trim();
+  const driverUrl=(driver&&driver.syncUrl) || '';
+  const trimmedInput=String(input||'').trim();
+  const trimmedSaved=String(saved||'').trim();
+  if(trimmedInput && trimmedInput !== DEFAULT_SYNC_URL && trimmedInput !== trimmedSaved) return trimmedInput;
+  return String(trimmedSaved || driverUrl || trimmedInput || DEFAULT_SYNC_URL).trim();
 }
 function getDeviceId(){
   try{
@@ -1179,7 +1195,7 @@ function applyAuthRestoreData(data, syncUrl){
     name:'Driver', email:'', nickname:'', crewId:'', driverId:'', ownerKey:'',
     company:'', truckName:'', unitNumber:'', plate:'',
     teamDriver:'', teamRate:0, payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded',
-    syncUrl:syncUrl || getAuthSyncUrl(), ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
+    syncUrl:syncUrl || getAuthSyncUrl() || DEFAULT_SYNC_URL, ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
   };
   driver={
     ...base,
@@ -1191,7 +1207,7 @@ function applyAuthRestoreData(data, syncUrl){
     driverId:data.driverId || profile.driverId || profileDriver.driverId || crewId,
     ownerKey:data.ownerKey || profile.ownerKey || profileDriver.ownerKey || '',
     name:profileDriver.name || nickname || (email ? email.split('@')[0] : '') || (driver&&driver.name) || 'Driver',
-    syncUrl:syncUrl || (driver&&driver.syncUrl) || getAuthSyncUrl(),
+    syncUrl:syncUrl || (driver&&driver.syncUrl) || getAuthSyncUrl() || DEFAULT_SYNC_URL,
     assignments:data.assignments || profile.assignments || [],
     currentAssignment:assignment,
     currentAssignmentId:(assignment&&assignment.assignmentId) || profile.currentAssignmentId || profileDriver.currentAssignmentId || ''
@@ -1935,6 +1951,11 @@ function shareInvite(){
 // ── SETTINGS PAGE ──
 const DEFAULT_ORCHESTRATOR_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app/v1/sync';
 
+function toggleSettingsAdvancedSync(){
+  const box=document.getElementById('settingsAdvancedSync');
+  if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
 function normalizeOrchestratorSyncUrl(value){
   if(window.CrewBIQSync && typeof CrewBIQSync.normalizeOrchestratorSyncUrl === 'function'){
     return CrewBIQSync.normalizeOrchestratorSyncUrl(value);
@@ -1998,7 +2019,7 @@ function renderSettingsPage(){
   document.getElementById('setGrossPct').value = driver.grossPercent||'';
   document.getElementById('setCpmBase').value = driver.cpmBase||'loaded';
   document.getElementById('setPtiSchedule').value = driver.ptiSchedule||'daily';
-  document.getElementById('setSyncUrl').value = driver.syncUrl||'';
+  document.getElementById('setSyncUrl').value = driver.syncUrl || localStorage.getItem(K+'_savedSyncUrl') || DEFAULT_SYNC_URL;
   document.getElementById('setOrchestratorUrl').value = localStorage.getItem(K + 'orchestratorUrl') || DEFAULT_ORCHESTRATOR_SYNC_URL;
   document.getElementById('setOrchestratorSecret').value = localStorage.getItem(K + 'orchestratorSecret') || '';
   renderOrchestratorSettingsStatus();
@@ -2034,7 +2055,7 @@ function saveSettings(){
   driver.grossPercent = parseFloat(document.getElementById('setGrossPct').value)||0;
   driver.cpmBase = document.getElementById('setCpmBase').value;
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
-  driver.syncUrl = document.getElementById('setSyncUrl').value.trim();
+  driver.syncUrl = document.getElementById('setSyncUrl').value.trim() || DEFAULT_SYNC_URL;
   localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(document.getElementById('setOrchestratorUrl').value));
   localStorage.setItem(K + 'orchestratorSecret', document.getElementById('setOrchestratorSecret').value.trim());
   const newIdentityKey = getDriverIdentityKey(driver);
