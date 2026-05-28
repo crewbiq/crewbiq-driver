@@ -463,6 +463,15 @@
       <button onclick="doSync()" style="margin-left:auto;background:var(--s2);border:none;border-radius:8px;color:var(--tx);padding:6px 12px;font-size:12px;cursor:pointer">↕️ Sync Now</button>
     </div>
 
+    <div class="card" style="margin-top:8px">
+      <div class="label" style="margin-bottom:10px">Quick Access</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="btn ghost" onclick="showPage('report')" style="padding:10px;font-size:13px">📄 Reports</button>
+        <button class="btn ghost" onclick="showPage('settings')" style="padding:10px;font-size:13px">⚙️ Settings</button>
+        <button class="btn ghost" onclick="showPage('pti')" style="padding:10px;font-size:13px">🔍 PTI</button>
+      </div>
+    </div>
+
     <div class="section-title">Recent Loads</div>
     <div id="homeLoads"></div>
 
