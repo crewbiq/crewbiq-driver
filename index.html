@@ -273,6 +273,10 @@
   <div class="setup-sub">Driver App · <span style="color:#3b82f6;font-size:11px">by CrewBIQ Tech</span></div>
   <div class="setup-card">
     <div class="setup-title">🔐 CrewBIQ Login</div>
+    <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:14px">
+      Existing driver? Enter your Email or CrewBIQ ID with the Sync URL to restore cloud data.
+      New driver? Tap Create / Setup New Driver below. The app works locally/offline, and sync can be configured for cloud backup.
+    </div>
     <div class="sfield">
       <div class="slabel">Email or CrewBIQ ID</div>
       <input id="loginIdentity" placeholder="driver@email.com or CBQ-XXXXXX" maxlength="80">
@@ -281,6 +285,7 @@
     <div class="sfield">
       <div class="slabel">Sync URL</div>
       <input id="loginSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
+      <div class="muted" style="font-size:11px;margin-top:4px">Google Sheets sync remains the primary cloud backup path.</div>
     </div>
     <button class="btn primary" onclick="loginExistingAccount()">Sign In & Restore Cloud Data</button>
     <button class="btn ghost" style="margin-top:8px" onclick="showCreateAccountSetup()">Create / Setup New Driver</button>
@@ -355,6 +360,7 @@
     <div class="sfield">
       <div class="slabel">Sync URL (Fleet Manager Google Sheet)</div>
       <input id="setupSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
+      <div class="muted" style="font-size:11px;margin-top:4px">You can start offline and keep this for cloud backup when available.</div>
     </div>
     <div class="sfield">
       <div class="slabel">PTI Schedule</div>
