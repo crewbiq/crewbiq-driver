@@ -121,6 +121,29 @@
     };
   }
 
+  function stableLocalLoadId(load) {
+    const key = String((load && (load.id || load.loadId || load.record_id || load.key)) || '').trim();
+    return key ? 'l_' + identitySlug(key) : 'l_' + Date.now();
+  }
+
+  function loadActionKey(load) {
+    return String((load && (load.id || load.loadId || load.record_id || load.key)) || '').trim();
+  }
+
+  function isLoadMatch(load, key) {
+    key = String(key || '').trim();
+    if (!key || !load) return false;
+    return String(load.id || '') === key ||
+           String(load.loadId || '') === key ||
+           String(load.record_id || '') === key ||
+           String(load.key || '') === key ||
+           loadActionKey(load) === key;
+  }
+
+  function actionArg(value) {
+    return JSON.stringify(String(value || ''));
+  }
+
   // ── DISPUTES STORAGE ──────────────────────────────────────────────────────
 
   function getDriverDisputed() {
@@ -278,7 +301,7 @@
 
   function editLoad(id) {
     if (!assertReady()) return;
-    const x = _get.loads().find(l => l.id === id);
+    const x = _get.loads().find(l => isLoadMatch(l, id));
     if (!x) return;
     document.getElementById('loadEditId').value   = x.id;
     document.getElementById('loadId').value       = x.loadId || '';
@@ -301,8 +324,8 @@
   function deleteLoad(id) {
     if (!assertReady()) return;
     if (!confirm('Delete this load?')) return;
-    const deleted = _get.loads().find(x => x.id === id);
-    _set.loads(_get.loads().filter(x => x.id !== id));
+    const deleted = _get.loads().find(x => isLoadMatch(x, id));
+    _set.loads(_get.loads().filter(x => !isLoadMatch(x, id)));
     _saveAll();
     if (_renderAll) _renderAll();
     _toast('Deleted');
@@ -311,7 +334,11 @@
 
   function setLoadStatus(id, status) {
     if (!assertReady()) return;
-    const targetLoad = _get.loads().find(x => x.id === id);
+    const targetLoad = _get.loads().find(x => isLoadMatch(x, id));
+    if (!targetLoad) {
+      _toast('Load not found. Refresh and try again.', 'err');
+      return;
+    }
     const resolvedDispute = targetLoad ? getDisputeForLoad(targetLoad.loadId) : null;
     if (resolvedDispute && (resolvedDispute.status === 'won' || resolvedDispute.status === 'lost')) {
       const locked = resolvedDispute.status === 'won' ? 'won' : 'lost';
@@ -324,13 +351,14 @@
     const driver = _get.driver();
     const isCPM  = driver.payType !== 'gross_percent';
     _set.loads(_get.loads().map(x => {
-      if (x.id !== id) return x;
+      if (!isLoadMatch(x, id)) return x;
+      const base = { ...x, id: x.id || stableLocalLoadId(x) };
       // Cancel: CPM still gets paid for miles driven; gross% gets 0
       if (status === 'cancel') {
         const cancelPay = isCPM
           ? calcDriverPay(x.gross, x.loadedMiles, x.totalMiles) + Number(x.detention || 0) + Number(x.layover || 0)
           : 0;
-        return { ...x, status, driverPay: cancelPay, statusUpdatedAt:new Date().toISOString(), synced: false };
+        return { ...base, status, driverPay: cancelPay, statusUpdatedAt:new Date().toISOString(), synced: false };
       }
       // Adj: recalc from adjAmount if set
       if (status === 'adj' && x.adjAmount) {
@@ -338,15 +366,15 @@
           payType: driver.payType, cpmRate: driver.cpmRate,
           grossPercent: driver.grossPercent, cpmBase: driver.cpmBase,
         }) + Number(x.detention || 0) + Number(x.layover || 0);
-        return { ...x, status, driverPay: adjPay, statusUpdatedAt:new Date().toISOString(), synced: false };
+        return { ...base, status, driverPay: adjPay, statusUpdatedAt:new Date().toISOString(), synced: false };
       }
       // Active/success: restore pay from original gross
       if (status === 'active' || status === 'success') {
         const restoredPay = calcDriverPay(x.gross, x.loadedMiles, x.totalMiles)
                           + Number(x.detention || 0) + Number(x.layover || 0);
-        return { ...x, status, driverPay: restoredPay, statusUpdatedAt:new Date().toISOString(), synced: false };
+        return { ...base, status, driverPay: restoredPay, statusUpdatedAt:new Date().toISOString(), synced: false };
       }
-      return { ...x, status, statusUpdatedAt:new Date().toISOString(), synced: false };
+      return { ...base, status, statusUpdatedAt:new Date().toISOString(), synced: false };
     }));
     _saveAll();
     if (_renderAll) _renderAll();
@@ -889,8 +917,12 @@
     document.getElementById('homeGross').textContent    = _fmt(gross);
     document.getElementById('homeLoadedMi').textContent = lmi.toLocaleString();
     document.getElementById('homeDeadMi').textContent   = dmi.toLocaleString();
-    document.getElementById('homeLoads').innerHTML = loads.slice(0, 5).map(x => {
+    document.getElementById('homeLoads').innerHTML = loads.slice(0, 5).map((x, i) => {
       const isDisputed  = x.status === 'disputed' || pendingIds.has(x.loadId);
+      const key = loadActionKey(x);
+      const keyArg = actionArg(key);
+      const loadIdArg = actionArg(x.loadId || '');
+      const menuId = 'smenu_h_' + i + '_' + identitySlug(key || x.loadId || '');
       const statusColor = x.status === 'success' ? 'var(--gr)' : x.status === 'cancel' ? 'var(--rd)' : x.status === 'adj' ? 'var(--acc)' : isDisputed ? '#f59e0b' : 'var(--mu)';
       const statusLabel = x.status === 'success' ? '✅ Success' : x.status === 'cancel' ? '❌ Cancelled' : x.status === 'adj' ? `🔧 Adj ${_fmt(x.adjAmount || 0)}` : isDisputed ? '⚖️ Disputed' : '🔵 Active';
       const borderColor = isDisputed ? '#f59e0b' : x.status === 'success' ? 'var(--gr)' : x.status === 'cancel' ? 'var(--rd)' : x.status === 'adj' ? 'var(--acc)' : 'var(--bd)';
@@ -911,15 +943,15 @@
         </div>
         <div class="item-actions">
           <div class="status-dropdown" style="flex:1">
-            <button onclick="toggleStatusMenu(event,'smenu_h_${x.id}')" style="width:100%;color:${statusColor}">⚡ Status ▾</button>
-            <div class="status-menu" id="smenu_h_${x.id}">
-              <button onclick="setLoadStatus('${x.id}','active');closeAllMenus()">🔵 Active</button>
-              <button onclick="setLoadStatus('${x.id}','success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
-              <button onclick="closeAllMenus();goToDisputeWithLoad('${x.loadId}','cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
-              <button onclick="closeAllMenus();goToDisputeWithLoad('${x.loadId}','adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
+            <button onclick="toggleStatusMenu(event,'${menuId}')" style="width:100%;color:${statusColor}">⚡ Status ▾</button>
+            <div class="status-menu" id="${menuId}">
+              <button onclick="setLoadStatus(${keyArg},'active');closeAllMenus()">🔵 Active</button>
+              <button onclick="setLoadStatus(${keyArg},'success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
             </div>
           </div>
-          <button onclick="editLoad('${x.id}')" style="border-left:1px solid var(--bd)">✏️ Edit</button>
+          <button onclick="editLoad(${keyArg})" style="border-left:1px solid var(--bd)">✏️ Edit</button>
         </div>
       </div>`;
     }).join('') || '<div class="empty">No loads this week</div>';
@@ -937,9 +969,13 @@
     if (!assertReady()) return;
     const loads = _get.loads();
     const dispIds = new Set(getDriverDisputed().filter(d => d.status === 'pending').map(d => d.loadId));
-    document.getElementById('allLoads').innerHTML = loads.map(x => {
+    document.getElementById('allLoads').innerHTML = loads.map((x, i) => {
       const isDisp = dispIds.has(x.loadId);
       const addlPay = (x.detention || 0) + (x.layover || 0);
+      const key = loadActionKey(x);
+      const keyArg = actionArg(key);
+      const loadIdArg = actionArg(x.loadId || '');
+      const menuId = 'smenu_l_' + i + '_' + identitySlug(key || x.loadId || '');
       const statusColor = x.status === 'success' ? 'var(--gr)' : x.status === 'cancel' ? 'var(--rd)' : x.status === 'adj' ? 'var(--acc)' : isDisp ? '#f59e0b' : 'var(--bl)';
       const statusBadge = x.status === 'success' ? '<span style="color:var(--gr);font-size:11px">✅ Success</span>'
         : x.status === 'cancel' ? '<span style="color:var(--rd);font-size:11px">❌ Cancelled</span>'
@@ -964,16 +1000,16 @@
         </div>
         <div class="item-actions">
           <div class="status-dropdown" style="flex:1.5">
-            <button onclick="toggleStatusMenu(event,'smenu_l_${x.id}')" style="width:100%;color:${statusColor}">⚡ Status ▾</button>
-            <div class="status-menu" id="smenu_l_${x.id}">
-              <button onclick="setLoadStatus('${x.id}','active');closeAllMenus()">🔵 Active</button>
-              <button onclick="setLoadStatus('${x.id}','success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
-              <button onclick="closeAllMenus();goToDisputeWithLoad('${x.loadId}','cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
-              <button onclick="closeAllMenus();goToDisputeWithLoad('${x.loadId}','adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
+            <button onclick="toggleStatusMenu(event,'${menuId}')" style="width:100%;color:${statusColor}">⚡ Status ▾</button>
+            <div class="status-menu" id="${menuId}">
+              <button onclick="setLoadStatus(${keyArg},'active');closeAllMenus()">🔵 Active</button>
+              <button onclick="setLoadStatus(${keyArg},'success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
             </div>
           </div>
-          <button onclick="editLoad('${x.id}')" style="border-left:1px solid var(--bd)">✏️</button>
-          <button onclick="deleteLoad('${x.id}')" style="border-left:1px solid var(--bd);color:var(--rd)">🗑️</button>
+          <button onclick="editLoad(${keyArg})" style="border-left:1px solid var(--bd)">✏️</button>
+          <button onclick="deleteLoad(${keyArg})" style="border-left:1px solid var(--bd);color:var(--rd)">🗑️</button>
         </div>
       </div>`;
     }).join('') || '<div class="empty">No loads yet</div>';
