@@ -122,12 +122,12 @@
   }
 
   function stableLocalLoadId(load) {
-    const key = String((load && (load.id || load.loadId || load.loadID || load.load_id || load.record_id || load.recordId || load.key || load['Load ID'])) || '').trim();
+    const key = String((load && (load.id || load.loadId || load.record_id || load.key)) || '').trim();
     return key ? 'l_' + identitySlug(key) : 'l_' + Date.now();
   }
 
   function loadActionKey(load) {
-    return String((load && (load.id || load.loadId || load.loadID || load.load_id || load.record_id || load.recordId || load.key || load['Load ID'])) || '').trim();
+    return String((load && (load.id || load.loadId || load.record_id || load.key)) || '').trim();
   }
 
   function isLoadMatch(load, key) {
@@ -135,38 +135,13 @@
     if (!key || !load) return false;
     return String(load.id || '') === key ||
            String(load.loadId || '') === key ||
-           String(load.loadID || '') === key ||
-           String(load.load_id || '') === key ||
            String(load.record_id || '') === key ||
-           String(load.recordId || '') === key ||
            String(load.key || '') === key ||
-           String(load['Load ID'] || '') === key ||
            loadActionKey(load) === key;
   }
 
   function actionArg(value) {
     return JSON.stringify(String(value || ''));
-  }
-
-  function ensureLoadIds() {
-    const loads = _get.loads();
-    let changed = false;
-    const normalized = loads.map(load => {
-      if (!load || load.id) return load;
-      changed = true;
-      return {
-        ...load,
-        id: stableLocalLoadId(load),
-        updatedAt: load.updatedAt || new Date().toISOString(),
-      };
-    });
-    if (changed) {
-      console.info('[CrewBIQ Loads] assigned missing load ids', {
-        count: normalized.filter(load => load && load.id).length,
-      });
-      _set.loads(normalized);
-      _saveAll();
-    }
   }
 
   // ── DISPUTES STORAGE ──────────────────────────────────────────────────────
@@ -178,6 +153,10 @@
 
   function setDriverDisputed(v) {
     localStorage.setItem(K + 'disputed', JSON.stringify(v));
+  }
+
+  function getDisputeForLoad(loadId) {
+    return getDriverDisputed().find(d => d.loadId === loadId) || null;
   }
 
   // ── PAY CALCULATION ───────────────────────────────────────────────────────
@@ -360,19 +339,7 @@
   function setLoadStatus(id, status) {
     if (!assertReady()) return;
     const targetLoad = _get.loads().find(x => isLoadMatch(x, id));
-    console.info('[CrewBIQ Loads] setLoadStatus', {
-      id: String(id || ''),
-      status,
-      found: !!targetLoad,
-      oldStatus: targetLoad && targetLoad.status,
-      loadId: targetLoad && targetLoad.loadId,
-    });
     if (!targetLoad) {
-      console.warn('[CrewBIQ Loads] setLoadStatus load not found', {
-        id: String(id || ''),
-        status,
-        known: _get.loads().map(x => loadActionKey(x)).filter(Boolean),
-      });
       _toast('Load not found. Refresh and try again.', 'err');
       return;
     }
@@ -387,8 +354,6 @@
     }
     const driver = _get.driver();
     const isCPM  = driver.payType !== 'gross_percent';
-    const updatedAt = new Date().toISOString();
-    let updatedLoad = null;
     _set.loads(_get.loads().map(x => {
       if (!isLoadMatch(x, id)) return x;
       const base = { ...x, id: x.id || stableLocalLoadId(x) };
@@ -397,8 +362,7 @@
         const cancelPay = isCPM
           ? calcDriverPay(x.gross, x.loadedMiles, x.totalMiles) + Number(x.detention || 0) + Number(x.layover || 0)
           : 0;
-        updatedLoad = { ...base, status, driverPay: cancelPay, statusUpdatedAt: updatedAt, updatedAt, synced: false };
-        return updatedLoad;
+        return { ...base, status, driverPay: cancelPay, statusUpdatedAt:new Date().toISOString(), synced: false };
       }
       // Adj: recalc from adjAmount if set
       if (status === 'adj' && x.adjAmount) {
@@ -406,28 +370,21 @@
           payType: driver.payType, cpmRate: driver.cpmRate,
           grossPercent: driver.grossPercent, cpmBase: driver.cpmBase,
         }) + Number(x.detention || 0) + Number(x.layover || 0);
-        updatedLoad = { ...base, status, driverPay: adjPay, statusUpdatedAt: updatedAt, updatedAt, synced: false };
-        return updatedLoad;
+        return { ...base, status, driverPay: adjPay, statusUpdatedAt:new Date().toISOString(), synced: false };
       }
       // Active/success: restore pay from original gross
       if (status === 'active' || status === 'success') {
         const restoredPay = calcDriverPay(x.gross, x.loadedMiles, x.totalMiles)
                           + Number(x.detention || 0) + Number(x.layover || 0);
-        updatedLoad = { ...base, status, driverPay: restoredPay, statusUpdatedAt: updatedAt, updatedAt, synced: false };
-        return updatedLoad;
+        return { ...base, status, driverPay: restoredPay, statusUpdatedAt:new Date().toISOString(), synced: false };
       }
-      updatedLoad = { ...base, status, statusUpdatedAt: updatedAt, updatedAt, synced: false };
-      return updatedLoad;
+      return { ...base, status, statusUpdatedAt:new Date().toISOString(), synced: false };
     }));
     _saveAll();
     if (_renderAll) _renderAll();
     const labels = { success:'✅ Success', cancel:'❌ Cancelled', active:'🔵 Active', adj:'🔧 Adj' };
     _toast(labels[status] || 'Updated');
-    Core.events.emit('load:status_changed', {
-      id: updatedLoad && updatedLoad.id || id,
-      loadId: updatedLoad && updatedLoad.loadId || targetLoad.loadId,
-      status,
-    });
+    Core.events.emit('load:status_changed', { id, status });
   }
 
   // ── DISPUTES CRUD ─────────────────────────────────────────────────────────
@@ -925,13 +882,9 @@
 
   function toggleStatusMenu(e, menuId) {
     e.stopPropagation();
-    console.info('[CrewBIQ Loads] status menu clicked', { menuId });
     closeAllMenus();
     const m = document.getElementById(menuId);
-    if (!m) {
-      console.warn('[CrewBIQ Loads] status menu not found', { menuId });
-      return;
-    }
+    if (!m) return;
     const btn = e.currentTarget, rect = btn.getBoundingClientRect();
     const menuH = 220, spaceBelow = window.innerHeight - rect.bottom, spaceAbove = rect.top;
     m.style.left  = rect.left + 'px';
@@ -952,7 +905,6 @@
 
   function renderHome() {
     if (!assertReady()) return;
-    ensureLoadIds();
     const loads = _get.loads(), ptiLog = _get.ptiLog(), wkLoads = getWeekLoads();
     const disputedList = getDriverDisputed();
     const pendingIds   = new Set(disputedList.filter(d => d.status === 'pending').map(d => d.loadId));
@@ -997,10 +949,10 @@
           <div class="status-dropdown" style="flex:1">
             <button onclick="toggleStatusMenu(event,'${menuId}')" style="width:100%;color:${statusColor}">⚡ Status ▾</button>
             <div class="status-menu" id="${menuId}">
-              <button onclick="event.stopPropagation();setLoadStatus(${keyArg},'active');closeAllMenus()">🔵 Active</button>
-              <button onclick="event.stopPropagation();setLoadStatus(${keyArg},'success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
-              <button onclick="event.stopPropagation();closeAllMenus();goToDisputeWithLoad(${loadIdArg},'cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
-              <button onclick="event.stopPropagation();closeAllMenus();goToDisputeWithLoad(${loadIdArg},'adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
+              <button onclick="setLoadStatus(${keyArg},'active');closeAllMenus()">🔵 Active</button>
+              <button onclick="setLoadStatus(${keyArg},'success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
             </div>
           </div>
           <button onclick="editLoad(${keyArg})" style="border-left:1px solid var(--bd)">✏️ Edit</button>
@@ -1019,7 +971,6 @@
 
   function renderLoadPage() {
     if (!assertReady()) return;
-    ensureLoadIds();
     const loads = _get.loads();
     const dispIds = new Set(getDriverDisputed().filter(d => d.status === 'pending').map(d => d.loadId));
     document.getElementById('allLoads').innerHTML = loads.map((x, i) => {
@@ -1055,10 +1006,10 @@
           <div class="status-dropdown" style="flex:1.5">
             <button onclick="toggleStatusMenu(event,'${menuId}')" style="width:100%;color:${statusColor}">⚡ Status ▾</button>
             <div class="status-menu" id="${menuId}">
-              <button onclick="event.stopPropagation();setLoadStatus(${keyArg},'active');closeAllMenus()">🔵 Active</button>
-              <button onclick="event.stopPropagation();setLoadStatus(${keyArg},'success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
-              <button onclick="event.stopPropagation();closeAllMenus();goToDisputeWithLoad(${loadIdArg},'cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
-              <button onclick="event.stopPropagation();closeAllMenus();goToDisputeWithLoad(${loadIdArg},'adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
+              <button onclick="setLoadStatus(${keyArg},'active');closeAllMenus()">🔵 Active</button>
+              <button onclick="setLoadStatus(${keyArg},'success');closeAllMenus()" style="color:var(--gr)">✅ Success</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'cancel')" style="color:var(--rd)">❌ Cancel → Dispute</button>
+              <button onclick="closeAllMenus();goToDisputeWithLoad(${loadIdArg},'adj')" style="color:var(--acc)">🔧 Adj → Dispute</button>
             </div>
           </div>
           <button onclick="editLoad(${keyArg})" style="border-left:1px solid var(--bd)">✏️</button>
