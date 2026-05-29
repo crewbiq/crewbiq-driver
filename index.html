@@ -896,6 +896,16 @@
 <script>
 const K = 'fiqD_';
 const APP_SCHEMA_VERSION = 2;
+
+const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
+function runLaunchCleanResetOnce() {
+  const key = 'fiqD_launchCleanResetVersion';
+  if (localStorage.getItem(key) === LAUNCH_CLEAN_RESET_VERSION) return;
+  Object.keys(localStorage)
+    .filter(function(k) { return k.startsWith('fiqD_'); })
+    .forEach(function(k) { localStorage.removeItem(k); });
+  localStorage.setItem(key, LAUNCH_CLEAN_RESET_VERSION);
+}
 const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec';
 function migrateStorage(){
   let v = parseInt(localStorage.getItem(K+'schemaVersion')||'1');
@@ -2229,6 +2239,7 @@ if('serviceWorker' in navigator){
 }
 
 // ── INIT ──
+runLaunchCleanResetOnce();
 migrateStorage();
 loadAll();
 initSync();
