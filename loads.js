@@ -141,7 +141,7 @@
   }
 
   function actionArg(value) {
-    return JSON.stringify(String(value || ''));
+    return JSON.stringify(String(value || '')).replace(/"/g, '&quot;');
   }
 
   // ── DISPUTES STORAGE ──────────────────────────────────────────────────────
