@@ -276,14 +276,6 @@
     <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:14px">
       Sign in or create an account to restore private driver data from the CrewBIQ sync backend.
     </div>
-    <button class="btn ghost" style="padding:8px 10px;margin-bottom:12px;font-size:12px" onclick="toggleLoginAdvancedSync()">Advanced sync settings</button>
-    <div id="loginAdvancedSync" style="display:none">
-      <div class="sfield">
-        <div class="slabel">Sync URL</div>
-        <input id="loginSyncUrl" value="https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec">
-        <div class="muted" style="font-size:11px;margin-top:4px">Only change this if CrewBIQ support tells you to.</div>
-      </div>
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 14px">
       <button id="authLoginTab" class="btn primary" onclick="showAuthTab('login')">Login</button>
       <button id="authSignupTab" class="btn ghost" onclick="showAuthTab('signup')">Sign Up</button>
@@ -295,7 +287,10 @@
       </div>
       <div class="sfield">
         <div class="slabel">Password</div>
-        <input id="authLoginPassword" type="password" placeholder="Password" maxlength="128" autocomplete="current-password">
+        <div style="position:relative">
+          <input id="authLoginPassword" type="password" placeholder="Password" maxlength="128" autocomplete="current-password" style="padding-right:42px">
+          <button type="button" onclick="togglePassVis('authLoginPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mu);font-size:18px;line-height:1;padding:4px">👁</button>
+        </div>
       </div>
       <button class="btn primary" onclick="authLogin()">Login</button>
     </div>
@@ -310,7 +305,10 @@
       </div>
       <div class="sfield">
         <div class="slabel">Password</div>
-        <input id="authSignupPassword" type="password" placeholder="Password" maxlength="128" autocomplete="new-password">
+        <div style="position:relative">
+          <input id="authSignupPassword" type="password" placeholder="Password" maxlength="128" autocomplete="new-password" style="padding-right:42px">
+          <button type="button" onclick="togglePassVis('authSignupPassword',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mu);font-size:18px;line-height:1;padding:4px">👁</button>
+        </div>
       </div>
       <div class="muted" style="font-size:12px;margin:12px 0 8px">Optional initial assignment</div>
       <div class="sfield"><div class="slabel">Company</div><input id="authSignupCompany" maxlength="60"></div>
@@ -638,7 +636,7 @@
           <option value="weekly">Weekly (Monday)</option>
         </select>
       </div>
-      <button class="btn ghost" onclick="toggleSettingsAdvancedSync()" style="padding:10px;margin-top:4px">Advanced / Developer settings</button>
+      <button class="btn ghost" onclick="toggleSettingsAdvancedSync()" style="padding:10px;margin-top:4px" id="advSettingsBtn">🔒 Advanced Settings</button>
       <div id="settingsAdvancedSync" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:12px">
         <div class="muted" style="font-size:12px;margin-bottom:10px;color:var(--am)">Only change these if CrewBIQ support tells you to.</div>
         <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
@@ -803,7 +801,7 @@
       <div class="frow">
         <div class="fg"><div class="label">Date</div><input type="date" id="expDate"></div>
         <div class="fg"><div class="label">Type</div>
-          <select id="expType">
+          <select id="expType" onchange="updateExpOdoVisibility()">
             <option value="fuel">⛽ Fuel</option>
             <option value="scale">⚖️ Scale</option>
             <option value="toll">🛣 Toll</option>
@@ -842,6 +840,9 @@
             <option value="denied">Denied</option>
           </select>
         </div>
+      </div>
+      <div class="frow" id="expOdoRow" style="display:none">
+        <div class="fg"><div class="label">Odometer mi</div><input type="number" id="expOdometer" placeholder="e.g. 485000"></div>
       </div>
       <div class="sfield"><div class="slabel">Note</div><input id="expNote" placeholder="Scale ticket, fuel stop, repair note..."></div>
       <button class="btn primary" onclick="addExpense()">Add Expense</button>
@@ -1468,11 +1469,12 @@ function addExpense(){
     loadId:((document.getElementById('expLoadId')||{}).value||'').trim().toUpperCase(),
     status:(document.getElementById('expStatus')||{}).value || 'pending',
     note:((document.getElementById('expNote')||{}).value||'').trim(),
+    odometer:Number((document.getElementById('expOdometer')||{}).value)||0,
     createdAt:new Date().toISOString(),
     synced:false
   };
   const list=loadExpenses(); list.unshift(e); saveExpenses(list);
-  ['expAmount','expLoadId','expNote'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['expAmount','expLoadId','expNote','expOdometer'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   renderExpenses(); toast('Expense added');
 }
 function deleteExpense(id){
@@ -1480,9 +1482,15 @@ function deleteExpense(id){
   saveExpenses(loadExpenses().filter(e=>e.id!==id));
   renderExpenses(); toast('Expense deleted');
 }
+function updateExpOdoVisibility(){
+  const type=(document.getElementById('expType')||{}).value||'';
+  const row=document.getElementById('expOdoRow');
+  if(row) row.style.display=['fuel','repair','scale','washout'].includes(type)?'':'none';
+}
 function renderExpenses(){
   const list=loadExpenses();
   const dateEl=document.getElementById('expDate'); if(dateEl && !dateEl.value) dateEl.value=today();
+  updateExpOdoVisibility();
   const total=list.reduce((s,e)=>s+Number(e.amount||0),0);
   const pending=list.filter(e=>e.status==='pending').reduce((s,e)=>s+Number(e.amount||0),0);
   const reimb=list.filter(e=>e.status==='reimbursed').reduce((s,e)=>s+Number(e.amount||0),0);
@@ -1961,9 +1969,25 @@ function shareInvite(){
 // ── SETTINGS PAGE ──
 const DEFAULT_ORCHESTRATOR_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app/v1/sync';
 
+// Protects sync/orchestrator fields from accidental changes.
+// Change this value in Settings → Advanced to something only admins know.
+const ADVANCED_SETTINGS_SECRET = 'cbq-sync-2026';
+let _advSettingsUnlocked = false;
+
 function toggleSettingsAdvancedSync(){
-  const box=document.getElementById('settingsAdvancedSync');
-  if(box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  const box = document.getElementById('settingsAdvancedSync');
+  if (!box) return;
+  if (box.style.display !== 'none') { box.style.display = 'none'; return; }
+  if (_advSettingsUnlocked) { box.style.display = 'block'; return; }
+  const entered = prompt('Enter admin key:');
+  if (!entered || entered.trim() !== ADVANCED_SETTINGS_SECRET) {
+    toast('Invalid key', 'err'); return;
+  }
+  _advSettingsUnlocked = true;
+  box.style.display = 'block';
+  const btn = document.getElementById('advSettingsBtn');
+  if (btn) btn.textContent = '🔓 Advanced Settings';
+  toast('Advanced settings unlocked');
 }
 
 function normalizeOrchestratorSyncUrl(value){
@@ -2238,6 +2262,30 @@ if('serviceWorker' in navigator){
   });
 }
 
+function togglePassVis(id, btn){
+  const el=document.getElementById(id); if(!el) return;
+  const show=el.type==='text'; el.type=show?'password':'text';
+  btn.textContent=show?'👁':'🙈';
+}
+
+function suggestPTIOdometer(){
+  const el=document.getElementById('ptiOdometer');
+  if(!el||el.value) return;
+  const log=(ptiLog||[]).slice().sort((a,b)=>(b.date||'')>(a.date||'')?1:-1);
+  const lastPTI=log.find(p=>Number(p.odometer)>0);
+  if(!lastPTI) return;
+  const lastOdo=Number(lastPTI.odometer);
+  const lastDate=lastPTI.date||'';
+  const milesSince=(loads||[])
+    .filter(x=>(x.pickup||x.date||'')>lastDate&&x.status!=='cancel')
+    .reduce((s,x)=>s+Number(x.loadedMiles||0)+Number(x.deadMiles||0),0);
+  const suggested=lastOdo+Math.round(milesSince);
+  el.value=suggested;
+  const hint=el.parentElement&&el.parentElement.querySelector('.muted');
+  if(hint&&milesSince>0)
+    hint.textContent='Last PTI: '+lastOdo.toLocaleString()+' mi · +'+Math.round(milesSince).toLocaleString()+' mi since '+lastDate;
+}
+
 // ── INIT ──
 runLaunchCleanResetOnce();
 migrateStorage();
@@ -2245,6 +2293,7 @@ loadAll();
 initSync();
 initPTI();
 initLoads();
+CrewBIQCore.events.on('pti:blocker_shown', function(){ suggestPTIOdometer(); });
 loadTheme();
 loadAccent();
 renderLogoPreview();
