@@ -176,8 +176,17 @@
     return headers;
   }
 
+  function _secureId() {
+    // Use crypto.randomUUID() when available (all modern browsers).
+    // Fallback combines timestamp + Math.random() for older environments.
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12);
+  }
+
   function makeSyncRecordId(forceAll = false) {
-    return 'sync_' + getDeviceId() + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + (forceAll ? '_full' : '');
+    return 'sync_' + getDeviceId() + '_' + _secureId() + (forceAll ? '_full' : '');
   }
 
   function identitySlug(value){ return String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60); }
@@ -375,7 +384,7 @@
     const eventsUrl = orchestratorUrl.replace(/\/v1\/sync\/?$/, '/v1/events');
 
     const body = {
-      record_id: 'evt_' + getDeviceId() + '_' + Date.now(),
+      record_id: 'evt_' + getDeviceId() + '_' + _secureId(),
       event: eventName,
       source: 'pwa',
       timestamp: new Date().toISOString(),
