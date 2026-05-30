@@ -151,6 +151,16 @@
     .status-menu button:last-child{border-bottom:none}
     .status-menu button:active{background:var(--s2)}
     .empty{color:var(--mu);text-align:center;padding:30px;font-size:14px}
+    .role-btn{background:var(--s2);border:2px solid var(--bd);border-radius:14px;color:var(--mu);padding:12px 6px;cursor:pointer;font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s}
+    .role-btn .role-icon{font-size:24px;line-height:1}
+    .role-btn.selected{border-color:var(--acc);color:var(--acc);background:rgba(59,130,246,.1)}
+    .role-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(59,130,246,.15);color:var(--acc);margin-left:6px}
+    .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .menu-item{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--tx);transition:all .15s}
+    .menu-item:active{background:var(--s1)}
+    .menu-item .mi-icon{font-size:22px;line-height:1}
+    .menu-item.soon{opacity:.5;cursor:default}
+    .soon-tag{font-size:9px;color:var(--mu);font-weight:500}
     .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gr);color:#000;padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200;white-space:nowrap}
     .toast.show{opacity:1}.toast.err{background:var(--rd);color:#fff}.toast.warn{background:var(--acc);color:#000}
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px}
@@ -273,8 +283,16 @@
   <div class="setup-sub">Driver App · <span style="color:#3b82f6;font-size:11px">by CrewBIQ Tech</span></div>
   <div class="setup-card">
     <div class="setup-title">CrewBIQ Account</div>
-    <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:14px">
+    <div class="muted" style="font-size:12px;line-height:1.5;margin-bottom:12px">
       Sign in or create an account to restore private driver data from the CrewBIQ sync backend.
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="slabel" style="margin-bottom:8px">I am a…</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button class="role-btn selected" id="setupRoleDriver"    onclick="setupSelectRole('driver',this)">   <span class="role-icon">🚛</span>Driver</button>
+        <button class="role-btn"          id="setupRoleOwnerOp"   onclick="setupSelectRole('owner_op',this)"><span class="role-icon">🏢</span>Owner-Op</button>
+        <button class="role-btn"          id="setupRoleFleet"     onclick="setupSelectRole('fleet',this)">   <span class="role-icon">🚚</span>Fleet</button>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 14px">
       <button id="authLoginTab" class="btn primary" onclick="showAuthTab('login')">Login</button>
@@ -748,6 +766,56 @@
     </div>
   </div>
 
+  <!-- ══════════════ FUEL TRACKER (Owner-Op / Fleet) ══════════════ -->
+  <div id="page-fuel" class="page">
+    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
+      <div style="font-size:48px">⛽</div>
+      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Fuel Tracker</div>
+      <div class="muted">Log fuel & DEF stops, track MPG, see cost per gallon trends.</div>
+      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ DEDUCTIONS (Owner-Op / Fleet) ══════════════ -->
+  <div id="page-deductions" class="page">
+    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
+      <div style="font-size:48px">💰</div>
+      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Weekly Deductions</div>
+      <div class="muted">Fixed weekly costs: insurance, IFTA, ELD, admin fee. Apply templates in one tap.</div>
+      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SERVICE FUND (Owner-Op / Fleet) ══════════════ -->
+  <div id="page-service" class="page">
+    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
+      <div style="font-size:48px">🔧</div>
+      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Service Fund</div>
+      <div class="muted">Log maintenance & repairs. Fund accumulates at $/mile — see balance vs spent.</div>
+      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ FLEET DASHBOARD (Fleet only) ══════════════ -->
+  <div id="page-fleet" class="page">
+    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
+      <div style="font-size:48px">🚚</div>
+      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Fleet Dashboard</div>
+      <div class="muted">REAL NET across all trucks. CPM, gross%, driver pay breakdown per unit.</div>
+      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ DRIVERS (Fleet only) ══════════════ -->
+  <div id="page-drivers" class="page">
+    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
+      <div style="font-size:48px">👥</div>
+      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Drivers</div>
+      <div class="muted">Manage driver profiles, CPM/gross% rates, team drivers, settlements.</div>
+      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    </div>
+  </div>
+
   <!-- ══════════════ MARKETPLACE PAGE ══════════════ -->
   <div id="page-marketplace" class="page">
     <div class="card" style="margin-top:16px">
@@ -866,22 +934,19 @@
   <!-- MENU / MODULES -->
   <div id="page-menu" class="page">
     <div class="card" style="margin-top:16px">
-      <div style="font-size:17px;font-weight:900;color:var(--acc);margin-bottom:6px">☰ Menu</div>
-      <div class="muted" style="margin-bottom:14px">Modules, tools and settings</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <button class="btn ghost" onclick="showPage('report')">📄 Reports</button>
-        <button class="btn ghost" onclick="showPage('expenses')">💳 Expenses</button>
-        <button class="btn ghost" onclick="showPage('community')">🔗 Links</button>
-        <button class="btn ghost" onclick="showPage('disputes')">⚖️ Disputes</button>
-        <button class="btn ghost" onclick="showPage('marketplace')">🧩 CrewBIQ Place</button>
-        <button class="btn ghost" onclick="showPage('settings')">⚙️ Settings</button>
-        <button class="btn ghost" onclick="showPage('pti')">🔍 PTI</button>
-        <button class="btn ghost" onclick="showPage('stats')">📈 Stats</button>
+      <div style="display:flex;align-items:center;margin-bottom:14px">
+        <span style="font-size:17px;font-weight:900;color:var(--acc)">☰ Menu</span>
+        <span id="menuRoleBadge" class="role-badge"></span>
       </div>
+      <div class="menu-grid" id="menuGrid"></div>
     </div>
-    <div class="card" style="background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.3)">
-      <div style="font-size:14px;font-weight:800;margin-bottom:8px">Modular recommendation</div>
-      <div class="muted" style="font-size:13px;line-height:1.5">Keep Loads, PTI, Reports, Sync and Links as modules. Add separate Auth/Profile module next: email login, CrewBIQ ID, cloud profile restore, multi-device access.</div>
+    <div class="card" style="margin-top:0">
+      <div class="slabel" style="margin-bottom:8px">My Role</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button class="role-btn" id="menuRoleDriver"  onclick="changeRole('driver',this)">  <span class="role-icon">🚛</span>Driver</button>
+        <button class="role-btn" id="menuRoleOwnerOp" onclick="changeRole('owner_op',this)"><span class="role-icon">🏢</span>Owner-Op</button>
+        <button class="role-btn" id="menuRoleFleet"   onclick="changeRole('fleet',this)">  <span class="role-icon">🚚</span>Fleet</button>
+      </div>
     </div>
   </div>
 
@@ -902,6 +967,120 @@
 <script>
 const K = 'fiqD_';
 const APP_SCHEMA_VERSION = 2;
+
+// ── ROLE SYSTEM ───────────────────────────────────────────────────────────────
+
+const ROLE_CONFIG = {
+  driver: {
+    label: 'Driver',    icon: '🚛',
+    desc:  'Load tracking, PTI, expenses, sync',
+    menu: [
+      {page:'load',      icon:'📦', label:'Loads'},
+      {page:'report',    icon:'📄', label:'Reports'},
+      {page:'expenses',  icon:'💳', label:'Expenses'},
+      {page:'disputes',  icon:'⚖️', label:'Disputes'},
+      {page:'pti',       icon:'🔍', label:'PTI'},
+      {page:'stats',     icon:'📈', label:'Stats'},
+      {page:'community', icon:'🔗', label:'Links'},
+      {page:'settings',  icon:'⚙️', label:'Settings'},
+    ],
+  },
+  owner_op: {
+    label: 'Owner-Op',  icon: '🏢',
+    desc:  'Driver + fuel, deductions, service fund, P&L',
+    menu: [
+      {page:'load',        icon:'📦', label:'Loads'},
+      {page:'report',      icon:'📄', label:'Reports'},
+      {page:'expenses',    icon:'💳', label:'Expenses'},
+      {page:'fuel',        icon:'⛽', label:'Fuel',       soon:true},
+      {page:'deductions',  icon:'💰', label:'Deductions', soon:true},
+      {page:'service',     icon:'🔧', label:'Service',    soon:true},
+      {page:'disputes',    icon:'⚖️', label:'Disputes'},
+      {page:'pti',         icon:'🔍', label:'PTI'},
+      {page:'stats',       icon:'📈', label:'Stats'},
+      {page:'community',   icon:'🔗', label:'Links'},
+      {page:'settings',    icon:'⚙️', label:'Settings'},
+    ],
+  },
+  fleet: {
+    label: 'Fleet',     icon: '🚚',
+    desc:  'Owner-Op + fleet dashboard, multi-truck, drivers',
+    menu: [
+      {page:'load',        icon:'📦', label:'Loads'},
+      {page:'fleet',       icon:'🚚', label:'Fleet',      soon:true},
+      {page:'drivers',     icon:'👥', label:'Drivers',    soon:true},
+      {page:'report',      icon:'📄', label:'Reports'},
+      {page:'expenses',    icon:'💳', label:'Expenses'},
+      {page:'fuel',        icon:'⛽', label:'Fuel',       soon:true},
+      {page:'deductions',  icon:'💰', label:'Deductions', soon:true},
+      {page:'service',     icon:'🔧', label:'Service',    soon:true},
+      {page:'disputes',    icon:'⚖️', label:'Disputes'},
+      {page:'pti',         icon:'🔍', label:'PTI'},
+      {page:'stats',       icon:'📈', label:'Stats'},
+      {page:'community',   icon:'🔗', label:'Links'},
+      {page:'settings',    icon:'⚙️', label:'Settings'},
+    ],
+  },
+};
+
+function getUserRole(){ return localStorage.getItem(K+'userRole') || 'driver'; }
+function setUserRole(role){
+  if (!ROLE_CONFIG[role]) return;
+  localStorage.setItem(K+'userRole', role);
+}
+
+// Called from the setup screen role picker
+function setupSelectRole(role, btn){
+  setUserRole(role);
+  document.querySelectorAll('#setupRoleDriver,#setupRoleOwnerOp,#setupRoleFleet')
+    .forEach(b => b.classList.remove('selected'));
+  if (btn) btn.classList.add('selected');
+}
+
+// Called from the in-app Menu role switcher
+function changeRole(role, btn){
+  setUserRole(role);
+  applyRoleUI();
+  toast('Role: ' + (ROLE_CONFIG[role]?.icon || '') + ' ' + (ROLE_CONFIG[role]?.label || role));
+}
+
+function applyRoleUI(){
+  const role = getUserRole();
+  const cfg  = ROLE_CONFIG[role] || ROLE_CONFIG.driver;
+
+  // Sync setup role buttons if visible
+  ['driver','owner_op','fleet'].forEach(r => {
+    const sid = {driver:'setupRoleDriver', owner_op:'setupRoleOwnerOp', fleet:'setupRoleFleet'}[r];
+    const mid = {driver:'menuRoleDriver',  owner_op:'menuRoleOwnerOp',  fleet:'menuRoleFleet' }[r];
+    const active = (r === role);
+    [sid, mid].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('selected', active);
+    });
+  });
+
+  // Role badge in menu header
+  const badge = document.getElementById('menuRoleBadge');
+  if (badge) badge.textContent = cfg.icon + ' ' + cfg.label;
+
+  // Render menu grid
+  const grid = document.getElementById('menuGrid');
+  if (grid) {
+    grid.innerHTML = cfg.menu.map(item => {
+      if (item.soon) {
+        return `<div class="menu-item soon" title="Coming soon">
+          <span class="mi-icon">${item.icon}</span>
+          <span>${item.label}</span>
+          <span class="soon-tag">soon</span>
+        </div>`;
+      }
+      return `<button class="menu-item" onclick="showPage('${item.page}')">
+        <span class="mi-icon">${item.icon}</span>
+        <span>${item.label}</span>
+      </button>`;
+    }).join('');
+  }
+}
 
 const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
 function runLaunchCleanResetOnce() {
@@ -1444,7 +1623,7 @@ function showPage(name, btn){
   if(name==='community') renderCommunity();
   if(name==='expenses') renderExpenses();
   if(name==='report'){}
-  if(name==='menu'){}
+  if(name==='menu'){ applyRoleUI(); }
 }
 function renderAll(){
   renderHome();
@@ -1453,6 +1632,7 @@ function renderAll(){
   renderStats();
   renderSettingsPage();
   renderExpenses();
+  applyRoleUI();
 }
 
 // ── EXPENSES MODULE ──
@@ -2299,6 +2479,7 @@ initSync();
 initPTI();
 initLoads();
 CrewBIQCore.events.on('pti:blocker_shown', function(){ suggestPTIOdometer(); });
+applyRoleUI();
 loadTheme();
 loadAccent();
 renderLogoPreview();
