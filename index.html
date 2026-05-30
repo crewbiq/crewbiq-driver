@@ -444,6 +444,7 @@
       </div>
     </div>
 
+    <div id="homeRealNet" style="display:none"></div>
     <div class="section-title">Recent Loads</div>
     <div id="homeLoads"></div>
 
@@ -766,34 +767,111 @@
     </div>
   </div>
 
-  <!-- ══════════════ FUEL TRACKER (Owner-Op / Fleet) ══════════════ -->
+  <!-- ══════════════ FUEL TRACKER ══════════════ -->
   <div id="page-fuel" class="page">
-    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
-      <div style="font-size:48px">⛽</div>
-      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Fuel Tracker</div>
-      <div class="muted">Log fuel & DEF stops, track MPG, see cost per gallon trends.</div>
-      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:12px">⛽ Fuel Stop</div>
+      <input type="hidden" id="fuelEditId">
+      <div class="frow">
+        <div class="fg"><div class="slabel">Date</div><input type="date" id="fuelDate"></div>
+        <div class="fg"><div class="slabel">Odometer</div><input type="number" id="fuelOdo" placeholder="485000" oninput="recalcFuel()"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="slabel">Fuel (gal)</div><input type="number" step="0.001" id="fuelGallons" placeholder="0.000" oninput="recalcFuel()"></div>
+        <div class="fg"><div class="slabel">Fuel $</div><input type="number" step="0.01" id="fuelCost" placeholder="0.00" oninput="recalcFuel()"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="slabel">DEF (gal)</div><input type="number" step="0.001" id="fuelDefGallons" placeholder="0.000" oninput="recalcFuel()"></div>
+        <div class="fg"><div class="slabel">DEF $</div><input type="number" step="0.01" id="fuelDefCost" placeholder="0.00" oninput="recalcFuel()"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="slabel">MPG (auto)</div><input id="fuelMpg" readonly style="color:var(--gr);font-weight:700"></div>
+        <div class="fg"><div class="slabel">$/gal (auto)</div><input id="fuelPpg" readonly style="color:var(--gr);font-weight:700"></div>
+      </div>
+      <div class="sfield"><div class="slabel">Location</div><input id="fuelLocation" placeholder="Pilot, TA, Love's..."></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" id="saveFuelBtn" onclick="saveFuelLog()" style="flex:1">Add Fuel Stop</button>
+        <button class="btn ghost" id="cancelFuelBtn" style="display:none" onclick="resetFuelForm()">Cancel</button>
+      </div>
     </div>
+    <div id="fuelSummaryCard"></div>
+    <div class="section-title">History</div>
+    <div id="fuelList"></div>
   </div>
 
-  <!-- ══════════════ DEDUCTIONS (Owner-Op / Fleet) ══════════════ -->
+  <!-- ══════════════ DEDUCTIONS ══════════════ -->
   <div id="page-deductions" class="page">
-    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
-      <div style="font-size:48px">💰</div>
-      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Weekly Deductions</div>
-      <div class="muted">Fixed weekly costs: insurance, IFTA, ELD, admin fee. Apply templates in one tap.</div>
-      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:4px">💰 This Week</div>
+      <div class="muted" style="font-size:12px;margin-bottom:12px" id="dedWeekLabel"></div>
+      <div id="dedCurrentList"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" onclick="applyDedTemplate()" style="flex:1">Apply Template</button>
+        <button class="btn ghost" onclick="openAddDed()" style="flex:1">+ Custom</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div style="font-size:15px;font-weight:800;margin-bottom:10px">📋 Templates</div>
+      <div id="dedTemplateList"></div>
+      <button class="btn ghost" onclick="openAddDedTemplate()" style="width:100%;margin-top:8px">+ Add Template</button>
+    </div>
+    <!-- Add deduction modal -->
+    <div id="dedModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:80;display:none;align-items:flex-end;justify-content:center">
+      <div style="background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
+        <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:14px" id="dedModalTitle">Add Deduction</div>
+        <div class="sfield"><div class="slabel">Name</div><input id="dedName" placeholder="Cargo Insurance"></div>
+        <div class="frow">
+          <div class="fg"><div class="slabel">Amount $</div><input type="number" step="0.01" id="dedAmount" placeholder="0.00"></div>
+          <div class="fg"><div class="slabel">Category</div>
+            <select id="dedCategory">
+              <option value="insurance">Insurance</option>
+              <option value="tax">Tax/IFTA</option>
+              <option value="admin">Admin</option>
+              <option value="equipment">Equipment/ELD</option>
+              <option value="fuel">Fuel/Tolls</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" onclick="saveDedModal()" style="flex:1">Save</button>
+          <button class="btn ghost" onclick="closeDedModal()" style="flex:1">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ══════════════ SERVICE FUND (Owner-Op / Fleet) ══════════════ -->
+  <!-- ══════════════ SERVICE FUND ══════════════ -->
   <div id="page-service" class="page">
-    <div class="card" style="margin-top:16px;text-align:center;padding:32px">
-      <div style="font-size:48px">🔧</div>
-      <div style="font-size:18px;font-weight:800;margin:12px 0 8px">Service Fund</div>
-      <div class="muted">Log maintenance & repairs. Fund accumulates at $/mile — see balance vs spent.</div>
-      <div style="margin-top:16px;padding:10px;background:rgba(245,158,11,.1);border-radius:10px;color:var(--acc);font-size:13px;font-weight:700">🔨 In development — coming soon</div>
+    <div id="serviceFundCard"></div>
+    <div class="card">
+      <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:12px">🔧 Log Service / Repair</div>
+      <input type="hidden" id="svcEditId">
+      <div class="frow">
+        <div class="fg"><div class="slabel">Date</div><input type="date" id="svcDate"></div>
+        <div class="fg"><div class="slabel">Odometer</div><input type="number" id="svcOdo" placeholder="485000"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="slabel">Amount $</div><input type="number" step="0.01" id="svcAmount" placeholder="0.00"></div>
+        <div class="fg"><div class="slabel">Category</div>
+          <select id="svcCategory">
+            <option>Oil & Fluids</option><option>Tires</option><option>Brakes</option>
+            <option>Engine</option><option>Transmission</option><option>Electrical</option>
+            <option>DPF/Emissions</option><option>PM Service</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="sfield"><div class="slabel">Description</div><input id="svcDesc" placeholder="e.g. PM Service, tire rotation..."></div>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;color:var(--mu)">
+        <input type="checkbox" id="svcFromFund" checked> Charge to maintenance fund
+      </label>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" id="saveSvcBtn" onclick="saveServiceLog()" style="flex:1">Add Entry</button>
+        <button class="btn ghost" id="cancelSvcBtn" style="display:none" onclick="resetServiceForm()">Cancel</button>
+      </div>
     </div>
+    <div class="section-title">History</div>
+    <div id="serviceList"></div>
   </div>
 
   <!-- ══════════════ FLEET DASHBOARD (Fleet only) ══════════════ -->
@@ -1618,13 +1696,49 @@ function showPage(name, btn){
   if(name==='stats') renderStats();
   if(name==='settings') renderSettingsPage();
   if(name==='load') renderLoadPage();
-  if(name==='disputes') renderDriverDisputedPage();
+  if(name==='disputes')   renderDriverDisputedPage();
+  if(name==='fuel')       renderFuelPage();
+  if(name==='deductions') renderDeductionsPage();
+  if(name==='service')    renderServicePage();
   if(name==='marketplace') renderMarketplace();
   if(name==='community') renderCommunity();
   if(name==='expenses') renderExpenses();
   if(name==='report'){}
   if(name==='menu'){ applyRoleUI(); }
 }
+function renderRealNetCard(){
+  var role   = getUserRole();
+  var card   = document.getElementById('homeRealNet');
+  if(!card) return;
+  if(role === 'driver'){ card.style.display='none'; return; }
+  card.style.display='';
+  // Calculate REAL NET for this week
+  var wkLoads = typeof getWeekLoads === 'function' ? getWeekLoads() : [];
+  var gross       = wkLoads.reduce(function(s,x){ return s+Number(x.gross||0); }, 0);
+  var driverPay   = wkLoads.reduce(function(s,x){ return s+Number(x.driverPay||0); }, 0);
+  var ownerNet    = wkLoads.reduce(function(s,x){ return s+Number(x.driverPay||0); }, 0);
+  // Fuel this week
+  var wkStr   = today().slice(0,7); // approximate: this month
+  var fuelCost= loadFuelLogs().filter(function(x){ return (x.date||'').startsWith(wkStr); })
+                              .reduce(function(s,x){ return s+(x.fuelCost||0)+(x.defCost||0); }, 0);
+  // Deductions this week
+  var wd = getCurrentWeekDed();
+  var dedTotal = wd.total || 0;
+  // Service this month
+  var svcCost = loadServiceLogs().filter(function(x){ return (x.date||'').startsWith(wkStr); })
+                                 .reduce(function(s,x){ return s+(x.amount||0); }, 0);
+  var realNet = gross - driverPay - fuelCost - dedTotal - svcCost;
+  card.innerHTML =
+    '<div class="card" style="background:linear-gradient(135deg,var(--s1),var(--s2));border-color:rgba(59,130,246,.3)">'+
+    '<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--mu);margin-bottom:8px">📊 REAL NET THIS WEEK</div>'+
+    '<div style="font-size:28px;font-weight:900;color:'+(realNet>=0?'var(--gr)':'var(--rd)')+'">'+fmt(realNet)+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;font-size:11px">'+
+    '<div style="text-align:center"><div style="color:var(--mu)">Gross</div><div style="font-weight:700">'+fmt(gross)+'</div></div>'+
+    '<div style="text-align:center"><div style="color:var(--mu)">Fuel+DEF</div><div style="font-weight:700;color:var(--rd)">-'+fmt(fuelCost)+'</div></div>'+
+    '<div style="text-align:center"><div style="color:var(--mu)">Deductions</div><div style="font-weight:700;color:var(--rd)">-'+fmt(dedTotal)+'</div></div>'+
+    '</div></div>';
+}
+
 function renderAll(){
   renderHome();
   renderLoadPage();
@@ -1632,8 +1746,351 @@ function renderAll(){
   renderStats();
   renderSettingsPage();
   renderExpenses();
+  renderRealNetCard();
   applyRoleUI();
 }
+
+// ── FUEL TRACKER MODULE ──────────────────────────────────────────────────────
+
+function loadFuelLogs(){ try{ return JSON.parse(localStorage.getItem(K+'fuelLogs')||'[]'); }catch(e){ return []; } }
+function saveFuelLogs(v){ localStorage.setItem(K+'fuelLogs', JSON.stringify(v)); }
+
+function recalcFuel(){
+  var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
+  var cost = parseFloat(document.getElementById('fuelCost').value)    || 0;
+  var odo  = parseInt(document.getElementById('fuelOdo').value)       || 0;
+  document.getElementById('fuelPpg').value = (gal > 0) ? (cost/gal).toFixed(3) : '';
+  // MPG from last entry
+  var logs = loadFuelLogs().filter(function(x){ return x.odometer > 0; })
+                           .sort(function(a,b){ return b.odometer - a.odometer; });
+  var prev = logs[0];
+  if(prev && odo > prev.odometer && gal > 0){
+    document.getElementById('fuelMpg').value = ((odo - prev.odometer) / gal).toFixed(1);
+  } else {
+    document.getElementById('fuelMpg').value = '';
+  }
+}
+
+function resetFuelForm(){
+  document.getElementById('fuelEditId').value = '';
+  document.getElementById('saveFuelBtn').textContent = 'Add Fuel Stop';
+  document.getElementById('cancelFuelBtn').style.display = 'none';
+  document.getElementById('fuelDate').value    = today();
+  document.getElementById('fuelOdo').value     = '';
+  document.getElementById('fuelGallons').value = '';
+  document.getElementById('fuelCost').value    = '';
+  document.getElementById('fuelDefGallons').value = '';
+  document.getElementById('fuelDefCost').value    = '';
+  document.getElementById('fuelMpg').value     = '';
+  document.getElementById('fuelPpg').value     = '';
+  document.getElementById('fuelLocation').value = '';
+}
+
+function saveFuelLog(){
+  var date = document.getElementById('fuelDate').value;
+  if(!date){ toast('Date required','err'); return; }
+  var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
+  if(!gal){ toast('Fuel gallons required','err'); return; }
+  var entry = {
+    id:          document.getElementById('fuelEditId').value || ('fuel_'+Date.now()),
+    date:        date,
+    odometer:    parseInt(document.getElementById('fuelOdo').value)       || 0,
+    fuelGallons: gal,
+    fuelCost:    parseFloat(document.getElementById('fuelCost').value)    || 0,
+    defGallons:  parseFloat(document.getElementById('fuelDefGallons').value) || 0,
+    defCost:     parseFloat(document.getElementById('fuelDefCost').value)    || 0,
+    mpg:         parseFloat(document.getElementById('fuelMpg').value)     || 0,
+    ppg:         parseFloat(document.getElementById('fuelPpg').value)     || 0,
+    location:    (document.getElementById('fuelLocation').value || '').trim(),
+  };
+  var logs = loadFuelLogs();
+  if(entry.id && logs.find(function(x){ return x.id === entry.id; })){
+    logs = logs.map(function(x){ return x.id === entry.id ? entry : x; });
+  } else {
+    logs.unshift(entry);
+  }
+  saveFuelLogs(logs);
+  resetFuelForm();
+  renderFuelPage();
+  toast('Fuel stop saved');
+}
+
+function editFuelLog(id){
+  var e = loadFuelLogs().find(function(x){ return x.id === id; });
+  if(!e) return;
+  document.getElementById('fuelEditId').value    = e.id;
+  document.getElementById('fuelDate').value      = e.date || '';
+  document.getElementById('fuelOdo').value       = e.odometer || '';
+  document.getElementById('fuelGallons').value   = e.fuelGallons || '';
+  document.getElementById('fuelCost').value      = e.fuelCost || '';
+  document.getElementById('fuelDefGallons').value = e.defGallons || '';
+  document.getElementById('fuelDefCost').value   = e.defCost || '';
+  document.getElementById('fuelMpg').value       = e.mpg || '';
+  document.getElementById('fuelPpg').value       = e.ppg || '';
+  document.getElementById('fuelLocation').value  = e.location || '';
+  document.getElementById('saveFuelBtn').textContent = 'Save Changes';
+  document.getElementById('cancelFuelBtn').style.display = 'block';
+  showPage('fuel');
+}
+
+function deleteFuelLog(id){
+  if(!confirm('Delete this fuel entry?')) return;
+  saveFuelLogs(loadFuelLogs().filter(function(x){ return x.id !== id; }));
+  renderFuelPage();
+  toast('Deleted');
+}
+
+function renderFuelPage(){
+  var dateEl = document.getElementById('fuelDate');
+  if(dateEl && !dateEl.value) dateEl.value = today();
+  var logs = loadFuelLogs().slice().sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; });
+  // Summary
+  var totalFuel = logs.reduce(function(s,x){ return s + (x.fuelCost||0); }, 0);
+  var totalDef  = logs.reduce(function(s,x){ return s + (x.defCost||0); }, 0);
+  var totalGal  = logs.reduce(function(s,x){ return s + (x.fuelGallons||0); }, 0);
+  var avgMpg    = logs.filter(function(x){ return x.mpg > 0; });
+  var mpgAvg    = avgMpg.length ? (avgMpg.reduce(function(s,x){ return s+(x.mpg||0); },0)/avgMpg.length).toFixed(1) : '—';
+  var summEl = document.getElementById('fuelSummaryCard');
+  if(summEl) summEl.innerHTML = '<div class="card" style="margin:0 0 0 0"><div class="stat-grid" style="margin:0"><div class="stat-card"><div class="label">Fuel+DEF</div><div class="stat-val red">'+fmt(totalFuel+totalDef)+'</div></div><div class="stat-card"><div class="label">Avg MPG</div><div class="stat-val green">'+mpgAvg+'</div></div><div class="stat-card"><div class="label">$/gal</div><div class="stat-val">'+(totalGal>0?'$'+(totalFuel/totalGal).toFixed(3):'—')+'</div></div><div class="stat-card"><div class="label">Entries</div><div class="stat-val">'+logs.length+'</div></div></div></div>';
+  // List
+  var listEl = document.getElementById('fuelList');
+  if(!listEl) return;
+  listEl.innerHTML = logs.map(function(e){
+    return '<div class="item"><div class="item-inner"><div><div class="item-title">'+escHtml(e.date)+(e.location?' · '+escHtml(e.location):'')+'</div><div class="muted">'+e.fuelGallons.toFixed(2)+' gal'+(e.odometer?' · '+e.odometer.toLocaleString()+' mi':'')+(e.mpg?' · '+e.mpg.toFixed(1)+' MPG':'')+'</div></div><div style="text-align:right"><div class="item-title red">'+fmt(e.fuelCost)+'</div>'+(e.defCost>0?'<div class="muted">DEF: '+fmt(e.defCost)+'</div>':'')+'</div></div><div class="item-actions"><button onclick="editFuelLog(\''+e.id+'\')">✏️ Edit</button><button onclick="deleteFuelLog(\''+e.id+'\')" style="color:var(--rd)">🗑️</button></div></div>';
+  }).join('') || '<div class="empty">No fuel entries yet</div>';
+}
+
+// ── DEDUCTIONS MODULE ─────────────────────────────────────────────────────────
+
+function loadDedTemplates(){ try{ return JSON.parse(localStorage.getItem(K+'dedTemplates')||'[]'); }catch(e){ return []; } }
+function saveDedTemplates(v){ localStorage.setItem(K+'dedTemplates', JSON.stringify(v)); }
+function loadWeeklyDeds(){ try{ return JSON.parse(localStorage.getItem(K+'weeklyDeds')||'[]'); }catch(e){ return []; } }
+function saveWeeklyDeds(v){ localStorage.setItem(K+'weeklyDeds', JSON.stringify(v)); }
+
+function getDedWeekKey(){
+  // Monday-based week key
+  var d = new Date(); var day = d.getDay(); var diff = (day===0?-6:1-day);
+  var mon = new Date(d); mon.setDate(d.getDate()+diff);
+  return mon.toISOString().slice(0,10);
+}
+
+function getCurrentWeekDed(){
+  var wk = getDedWeekKey();
+  var list = loadWeeklyDeds();
+  var found = list.find(function(x){ return x.weekKey === wk; });
+  if(!found){
+    found = {id:'wd_'+Date.now(), weekKey:wk, items:[], total:0};
+    list.push(found); saveWeeklyDeds(list);
+  }
+  return found;
+}
+
+function applyDedTemplate(){
+  var templates = loadDedTemplates();
+  if(!templates.length){ toast('No templates yet. Add templates first.','warn'); return; }
+  var wk = getDedWeekKey();
+  var list = loadWeeklyDeds();
+  var idx = list.findIndex(function(x){ return x.weekKey === wk; });
+  var entry = {id:'wd_'+Date.now(), weekKey:wk, items:[], total:0};
+  if(idx >= 0){
+    if(!confirm('Replace this week\'s deductions with the template?')) return;
+    entry.id = list[idx].id;
+    list[idx] = entry;
+  } else {
+    list.push(entry);
+  }
+  entry.items = templates.map(function(t){ return {name:t.name, amount:t.amount, category:t.category}; });
+  entry.total = entry.items.reduce(function(s,x){ return s+(x.amount||0); }, 0);
+  saveWeeklyDeds(list);
+  renderDeductionsPage();
+  toast('Template applied ✅');
+}
+
+var _dedModalMode = ''; // 'current' or 'template'
+var _dedEditIdx   = -1;
+
+function openAddDed(){
+  _dedModalMode = 'current'; _dedEditIdx = -1;
+  document.getElementById('dedModalTitle').textContent = 'Add Deduction (This Week)';
+  document.getElementById('dedName').value = '';
+  document.getElementById('dedAmount').value = '';
+  document.getElementById('dedCategory').value = 'other';
+  showDedModal();
+}
+
+function openAddDedTemplate(){
+  _dedModalMode = 'template'; _dedEditIdx = -1;
+  document.getElementById('dedModalTitle').textContent = 'Add Template';
+  document.getElementById('dedName').value = '';
+  document.getElementById('dedAmount').value = '';
+  document.getElementById('dedCategory').value = 'insurance';
+  showDedModal();
+}
+
+function showDedModal(){ document.getElementById('dedModal').style.display='flex'; }
+function closeDedModal(){ document.getElementById('dedModal').style.display='none'; }
+
+function saveDedModal(){
+  var name   = (document.getElementById('dedName').value   || '').trim();
+  var amount = parseFloat(document.getElementById('dedAmount').value) || 0;
+  var cat    = document.getElementById('dedCategory').value || 'other';
+  if(!name){ toast('Name required','err'); return; }
+  if(_dedModalMode === 'template'){
+    var tmpl = loadDedTemplates();
+    tmpl.push({id:'dt_'+Date.now(), name:name, amount:amount, category:cat});
+    saveDedTemplates(tmpl);
+  } else {
+    var wk   = getDedWeekKey();
+    var list = loadWeeklyDeds();
+    var idx  = list.findIndex(function(x){ return x.weekKey === wk; });
+    var entry = idx>=0 ? list[idx] : {id:'wd_'+Date.now(), weekKey:wk, items:[], total:0};
+    entry.items.push({name:name, amount:amount, category:cat});
+    entry.total = entry.items.reduce(function(s,x){ return s+(x.amount||0); }, 0);
+    if(idx>=0) list[idx]=entry; else list.push(entry);
+    saveWeeklyDeds(list);
+  }
+  closeDedModal();
+  renderDeductionsPage();
+  toast('Saved');
+}
+
+function deleteDedItem(idx){
+  var wk   = getDedWeekKey();
+  var list = loadWeeklyDeds();
+  var wi   = list.findIndex(function(x){ return x.weekKey===wk; });
+  if(wi<0) return;
+  list[wi].items.splice(idx,1);
+  list[wi].total = list[wi].items.reduce(function(s,x){ return s+(x.amount||0); },0);
+  saveWeeklyDeds(list);
+  renderDeductionsPage();
+}
+
+function deleteDedTemplate(id){
+  if(!confirm('Delete template?')) return;
+  saveDedTemplates(loadDedTemplates().filter(function(x){ return x.id!==id; }));
+  renderDeductionsPage();
+}
+
+function renderDeductionsPage(){
+  var wk  = getDedWeekKey();
+  var lbl = document.getElementById('dedWeekLabel');
+  if(lbl) lbl.textContent = 'Week of ' + wk;
+  var wd  = getCurrentWeekDed();
+  var cur = document.getElementById('dedCurrentList');
+  if(cur){
+    cur.innerHTML = (wd.items||[]).map(function(item,i){
+      return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span style="font-weight:600">'+escHtml(item.name)+'</span><span style="display:flex;align-items:center;gap:8px"><strong style="color:var(--rd)">-'+fmt(item.amount)+'</strong><button onclick="deleteDedItem('+i+')" style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:14px">✕</button></span></div>';
+    }).join('') + '<div style="padding-top:10px;font-size:16px;font-weight:800">Total: <span style="color:var(--rd)">-'+fmt(wd.total||0)+'</span></div>';
+  }
+  var tmplList = document.getElementById('dedTemplateList');
+  if(tmplList){
+    var tmpl = loadDedTemplates();
+    tmplList.innerHTML = tmpl.length ? tmpl.map(function(t){
+      return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span>'+escHtml(t.name)+'</span><span style="display:flex;gap:8px;align-items:center"><strong>'+fmt(t.amount)+'</strong><button onclick="deleteDedTemplate(\''+t.id+'\')" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button></span></div>';
+    }).join('') : '<div class="empty" style="padding:16px 0">No templates yet</div>';
+  }
+}
+
+// ── SERVICE FUND MODULE ───────────────────────────────────────────────────────
+
+var SVC_RATE_KEY = K+'svcRate'; // $/mile maintenance reserve rate
+
+function loadServiceLogs(){ try{ return JSON.parse(localStorage.getItem(K+'serviceLogs')||'[]'); }catch(e){ return []; } }
+function saveServiceLogs(v){ localStorage.setItem(K+'serviceLogs', JSON.stringify(v)); }
+function getSvcRate(){ return parseFloat(localStorage.getItem(SVC_RATE_KEY)||'0.20'); }
+function setSvcRate(r){ localStorage.setItem(SVC_RATE_KEY, String(r)); }
+
+function resetServiceForm(){
+  document.getElementById('svcEditId').value  = '';
+  document.getElementById('saveSvcBtn').textContent = 'Add Entry';
+  document.getElementById('cancelSvcBtn').style.display = 'none';
+  document.getElementById('svcDate').value    = today();
+  document.getElementById('svcOdo').value     = '';
+  document.getElementById('svcAmount').value  = '';
+  document.getElementById('svcCategory').value = 'Oil & Fluids';
+  document.getElementById('svcDesc').value    = '';
+  document.getElementById('svcFromFund').checked = true;
+}
+
+function saveServiceLog(){
+  var date   = document.getElementById('svcDate').value;
+  var amount = parseFloat(document.getElementById('svcAmount').value) || 0;
+  if(!date || !amount){ toast('Date and amount required','err'); return; }
+  var entry = {
+    id:         document.getElementById('svcEditId').value || ('svc_'+Date.now()),
+    date:       date,
+    odometer:   parseInt(document.getElementById('svcOdo').value) || 0,
+    amount:     amount,
+    category:   document.getElementById('svcCategory').value,
+    description:(document.getElementById('svcDesc').value||'').trim(),
+    fromFund:   document.getElementById('svcFromFund').checked,
+    createdAt:  new Date().toISOString(),
+  };
+  var logs = loadServiceLogs();
+  var idx  = logs.findIndex(function(x){ return x.id===entry.id; });
+  if(idx>=0) logs[idx]=entry; else logs.unshift(entry);
+  saveServiceLogs(logs);
+  resetServiceForm();
+  renderServicePage();
+  toast('Entry saved');
+}
+
+function editServiceLog(id){
+  var e = loadServiceLogs().find(function(x){ return x.id===id; });
+  if(!e) return;
+  document.getElementById('svcEditId').value  = e.id;
+  document.getElementById('svcDate').value    = e.date||'';
+  document.getElementById('svcOdo').value     = e.odometer||'';
+  document.getElementById('svcAmount').value  = e.amount||'';
+  document.getElementById('svcCategory').value= e.category||'Other';
+  document.getElementById('svcDesc').value    = e.description||'';
+  document.getElementById('svcFromFund').checked = !!e.fromFund;
+  document.getElementById('saveSvcBtn').textContent = 'Save Changes';
+  document.getElementById('cancelSvcBtn').style.display = 'block';
+  showPage('service');
+}
+
+function deleteServiceLog(id){
+  if(!confirm('Delete this entry?')) return;
+  saveServiceLogs(loadServiceLogs().filter(function(x){ return x.id!==id; }));
+  renderServicePage();
+  toast('Deleted');
+}
+
+function renderServicePage(){
+  var dateEl = document.getElementById('svcDate');
+  if(dateEl && !dateEl.value) dateEl.value = today();
+
+  var logs   = loadServiceLogs().slice().sort(function(a,b){ return (b.date||'')>(a.date||'')?1:-1; });
+  var rate   = getSvcRate();
+
+  // Total miles from loads for fund calculation
+  var totalMiles = (typeof loads !== 'undefined' ? loads : [])
+    .filter(function(x){ return x.status !== 'cancel'; })
+    .reduce(function(s,x){ return s + (Number(x.totalMiles||0)); }, 0);
+
+  var accumulated = totalMiles * rate;
+  var spent       = logs.filter(function(x){ return x.fromFund; })
+                        .reduce(function(s,x){ return s+(x.amount||0); }, 0);
+  var balance     = accumulated - spent;
+
+  var fundEl = document.getElementById('serviceFundCard');
+  if(fundEl) fundEl.innerHTML =
+    '<div class="card" style="margin-top:16px"><div style="font-size:15px;font-weight:800;color:var(--acc);margin-bottom:10px">🔧 Maintenance Fund ($'+rate.toFixed(2)+'/mi)</div>'+
+    '<div class="stat-grid" style="margin:0"><div class="stat-card"><div class="label">Balance</div><div class="stat-val '+(balance>=0?'green':'red')+'">'+fmt(balance)+'</div></div>'+
+    '<div class="stat-card"><div class="label">Accumulated</div><div class="stat-val">'+fmt(accumulated)+'</div></div>'+
+    '<div class="stat-card"><div class="label">Spent</div><div class="stat-val red">'+fmt(spent)+'</div></div>'+
+    '<div class="stat-card"><div class="label">Miles</div><div class="stat-val">'+totalMiles.toLocaleString()+'</div></div></div>'+
+    '<div style="margin-top:10px;display:flex;align-items:center;gap:8px"><span class="muted" style="font-size:12px">Rate $/mi:</span><input type="number" step="0.01" value="'+rate+'" style="width:80px;padding:6px;font-size:13px" onchange="setSvcRate(parseFloat(this.value)||0.20);renderServicePage()"><span class="muted" style="font-size:11px">(adjust to match your plan)</span></div></div>';
+
+  var listEl = document.getElementById('serviceList');
+  if(!listEl) return;
+  listEl.innerHTML = logs.map(function(e){
+    return '<div class="item"><div class="item-inner"><div><div class="item-title">'+escHtml(e.category)+(e.description?' — '+escHtml(e.description):'')+'</div><div class="muted">'+escHtml(e.date)+(e.odometer?' · '+e.odometer.toLocaleString()+' mi':'')+(e.fromFund?' · from fund':'')+'</div></div><div style="text-align:right"><div class="item-title red">'+fmt(e.amount)+'</div></div></div><div class="item-actions"><button onclick="editServiceLog(\''+e.id+'\')">✏️ Edit</button><button onclick="deleteServiceLog(\''+e.id+'\')" style="color:var(--rd)">🗑️</button></div></div>';
+  }).join('') || '<div class="empty">No service entries yet</div>';
+}
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g,function(m){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);}); }
 
 // ── EXPENSES MODULE ──
 function loadExpenses(){ return scopedLoad('expenses', []); }
