@@ -461,6 +461,10 @@
         <div class="fg"><div class="label">Load ID *</div><input id="loadId" placeholder="e.g. DSR12345" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
         <div class="fg"><div class="label">Pickup Date</div><input type="date" id="pickupDate"></div>
       </div>
+      <div class="sfield" id="loadTruckRow" style="display:none">
+        <div class="slabel">Truck</div>
+        <select id="loadTruckSelect"></select>
+      </div>
       <div class="frow">
         <div class="fg"><div class="label">Loaded Miles *</div><input type="number" id="loadedMiles" oninput="calcPreview()"></div>
         <div class="fg"><div class="label">Deadhead Miles</div><input type="number" id="deadMiles" placeholder="0" oninput="calcPreview()"></div>
@@ -780,6 +784,10 @@
     <div class="card" style="margin-top:16px">
       <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:12px">⛽ Fuel Stop</div>
       <input type="hidden" id="fuelEditId">
+      <div class="sfield" id="fuelTruckRow" style="display:none">
+        <div class="slabel">Truck</div>
+        <select id="fuelTruckSelect" onchange="renderFuelPage()"></select>
+      </div>
       <div class="frow">
         <div class="fg"><div class="slabel">Date</div><input type="date" id="fuelDate"></div>
         <div class="fg"><div class="slabel">Odometer</div><input type="number" id="fuelOdo" placeholder="485000" oninput="recalcFuel()"></div>
@@ -811,6 +819,10 @@
   <div id="page-deductions" class="page">
     <div class="card" style="margin-top:16px">
       <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:4px">💰 This Week</div>
+      <div class="sfield" id="dedTruckRow" style="display:none;margin-bottom:10px">
+        <div class="slabel">Truck</div>
+        <select id="dedTruckSelect" onchange="renderDeductionsPage()"></select>
+      </div>
       <div class="muted" style="font-size:12px;margin-bottom:12px" id="dedWeekLabel"></div>
       <div id="dedCurrentList"></div>
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -855,6 +867,10 @@
     <div class="card">
       <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:12px">🔧 Log Service / Repair</div>
       <input type="hidden" id="svcEditId">
+      <div class="sfield" id="svcTruckRow" style="display:none">
+        <div class="slabel">Truck</div>
+        <select id="svcTruckSelect" onchange="renderServicePage()"></select>
+      </div>
       <div class="frow">
         <div class="fg"><div class="slabel">Date</div><input type="date" id="svcDate"></div>
         <div class="fg"><div class="slabel">Odometer</div><input type="number" id="svcOdo" placeholder="485000"></div>
@@ -1100,8 +1116,8 @@ const ROLE_CONFIG = {
     desc:  'Owner-Op + fleet dashboard, multi-truck, drivers',
     menu: [
       {page:'load',        icon:'📦', label:'Loads'},
-      {page:'fleet',       icon:'🚚', label:'Fleet',      soon:true},
-      {page:'drivers',     icon:'👥', label:'Drivers',    soon:true},
+      {page:'fleet',       icon:'🚚', label:'Fleet'},
+      {page:'drivers',     icon:'👥', label:'Drivers'},
       {page:'report',      icon:'📄', label:'Reports'},
       {page:'expenses',    icon:'💳', label:'Expenses'},
       {page:'fuel',        icon:'⛽', label:'Fuel'},
@@ -1691,6 +1707,7 @@ function boot(){
 // ── APP ──
 function showApp(){
   document.getElementById('app').classList.add('show');
+  ensureDefaultTruckFromDriver();
   renderAll();
   scheduleAutoSync();
   // Two-way sync: on app open, silently pull new cloud data from other devices.
@@ -1723,37 +1740,84 @@ function showPage(name, btn){
   if(name==='report'){}
   if(name==='menu'){ applyRoleUI(); }
 }
+
+function periodRecordFilter(period, dateField){
+  var wk = (typeof getWeekKey === 'function') ? getWeekKey(today()) : today().slice(0,7);
+  var mo = today().slice(0,7);
+  return function(record){
+    var d = record && (record[dateField] || record.pickup || record.date || record.weekKey || '');
+    if(period === 'week')  return (typeof getWeekKey==='function') ? getWeekKey(d)===wk : String(d).startsWith(mo);
+    if(period === 'month') return String(d).startsWith(mo);
+    return true;
+  };
+}
+
+function ownerFinanceForTruck(truck, period){
+  var loadFilter = periodRecordFilter(period || 'week', 'pickup');
+  var otherFilter = periodRecordFilter(period || 'week', 'date');
+  var weekFilter = periodRecordFilter(period || 'week', 'weekKey');
+  var tLoads = (typeof loads !== 'undefined' ? loads : [])
+    .filter(function(l){ return recordMatchesTruck(l, truck) && loadFilter(l); });
+  var fuels = loadFuelLogs().filter(function(x){ return recordMatchesTruck(x, truck) && otherFilter(x); });
+  var services = loadServiceLogs().filter(function(x){ return recordMatchesTruck(x, truck) && otherFilter(x); });
+  var deductions = loadWeeklyDeds().filter(function(x){ return (!truck || (x.truckId || '') === truck.id) && weekFilter(x); });
+
+  var gross = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
+  var driverPay = tLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); },0);
+  var miles = tLoads.reduce(function(s,l){ return s+Number(l.totalMiles||0); },0);
+  var dispatchFee = tLoads.reduce(function(s,l){
+    var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : (truck && truck.dispatchPercent) || 0);
+    return s + Number(l.dispatchFee != null ? l.dispatchFee : (Number(l.gross||0) * rate / 100));
+  },0);
+  var fuelCost = fuels.reduce(function(s,x){ return s+Number(x.fuelCost||0)+Number(x.defCost||0); },0);
+  var serviceCost = services.reduce(function(s,x){ return s+Number(x.amount||0); },0);
+  var deductionTotal = deductions.reduce(function(s,x){ return s+Number(x.total||0); },0);
+  var truckNet = gross - dispatchFee;
+  var ownerNet = truckNet - driverPay;
+  var realNet = ownerNet - fuelCost - serviceCost - deductionTotal;
+  return {loads:tLoads, gross:gross, dispatchFee:dispatchFee, truckNet:truckNet, driverPay:driverPay, ownerNet:ownerNet, fuelCost:fuelCost, serviceCost:serviceCost, deductionTotal:deductionTotal, realNet:realNet, miles:miles, cpm:miles ? realNet/miles : 0};
+}
+
+function ownerFleetFinance(period){
+  var trucks = activeTrucks();
+  var rows = trucks.length ? trucks.map(function(t){ return {truck:t, finance:ownerFinanceForTruck(t, period)}; }) : [{truck:null, finance:ownerFinanceForTruck(null, period)}];
+  return rows.reduce(function(acc,row){
+    var f = row.finance;
+    ['gross','dispatchFee','truckNet','driverPay','ownerNet','fuelCost','serviceCost','deductionTotal','realNet','miles'].forEach(function(k){ acc[k] += Number(f[k]||0); });
+    acc.rows.push(row);
+    return acc;
+  }, {rows:[], gross:0, dispatchFee:0, truckNet:0, driverPay:0, ownerNet:0, fuelCost:0, serviceCost:0, deductionTotal:0, realNet:0, miles:0});
+}
+
+function getOwnerSyncData(){
+  return {
+    trucks: loadTrucks(),
+    driverProfiles: loadDriverProfiles(),
+    fuelLogs: loadFuelLogs(),
+    serviceLogs: loadServiceLogs(),
+    weeklyDeductions: loadWeeklyDeds(),
+    deductionTemplates: loadDedTemplates(),
+  };
+}
+
 function renderRealNetCard(){
   var role   = getUserRole();
   var card   = document.getElementById('homeRealNet');
   if(!card) return;
   if(role === 'driver'){ card.style.display='none'; return; }
   card.style.display='';
-  // Calculate REAL NET for this week
-  var wkLoads = typeof getWeekLoads === 'function' ? getWeekLoads() : [];
-  var gross       = wkLoads.reduce(function(s,x){ return s+Number(x.gross||0); }, 0);
-  var driverPay   = wkLoads.reduce(function(s,x){ return s+Number(x.driverPay||0); }, 0);
-  var ownerNet    = wkLoads.reduce(function(s,x){ return s+Number(x.driverPay||0); }, 0);
-  // Fuel this week
-  var wkStr   = today().slice(0,7); // approximate: this month
-  var fuelCost= loadFuelLogs().filter(function(x){ return (x.date||'').startsWith(wkStr); })
-                              .reduce(function(s,x){ return s+(x.fuelCost||0)+(x.defCost||0); }, 0);
-  // Deductions this week
-  var wd = getCurrentWeekDed();
-  var dedTotal = wd.total || 0;
-  // Service this month
-  var svcCost = loadServiceLogs().filter(function(x){ return (x.date||'').startsWith(wkStr); })
-                                 .reduce(function(s,x){ return s+(x.amount||0); }, 0);
-  var realNet = gross - driverPay - fuelCost - dedTotal - svcCost;
+  var f = ownerFleetFinance('week');
+  var fleetFuel = f.fuelCost, fleetService = f.serviceCost, fleetDeductions = f.deductionTotal;
+  var realNet = f.realNet;
   card.innerHTML =
     '<div class="card" style="background:linear-gradient(135deg,var(--s1),var(--s2));border-color:rgba(59,130,246,.3)">'+
     '<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--mu);margin-bottom:8px">📊 REAL NET THIS WEEK</div>'+
     '<div style="font-size:28px;font-weight:900;color:'+(realNet>=0?'var(--gr)':'var(--rd)')+'">'+fmt(realNet)+'</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;font-size:11px">'+
-    '<div style="text-align:center"><div style="color:var(--mu)">Gross</div><div style="font-weight:700">'+fmt(gross)+'</div></div>'+
-    '<div style="text-align:center"><div style="color:var(--mu)">Fuel+DEF</div><div style="font-weight:700;color:var(--rd)">-'+fmt(fuelCost)+'</div></div>'+
-    '<div style="text-align:center"><div style="color:var(--mu)">Deductions</div><div style="font-weight:700;color:var(--rd)">-'+fmt(dedTotal)+'</div></div>'+
-    '</div></div>';
+    '<div style="text-align:center"><div style="color:var(--mu)">Gross</div><div style="font-weight:700">'+fmt(f.gross)+'</div></div>'+
+    '<div style="text-align:center"><div style="color:var(--mu)">Fuel+DEF</div><div style="font-weight:700;color:var(--rd)">-'+fmt(f.fuelCost)+'</div></div>'+
+    '<div style="text-align:center"><div style="color:var(--mu)">Service+Ded</div><div style="font-weight:700;color:var(--rd)">-'+fmt(f.serviceCost+f.deductionTotal)+'</div></div>'+
+    '</div><div class="muted" style="margin-top:10px;font-size:11px">Fuel/DEF '+fmt(fleetFuel)+' · Service '+fmt(fleetService)+' · Deductions '+fmt(fleetDeductions)+'</div></div>';
 }
 
 function renderAll(){
@@ -1770,8 +1834,8 @@ function renderAll(){
 
 // ── FUEL TRACKER MODULE ──────────────────────────────────────────────────────
 
-function loadFuelLogs(){ try{ return JSON.parse(localStorage.getItem(K+'fuelLogs')||'[]'); }catch(e){ return []; } }
-function saveFuelLogs(v){ localStorage.setItem(K+'fuelLogs', JSON.stringify(v)); }
+function loadFuelLogs(){ return scopedLoad('fuelLogs', []); }
+function saveFuelLogs(v){ scopedSave('fuelLogs', v || []); }
 
 function recalcFuel(){
   var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
@@ -1779,7 +1843,8 @@ function recalcFuel(){
   var odo  = parseInt(document.getElementById('fuelOdo').value)       || 0;
   document.getElementById('fuelPpg').value = (gal > 0) ? (cost/gal).toFixed(3) : '';
   // MPG from last entry
-  var logs = loadFuelLogs().filter(function(x){ return x.odometer > 0; })
+  var selectedTruck = findTruckByIdOrUnit((document.getElementById('fuelTruckSelect')||{}).value);
+  var logs = loadFuelLogs().filter(function(x){ return x.odometer > 0 && recordMatchesTruck(x, selectedTruck); })
                            .sort(function(a,b){ return b.odometer - a.odometer; });
   var prev = logs[0];
   if(prev && odo > prev.odometer && gal > 0){
@@ -1793,6 +1858,7 @@ function resetFuelForm(){
   document.getElementById('fuelEditId').value = '';
   document.getElementById('saveFuelBtn').textContent = 'Add Fuel Stop';
   document.getElementById('cancelFuelBtn').style.display = 'none';
+  renderTruckSelect('fuelTruckSelect', 'fuelTruckRow');
   document.getElementById('fuelDate').value    = today();
   document.getElementById('fuelOdo').value     = '';
   document.getElementById('fuelGallons').value = '';
@@ -1809,6 +1875,7 @@ function saveFuelLog(){
   if(!date){ toast('Date required','err'); return; }
   var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
   if(!gal){ toast('Fuel gallons required','err'); return; }
+  var truckId = selectedTruckId('fuelTruckSelect');
   var entry = {
     id:          document.getElementById('fuelEditId').value || ('fuel_'+Date.now()),
     date:        date,
@@ -1820,6 +1887,7 @@ function saveFuelLog(){
     mpg:         parseFloat(document.getElementById('fuelMpg').value)     || 0,
     ppg:         parseFloat(document.getElementById('fuelPpg').value)     || 0,
     location:    (document.getElementById('fuelLocation').value || '').trim(),
+    truckId:      truckId,
   };
   var logs = loadFuelLogs();
   if(entry.id && logs.find(function(x){ return x.id === entry.id; })){
@@ -1846,6 +1914,7 @@ function editFuelLog(id){
   document.getElementById('fuelMpg').value       = e.mpg || '';
   document.getElementById('fuelPpg').value       = e.ppg || '';
   document.getElementById('fuelLocation').value  = e.location || '';
+  renderTruckSelect('fuelTruckSelect', 'fuelTruckRow', e.truckId || e.unitNumber || '');
   document.getElementById('saveFuelBtn').textContent = 'Save Changes';
   document.getElementById('cancelFuelBtn').style.display = 'block';
   showPage('fuel');
@@ -1859,9 +1928,11 @@ function deleteFuelLog(id){
 }
 
 function renderFuelPage(){
+  var selectedId = renderTruckSelect('fuelTruckSelect', 'fuelTruckRow');
+  var selectedTruck = findTruckByIdOrUnit(selectedId);
   var dateEl = document.getElementById('fuelDate');
   if(dateEl && !dateEl.value) dateEl.value = today();
-  var logs = loadFuelLogs().slice().sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; });
+  var logs = loadFuelLogs().filter(function(x){ return recordMatchesTruck(x, selectedTruck); }).slice().sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; });
   // Summary
   var totalFuel = logs.reduce(function(s,x){ return s + (x.fuelCost||0); }, 0);
   var totalDef  = logs.reduce(function(s,x){ return s + (x.defCost||0); }, 0);
@@ -1880,10 +1951,10 @@ function renderFuelPage(){
 
 // ── DEDUCTIONS MODULE ─────────────────────────────────────────────────────────
 
-function loadDedTemplates(){ try{ return JSON.parse(localStorage.getItem(K+'dedTemplates')||'[]'); }catch(e){ return []; } }
-function saveDedTemplates(v){ localStorage.setItem(K+'dedTemplates', JSON.stringify(v)); }
-function loadWeeklyDeds(){ try{ return JSON.parse(localStorage.getItem(K+'weeklyDeds')||'[]'); }catch(e){ return []; } }
-function saveWeeklyDeds(v){ localStorage.setItem(K+'weeklyDeds', JSON.stringify(v)); }
+function loadDedTemplates(){ return scopedLoad('dedTemplates', []); }
+function saveDedTemplates(v){ scopedSave('dedTemplates', v || []); }
+function loadWeeklyDeds(){ return scopedLoad('weeklyDeds', []); }
+function saveWeeklyDeds(v){ scopedSave('weeklyDeds', v || []); }
 
 function getDedWeekKey(){
   // Monday-based week key
@@ -1894,10 +1965,11 @@ function getDedWeekKey(){
 
 function getCurrentWeekDed(){
   var wk = getDedWeekKey();
+  var truckId = selectedTruckId('dedTruckSelect');
   var list = loadWeeklyDeds();
-  var found = list.find(function(x){ return x.weekKey === wk; });
+  var found = list.find(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
   if(!found){
-    found = {id:'wd_'+Date.now(), weekKey:wk, items:[], total:0};
+    found = {id:'wd_'+Date.now(), weekKey:wk, truckId:truckId, items:[], total:0};
     list.push(found); saveWeeklyDeds(list);
   }
   return found;
@@ -1907,9 +1979,10 @@ function applyDedTemplate(){
   var templates = loadDedTemplates();
   if(!templates.length){ toast('No templates yet. Add templates first.','warn'); return; }
   var wk = getDedWeekKey();
+  var truckId = selectedTruckId('dedTruckSelect');
   var list = loadWeeklyDeds();
-  var idx = list.findIndex(function(x){ return x.weekKey === wk; });
-  var entry = {id:'wd_'+Date.now(), weekKey:wk, items:[], total:0};
+  var idx = list.findIndex(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
+  var entry = {id:'wd_'+Date.now(), weekKey:wk, truckId:truckId, items:[], total:0};
   if(idx >= 0){
     if(!confirm('Replace this week\'s deductions with the template?')) return;
     entry.id = list[idx].id;
@@ -1959,9 +2032,10 @@ function saveDedModal(){
     saveDedTemplates(tmpl);
   } else {
     var wk   = getDedWeekKey();
+    var truckId = selectedTruckId('dedTruckSelect');
     var list = loadWeeklyDeds();
-    var idx  = list.findIndex(function(x){ return x.weekKey === wk; });
-    var entry = idx>=0 ? list[idx] : {id:'wd_'+Date.now(), weekKey:wk, items:[], total:0};
+    var idx  = list.findIndex(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
+    var entry = idx>=0 ? list[idx] : {id:'wd_'+Date.now(), weekKey:wk, truckId:truckId, items:[], total:0};
     entry.items.push({name:name, amount:amount, category:cat});
     entry.total = entry.items.reduce(function(s,x){ return s+(x.amount||0); }, 0);
     if(idx>=0) list[idx]=entry; else list.push(entry);
@@ -1974,8 +2048,9 @@ function saveDedModal(){
 
 function deleteDedItem(idx){
   var wk   = getDedWeekKey();
+  var truckId = selectedTruckId('dedTruckSelect');
   var list = loadWeeklyDeds();
-  var wi   = list.findIndex(function(x){ return x.weekKey===wk; });
+  var wi   = list.findIndex(function(x){ return x.weekKey===wk && (x.truckId || '') === truckId; });
   if(wi<0) return;
   list[wi].items.splice(idx,1);
   list[wi].total = list[wi].items.reduce(function(s,x){ return s+(x.amount||0); },0);
@@ -1990,9 +2065,11 @@ function deleteDedTemplate(id){
 }
 
 function renderDeductionsPage(){
+  var truckId = renderTruckSelect('dedTruckSelect', 'dedTruckRow');
+  var truck = findTruckByIdOrUnit(truckId);
   var wk  = getDedWeekKey();
   var lbl = document.getElementById('dedWeekLabel');
-  if(lbl) lbl.textContent = 'Week of ' + wk;
+  if(lbl) lbl.textContent = (truck ? truckDisplay(truck) + ' / ' : '') + 'Week of ' + wk;
   var wd  = getCurrentWeekDed();
   var cur = document.getElementById('dedCurrentList');
   if(cur){
@@ -2013,8 +2090,8 @@ function renderDeductionsPage(){
 
 var SVC_RATE_KEY = K+'svcRate'; // $/mile maintenance reserve rate
 
-function loadServiceLogs(){ try{ return JSON.parse(localStorage.getItem(K+'serviceLogs')||'[]'); }catch(e){ return []; } }
-function saveServiceLogs(v){ localStorage.setItem(K+'serviceLogs', JSON.stringify(v)); }
+function loadServiceLogs(){ return scopedLoad('serviceLogs', []); }
+function saveServiceLogs(v){ scopedSave('serviceLogs', v || []); }
 function getSvcRate(){ return parseFloat(localStorage.getItem(SVC_RATE_KEY)||'0.20'); }
 function setSvcRate(r){ localStorage.setItem(SVC_RATE_KEY, String(r)); }
 
@@ -2022,6 +2099,7 @@ function resetServiceForm(){
   document.getElementById('svcEditId').value  = '';
   document.getElementById('saveSvcBtn').textContent = 'Add Entry';
   document.getElementById('cancelSvcBtn').style.display = 'none';
+  renderTruckSelect('svcTruckSelect', 'svcTruckRow');
   document.getElementById('svcDate').value    = today();
   document.getElementById('svcOdo').value     = '';
   document.getElementById('svcAmount').value  = '';
@@ -2034,6 +2112,7 @@ function saveServiceLog(){
   var date   = document.getElementById('svcDate').value;
   var amount = parseFloat(document.getElementById('svcAmount').value) || 0;
   if(!date || !amount){ toast('Date and amount required','err'); return; }
+  var truckId = selectedTruckId('svcTruckSelect');
   var entry = {
     id:         document.getElementById('svcEditId').value || ('svc_'+Date.now()),
     date:       date,
@@ -2042,6 +2121,7 @@ function saveServiceLog(){
     category:   document.getElementById('svcCategory').value,
     description:(document.getElementById('svcDesc').value||'').trim(),
     fromFund:   document.getElementById('svcFromFund').checked,
+    truckId:     truckId,
     createdAt:  new Date().toISOString(),
   };
   var logs = loadServiceLogs();
@@ -2063,6 +2143,7 @@ function editServiceLog(id){
   document.getElementById('svcCategory').value= e.category||'Other';
   document.getElementById('svcDesc').value    = e.description||'';
   document.getElementById('svcFromFund').checked = !!e.fromFund;
+  renderTruckSelect('svcTruckSelect', 'svcTruckRow', e.truckId || e.unitNumber || '');
   document.getElementById('saveSvcBtn').textContent = 'Save Changes';
   document.getElementById('cancelSvcBtn').style.display = 'block';
   showPage('service');
@@ -2076,15 +2157,17 @@ function deleteServiceLog(id){
 }
 
 function renderServicePage(){
+  var selectedId = renderTruckSelect('svcTruckSelect', 'svcTruckRow');
+  var selectedTruck = findTruckByIdOrUnit(selectedId);
   var dateEl = document.getElementById('svcDate');
   if(dateEl && !dateEl.value) dateEl.value = today();
 
-  var logs   = loadServiceLogs().slice().sort(function(a,b){ return (b.date||'')>(a.date||'')?1:-1; });
-  var rate   = getSvcRate();
+  var logs   = loadServiceLogs().filter(function(x){ return recordMatchesTruck(x, selectedTruck); }).slice().sort(function(a,b){ return (b.date||'')>(a.date||'')?1:-1; });
+  var rate   = selectedTruck && selectedTruck.maintenanceRate != null ? Number(selectedTruck.maintenanceRate || 0.20) : getSvcRate();
 
   // Total miles from loads for fund calculation
   var totalMiles = (typeof loads !== 'undefined' ? loads : [])
-    .filter(function(x){ return x.status !== 'cancel'; })
+    .filter(function(x){ return x.status !== 'cancel' && recordMatchesTruck(x, selectedTruck); })
     .reduce(function(s,x){ return s + (Number(x.totalMiles||0)); }, 0);
 
   var accumulated = totalMiles * rate;
@@ -2112,8 +2195,72 @@ function escHtml(s){ return String(s||'').replace(/[&<>"']/g,function(m){return(
 
 // ── TRUCKS MODULE ─────────────────────────────────────────────────────────────
 
-function loadTrucks(){ try{ return JSON.parse(localStorage.getItem(K+'trucks')||'[]'); }catch(e){ return []; } }
-function saveTrucks(v){ localStorage.setItem(K+'trucks', JSON.stringify(v)); }
+function loadTrucks(){ return scopedLoad('trucks', []); }
+function saveTrucks(v){ scopedSave('trucks', v || []); }
+
+function ensureDefaultTruckFromDriver(){
+  if(!driver || !driver.unitNumber || loadTrucks().length) return;
+  saveTrucks([{
+    id: 'truck_'+stableHash([driver.crewId||driver.email||'', driver.unitNumber].join('|')),
+    unitNumber: driver.unitNumber,
+    make: driver.truckName || '',
+    model: '',
+    year: 0,
+    plate: driver.plate || '',
+    company: driver.company || '',
+    mc: '',
+    dispatchPercent: 0,
+    maintenanceRate: 0.20,
+    active: true,
+  }]);
+}
+
+function activeTrucks(){ return loadTrucks().filter(function(t){ return t && t.active!==false; }); }
+function findTruckByIdOrUnit(value){
+  var key = String(value||'').trim();
+  if(!key) return null;
+  return activeTrucks().find(function(t){ return String(t.id||'')===key || String(t.unitNumber||'')===key; }) || null;
+}
+function getDefaultTruck(){
+  return findTruckByIdOrUnit(driver && driver.unitNumber) || activeTrucks()[0] || null;
+}
+function truckDisplay(t){
+  if(!t) return 'Truck';
+  var unit = t.unitNumber ? 'Unit '+t.unitNumber : 'Truck';
+  var name = [t.year, t.make, t.model].filter(Boolean).join(' ');
+  return name ? unit+' - '+name : unit;
+}
+function renderTruckSelect(selectId, rowId, preferred){
+  var sel = document.getElementById(selectId);
+  var row = document.getElementById(rowId);
+  if(!sel) return '';
+  var trucks = activeTrucks();
+  if(!trucks.length){
+    if(row) row.style.display='none';
+    sel.innerHTML = '';
+    return '';
+  }
+  var selected = findTruckByIdOrUnit(preferred) || findTruckByIdOrUnit(sel.value) || getDefaultTruck() || trucks[0];
+  if(row) row.style.display='';
+  sel.innerHTML = trucks.map(function(t){
+    return '<option value="'+escHtml(t.id)+'" '+(selected && selected.id===t.id?'selected':'')+'>'+escHtml(truckDisplay(t))+'</option>';
+  }).join('');
+  return selected ? selected.id : '';
+}
+function selectedTruckId(selectId){
+  var sel = document.getElementById(selectId);
+  return renderTruckSelect(selectId, selectId==='fuelTruckSelect'?'fuelTruckRow':selectId==='svcTruckSelect'?'svcTruckRow':selectId==='dedTruckSelect'?'dedTruckRow':'loadTruckRow', sel && sel.value);
+}
+function recordTruckId(record){
+  if(!record) return '';
+  if(record.truckId) return record.truckId;
+  var t = findTruckByIdOrUnit(record.unitNumber);
+  return t ? t.id : '';
+}
+function recordMatchesTruck(record, truck){
+  if(!truck) return true;
+  return recordTruckId(record) === truck.id || String(record.unitNumber||'') === String(truck.unitNumber||'');
+}
 
 function openTruckForm(id){
   var t = id ? loadTrucks().find(function(x){ return x.id===id; }) : null;
@@ -2218,8 +2365,8 @@ function renderTrucksList(){
 
 // ── DRIVERS MODULE ────────────────────────────────────────────────────────────
 
-function loadDriverProfiles(){ try{ return JSON.parse(localStorage.getItem(K+'driverProfiles')||'[]'); }catch(e){ return []; } }
-function saveDriverProfiles(v){ localStorage.setItem(K+'driverProfiles', JSON.stringify(v)); }
+function loadDriverProfiles(){ return scopedLoad('driverProfiles', []); }
+function saveDriverProfiles(v){ scopedSave('driverProfiles', v || []); }
 
 function openDriverForm(id){
   var d = id ? loadDriverProfiles().find(function(x){ return x.id===id; }) : null;
@@ -2376,20 +2523,19 @@ function renderFleetPage(){
     return;
   }
 
-  var fleetGross=0, fleetDriverPay=0, fleetMiles=0, fleetNet=0;
+  var fleetGross=0, fleetDriverPay=0, fleetMiles=0, fleetNet=0, fleetFuel=0, fleetService=0, fleetDeductions=0;
 
   cardsEl.innerHTML = trucks.map(function(t){
-    var tLoads = allLoads.filter(function(l){ return l.unitNumber===t.unitNumber && filter(l); });
-    var gross      = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
-    var driverPay  = tLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); },0);
-    var miles      = tLoads.reduce(function(s,l){ return s+Number(l.totalMiles||0); },0);
-    var dispFee    = gross*(t.dispatchPercent||0)/100;
-    var truckNet   = gross - dispFee;
-    var ownerNet   = truckNet - driverPay;
-    var realNet    = ownerNet; // fuel/deductions are per-driver, not per-truck in current model
+    var f = ownerFinanceForTruck(t, (document.getElementById('fleetPeriod')||{}).value || 'week');
+    var tLoads = f.loads;
+    var gross      = f.gross;
+    var driverPay  = f.driverPay;
+    var miles      = f.miles;
+    var dispFee    = f.dispatchFee;
+    var realNet    = f.realNet;
     var cpm        = miles ? (realNet/miles).toFixed(2) : '0.00';
     var color      = realNet>=0?'var(--gr)':'var(--rd)';
-    fleetGross+=gross; fleetDriverPay+=driverPay; fleetMiles+=miles; fleetNet+=realNet;
+    fleetGross+=gross; fleetDriverPay+=driverPay; fleetMiles+=miles; fleetNet+=realNet; fleetFuel+=f.fuelCost; fleetService+=f.serviceCost; fleetDeductions+=f.deductionTotal;
     var truckDrivers = drivers.filter(function(d){ return d.truckId===t.id && d.active!==false; });
     return '<div class="card">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
@@ -2404,7 +2550,7 @@ function renderFleetPage(){
         '<div class="stat-card"><div class="label">Driver Pay</div><div class="stat-val amber">'+fmt(driverPay)+'</div></div>'+
         '<div class="stat-card"><div class="label">Real CPM</div><div class="stat-val '+(parseFloat(cpm)>=1.5?'green':parseFloat(cpm)>=1?'amber':'red')+'">$'+cpm+'</div></div>'+
       '</div>'+
-      '<div class="muted" style="margin-top:8px;font-size:11px">'+tLoads.length+' loads · '+miles.toLocaleString()+' mi</div>'+
+      '<div class="muted" style="margin-top:8px;font-size:11px">'+tLoads.length+' loads · '+miles.toLocaleString()+' mi · Fuel/DEF '+fmt(f.fuelCost)+' · Service '+fmt(f.serviceCost)+' · Deductions '+fmt(f.deductionTotal)+'</div>'+
     '</div>';
   }).join('');
 
@@ -2415,7 +2561,7 @@ function renderFleetPage(){
       '<div><div class="muted">Gross</div><div style="font-weight:700">'+fmt(fleetGross)+'</div></div>'+
       '<div><div class="muted">Driver Pay</div><div style="font-weight:700;color:var(--acc)">'+fmt(fleetDriverPay)+'</div></div>'+
       '<div><div class="muted">Miles</div><div style="font-weight:700">'+fleetMiles.toLocaleString()+'</div></div>'+
-    '</div></div>';
+    '</div><div class="muted" style="margin-top:10px;font-size:11px">Fuel/DEF '+fmt(fleetFuel)+' · Service '+fmt(fleetService)+' · Deductions '+fmt(fleetDeductions)+'</div></div>';
 }
 
 // ── EXPENSES MODULE ──

@@ -283,6 +283,9 @@
     const driver = _get.driver();
     const loads  = _get.loads();
     const ptiLog = _get.ptiLog();
+    const ownerData = typeof global.getOwnerSyncData === 'function'
+      ? (global.getOwnerSyncData() || {})
+      : {};
     return {
       type: 'driver_report',
       sessionToken: getSessionToken(),
@@ -293,7 +296,21 @@
       profile: { driver: cloneDriver(driver), ownerKey: ownerKey(driver), updatedAt: new Date().toISOString() },
       loads:  (forceAll ? loads : loads.filter(x => !x.synced)).map(stampRecord),
       ptiLog: (forceAll ? ptiLog : ptiLog.filter(p => !p.synced).slice(0, 10)).map(stampRecord),
+      ownerData: {
+        trucks: ownerData.trucks || [],
+        driverProfiles: ownerData.driverProfiles || [],
+        fuelLogs: ownerData.fuelLogs || [],
+        serviceLogs: ownerData.serviceLogs || [],
+        weeklyDeductions: ownerData.weeklyDeductions || [],
+        deductionTemplates: ownerData.deductionTemplates || [],
+      },
     };
+  }
+
+  function payloadHasOwnerData(ownerData) {
+    if (!ownerData || typeof ownerData !== 'object') return false;
+    return ['trucks', 'driverProfiles', 'fuelLogs', 'serviceLogs', 'weeklyDeductions', 'deductionTemplates']
+      .some(key => Array.isArray(ownerData[key]) && ownerData[key].length > 0);
   }
 
   async function pushToOrchestrator(payload) {
@@ -479,7 +496,7 @@
 
     const payload = buildSyncPayload(forceAll);
 
-    if ((payload.loads.length + payload.ptiLog.length) === 0 && !forceAll) {
+    if ((payload.loads.length + payload.ptiLog.length) === 0 && !payloadHasOwnerData(payload.ownerData) && !forceAll) {
       Core.events.emit('sync:skip', { reason: 'nothing_to_push' });
       return { ok: true, skipped: true, reason: 'nothing_to_push' };
     }

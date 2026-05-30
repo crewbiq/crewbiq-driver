@@ -117,6 +117,8 @@
       deadMiles: Number(load && load.deadMiles || 0),
       status: load && load.status || 'active',
       driverId: load && load.crewId || driver && driver.crewId || '',
+      truckId: load && load.truckId || '',
+      unitNumber: load && load.unitNumber || driver && driver.unitNumber || '',
       timestamp: new Date().toISOString(),
     };
   }
@@ -142,6 +144,61 @@
 
   function actionArg(value) {
     return JSON.stringify(String(value || '')).replace(/"/g, '&quot;');
+  }
+
+  function getOwnerTrucks() {
+    if (typeof global.loadTrucks !== 'function') return [];
+    try {
+      return (global.loadTrucks() || []).filter(t => t && t.active !== false);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function truckLabel(truck) {
+    if (!truck) return '';
+    const unit = truck.unitNumber ? `Unit ${truck.unitNumber}` : 'Truck';
+    const name = [truck.year, truck.make, truck.model].filter(Boolean).join(' ');
+    return name ? `${unit} - ${name}` : unit;
+  }
+
+  function findTruckByIdOrUnit(value) {
+    const trucks = getOwnerTrucks();
+    const key = String(value || '').trim();
+    if (!key) return null;
+    return trucks.find(t => String(t.id || '') === key || String(t.unitNumber || '') === key) || null;
+  }
+
+  function getLoadTruckSelection() {
+    const select = document.getElementById('loadTruckSelect');
+    const selected = select ? select.value : '';
+    const truck = findTruckByIdOrUnit(selected);
+    return { truckId: truck ? truck.id : '', unitNumber: truck ? truck.unitNumber : '' };
+  }
+
+  function populateLoadTruckSelect(preferred = '') {
+    const row = document.getElementById('loadTruckRow');
+    const select = document.getElementById('loadTruckSelect');
+    if (!row || !select) return;
+
+    const trucks = getOwnerTrucks();
+    if (!trucks.length) {
+      row.style.display = 'none';
+      select.innerHTML = '';
+      return;
+    }
+
+    const driver = _get.driver ? _get.driver() : null;
+    const preferredTruck = findTruckByIdOrUnit(preferred)
+      || findTruckByIdOrUnit(select.value)
+      || findTruckByIdOrUnit(driver && driver.unitNumber);
+    const selectedId = preferredTruck ? preferredTruck.id : trucks[0].id;
+
+    row.style.display = '';
+    select.innerHTML = trucks.map(t => {
+      const selected = t.id === selectedId ? ' selected' : '';
+      return `<option value="${_escHtml(t.id)}"${selected}>${_escHtml(truckLabel(t))}</option>`;
+    }).join('');
   }
 
   // ── DISPUTES STORAGE ──────────────────────────────────────────────────────
@@ -247,6 +304,7 @@
     const lay = document.getElementById('layoverPay');
     if (det) det.value = '';
     if (lay) lay.value = '';
+    populateLoadTruckSelect();
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -268,6 +326,7 @@
     const pickupVal = document.getElementById('pickupDate').value;
     const loads     = _get.loads();
     const driver    = _get.driver();
+    const truckSel  = getLoadTruckSelection();
     if (!editId && loads.find(x => x.loadId === loadId)) return _toast('Load ID already exists', 'err');
     if (!editId) {
       const sameDate = loads.filter(x => x.pickup === pickupVal);
@@ -285,7 +344,9 @@
       driverPay: pay, detention, layover,
       pickup: pickupVal, delivery: document.getElementById('deliveryDate').value,
       notes: document.getElementById('loadNotes').value.trim(),
-      unitNumber: driver.unitNumber, driverName: driver.name,
+      truckId: truckSel.truckId || (existingEntry && existingEntry.truckId) || '',
+      unitNumber: truckSel.unitNumber || driver.unitNumber,
+      driverName: driver.name,
       ownerKey: ownerKey(), crewId: driver.crewId || '', driverEmail: driver.email || '',
       status:    (existingEntry && existingEntry.status)    || 'active',
       adjAmount: (existingEntry && existingEntry.adjAmount) || 0,
@@ -319,6 +380,7 @@
     const lay = document.getElementById('layoverPay');
     if (det) det.value = x.detention ? x.detention.toFixed(2) : '';
     if (lay) lay.value = x.layover   ? x.layover.toFixed(2)   : '';
+    populateLoadTruckSelect(x.truckId || x.unitNumber || '');
     document.getElementById('saveLoadBtn').textContent     = 'Save Changes';
     document.getElementById('cancelEditBtn').style.display = 'block';
     calcPreview();
@@ -971,6 +1033,7 @@
 
   function renderLoadPage() {
     if (!assertReady()) return;
+    populateLoadTruckSelect();
     const loads = _get.loads();
     const dispIds = new Set(getDriverDisputed().filter(d => d.status === 'pending').map(d => d.loadId));
     document.getElementById('allLoads').innerHTML = loads.map((x, i) => {
