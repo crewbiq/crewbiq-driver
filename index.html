@@ -1066,7 +1066,8 @@
       <div class="sfield">
         <div class="slabel">Document Type</div>
         <select id="scanDocType" onchange="renderScanReview()">
-          <option value="fuel_receipt">Fuel Receipt</option>
+          <option value="fuel_receipt">Fuel Receipt (single stop)</option>
+          <option value="fuel_invoice">Fuel Invoice (TBC, EFS, Comdata — weekly)</option>
           <option value="service_invoice">Service Invoice</option>
           <option value="bol">BOL</option>
           <option value="other_receipt">Other Receipt</option>
@@ -2953,15 +2954,60 @@ function renderScanReview(){
   var el = document.getElementById('scanReviewCard');
   if(!el) return;
   if(!lastScanResult){
-    el.innerHTML = '<div class="card"><div class="muted">Scan a fuel receipt or service invoice, then review fields here.</div></div>';
+    el.innerHTML = '<div class="card"><div class="muted">Choose a document type, then tap Extract Fields.</div></div>';
     return;
   }
-  var r = lastScanResult, f = r.fields || {};
-  var warn = (r.warnings || []).map(function(w){ return '<div class="muted" style="color:var(--am)">⚠ '+escHtml(w)+'</div>'; }).join('');
+  var r = lastScanResult;
+  var warn = (r.warnings || []).map(function(w){ return '<div class="muted" style="font-size:11px;color:var(--am)">⚠ '+escHtml(w)+'</div>'; }).join('');
+
+  // ── FUEL INVOICE — multi-transaction view ──────────────────────────────────
+  if(r.document_type === 'fuel_invoice' || r.requested_document_type === 'fuel_invoice'){
+    var txns = r.transactions || [];
+    var tots = r.totals || {};
+    var txnRows = txns.map(function(tx){
+      return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);font-size:12px">'+
+        '<div><div style="font-weight:700">'+escHtml(tx.date||'')+'  '+escHtml(tx.location||'')+(tx.state?' ('+escHtml(tx.state)+')':'')+'</div>'+
+        '<div class="muted">'+escHtml(tx.item||'')+
+          (tx.gallons?' · '+tx.gallons+' gal':'')+
+          (tx.disc_ppu?' · $'+tx.disc_ppu+'/gal':'')+
+        '</div></div>'+
+        '<div style="text-align:right"><strong>$'+Number(tx.amount||0).toFixed(2)+'</strong>'+
+          (tx.discount&&tx.discount>0?'<div class="muted" style="color:var(--gr)">-$'+Number(tx.discount).toFixed(2)+'</div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('') || '<div class="empty">No transactions extracted</div>';
+
+    el.innerHTML = '<div class="card">'+
+      '<div style="margin-bottom:10px">'+
+        '<div style="font-size:15px;font-weight:800;color:var(--acc)">⛽ Fuel Invoice</div>'+
+        '<div class="muted" style="font-size:12px">'+
+          escHtml(r.vendor||'')+(r.invoice_number?' #'+escHtml(r.invoice_number):'')+
+          (r.period_start?' · '+escHtml(r.period_start)+' → '+escHtml(r.period_end||''):'')+'</div>'+
+        '<div class="muted" style="font-size:12px">'+
+          (r.driver?'Driver: '+escHtml(r.driver)+' ':'')+(r.unit?'Unit: '+escHtml(r.unit):'')+'</div>'+
+        '<div style="margin-top:8px;display:flex;gap:16px;font-size:12px">'+
+          '<span>⛽ <strong>'+Number(tots.fuel_gallons||0).toFixed(2)+'</strong> gal</span>'+
+          '<span>💧 <strong>'+Number(tots.def_gallons||0).toFixed(2)+'</strong> DEF gal</span>'+
+          '<span>Discount: <strong style="color:var(--gr)">-$'+Number(tots.discount||0).toFixed(2)+'</strong></span>'+
+        '</div>'+
+        '<div style="font-size:18px;font-weight:900;margin-top:4px">Total Due: $'+Number(tots.total_due||0).toFixed(2)+'</div>'+
+      '</div>'+
+      '<div style="font-size:12px;font-weight:700;margin-bottom:6px">'+txns.length+' Transactions</div>'+
+      txnRows+
+      (warn?'<div style="margin-top:8px">'+warn+'</div>':'')+
+      '<button class="btn primary" onclick="applyInvoiceToFuelLogs()" style="width:100%;margin-top:14px">⬇️ Import '+txns.length+' stops to Fuel Log</button>'+
+      '<div class="muted" style="font-size:11px;margin-top:8px">Review every field. OCR can be wrong. Fuel Log entries will be created per transaction. File is not stored.</div>'+
+    '</div>';
+    return;
+  }
+
+  // ── STANDARD single-document view ─────────────────────────────────────────
+  var f = r.fields || {};
   el.innerHTML = '<div class="card">'+
     '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px">'+
-      '<div><div style="font-size:15px;font-weight:800;color:var(--acc)">Review Extracted Fields</div><div class="muted" style="font-size:12px">'+escHtml(r.document_type || r.requested_document_type || '')+' · '+escHtml(r.confidence || 'low')+' confidence</div></div>'+
-      '<div class="muted" style="font-size:11px">stored: no</div>'+
+      '<div><div style="font-size:15px;font-weight:800;color:var(--acc)">Review Fields</div>'+
+      '<div class="muted" style="font-size:12px">'+escHtml(r.document_type||'')+' · '+escHtml(r.confidence||'low')+' confidence</div></div>'+
+      '<div class="muted" style="font-size:11px">not stored</div>'+
     '</div>'+
     scanFieldRows(f)+
     (warn?'<div style="margin-top:10px">'+warn+'</div>':'')+
@@ -2971,6 +3017,39 @@ function renderScanReview(){
     '</div>'+
     '<div class="muted" style="font-size:11px;margin-top:10px">OCR can be wrong. Check every field before tapping Save.</div>'+
   '</div>';
+}
+
+function applyInvoiceToFuelLogs(){
+  var r = lastScanResult;
+  if(!r || !r.transactions || !r.transactions.length){ toast('No transactions to import','err'); return; }
+  var imported = 0;
+  r.transactions.forEach(function(tx){
+    if(!tx.date) return;
+    var isFuel = (tx.item||'').toLowerCase().indexOf('fuel') >= 0 || (tx.item||'').toLowerCase() === 'ulsd';
+    var isDef  = (tx.item||'').toLowerCase().indexOf('def') >= 0;
+    if(!isFuel && !isDef) return; // skip scale fees etc.
+    var logs = loadFuelLogs();
+    // Check for duplicate (same date + location + amount)
+    var dup = logs.some(function(l){ return l.date===tx.date && Math.abs((l.fuelCost||0)-Number(tx.amount||0))<0.01; });
+    if(dup) return;
+    var entry = {
+      id:          'fuel_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      date:        tx.date,
+      odometer:    0,
+      fuelGallons: isFuel ? Number(tx.gallons||0) : 0,
+      fuelCost:    isFuel ? Number(tx.amount||0)  : 0,
+      defGallons:  isDef  ? Number(tx.gallons||0) : 0,
+      defCost:     isDef  ? Number(tx.amount||0)  : 0,
+      mpg:         0,
+      ppg:         tx.disc_ppu ? Number(tx.disc_ppu) : 0,
+      location:    (tx.location||'')+(tx.state?' ('+tx.state+')':''),
+    };
+    logs.unshift(entry);
+    saveFuelLogs(logs);
+    imported++;
+  });
+  toast(imported ? imported+' fuel stops imported ✅' : 'No fuel entries found (scale fees skipped)');
+  if(imported) showPage('fuel');
 }
 function setIfPresent(id, value){
   var el = document.getElementById(id);
