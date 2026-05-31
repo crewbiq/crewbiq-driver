@@ -1248,7 +1248,7 @@ const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
 // Trucks and driver profiles use scopedSave so the actual key includes
 // the driver identity: fiqD_data_{identity}_trucks etc.
 var FLEET_CONFIG_KEY_PATTERNS = ['_trucks', '_driverProfiles', '_svcRate'];
-var FLEET_DIRECT_KEYS = ['fiqD_userRole'];
+var FLEET_DIRECT_KEYS = ['fiqD_userRole', 'fiqD_paySettings'];
 
 function getFleetConfigKeys(){
   var keys = FLEET_DIRECT_KEYS.slice();
@@ -1600,6 +1600,18 @@ function applyAuthRestoreData(data, syncUrl){
   if(typeof data.pointsBalance === 'number') driver.points = data.pointsBalance;
   if(Array.isArray(data.loads)) loads = sortLoadsNewest(data.loads);
   if(Array.isArray(data.ptiLog)) ptiLog = data.ptiLog;
+  // Re-apply user's locally saved pay settings — they take priority over
+  // the Apps Script profile which may not have been synced yet.
+  try {
+    var _pay = JSON.parse(localStorage.getItem(K+'paySettings') || 'null');
+    if(_pay && _pay.payType){
+      driver.payType     = _pay.payType;
+      driver.cpmRate     = Number(_pay.cpmRate     || 0);
+      driver.grossPercent= Number(_pay.grossPercent|| 0);
+      driver.cpmBase     = _pay.cpmBase || 'loaded';
+    }
+  } catch(e){}
+
   save('authProfile', profile);
   save('assignments', driver.assignments || []);
   saveAll();
@@ -3774,6 +3786,13 @@ function saveSettings(){
   driver.cpmRate = parseFloat(document.getElementById('setCpmRate').value)||0;
   driver.grossPercent = parseFloat(document.getElementById('setGrossPct').value)||0;
   driver.cpmBase = document.getElementById('setCpmBase').value;
+  // Persist pay settings separately so they survive applyAuthRestoreData()
+  // which overwrites driver with Apps Script profile (which may be stale).
+  localStorage.setItem(K+'paySettings', JSON.stringify({
+    payType: driver.payType, cpmRate: driver.cpmRate,
+    grossPercent: driver.grossPercent, cpmBase: driver.cpmBase,
+    savedAt: new Date().toISOString()
+  }));
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
   driver.syncUrl = document.getElementById('setSyncUrl').value.trim() || DEFAULT_SYNC_URL;
   localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(document.getElementById('setOrchestratorUrl').value));
