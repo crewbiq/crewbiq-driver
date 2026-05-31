@@ -1243,12 +1243,21 @@ function applyRoleUI(){
 }
 
 const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
+// Fleet/owner config keys that must survive reset and logout.
+// Trucks, driver pay profiles, and maintenance rate are owner-level
+// configuration — not driver session data.
+var FLEET_CONFIG_KEYS = ['fiqD_trucks', 'fiqD_driverProfiles', 'fiqD_svcRate', 'fiqD_userRole'];
+
 function runLaunchCleanResetOnce() {
   const key = 'fiqD_launchCleanResetVersion';
   if (localStorage.getItem(key) === LAUNCH_CLEAN_RESET_VERSION) return;
+  // Preserve fleet config before wiping driver session data
+  var saved = {};
+  FLEET_CONFIG_KEYS.forEach(function(k) { var v = localStorage.getItem(k); if(v) saved[k] = v; });
   Object.keys(localStorage)
     .filter(function(k) { return k.startsWith('fiqD_'); })
     .forEach(function(k) { localStorage.removeItem(k); });
+  Object.keys(saved).forEach(function(k) { localStorage.setItem(k, saved[k]); });
   localStorage.setItem(key, LAUNCH_CLEAN_RESET_VERSION);
 }
 const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec';
@@ -1580,7 +1589,33 @@ function applyAuthRestoreData(data, syncUrl){
   save('assignments', driver.assignments || []);
   saveAll();
   saveDriverProfile();
+  // On a fresh device, trucks may be empty — fetch from Orchestrator in background
+  if(!loadTrucks().length && driver.crewId) {
+    restoreFleetConfigFromOrchestrator(driver.crewId).catch(function(){});
+  }
   return data;
+}
+
+async function restoreFleetConfigFromOrchestrator(crewbiqId){
+  var orchUrl = (typeof getOrchestratorSyncUrl === 'function') ? getOrchestratorSyncUrl() : '';
+  if(!orchUrl || !crewbiqId) return;
+  var baseUrl = orchUrl.replace(/\/v1\/sync\/?$/, '');
+  var secret  = (typeof localStorage !== 'undefined') ? localStorage.getItem(K+'orchestratorSecret') : '';
+  var headers = {'Content-Type':'application/json'};
+  if(secret) headers['X-CrewBIQ-Secret'] = secret;
+  try {
+    var resp = await fetch(baseUrl+'/v1/fleet/config?crewbiq_id='+encodeURIComponent(crewbiqId), {headers:headers});
+    if(!resp.ok) return;
+    var data = await resp.json();
+    if(data.ok && Array.isArray(data.trucks) && data.trucks.length) {
+      saveTrucks(data.trucks);
+      renderTrucksList();
+      renderFleetPage();
+      console.info('[CrewBIQ Fleet] restored', data.trucks.length, 'truck(s) from Orchestrator');
+    }
+  } catch(e) {
+    console.warn('[CrewBIQ Fleet] fleet config restore failed:', e.message);
+  }
 }
 async function restoreSession(options={}){
   const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
@@ -1712,10 +1747,14 @@ async function logoutDevice(){
   }
   try{
     const sched=(driver&&driver.ptiSchedule)||'daily';
+    // Preserve fleet/owner config — trucks, drivers, and role are not session data
+    var fleetSaved = {};
+    FLEET_CONFIG_KEYS.forEach(function(k){ var v=localStorage.getItem(k); if(v) fleetSaved[k]=v; });
     localStorage.removeItem(K+'driver');
     clearSessionToken();
     if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
-    if(sched) localStorage.setItem(K+'_savedPtiSched', sched);
+    if(sched)   localStorage.setItem(K+'_savedPtiSched', sched);
+    Object.keys(fleetSaved).forEach(function(k){ localStorage.setItem(k, fleetSaved[k]); });
   }catch(e){}
   location.reload();
 }
