@@ -1243,17 +1243,32 @@ function applyRoleUI(){
 }
 
 const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
-// Fleet/owner config keys that must survive reset and logout.
-// Trucks, driver pay profiles, and maintenance rate are owner-level
-// configuration — not driver session data.
-var FLEET_CONFIG_KEYS = ['fiqD_trucks', 'fiqD_driverProfiles', 'fiqD_svcRate', 'fiqD_userRole'];
+// Fleet/owner config key patterns that must survive reset and logout.
+// These are owner-level configuration — not driver session data.
+// Trucks and driver profiles use scopedSave so the actual key includes
+// the driver identity: fiqD_data_{identity}_trucks etc.
+var FLEET_CONFIG_KEY_PATTERNS = ['_trucks', '_driverProfiles', '_svcRate'];
+var FLEET_DIRECT_KEYS = ['fiqD_userRole'];
+
+function getFleetConfigKeys(){
+  var keys = FLEET_DIRECT_KEYS.slice();
+  Object.keys(localStorage).forEach(function(k){
+    if(!k.startsWith('fiqD_')) return;
+    FLEET_CONFIG_KEY_PATTERNS.forEach(function(pat){
+      if(k.endsWith(pat)) keys.push(k);
+    });
+  });
+  return keys;
+}
+// Keep backward-compat alias
+var FLEET_CONFIG_KEYS = FLEET_DIRECT_KEYS;
 
 function runLaunchCleanResetOnce() {
   const key = 'fiqD_launchCleanResetVersion';
   if (localStorage.getItem(key) === LAUNCH_CLEAN_RESET_VERSION) return;
   // Preserve fleet config before wiping driver session data
   var saved = {};
-  FLEET_CONFIG_KEYS.forEach(function(k) { var v = localStorage.getItem(k); if(v) saved[k] = v; });
+  getFleetConfigKeys().forEach(function(k) { var v = localStorage.getItem(k); if(v) saved[k] = v; });
   Object.keys(localStorage)
     .filter(function(k) { return k.startsWith('fiqD_'); })
     .forEach(function(k) { localStorage.removeItem(k); });
@@ -1749,7 +1764,7 @@ async function logoutDevice(){
     const sched=(driver&&driver.ptiSchedule)||'daily';
     // Preserve fleet/owner config — trucks, drivers, and role are not session data
     var fleetSaved = {};
-    FLEET_CONFIG_KEYS.forEach(function(k){ var v=localStorage.getItem(k); if(v) fleetSaved[k]=v; });
+    getFleetConfigKeys().forEach(function(k){ var v=localStorage.getItem(k); if(v) fleetSaved[k]=v; });
     localStorage.removeItem(K+'driver');
     clearSessionToken();
     if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
@@ -1843,6 +1858,23 @@ function periodRecordFilter(period, dateField){
   };
 }
 
+// Calculate driver pay using the fleet owner's configured rate.
+// Falls back to load.driverPay if no profile found.
+function calcFleetDriverPay(load, driverProfiles, truckId){
+  var active = (driverProfiles || []).filter(function(d){
+    return d.active !== false && (!truckId || !d.truckId || d.truckId === truckId);
+  });
+  if(!active.length) return Number(load.driverPay || 0);
+  var gross       = Number(load.gross||0);
+  var loadedMiles = Number(load.loadedMiles||0);
+  var totalMiles  = Number(load.totalMiles||0);
+  return active.reduce(function(s, d){
+    if(d.payType === 'gross_percent') return s + gross * Number(d.rate||0) / 100;
+    var mi = d.cpmBase === 'total' ? totalMiles : loadedMiles;
+    return s + mi * Number(d.rate||0);
+  }, 0);
+}
+
 function ownerFinanceForTruck(truck, period){
   var loadFilter = periodRecordFilter(period || 'week', 'pickup');
   var otherFilter = periodRecordFilter(period || 'week', 'date');
@@ -1853,8 +1885,11 @@ function ownerFinanceForTruck(truck, period){
   var services = loadServiceLogs().filter(function(x){ return recordMatchesTruck(x, truck) && otherFilter(x); });
   var deductions = loadWeeklyDeds().filter(function(x){ return (!truck || (x.truckId || '') === truck.id) && weekFilter(x); });
 
+  var driverProfiles = loadDriverProfiles();
+  var truckId = truck ? truck.id : '';
   var gross = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
-  var driverPay = tLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); },0);
+  // Use fleet owner's configured driver rates when available, fall back to load.driverPay
+  var driverPay = tLoads.reduce(function(s,l){ return s + calcFleetDriverPay(l, driverProfiles, truckId); },0);
   var miles = tLoads.reduce(function(s,l){ return s+Number(l.totalMiles||0); },0);
   var dispatchFee = tLoads.reduce(function(s,l){
     var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : (truck && truck.dispatchPercent) || 0);
@@ -2690,13 +2725,18 @@ function openDriverForm(id){
     (trucks.length?'<div class="sfield"><div class="slabel">Assigned Truck</div><select id="dfTruck"><option value="">— No specific truck —</option>'+truckOptions+'</select></div>':'')+''+
     '<label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px"><input type="checkbox" id="dfTeam" '+(d&&d.teamDriver?'checked':'')+'> <span>Team driver (shares cab with another driver)</span></label>'+
     '<div class="frow">'+
-      '<div class="fg"><div class="slabel">Active</div><select id="dfActive"><option value="1" '+((!d||d.active!==false)?'selected':'')+'">Yes</option><option value="0" '+(d&&d.active===false?'selected':'')+'>No</option></select></div>'+
+      '<div class="fg"><div class="slabel">Status</div><select id="dfActive">'+
+        '<option value="1" '+((!d||d.active!==false)?'selected':'')+'">✅ Active</option>'+
+        '<option value="0" '+(d&&d.active===false?'selected':'')+'>🔴 Terminated</option>'+
+      '</select></div>'+
+      '<div class="fg"><div class="slabel">Terminated On</div><input type="date" id="dfTermDate" value="'+(d&&d.terminatedAt?d.terminatedAt.slice(0,10):'')+'"></div>'+
     '</div>'+
+    (d&&d.active===false&&d.terminatedAt?'<div class="muted" style="font-size:12px;margin-bottom:10px">Terminated: '+d.terminatedAt.slice(0,10)+'</div>':'')+
     '<div style="display:flex;gap:8px;margin-top:4px">'+
       '<button class="btn primary" onclick="saveDriverForm()" style="flex:1">Save</button>'+
       '<button class="btn ghost" onclick="closeDriverModal()" style="flex:1">Cancel</button>'+
     '</div>'+
-    (d?'<button class="btn danger" onclick="deleteDriverConfirm(\''+id+'\')" style="width:100%;margin-top:8px">Remove Driver</button>':'')+'</div></div>';
+    (d?'<button class="btn danger" onclick="deleteDriverConfirm(\''+id+'\')" style="width:100%;margin-top:8px">Delete Driver Record</button>':'')+'</div></div>';
   var el = document.createElement('div');
   el.id = 'driverModalWrap';
   el.innerHTML = html;
@@ -2733,6 +2773,9 @@ function saveDriverForm(){
     truckId:    truckEl ? truckEl.value : '',
     teamDriver: !!(document.getElementById('dfTeam')||{}).checked,
     active:     document.getElementById('dfActive').value === '1',
+    terminatedAt: document.getElementById('dfActive').value === '0'
+      ? ((document.getElementById('dfTermDate')||{}).value || new Date().toISOString().slice(0,10))
+      : null,
   };
   var list = loadDriverProfiles();
   var idx  = list.findIndex(function(x){ return x.id===id; });
@@ -2770,15 +2813,24 @@ function renderDriversPage(){
     return;
   }
   var trucks = loadTrucks();
-  el.innerHTML = drivers.map(function(d){
-    var truck = d.truckId ? trucks.find(function(t){ return t.id===d.truckId; }) : null;
+  var active   = drivers.filter(function(d){ return d.active !== false; });
+  var inactive = drivers.filter(function(d){ return d.active === false; });
+  var sorted   = active.concat(inactive);
+  el.innerHTML = sorted.map(function(d){
+    var truck   = d.truckId ? trucks.find(function(t){ return t.id===d.truckId; }) : null;
+    var isActive = d.active !== false;
     var payDesc = d.payType==='gross_percent'
       ? d.rate+'% of gross'
       : '$'+d.rate+'/mile ('+(d.cpmBase==='total'?'total':'loaded')+')';
-    return '<div class="item" style="margin:0 0 10px">'+
+    var statusBadge = isActive
+      ? '<span style="font-size:10px;color:var(--gr);font-weight:700">✅ Active</span>'
+      : '<span style="font-size:10px;color:var(--rd);font-weight:700">🔴 Terminated'+(d.terminatedAt?' '+d.terminatedAt.slice(0,10):'')+'</span>';
+    return '<div class="item" style="margin:0 0 8px;'+(isActive?'':'opacity:.65')+'">'+
       '<div class="item-inner">'+
-        '<div><div class="item-title">'+escHtml(d.name)+(d.teamDriver?' 👥':'')+(!d.active?' <span class="muted">(inactive)</span>':'')+'</div>'+
-        '<div class="muted">'+payDesc+(truck?' · Unit '+escHtml(truck.unitNumber):'')+'</div></div>'+
+        '<div>'+
+          '<div class="item-title">'+escHtml(d.name)+(d.teamDriver?' 👥':'')+' '+statusBadge+'</div>'+
+          '<div class="muted">'+payDesc+(truck?' · Unit '+escHtml(truck.unitNumber):'')+'</div>'+
+        '</div>'+
         '<button onclick="openDriverForm(\''+d.id+'\')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:6px 12px;cursor:pointer;font-size:12px">Edit</button>'+
       '</div></div>';
   }).join('');
