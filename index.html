@@ -1040,6 +1040,30 @@
     <div id="expensesList"></div>
   </div>
 
+  <!-- SCAN / OCR MVP -->
+  <div id="page-scan" class="page">
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:4px">📷 Scan Receipt</div>
+      <div class="muted" style="font-size:12px;margin-bottom:14px">Photo/PDF is used once for OCR. CrewBIQ does not store the file.</div>
+      <div class="sfield">
+        <div class="slabel">Document Type</div>
+        <select id="scanDocType" onchange="renderScanReview()">
+          <option value="fuel_receipt">Fuel Receipt</option>
+          <option value="service_invoice">Service Invoice</option>
+          <option value="bol">BOL</option>
+          <option value="other_receipt">Other Receipt</option>
+        </select>
+      </div>
+      <div class="sfield">
+        <div class="slabel">Photo / PDF</div>
+        <input id="scanFile" type="file" accept="image/*,application/pdf" capture="environment">
+      </div>
+      <button class="btn primary" id="scanExtractBtn" onclick="extractScanDocument()">Extract Fields</button>
+      <div id="scanStatus" class="muted" style="font-size:12px;margin-top:10px"></div>
+    </div>
+    <div id="scanReviewCard"></div>
+  </div>
+
   <!-- MENU / MODULES -->
   <div id="page-menu" class="page">
     <div class="card" style="margin-top:16px">
@@ -1131,6 +1155,14 @@ const ROLE_CONFIG = {
     ],
   },
 };
+
+['driver','owner_op','fleet'].forEach(function(role){
+  var cfg = ROLE_CONFIG[role];
+  if(cfg && !cfg.menu.some(function(x){ return x.page === 'scan'; })){
+    var after = cfg.menu.findIndex(function(x){ return x.page === 'expenses'; });
+    cfg.menu.splice(after >= 0 ? after + 1 : cfg.menu.length, 0, {page:'scan', icon:'📷', label:'Scan'});
+  }
+});
 
 function getUserRole(){ return localStorage.getItem(K+'userRole') || 'driver'; }
 function setUserRole(role){
@@ -1737,6 +1769,7 @@ function showPage(name, btn){
   if(name==='marketplace') renderMarketplace();
   if(name==='community') renderCommunity();
   if(name==='expenses') renderExpenses();
+  if(name==='scan') renderScanReview();
   if(name==='report'){}
   if(name==='menu'){ applyRoleUI(); }
 }
@@ -2629,6 +2662,158 @@ function renderExpenses(){
       </div>
     </div>`;
   }).join('') || '<div class="empty">No expenses yet</div>';
+}
+
+// ── LAZY CAPTURE / OCR MVP ──
+var lastScanResult = null;
+
+function scanEndpointUrl(){
+  var raw = localStorage.getItem(K + 'orchestratorUrl') || DEFAULT_ORCHESTRATOR_SYNC_URL || '';
+  var syncUrl = typeof normalizeOrchestratorSyncUrl === 'function' ? normalizeOrchestratorSyncUrl(raw) : raw;
+  return syncUrl.replace(/\/v1\/sync\/?$/i, '/v1/ocr/extract');
+}
+function scanHeaders(){
+  var h = {'Content-Type':'application/json'};
+  var secret = localStorage.getItem(K + 'orchestratorSecret') || '';
+  if(secret) h['X-CrewBIQ-Secret'] = secret;
+  return h;
+}
+function fileToBase64(file){
+  return new Promise(function(resolve,reject){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var s = String(reader.result || '');
+      resolve(s.indexOf(',') >= 0 ? s.split(',')[1] : s);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function extractScanDocument(){
+  var fileEl = document.getElementById('scanFile');
+  var status = document.getElementById('scanStatus');
+  var btn = document.getElementById('scanExtractBtn');
+  var file = fileEl && fileEl.files && fileEl.files[0];
+  if(!file){ toast('Choose a photo or PDF first','err'); return; }
+  if(file.size > 8 * 1024 * 1024){ toast('File is too large. Max 8 MB.','err'); return; }
+  var docType = (document.getElementById('scanDocType')||{}).value || 'fuel_receipt';
+  try{
+    if(status) status.textContent = 'Extracting fields...';
+    if(btn) btn.disabled = true;
+    var dataBase64 = await fileToBase64(file);
+    var resp = await fetch(scanEndpointUrl(), {
+      method:'POST',
+      headers: scanHeaders(),
+      body: JSON.stringify({
+        document_type: docType,
+        media_type: file.type || 'application/octet-stream',
+        filename: file.name || '',
+        data_base64: dataBase64
+      })
+    });
+    var result = await resp.json().catch(function(){ return {ok:false, reason:'bad_response'}; });
+    if(!resp.ok && !result.reason) result.reason = 'http_'+resp.status;
+    lastScanResult = result;
+    renderScanReview();
+    if(status) status.textContent = result.ok ? 'Fields extracted. Review before saving.' : ('Could not extract: '+(result.reason||'unknown'));
+    toast(result.ok ? 'Scan ready for review' : 'Scan failed', result.ok ? 'ok' : 'err');
+  }catch(e){
+    if(status) status.textContent = 'Scan failed: '+e.message;
+    toast('Scan failed: '+e.message, 'err');
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+function scanFieldRows(fields){
+  var keys = Object.keys(fields || {});
+  if(!keys.length) return '<div class="empty">No fields extracted</div>';
+  return keys.filter(function(k){ return fields[k] !== null && fields[k] !== ''; }).map(function(k){
+    return '<div class="line" style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)">'+
+      '<span class="muted">'+escHtml(k.replace(/_/g,' '))+'</span><b style="text-align:right">'+escHtml(fields[k])+'</b></div>';
+  }).join('') || '<div class="empty">No confident fields extracted</div>';
+}
+function renderScanReview(){
+  var el = document.getElementById('scanReviewCard');
+  if(!el) return;
+  if(!lastScanResult){
+    el.innerHTML = '<div class="card"><div class="muted">Scan a fuel receipt or service invoice, then review fields here.</div></div>';
+    return;
+  }
+  var r = lastScanResult, f = r.fields || {};
+  var warn = (r.warnings || []).map(function(w){ return '<div class="muted" style="color:var(--am)">⚠ '+escHtml(w)+'</div>'; }).join('');
+  el.innerHTML = '<div class="card">'+
+    '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px">'+
+      '<div><div style="font-size:15px;font-weight:800;color:var(--acc)">Review Extracted Fields</div><div class="muted" style="font-size:12px">'+escHtml(r.document_type || r.requested_document_type || '')+' · '+escHtml(r.confidence || 'low')+' confidence</div></div>'+
+      '<div class="muted" style="font-size:11px">stored: no</div>'+
+    '</div>'+
+    scanFieldRows(f)+
+    (warn?'<div style="margin-top:10px">'+warn+'</div>':'')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'+
+      '<button class="btn primary" onclick="applyScanToFuel()">Use for Fuel</button>'+
+      '<button class="btn ghost" onclick="applyScanToService()">Use for Service</button>'+
+    '</div>'+
+    '<div class="muted" style="font-size:11px;margin-top:10px">OCR can be wrong. Check every field before tapping Save.</div>'+
+  '</div>';
+}
+function setIfPresent(id, value){
+  var el = document.getElementById(id);
+  if(el && value !== undefined && value !== null && value !== '') el.value = value;
+}
+function setSelectIfPresent(id, value, fallback){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var raw = String(value || '').trim();
+  var target = raw || fallback || '';
+  var normalized = target.toLowerCase();
+  var mapped = normalized;
+  if(normalized.indexOf('tire') >= 0) mapped = 'tires';
+  else if(normalized.indexOf('brake') >= 0) mapped = 'brakes';
+  else if(normalized.indexOf('engine') >= 0) mapped = 'engine';
+  else if(normalized.indexOf('trans') >= 0) mapped = 'transmission';
+  else if(normalized.indexOf('electric') >= 0) mapped = 'electrical';
+  else if(normalized.indexOf('dpf') >= 0 || normalized.indexOf('emission') >= 0) mapped = 'dpf/emissions';
+  else if(normalized.indexOf('pm') >= 0 || normalized.indexOf('prevent') >= 0) mapped = 'pm service';
+  else if(normalized.indexOf('oil') >= 0 || normalized.indexOf('fluid') >= 0) mapped = 'oil & fluids';
+  for(var i=0;i<el.options.length;i++){
+    var opt = el.options[i];
+    if(String(opt.value || opt.text).toLowerCase() === mapped || String(opt.text || '').toLowerCase() === mapped){
+      el.value = opt.value || opt.text;
+      return;
+    }
+  }
+  if(fallback) el.value = fallback;
+}
+function applyScanTruck(selectId, rowId, unit){
+  if(unit) renderTruckSelect(selectId, rowId, unit);
+}
+function applyScanToFuel(){
+  if(!lastScanResult){ toast('Nothing to apply','err'); return; }
+  var f = lastScanResult.fields || {};
+  showPage('fuel');
+  resetFuelForm();
+  applyScanTruck('fuelTruckSelect','fuelTruckRow', f.truck_unit);
+  setIfPresent('fuelDate', f.date);
+  setIfPresent('fuelOdo', f.odometer);
+  setIfPresent('fuelGallons', f.fuel_gallons);
+  setIfPresent('fuelCost', f.fuel_cost);
+  setIfPresent('fuelDefGallons', f.def_gallons);
+  setIfPresent('fuelDefCost', f.def_cost);
+  setIfPresent('fuelLocation', [f.vendor, f.location].filter(Boolean).join(' - '));
+  recalcFuel();
+  toast('Review fuel fields, then Save');
+}
+function applyScanToService(){
+  if(!lastScanResult){ toast('Nothing to apply','err'); return; }
+  var f = lastScanResult.fields || {};
+  showPage('service');
+  resetServiceForm();
+  applyScanTruck('svcTruckSelect','svcTruckRow', f.truck_unit);
+  setIfPresent('svcDate', f.date);
+  setIfPresent('svcOdo', f.odometer);
+  setIfPresent('svcAmount', f.service_amount || f.amount || f.fuel_cost);
+  setSelectIfPresent('svcCategory', f.service_category, 'Other');
+  setIfPresent('svcDesc', [f.vendor, f.service_description, f.notes].filter(Boolean).join(' - '));
+  toast('Review service fields, then Save');
 }
 
 // ── BOTTOM NAV ──
