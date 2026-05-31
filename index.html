@@ -538,6 +538,24 @@
       <div class="label" style="margin-bottom:10px">Weekly Breakdown</div>
       <div id="weeklyBreakdown"></div>
     </div>
+
+    <!-- FLEET ANALYTICS — hidden for Driver role, rendered by renderFleetStats() -->
+    <div id="fleetStatsSection" style="display:none">
+      <!-- Truck tabs (Fleet only) -->
+      <div id="fleetStatsTabs" style="display:flex;gap:8px;padding:0 16px;overflow-x:auto;margin-top:8px"></div>
+
+      <!-- REAL NET Chain -->
+      <div class="card" style="margin-top:8px" id="fleetRealNetChain"></div>
+
+      <!-- KPI row -->
+      <div class="card" style="margin-top:0" id="fleetKpiRow"></div>
+
+      <!-- Per-truck breakdown (Fleet role only) -->
+      <div id="fleetPerTruckStats"></div>
+
+      <!-- ROI -->
+      <div class="card" style="margin-top:0" id="fleetRoiCard"></div>
+    </div>
   </div>
 
   <!-- SETTINGS -->
@@ -1757,7 +1775,7 @@ function showPage(name, btn){
   else { var _nb=document.querySelector(`.navbtn[data-page="${name}"]`); if(_nb) _nb.classList.add('active'); };
   if(name==='home') renderHome();
   if(name==='pti') renderPTIPage();
-  if(name==='stats') renderStats();
+  if(name==='stats'){ renderStats(); renderFleetStats(); }
   if(name==='settings') renderSettingsPage();
   if(name==='load') renderLoadPage();
   if(name==='disputes')   renderDriverDisputedPage();
@@ -1862,7 +1880,206 @@ function renderAll(){
   renderExpenses();
   renderRealNetCard();
   renderTrucksList();
+  renderFleetStats();
   applyRoleUI();
+}
+
+// ── FLEET STATS ───────────────────────────────────────────────────────────────
+// Safe additive layer — never modifies renderStats() in loads.js.
+// Only visible for owner_op and fleet roles.
+
+var _fleetStatsTruck = '__all__'; // currently selected truck tab
+
+function renderFleetStats() {
+  var role    = getUserRole();
+  var section = document.getElementById('fleetStatsSection');
+  if (!section) return;
+
+  if (role === 'driver') { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  var trucks   = loadTrucks().filter(function(t){ return t.active !== false; });
+  var allLoads = (typeof loads !== 'undefined' ? loads : []);
+  var period   = (document.getElementById('statsPeriod') || {}).value || 'week';
+
+  // Filter by period
+  var t    = today();
+  var wk   = (typeof getWeekKey === 'function') ? getWeekKey(t) : t.slice(0,7);
+  var mo   = t.slice(0,7);
+  function inPeriod(d) {
+    if (period === 'week')  return (typeof getWeekKey === 'function') ? getWeekKey(d||'') === wk : (d||'').startsWith(mo);
+    if (period === 'month') return (d||'').startsWith(mo);
+    return true;
+  }
+
+  // ── TRUCK TABS (Fleet only) ───────────────────────────────────────────────
+  var tabsEl = document.getElementById('fleetStatsTabs');
+  if (tabsEl) {
+    if (role === 'fleet' && trucks.length > 1) {
+      tabsEl.style.display = '';
+      var tabData = [{id:'__all__', label:'All Trucks'}].concat(
+        trucks.map(function(t){ return {id:t.id, label:'Unit '+t.unitNumber}; })
+      );
+      tabsEl.innerHTML = tabData.map(function(tab){
+        var active = _fleetStatsTruck === tab.id;
+        return '<button onclick="selectFleetStatsTruck(\''+tab.id+'\')" style="flex-shrink:0;background:'+(active?'var(--acc)':'var(--s2)')+';color:'+(active?'#000':'var(--tx)')+';border:1px solid var(--bd);border-radius:10px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700">'+escHtml(tab.label)+'</button>';
+      }).join('');
+    } else {
+      tabsEl.style.display = 'none';
+    }
+  }
+
+  // ── FILTER LOADS by selected truck ────────────────────────────────────────
+  function truckForLoad(load) {
+    if (!trucks.length) return null;
+    return trucks.find(function(t){ return t.unitNumber && t.unitNumber === load.unitNumber; }) || trucks[0];
+  }
+
+  var filteredTrucks = (_fleetStatsTruck === '__all__' || role !== 'fleet')
+    ? trucks
+    : trucks.filter(function(t){ return t.id === _fleetStatsTruck; });
+
+  var filteredLoads = allLoads.filter(function(l){
+    if (!inPeriod(l.pickup || l.date || '')) return false;
+    if (_fleetStatsTruck !== '__all__' && role === 'fleet') {
+      var tr = truckForLoad(l);
+      return tr && tr.id === _fleetStatsTruck;
+    }
+    return true;
+  });
+
+  // ── CALCULATE ─────────────────────────────────────────────────────────────
+  var gross     = filteredLoads.reduce(function(s,l){ return s+Number(l.gross||0); }, 0);
+  var driverPay = filteredLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); }, 0);
+  var lmi       = filteredLoads.reduce(function(s,l){ return s+Number(l.loadedMiles||0); }, 0);
+  var dmi       = filteredLoads.reduce(function(s,l){ return s+Number(l.deadMiles||0); }, 0);
+  var tmi       = lmi + dmi;
+
+  // Weighted dispatch fee from truck settings
+  var dispFee = filteredLoads.reduce(function(s,l){
+    var tr = truckForLoad(l);
+    var pct = tr ? Number(tr.dispatchPercent||0) : 0;
+    return s + Number(l.gross||0) * pct / 100;
+  }, 0);
+
+  var truckNet  = gross - dispFee;
+  var ownerNet  = truckNet - driverPay;
+
+  // Fuel (this period, filtered truck if applicable)
+  var fuelLogs  = loadFuelLogs().filter(function(x){ return inPeriod(x.date||''); });
+  var fuelTotal = fuelLogs.reduce(function(s,x){ return s+(x.fuelCost||0)+(x.defCost||0); }, 0);
+  var fuelGal   = fuelLogs.reduce(function(s,x){ return s+(x.fuelGallons||0); }, 0);
+
+  // Service (this period)
+  var svcTotal  = loadServiceLogs().filter(function(x){ return inPeriod(x.date||''); })
+                                   .reduce(function(s,x){ return s+(x.amount||0); }, 0);
+
+  // Deductions (current week)
+  var dedTotal  = (getCurrentWeekDed().total || 0);
+
+  var realNet   = ownerNet - fuelTotal - svcTotal - dedTotal;
+  var realCpm   = tmi ? (realNet / tmi).toFixed(2) : '0.00';
+  var fuelPct   = gross ? ((fuelTotal / gross) * 100).toFixed(1) : '0.0';
+  var drvPct    = gross ? ((driverPay / gross) * 100).toFixed(1) : '0.0';
+  var deadPct   = tmi   ? ((dmi / tmi) * 100).toFixed(1) : '0.0';
+
+  // ── REAL NET CHAIN ────────────────────────────────────────────────────────
+  var chainEl = document.getElementById('fleetRealNetChain');
+  if (chainEl) {
+    function chainLine(n, label, val, color) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd)">'+
+        '<span class="muted" style="font-size:12px">'+n+'. '+label+'</span>'+
+        '<strong style="color:'+(color||'var(--tx)')+'">'+fmt(val)+'</strong></div>';
+    }
+    chainEl.innerHTML =
+      '<div style="font-size:13px;font-weight:800;letter-spacing:1px;color:var(--mu);margin-bottom:8px">📊 REAL NET CALCULATION</div>'+
+      chainLine(1, 'Gross', gross, 'var(--gr)')+
+      chainLine(2, 'Dispatch fee', -dispFee, 'var(--rd)')+
+      chainLine(3, 'Truck Net', truckNet)+
+      chainLine(4, 'Driver pay', -driverPay, 'var(--rd)')+
+      chainLine(5, 'Owner Net (before deductions)', ownerNet)+
+      chainLine(6, 'Fuel + DEF', -fuelTotal, 'var(--rd)')+
+      chainLine(7, 'Service / Maintenance', -svcTotal, 'var(--rd)')+
+      chainLine(8, 'Weekly deductions', -dedTotal, 'var(--rd)')+
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:2px solid var(--acc);margin-top:4px">'+
+        '<span style="font-weight:900;font-size:14px">✅ REAL NET</span>'+
+        '<span style="font-weight:900;font-size:20px;color:'+(realNet>=0?'var(--gr)':'var(--rd)')+'">'+fmt(realNet)+'</span>'+
+      '</div>';
+  }
+
+  // ── KPI ROW ───────────────────────────────────────────────────────────────
+  var kpiEl = document.getElementById('fleetKpiRow');
+  if (kpiEl) {
+    function kpiCard(label, val, color) {
+      return '<div style="text-align:center;background:var(--s2);border-radius:10px;padding:10px 4px">'+
+        '<div class="muted" style="font-size:10px;margin-bottom:4px">'+label+'</div>'+
+        '<div style="font-size:18px;font-weight:800;color:'+color+'">'+val+'</div></div>';
+    }
+    kpiEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">'+
+      kpiCard('⛽ Fuel %', fuelPct+'%', parseFloat(fuelPct)>30?'var(--rd)':'var(--gr)')+
+      kpiCard('👤 Driver %', drvPct+'%', 'var(--tx)')+
+      kpiCard('🔄 Deadhead', deadPct+'%', parseFloat(deadPct)>20?'var(--acc)':'var(--tx)')+
+      kpiCard('📈 Real CPM', '$'+realCpm, parseFloat(realCpm)>=1.5?'var(--gr)':parseFloat(realCpm)>=1?'var(--acc)':'var(--rd)')+
+    '</div>';
+  }
+
+  // ── PER-TRUCK BREAKDOWN (Fleet only, All tab) ─────────────────────────────
+  var perTruckEl = document.getElementById('fleetPerTruckStats');
+  if (perTruckEl) {
+    if (role === 'fleet' && trucks.length > 0 && _fleetStatsTruck === '__all__') {
+      perTruckEl.innerHTML = trucks.map(function(tr){
+        var tLoads = allLoads.filter(function(l){ return l.unitNumber===tr.unitNumber && inPeriod(l.pickup||l.date||''); });
+        var tGross    = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
+        var tDisp     = tGross * (tr.dispatchPercent||0) / 100;
+        var tNet      = tGross - tDisp;
+        var tDrvPay   = tLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); },0);
+        var tOwnerNet = tNet - tDrvPay;
+        var tMiles    = tLoads.reduce(function(s,l){ return s+Number(l.totalMiles||0); },0);
+        var tRealNet  = tOwnerNet - fuelTotal/Math.max(trucks.length,1) - svcTotal/Math.max(trucks.length,1) - dedTotal/Math.max(trucks.length,1);
+        var color = tRealNet>=0?'var(--gr)':'var(--rd)';
+        return '<div class="card" style="margin-top:0;border-left:3px solid var(--acc)">'+
+          '<div style="display:flex;justify-content:space-between;margin-bottom:8px">'+
+            '<div><div style="font-weight:900;color:var(--acc)">Unit '+escHtml(tr.unitNumber)+(tr.make?' · '+escHtml(tr.make):'')+'</div>'+
+            (tr.company?'<div class="muted" style="font-size:11px">'+escHtml(tr.company)+(tr.mc?' · '+escHtml(tr.mc):'')+'</div>':'')+
+            '</div>'+
+            '<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+color+'">'+fmt(tRealNet)+'</div><div class="muted" style="font-size:10px">REAL NET</div></div>'+
+          '</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;text-align:center">'+
+            '<div><div class="muted">Gross</div><div style="font-weight:700">'+fmt(tGross)+'</div></div>'+
+            '<div><div class="muted">Driver Pay</div><div style="font-weight:700;color:var(--acc)">'+fmt(tDrvPay)+'</div></div>'+
+            '<div><div class="muted">Miles</div><div style="font-weight:700">'+tMiles.toLocaleString()+'</div></div>'+
+          '</div>'+
+          '<div class="muted" style="margin-top:6px;font-size:11px">'+tLoads.length+' loads</div>'+
+        '</div>';
+      }).join('');
+    } else {
+      perTruckEl.innerHTML = '';
+    }
+  }
+
+  // ── ROI ───────────────────────────────────────────────────────────────────
+  var roiEl = document.getElementById('fleetRoiCard');
+  if (roiEl) {
+    var totalInvest = filteredTrucks.reduce(function(s,t){ return s+(Number(t.purchaseCost||0)); }, 0);
+    if (totalInvest > 0) {
+      var roi = ((realNet / totalInvest) * 100).toFixed(1);
+      roiEl.innerHTML =
+        '<div style="font-size:13px;font-weight:800;color:var(--mu);margin-bottom:10px">💰 ROI</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">'+
+          '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">Investment</div><div style="font-weight:800;font-size:15px">'+fmt(totalInvest)+'</div></div>'+
+          '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">REAL NET (period)</div><div style="font-weight:800;font-size:15px;color:'+(realNet>=0?'var(--gr)':'var(--rd)')+'">'+fmt(realNet)+'</div></div>'+
+          '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">ROI</div><div style="font-weight:800;font-size:18px;color:'+(parseFloat(roi)>0?'var(--gr)':'var(--rd)')+'">'+roi+'%</div></div>'+
+        '</div>';
+      roiEl.style.display = '';
+    } else {
+      roiEl.innerHTML = '<div class="muted" style="font-size:12px">Add truck purchase cost in Settings to see ROI.</div>';
+    }
+  }
+}
+
+function selectFleetStatsTruck(id) {
+  _fleetStatsTruck = id;
+  renderFleetStats();
 }
 
 // ── FUEL TRACKER MODULE ──────────────────────────────────────────────────────
