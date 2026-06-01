@@ -30,6 +30,7 @@
   const Core = global.CrewBIQCore;
 
   const K = 'fiqD_';
+  const DEFAULT_ORCHESTRATOR_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app/v1/sync';
 
   if (!Core) {
     console.error('[CrewBIQ Sync] CrewBIQCore not found. Load core.js first.');
@@ -110,7 +111,9 @@
 
   function getOrchestratorSecret() {
     try {
-      return localStorage.getItem(K + 'orchestratorSecret') || '';
+      const secret = localStorage.getItem(K + 'orchestratorSecret') || localStorage.getItem(K + 'orchestratorSecretBackup') || '';
+      if (secret) localStorage.setItem(K + 'orchestratorSecret', secret);
+      return secret;
     } catch (e) {
       return '';
     }
@@ -135,14 +138,18 @@
 
   function getOrchestratorSyncUrl() {
     try {
-      const raw = localStorage.getItem(K + 'orchestratorUrl') || '';
+      const raw = localStorage.getItem(K + 'orchestratorUrl') || localStorage.getItem(K + 'orchestratorUrlBackup') || DEFAULT_ORCHESTRATOR_SYNC_URL;
       const normalized = normalizeOrchestratorSyncUrl(raw);
       if (normalized && raw !== normalized) {
         localStorage.setItem(K + 'orchestratorUrl', normalized);
       }
+      if (normalized) {
+        localStorage.setItem(K + 'orchestratorUrl', normalized);
+        localStorage.setItem(K + 'orchestratorUrlBackup', normalized);
+      }
       return normalized;
     } catch (e) {
-      return '';
+      return DEFAULT_ORCHESTRATOR_SYNC_URL;
     }
   }
 

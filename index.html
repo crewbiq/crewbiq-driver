@@ -1263,6 +1263,8 @@ var FLEET_DIRECT_KEYS = [
   'fiqD_paySettings',
   'fiqD_orchestratorUrl',
   'fiqD_orchestratorSecret',
+  'fiqD_orchestratorUrlBackup',
+  'fiqD_orchestratorSecretBackup',
   'fiqD__savedSyncUrl',
   'fiqD_advancedSettingsUnlocked'
 ];
@@ -1372,6 +1374,8 @@ function loadAll(){
   driver = load('driver', null);
   ptiCustom = load('ptiCustom', []);
   loadDriverScopedData(!!driver);
+  getStoredOrchestratorUrl();
+  getStoredOrchestratorSecret();
 }
 async function restoreFromCloud(){
   saveAdvancedSyncSettings(false);
@@ -1645,7 +1649,7 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
   var orchUrl = (typeof getOrchestratorSyncUrl === 'function') ? getOrchestratorSyncUrl() : '';
   if(!orchUrl || !crewbiqId) return;
   var baseUrl = orchUrl.replace(/\/v1\/sync\/?$/, '');
-  var secret  = (typeof localStorage !== 'undefined') ? localStorage.getItem(K+'orchestratorSecret') : '';
+  var secret  = (typeof localStorage !== 'undefined') ? getStoredOrchestratorSecret() : '';
   var headers = {'Content-Type':'application/json'};
   if(secret) headers['X-CrewBIQ-Secret'] = secret;
   try {
@@ -3261,13 +3265,13 @@ function renderExpenses(){
 var lastScanResult = null;
 
 function scanEndpointUrl(){
-  var raw = localStorage.getItem(K + 'orchestratorUrl') || DEFAULT_ORCHESTRATOR_SYNC_URL || '';
+  var raw = getStoredOrchestratorUrl();
   var syncUrl = typeof normalizeOrchestratorSyncUrl === 'function' ? normalizeOrchestratorSyncUrl(raw) : raw;
   return syncUrl.replace(/\/v1\/sync\/?$/i, '/v1/ocr/extract');
 }
 function scanHeaders(){
   var h = {'Content-Type':'application/json'};
-  var secret = localStorage.getItem(K + 'orchestratorSecret') || '';
+  var secret = getStoredOrchestratorSecret();
   if(secret) h['X-CrewBIQ-Secret'] = secret;
   return h;
 }
@@ -3938,12 +3942,35 @@ function shareInvite(){
 
 // ── SETTINGS PAGE ──
 const DEFAULT_ORCHESTRATOR_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app/v1/sync';
+const ORCH_URL_KEY = K + 'orchestratorUrl';
+const ORCH_SECRET_KEY = K + 'orchestratorSecret';
+const ORCH_URL_BACKUP_KEY = K + 'orchestratorUrlBackup';
+const ORCH_SECRET_BACKUP_KEY = K + 'orchestratorSecretBackup';
 
 // Protects sync/orchestrator fields from accidental changes.
 // Change this value in Settings → Advanced to something only admins know.
 const ADVANCED_SETTINGS_SECRET = 'cbq-sync-2026';
 const ADVANCED_SETTINGS_UNLOCK_KEY = K + 'advancedSettingsUnlocked';
 let _advSettingsUnlocked = localStorage.getItem(ADVANCED_SETTINGS_UNLOCK_KEY) === '1';
+
+function getStoredOrchestratorUrl(){
+  const raw = localStorage.getItem(ORCH_URL_KEY) || localStorage.getItem(ORCH_URL_BACKUP_KEY) || DEFAULT_ORCHESTRATOR_SYNC_URL;
+  const normalized = normalizeOrchestratorSyncUrl(raw);
+  if(normalized){
+    localStorage.setItem(ORCH_URL_KEY, normalized);
+    localStorage.setItem(ORCH_URL_BACKUP_KEY, normalized);
+  }
+  return normalized;
+}
+
+function getStoredOrchestratorSecret(){
+  const secret = localStorage.getItem(ORCH_SECRET_KEY) || localStorage.getItem(ORCH_SECRET_BACKUP_KEY) || '';
+  if(secret){
+    localStorage.setItem(ORCH_SECRET_KEY, secret);
+    localStorage.setItem(ORCH_SECRET_BACKUP_KEY, secret);
+  }
+  return secret;
+}
 
 function toggleSettingsAdvancedSync(){
   const box = document.getElementById('settingsAdvancedSync');
@@ -3974,10 +4001,14 @@ function saveAdvancedSyncSettings(showToast=true){
     }
   }
   if(orchEl){
-    localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(orchEl.value));
+    const normalized = normalizeOrchestratorSyncUrl(orchEl.value || DEFAULT_ORCHESTRATOR_SYNC_URL);
+    localStorage.setItem(ORCH_URL_KEY, normalized);
+    localStorage.setItem(ORCH_URL_BACKUP_KEY, normalized);
   }
   if(secretEl){
-    localStorage.setItem(K + 'orchestratorSecret', String(secretEl.value || '').trim());
+    const secret = String(secretEl.value || '').trim();
+    localStorage.setItem(ORCH_SECRET_KEY, secret);
+    if(secret) localStorage.setItem(ORCH_SECRET_BACKUP_KEY, secret);
   }
   renderOrchestratorSettingsStatus();
   if(showToast) toast('Advanced sync settings saved');
@@ -4013,8 +4044,8 @@ function orchestratorLastCopyLabel(){
 function renderOrchestratorSettingsStatus(){
   const el = document.getElementById('orchestratorSettingsStatus');
   if(!el) return;
-  const urlConfigured = !!(localStorage.getItem(K + 'orchestratorUrl') || '').trim();
-  const secretConfigured = !!(localStorage.getItem(K + 'orchestratorSecret') || '').trim();
+  const urlConfigured = !!getStoredOrchestratorUrl();
+  const secretConfigured = !!getStoredOrchestratorSecret();
   el.innerHTML =
     'URL configured: ' + (urlConfigured ? 'yes' : 'no') + '<br>' +
     'Secret configured: ' + (secretConfigured ? 'yes' : 'no') + '<br>' +
@@ -4047,8 +4078,8 @@ function renderSettingsPage(){
   document.getElementById('setCpmBase').value = driver.cpmBase||'loaded';
   document.getElementById('setPtiSchedule').value = driver.ptiSchedule||'daily';
   document.getElementById('setSyncUrl').value = driver.syncUrl || localStorage.getItem(K+'_savedSyncUrl') || DEFAULT_SYNC_URL;
-  document.getElementById('setOrchestratorUrl').value = localStorage.getItem(K + 'orchestratorUrl') || DEFAULT_ORCHESTRATOR_SYNC_URL;
-  document.getElementById('setOrchestratorSecret').value = localStorage.getItem(K + 'orchestratorSecret') || '';
+  document.getElementById('setOrchestratorUrl').value = getStoredOrchestratorUrl();
+  document.getElementById('setOrchestratorSecret').value = getStoredOrchestratorSecret();
   renderOrchestratorSettingsStatus();
   let effEl = document.getElementById('setRateEffectiveDate');
   if(effEl && !effEl.value) effEl.value = today();
