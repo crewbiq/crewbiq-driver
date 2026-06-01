@@ -293,6 +293,14 @@
     const ownerData = typeof global.getOwnerSyncData === 'function'
       ? (global.getOwnerSyncData() || {})
       : {};
+    const normalizedOwnerData = {
+      trucks: ownerData.trucks || [],
+      driverProfiles: ownerData.driverProfiles || [],
+      fuelLogs: ownerData.fuelLogs || [],
+      serviceLogs: ownerData.serviceLogs || [],
+      weeklyDeductions: ownerData.weeklyDeductions || [],
+      deductionTemplates: ownerData.deductionTemplates || [],
+    };
     return {
       type: 'driver_report',
       sessionToken: getSessionToken(),
@@ -303,14 +311,7 @@
       profile: { driver: cloneDriver(driver), ownerKey: ownerKey(driver), updatedAt: new Date().toISOString() },
       loads:  (forceAll ? loads : loads.filter(x => !x.synced)).map(stampRecord),
       ptiLog: (forceAll ? ptiLog : ptiLog.filter(p => !p.synced).slice(0, 10)).map(stampRecord),
-      ownerData: {
-        trucks: ownerData.trucks || [],
-        driverProfiles: ownerData.driverProfiles || [],
-        fuelLogs: ownerData.fuelLogs || [],
-        serviceLogs: ownerData.serviceLogs || [],
-        weeklyDeductions: ownerData.weeklyDeductions || [],
-        deductionTemplates: ownerData.deductionTemplates || [],
-      },
+      ownerData: shouldSendOwnerData(normalizedOwnerData) ? normalizedOwnerData : null,
       // Pay settings sent separately so Orchestrator can persist them
       // independently of the Apps Script profile.
       paySettings: (function() {
@@ -328,6 +329,24 @@
     if (!ownerData || typeof ownerData !== 'object') return false;
     return ['trucks', 'driverProfiles', 'fuelLogs', 'serviceLogs', 'weeklyDeductions', 'deductionTemplates']
       .some(key => Array.isArray(ownerData[key]) && ownerData[key].length > 0);
+  }
+
+  function shouldSendOwnerData(ownerData) {
+    if (payloadHasOwnerData(ownerData)) return true;
+    try {
+      const role = typeof global.getUserRole === 'function' ? global.getUserRole() : '';
+      return role === 'owner' || role === 'fleet';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function describeOrchestratorCopy(result) {
+    if (!result) return '';
+    if (result.ok && !result.skipped) return 'DB ok';
+    if (result.skipped) return 'DB skipped';
+    if (result.status) return 'DB ' + result.status;
+    return 'DB error';
   }
 
   async function pushToOrchestrator(payload) {
@@ -665,14 +684,20 @@
     Core.events.emit('sync:start', null);
 
     try {
+      if (typeof global.saveAdvancedSyncSettings === 'function') {
+        global.saveAdvancedSyncSettings(false);
+      }
+
       const push = await pushToCloud(!!options.forceAll);
       if (push && push.reason === 'missing_session_token') {
         throw new Error('Login required to restore cloud data.');
       }
+      let orchestratorCopy = null;
       if (push && push.ok && !push.skipped && push.payload) {
-        pushToOrchestrator(push.payload).catch(e => {
-          console.warn('[CrewBIQ Orchestrator] sync failed', e);
-        });
+        orchestratorCopy = await pushToOrchestrator(push.payload);
+        if (options.forceAll && orchestratorCopy && !orchestratorCopy.ok && !orchestratorCopy.skipped) {
+          throw new Error('PostgreSQL copy failed: ' + describeOrchestratorCopy(orchestratorCopy));
+        }
       }
       const pull = await pullFromCloud({ silent: true });
 
@@ -681,13 +706,17 @@
       const importedLoads = pull && pull.loadsImported ? pull.loadsImported : 0;
       const importedPti = pull && pull.ptiImported ? pull.ptiImported : 0;
 
-      setSyncUI('ok', `Synced ${timeStr} · ↑${pushedLoads} ↓${importedLoads}`);
-      Core.toast(`Synced ✅ ↑${pushedLoads} ↓${importedLoads}`);
+      const dbLabel = describeOrchestratorCopy(orchestratorCopy);
+      const dbFailed = orchestratorCopy && !orchestratorCopy.ok && !orchestratorCopy.skipped;
+      const statusText = `Synced ${timeStr} · ↑${pushedLoads} ↓${importedLoads}` + (dbLabel ? ` · ${dbLabel}` : '');
+      setSyncUI(dbFailed ? 'err' : 'ok', statusText);
+      Core.toast(dbFailed ? `Cloud synced, ${dbLabel}` : `Synced ✅ ↑${pushedLoads} ↓${importedLoads}`);
       Core.events.emit('sync:success', {
         loadsCount: pushedLoads,
         ptiCount:   push && push.pushedPti ? push.pushedPti : 0,
         pulledLoads: importedLoads,
         pulledPti: importedPti,
+        orchestratorCopy,
         time: timeStr,
       });
 
