@@ -2054,36 +2054,43 @@ function renderFleetStats() {
     return true;
   });
 
-  // ── CALCULATE ─────────────────────────────────────────────────────────────
-  var gross     = filteredLoads.reduce(function(s,l){ return s+Number(l.gross||0); }, 0);
-  var driverPay = filteredLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); }, 0);
-  var lmi       = filteredLoads.reduce(function(s,l){ return s+Number(l.loadedMiles||0); }, 0);
-  var dmi       = filteredLoads.reduce(function(s,l){ return s+Number(l.deadMiles||0); }, 0);
-  var tmi       = lmi + dmi;
+  // ── CALCULATE using ownerFinanceForTruck() for accuracy ──────────────────
+  // This reuses the same logic as Fleet Dashboard: correct driver pay from
+  // profiles, per-truck fuel/service filtering, proper deductions.
+  var trucksToCalc = filteredTrucks.length ? filteredTrucks : [null];
+  var combined = trucksToCalc.reduce(function(acc, tr){
+    var f = (typeof ownerFinanceForTruck === 'function')
+      ? ownerFinanceForTruck(tr, period)
+      : {gross:0,dispatchFee:0,truckNet:0,driverPay:0,ownerNet:0,fuelCost:0,serviceCost:0,deductionTotal:0,realNet:0,miles:0,loads:[]};
+    acc.gross        += f.gross;
+    acc.dispFee      += f.dispatchFee;
+    acc.truckNet     += f.truckNet;
+    acc.driverPay    += f.driverPay;
+    acc.ownerNet     += f.ownerNet;
+    acc.fuelTotal    += f.fuelCost;
+    acc.svcTotal     += f.serviceCost;
+    acc.dedTotal     += f.deductionTotal;
+    acc.realNet      += f.realNet;
+    acc.miles        += f.miles;
+    acc.loads        = acc.loads.concat(f.loads || []);
+    return acc;
+  }, {gross:0,dispFee:0,truckNet:0,driverPay:0,ownerNet:0,fuelTotal:0,svcTotal:0,dedTotal:0,realNet:0,miles:0,loads:[]});
 
-  // Weighted dispatch fee from truck settings
-  var dispFee = filteredLoads.reduce(function(s,l){
-    var tr = truckForLoad(l);
-    var pct = tr ? Number(tr.dispatchPercent||0) : 0;
-    return s + Number(l.gross||0) * pct / 100;
-  }, 0);
+  var gross     = combined.gross;
+  var dispFee   = combined.dispFee;
+  var truckNet  = combined.truckNet;
+  var driverPay = combined.driverPay;
+  var ownerNet  = combined.ownerNet;
+  var fuelTotal = combined.fuelTotal;
+  var svcTotal  = combined.svcTotal;
+  var dedTotal  = combined.dedTotal;
+  var realNet   = combined.realNet;
+  var tmi       = combined.miles;
+  var lmi       = combined.loads.reduce(function(s,l){ return s+Number(l.loadedMiles||0); },0);
+  var dmi       = combined.loads.reduce(function(s,l){ return s+Number(l.deadMiles||0); },0);
+  var fuelGal   = loadFuelLogs().filter(function(x){ return inPeriod(x.date||''); })
+                                .reduce(function(s,x){ return s+(x.fuelGallons||0); },0);
 
-  var truckNet  = gross - dispFee;
-  var ownerNet  = truckNet - driverPay;
-
-  // Fuel (this period, filtered truck if applicable)
-  var fuelLogs  = loadFuelLogs().filter(function(x){ return inPeriod(x.date||''); });
-  var fuelTotal = fuelLogs.reduce(function(s,x){ return s+(x.fuelCost||0)+(x.defCost||0); }, 0);
-  var fuelGal   = fuelLogs.reduce(function(s,x){ return s+(x.fuelGallons||0); }, 0);
-
-  // Service (this period)
-  var svcTotal  = loadServiceLogs().filter(function(x){ return inPeriod(x.date||''); })
-                                   .reduce(function(s,x){ return s+(x.amount||0); }, 0);
-
-  // Deductions (current week)
-  var dedTotal  = (getCurrentWeekDed().total || 0);
-
-  var realNet   = ownerNet - fuelTotal - svcTotal - dedTotal;
   var realCpm   = tmi ? (realNet / tmi).toFixed(2) : '0.00';
   var fuelPct   = gross ? ((fuelTotal / gross) * 100).toFixed(1) : '0.0';
   var drvPct    = gross ? ((driverPay / gross) * 100).toFixed(1) : '0.0';
@@ -2134,28 +2141,25 @@ function renderFleetStats() {
   if (perTruckEl) {
     if (role === 'fleet' && trucks.length > 0 && _fleetStatsTruck === '__all__') {
       perTruckEl.innerHTML = trucks.map(function(tr){
-        var tLoads = allLoads.filter(function(l){ return l.unitNumber===tr.unitNumber && inPeriod(l.pickup||l.date||''); });
-        var tGross    = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
-        var tDisp     = tGross * (tr.dispatchPercent||0) / 100;
-        var tNet      = tGross - tDisp;
-        var tDrvPay   = tLoads.reduce(function(s,l){ return s+Number(l.driverPay||0); },0);
-        var tOwnerNet = tNet - tDrvPay;
-        var tMiles    = tLoads.reduce(function(s,l){ return s+Number(l.totalMiles||0); },0);
-        var tRealNet  = tOwnerNet - fuelTotal/Math.max(trucks.length,1) - svcTotal/Math.max(trucks.length,1) - dedTotal/Math.max(trucks.length,1);
-        var color = tRealNet>=0?'var(--gr)':'var(--rd)';
+        var f = (typeof ownerFinanceForTruck === 'function')
+          ? ownerFinanceForTruck(tr, period)
+          : {gross:0,dispatchFee:0,truckNet:0,driverPay:0,ownerNet:0,fuelCost:0,serviceCost:0,deductionTotal:0,realNet:0,miles:0,loads:[]};
+        var color = f.realNet>=0?'var(--gr)':'var(--rd)';
+        var cpm   = f.miles ? (f.realNet/f.miles).toFixed(2) : '0.00';
         return '<div class="card" style="margin-top:0;border-left:3px solid var(--acc)">'+
-          '<div style="display:flex;justify-content:space-between;margin-bottom:8px">'+
-            '<div><div style="font-weight:900;color:var(--acc)">Unit '+escHtml(tr.unitNumber)+(tr.make?' · '+escHtml(tr.make):'')+'</div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+            '<div><div style="font-weight:900;color:var(--acc)">🚚 Unit '+escHtml(tr.unitNumber)+(tr.make?' · '+escHtml(tr.make):'')+'</div>'+
             (tr.company?'<div class="muted" style="font-size:11px">'+escHtml(tr.company)+(tr.mc?' · '+escHtml(tr.mc):'')+'</div>':'')+
             '</div>'+
-            '<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+color+'">'+fmt(tRealNet)+'</div><div class="muted" style="font-size:10px">REAL NET</div></div>'+
+            '<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+color+'">'+fmt(f.realNet)+'</div><div class="muted" style="font-size:10px">REAL NET</div></div>'+
           '</div>'+
-          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;text-align:center">'+
-            '<div><div class="muted">Gross</div><div style="font-weight:700">'+fmt(tGross)+'</div></div>'+
-            '<div><div class="muted">Driver Pay</div><div style="font-weight:700;color:var(--acc)">'+fmt(tDrvPay)+'</div></div>'+
-            '<div><div class="muted">Miles</div><div style="font-weight:700">'+tMiles.toLocaleString()+'</div></div>'+
+          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;text-align:center">'+
+            '<div style="background:var(--s2);border-radius:8px;padding:6px"><div class="muted">Gross</div><div style="font-weight:700">'+fmt(f.gross)+'</div></div>'+
+            '<div style="background:var(--s2);border-radius:8px;padding:6px"><div class="muted">Driver Pay</div><div style="font-weight:700;color:var(--acc)">'+fmt(f.driverPay)+'</div></div>'+
+            '<div style="background:var(--s2);border-radius:8px;padding:6px"><div class="muted">Fuel+DEF</div><div style="font-weight:700;color:var(--rd)">'+fmt(f.fuelCost)+'</div></div>'+
+            '<div style="background:var(--s2);border-radius:8px;padding:6px"><div class="muted">Real CPM</div><div style="font-weight:700;color:'+(parseFloat(cpm)>=1.5?'var(--gr)':parseFloat(cpm)>=1?'var(--acc)':'var(--rd)')+'">$'+cpm+'</div></div>'+
           '</div>'+
-          '<div class="muted" style="margin-top:6px;font-size:11px">'+tLoads.length+' loads</div>'+
+          '<div class="muted" style="margin-top:6px;font-size:11px">'+(f.loads||[]).length+' loads · '+f.miles.toLocaleString()+' mi · Service '+fmt(f.serviceCost)+' · Deductions '+fmt(f.deductionTotal)+'</div>'+
         '</div>';
       }).join('');
     } else {
