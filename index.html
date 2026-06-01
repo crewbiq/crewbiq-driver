@@ -763,6 +763,13 @@
         <button class="btn ghost" onclick="exportDriverData('csv')" style="padding:10px">📊 CSV</button>
         <button class="btn ghost" onclick="exportDriverData('pdf')" style="padding:10px">📄 PDF</button>
       </div>
+      <div id="fleetReportActions" style="display:none;margin-bottom:12px;border-top:1px solid var(--bd);padding-top:12px">
+        <div class="muted" style="margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Fleet analytics report</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn ghost" onclick="exportFleetData('csv')" style="padding:10px">Fleet CSV</button>
+          <button class="btn ghost" onclick="exportFleetData('pdf')" style="padding:10px">Fleet PDF</button>
+        </div>
+      </div>
       <div class="muted" style="margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Share via</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <button onclick="shareReport('whatsapp')" style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);border-radius:10px;color:#25d366;padding:10px;cursor:pointer;font-size:12px;font-weight:700">
@@ -1240,6 +1247,9 @@ function applyRoleUI(){
       </button>`;
     }).join('');
   }
+
+  const fleetReportActions = document.getElementById('fleetReportActions');
+  if (fleetReportActions) fleetReportActions.style.display = role === 'driver' ? 'none' : '';
 }
 
 const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
@@ -1617,7 +1627,7 @@ function applyAuthRestoreData(data, syncUrl){
   saveAll();
   saveDriverProfile();
   // On a fresh device, trucks may be empty — fetch from Orchestrator in background
-  if(!loadTrucks().length && driver.crewId) {
+  if((!loadTrucks().length || !loadDriverProfiles().length) && driver.crewId) {
     restoreFleetConfigFromOrchestrator(driver.crewId).catch(function(){});
   }
   return data;
@@ -1640,6 +1650,14 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
         renderTrucksList();
         renderFleetPage();
         console.info('[CrewBIQ Fleet] restored', data.trucks.length, 'truck(s) from Orchestrator');
+      }
+      var restoredDrivers = data.driver_profiles || data.driverProfiles || [];
+      if(Array.isArray(restoredDrivers) && restoredDrivers.length){
+        saveDriverProfiles(restoredDrivers);
+        renderDriversPage();
+        renderFleetPage();
+        renderFleetStats();
+        console.info('[CrewBIQ Fleet] restored', restoredDrivers.length, 'driver profile(s) from Orchestrator');
       }
       // Restore pay settings if not already set locally
       if(data.pay_config && data.pay_config.payType){
@@ -1878,15 +1896,45 @@ function showPage(name, btn){
   if(name==='menu'){ applyRoleUI(); }
 }
 
+function financePeriodBounds(period){
+  var t = today();
+  var wk = (typeof getWeekKey === 'function') ? getWeekKey(t) : t.slice(0,7) + '-01';
+  var ym = t.slice(0,7);
+  var yr = t.slice(0,4);
+  if(period === 'custom'){
+    return {
+      from: (document.getElementById('exportFrom') || {}).value || t,
+      to:   (document.getElementById('exportTo') || {}).value || t
+    };
+  }
+  if(period === 'week') return {from:wk, to:t};
+  if(period === 'lastweek'){
+    var prevStart = new Date(new Date(wk + 'T12:00:00').getTime() - 7 * 86400000);
+    var prevEnd = new Date(new Date(wk + 'T12:00:00').getTime() - 86400000);
+    return {from:prevStart.toISOString().slice(0,10), to:prevEnd.toISOString().slice(0,10)};
+  }
+  if(period === 'month') return {from:ym + '-01', to:t};
+  if(period === 'lastmonth'){
+    var firstThis = new Date(ym + '-01T12:00:00');
+    var firstPrev = new Date(firstThis); firstPrev.setMonth(firstPrev.getMonth() - 1);
+    var lastPrev = new Date(firstThis.getTime() - 86400000);
+    return {from:firstPrev.toISOString().slice(0,7) + '-01', to:lastPrev.toISOString().slice(0,10)};
+  }
+  if(period === 'year') return {from:yr + '-01-01', to:t};
+  return {from:'', to:''};
+}
+
+function recordInPeriodBounds(record, dateField, bounds){
+  if(!bounds || (!bounds.from && !bounds.to)) return true;
+  var d = record && (record[dateField] || record.pickup || record.date || record.weekKey || '');
+  if(!d) return false;
+  d = String(d).slice(0,10);
+  return (!bounds.from || d >= bounds.from) && (!bounds.to || d <= bounds.to);
+}
+
 function periodRecordFilter(period, dateField){
-  var wk = (typeof getWeekKey === 'function') ? getWeekKey(today()) : today().slice(0,7);
-  var mo = today().slice(0,7);
-  return function(record){
-    var d = record && (record[dateField] || record.pickup || record.date || record.weekKey || '');
-    if(period === 'week')  return (typeof getWeekKey==='function') ? getWeekKey(d)===wk : String(d).startsWith(mo);
-    if(period === 'month') return String(d).startsWith(mo);
-    return true;
-  };
+  var bounds = financePeriodBounds(period || 'week');
+  return function(record){ return recordInPeriodBounds(record, dateField, bounds); };
 }
 
 // Calculate driver pay using the fleet owner's configured rate.
@@ -1898,7 +1946,7 @@ function calcFleetDriverPay(load, driverProfiles, truckId){
   if(!active.length) return Number(load.driverPay || 0);
   var gross       = Number(load.gross||0);
   var loadedMiles = Number(load.loadedMiles||0);
-  var totalMiles  = Number(load.totalMiles||0);
+  var totalMiles  = Number(load.totalMiles||0) || (loadedMiles + Number(load.deadMiles||0));
   return active.reduce(function(s, d){
     if(d.payType === 'gross_percent') return s + gross * Number(d.rate||0) / 100;
     var mi = d.cpmBase === 'total' ? totalMiles : loadedMiles;
@@ -1921,7 +1969,7 @@ function ownerFinanceForTruck(truck, period){
   var gross = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
   // Use fleet owner's configured driver rates when available, fall back to load.driverPay
   var driverPay = tLoads.reduce(function(s,l){ return s + calcFleetDriverPay(l, driverProfiles, truckId); },0);
-  var miles = tLoads.reduce(function(s,l){ return s+Number(l.totalMiles||0); },0);
+  var miles = tLoads.reduce(function(s,l){ return s+(Number(l.totalMiles||0) || (Number(l.loadedMiles||0)+Number(l.deadMiles||0))); },0);
   var dispatchFee = tLoads.reduce(function(s,l){
     var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : (truck && truck.dispatchPercent) || 0);
     return s + Number(l.dispatchFee != null ? l.dispatchFee : (Number(l.gross||0) * rate / 100));
@@ -1955,6 +2003,17 @@ function getOwnerSyncData(){
     weeklyDeductions: loadWeeklyDeds(),
     deductionTemplates: loadDedTemplates(),
   };
+}
+
+function queueFleetConfigSync(){
+  clearTimeout(window._fleetConfigSyncTimer);
+  window._fleetConfigSyncTimer = setTimeout(function(){
+    if(typeof forceFullSync === 'function' && driver && driver.syncUrl){
+      forceFullSync().catch(function(e){
+        console.warn('[CrewBIQ Fleet] config sync failed:', e && e.message ? e.message : e);
+      });
+    }
+  }, 800);
 }
 
 function renderRealNetCard(){
@@ -2173,13 +2232,27 @@ function renderFleetStats() {
     var totalInvest = filteredTrucks.reduce(function(s,t){ return s+(Number(t.purchaseCost||0)); }, 0);
     if (totalInvest > 0) {
       var roi = ((realNet / totalInvest) * 100).toFixed(1);
+      var bounds = financePeriodBounds(period);
+      var days = 7;
+      if(bounds.from && bounds.to){
+        days = Math.max(1, Math.round((new Date(bounds.to+'T12:00:00') - new Date(bounds.from+'T12:00:00')) / 86400000) + 1);
+      } else if(period === 'month') {
+        days = 30;
+      } else if(period === 'year') {
+        days = 365;
+      }
+      var annualNet = realNet * (365 / days);
+      var annualRoi = ((annualNet / totalInvest) * 100).toFixed(1);
+      var paybackMonths = realNet > 0 ? (totalInvest / (realNet / days * 30.4375)) : 0;
       roiEl.innerHTML =
         '<div style="font-size:13px;font-weight:800;color:var(--mu);margin-bottom:10px">💰 ROI</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">'+
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">'+
           '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">Investment</div><div style="font-weight:800;font-size:15px">'+fmt(totalInvest)+'</div></div>'+
           '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">REAL NET (period)</div><div style="font-weight:800;font-size:15px;color:'+(realNet>=0?'var(--gr)':'var(--rd)')+'">'+fmt(realNet)+'</div></div>'+
           '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">ROI</div><div style="font-weight:800;font-size:18px;color:'+(parseFloat(roi)>0?'var(--gr)':'var(--rd)')+'">'+roi+'%</div></div>'+
-        '</div>';
+          '<div style="background:var(--s2);border-radius:10px;padding:10px"><div class="muted" style="font-size:10px">Annual ROI</div><div style="font-weight:800;font-size:18px;color:'+(parseFloat(annualRoi)>0?'var(--gr)':'var(--rd)')+'">'+annualRoi+'%</div></div>'+
+        '</div>'+
+        '<div class="muted" style="font-size:11px;margin-top:8px">Period '+days+' day(s) Â· Annualized net '+fmt(annualNet)+(paybackMonths>0?' Â· Payback '+paybackMonths.toFixed(1)+' mo':'')+'</div>';
       roiEl.style.display = '';
     } else {
       roiEl.innerHTML = '<div class="muted" style="font-size:12px">Add truck purchase cost in Settings to see ROI.</div>';
@@ -2190,6 +2263,160 @@ function renderFleetStats() {
 function selectFleetStatsTruck(id) {
   _fleetStatsTruck = id;
   renderFleetStats();
+}
+
+function fleetReportPeriod(){
+  return (document.getElementById('exportPeriod') || {}).value || 'week';
+}
+
+function fleetReportPeriodLabel(){
+  var p = fleetReportPeriod();
+  var labels = {
+    week:'This Week', lastweek:'Last Week', month:'This Month',
+    lastmonth:'Last Month', year:'This Year', all:'All Time', custom:'Custom Range'
+  };
+  return labels[p] || p;
+}
+
+function fleetReportRows(){
+  var period = fleetReportPeriod();
+  var trucks = activeTrucks();
+  var rows = trucks.length
+    ? trucks.map(function(t){ return {truck:t, finance:ownerFinanceForTruck(t, period)}; })
+    : [{truck:null, finance:ownerFinanceForTruck(null, period)}];
+  return rows.map(function(row){
+    var t = row.truck || {};
+    var f = row.finance;
+    var invest = Number(t.purchaseCost || 0);
+    var cpm = f.miles ? (f.realNet / f.miles) : 0;
+    var roi = invest ? (f.realNet / invest * 100) : 0;
+    return {
+      unit: t.unitNumber || 'Unassigned',
+      company: t.company || '',
+      truck: t,
+      finance: f,
+      investment: invest,
+      realCpm: cpm,
+      roi: roi
+    };
+  });
+}
+
+function downloadTextFile(content, type, filename){
+  var blob = new Blob([content], {type:type});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+function csvCell(value){
+  var s = String(value == null ? '' : value);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function buildFleetCsv(){
+  var rows = fleetReportRows();
+  var headers = ['Unit','Company','Loads','Miles','Gross','Dispatch Fee','Truck Net','Driver Pay','Owner Net','Fuel+DEF','Service','Deductions','REAL NET','Real CPM','Investment','ROI %'];
+  var csvRows = rows.map(function(r){
+    var f = r.finance;
+    return [
+      r.unit, r.company, (f.loads || []).length, f.miles.toFixed(2),
+      f.gross.toFixed(2), f.dispatchFee.toFixed(2), f.truckNet.toFixed(2),
+      f.driverPay.toFixed(2), f.ownerNet.toFixed(2), f.fuelCost.toFixed(2),
+      f.serviceCost.toFixed(2), f.deductionTotal.toFixed(2), f.realNet.toFixed(2),
+      r.realCpm.toFixed(2), r.investment.toFixed(2), r.investment ? r.roi.toFixed(1) : ''
+    ].map(csvCell).join(',');
+  });
+  var totals = rows.reduce(function(acc,r){
+    var f = r.finance;
+    ['gross','dispatchFee','truckNet','driverPay','ownerNet','fuelCost','serviceCost','deductionTotal','realNet','miles'].forEach(function(k){ acc[k] += Number(f[k] || 0); });
+    acc.loads += (f.loads || []).length;
+    acc.investment += r.investment;
+    return acc;
+  }, {gross:0,dispatchFee:0,truckNet:0,driverPay:0,ownerNet:0,fuelCost:0,serviceCost:0,deductionTotal:0,realNet:0,miles:0,loads:0,investment:0});
+  csvRows.push([
+    'TOTAL','',totals.loads,totals.miles.toFixed(2),totals.gross.toFixed(2),
+    totals.dispatchFee.toFixed(2),totals.truckNet.toFixed(2),totals.driverPay.toFixed(2),
+    totals.ownerNet.toFixed(2),totals.fuelCost.toFixed(2),totals.serviceCost.toFixed(2),
+    totals.deductionTotal.toFixed(2),totals.realNet.toFixed(2),
+    totals.miles ? (totals.realNet/totals.miles).toFixed(2) : '0.00',
+    totals.investment.toFixed(2), totals.investment ? (totals.realNet/totals.investment*100).toFixed(1) : ''
+  ].map(csvCell).join(','));
+  return [headers.join(',')].concat(csvRows).join('\n');
+}
+
+function buildFleetReportHTML(){
+  var rows = fleetReportRows();
+  var period = fleetReportPeriodLabel();
+  var bounds = financePeriodBounds(fleetReportPeriod());
+  var dateRange = bounds.from || bounds.to ? (bounds.from || '') + ' - ' + (bounds.to || '') : 'All Time';
+  var totals = rows.reduce(function(acc,r){
+    var f = r.finance;
+    ['gross','dispatchFee','truckNet','driverPay','ownerNet','fuelCost','serviceCost','deductionTotal','realNet','miles'].forEach(function(k){ acc[k] += Number(f[k] || 0); });
+    acc.loads += (f.loads || []).length;
+    acc.investment += r.investment;
+    return acc;
+  }, {gross:0,dispatchFee:0,truckNet:0,driverPay:0,ownerNet:0,fuelCost:0,serviceCost:0,deductionTotal:0,realNet:0,miles:0,loads:0,investment:0});
+  function money(n){ return fmt(n); }
+  function cell(v, align){ return '<td style="padding:7px 8px;text-align:'+(align||'left')+';border-bottom:1px solid #e2e8f0;font-size:11px">'+v+'</td>'; }
+  var body = rows.map(function(r){
+    var f = r.finance;
+    var roi = r.investment ? r.roi.toFixed(1)+'%' : '-';
+    var color = f.realNet >= 0 ? '#059669' : '#dc2626';
+    return '<tr>'+
+      cell('Unit '+escHtml(r.unit)+'<br><span style="color:#64748b">'+escHtml(r.company)+'</span>')+
+      cell((f.loads||[]).length, 'right')+
+      cell(f.miles.toLocaleString(), 'right')+
+      cell(money(f.gross), 'right')+
+      cell('-'+money(f.dispatchFee), 'right')+
+      cell('-'+money(f.driverPay), 'right')+
+      cell('-'+money(f.fuelCost + f.serviceCost + f.deductionTotal), 'right')+
+      cell('<strong style="color:'+color+'">'+money(f.realNet)+'</strong>', 'right')+
+      cell('$'+(r.realCpm || 0).toFixed(2), 'right')+
+      cell(r.investment ? money(r.investment) : '-', 'right')+
+      cell(roi, 'right')+
+    '</tr>';
+  }).join('');
+  return '<!doctype html><html><head><meta charset="UTF-8"><title>CrewBIQ Fleet Report</title>'+
+    '<style>body{font-family:Segoe UI,Arial,sans-serif;color:#0f172a;padding:18px;max-width:1100px;margin:0 auto}table{width:100%;border-collapse:collapse}th{padding:8px;background:#0f172a;color:#fff;font-size:10px;text-align:right}th:first-child{text-align:left}.kpi{display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin:0 8px 10px 0}.label{font-size:9px;color:#64748b;text-transform:uppercase}.val{font-size:16px;font-weight:800}</style></head><body>'+
+    '<h1 style="margin:0 0 4px">CrewBIQ Fleet Analytics Report</h1>'+
+    '<div style="color:#64748b;margin-bottom:14px">'+escHtml(period)+' · '+escHtml(dateRange)+' · Generated '+new Date().toLocaleString()+'</div>'+
+    '<div>'+
+      '<div class="kpi"><div class="label">Loads</div><div class="val">'+totals.loads+'</div></div>'+
+      '<div class="kpi"><div class="label">Gross</div><div class="val">'+money(totals.gross)+'</div></div>'+
+      '<div class="kpi"><div class="label">Driver Pay</div><div class="val">'+money(totals.driverPay)+'</div></div>'+
+      '<div class="kpi"><div class="label">REAL NET</div><div class="val" style="color:'+(totals.realNet>=0?'#059669':'#dc2626')+'">'+money(totals.realNet)+'</div></div>'+
+      '<div class="kpi"><div class="label">Real CPM</div><div class="val">$'+(totals.miles ? (totals.realNet/totals.miles).toFixed(2) : '0.00')+'</div></div>'+
+      '<div class="kpi"><div class="label">ROI</div><div class="val">'+(totals.investment ? (totals.realNet/totals.investment*100).toFixed(1)+'%' : '-')+'</div></div>'+
+    '</div>'+
+    '<table><thead><tr><th>Truck</th><th>Loads</th><th>Miles</th><th>Gross</th><th>Dispatch</th><th>Driver Pay</th><th>Fuel/Service/Ded</th><th>REAL NET</th><th>Real CPM</th><th>Investment</th><th>ROI</th></tr></thead><tbody>'+body+'</tbody></table>'+
+    '</body></html>';
+}
+
+function exportFleetData(format){
+  if(getUserRole() === 'driver') return toast('Fleet report is available for Owner/Fleet roles','err');
+  var dateStr = today();
+  var period = fleetReportPeriodLabel().replace(/\s/g, '_');
+  if(format === 'csv'){
+    downloadTextFile(buildFleetCsv(), 'text/csv', 'CrewBIQ_Fleet_'+period+'_'+dateStr+'.csv');
+    toast('Fleet CSV downloaded');
+    return;
+  }
+  var html = buildFleetReportHTML();
+  var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var win = window.open(url, '_blank');
+  if(!win){
+    URL.revokeObjectURL(url);
+    downloadTextFile(html, 'text/html;charset=utf-8', 'CrewBIQ_Fleet_'+period+'_'+dateStr+'.html');
+    return toast('Popup blocked - fleet report downloaded','warn');
+  }
+  setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 800);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  toast('Fleet report opened');
 }
 
 // ── FUEL TRACKER MODULE ──────────────────────────────────────────────────────
@@ -2645,6 +2872,9 @@ function openTruckForm(id){
     '<div class="sfield"><div class="slabel">MC Number</div><input id="tfMC" placeholder="MC-123456 (changes when you get your own)" value="'+(t&&t.mc?escHtml(t.mc):'')+'"></div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Maint. Rate $/mi</div><input type="number" step="0.01" id="tfMaintRate" placeholder="0.20" value="'+(t&&t.maintenanceRate!=null?t.maintenanceRate:'0.20')+'"></div>'+
+      '<div class="fg"><div class="slabel">Purchase Cost</div><input type="number" step="100" id="tfPurchaseCost" placeholder="85000" value="'+(t&&t.purchaseCost!=null?t.purchaseCost:'')+'"></div>'+
+    '</div>'+
+    '<div class="frow">'+
       '<div class="fg"><div class="slabel">Active</div>'+
         '<select id="tfActive"><option value="1" '+((!t||t.active!==false)?'selected':'')+'">Yes</option><option value="0" '+(t&&t.active===false?'selected':'')+'>No</option></select>'+
       '</div>'+
@@ -2680,6 +2910,7 @@ function saveTruckForm(){
     company:         (document.getElementById('tfCompany').value||'').trim(),
     mc:              (document.getElementById('tfMC').value||'').trim(),
     maintenanceRate: parseFloat(document.getElementById('tfMaintRate').value)||0.20,
+    purchaseCost:    parseFloat((document.getElementById('tfPurchaseCost')||{}).value)||0,
     active:          document.getElementById('tfActive').value === '1',
   };
   var list = loadTrucks();
@@ -2689,6 +2920,8 @@ function saveTruckForm(){
   closeTruckModal();
   renderTrucksList();
   renderFleetPage();
+  renderFleetStats();
+  queueFleetConfigSync();
   toast('Truck saved ✅');
 }
 
@@ -2698,6 +2931,8 @@ function deleteTruckConfirm(id){
   closeTruckModal();
   renderTrucksList();
   renderFleetPage();
+  renderFleetStats();
+  queueFleetConfigSync();
   toast('Truck deleted');
 }
 
@@ -2818,6 +3053,9 @@ function saveDriverForm(){
   saveDriverProfiles(list);
   closeDriverModal();
   renderDriversPage();
+  renderFleetPage();
+  renderFleetStats();
+  queueFleetConfigSync();
   toast('Driver saved ✅');
 }
 
@@ -2826,6 +3064,9 @@ function deleteDriverConfirm(id){
   saveDriverProfiles(loadDriverProfiles().filter(function(x){ return x.id!==id; }));
   closeDriverModal();
   renderDriversPage();
+  renderFleetPage();
+  renderFleetStats();
+  queueFleetConfigSync();
   toast('Driver removed');
 }
 
