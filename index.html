@@ -4116,6 +4116,12 @@ function saveSettings(){
 
 function resetApp(){
   if(!confirm('Delete LOCAL data for this CrewBIQ account on this device?\n\nCloud data should remain. The app will try a final full sync first.')) return;
+  saveAdvancedSyncSettings(false);
+  var preservedConfig = {};
+  getFleetConfigKeys().forEach(function(k){
+    var v = localStorage.getItem(k);
+    if(v) preservedConfig[k] = v;
+  });
   forceFullSync().finally(()=>{
     setTimeout(()=>{
       if(confirm('Final sync attempted. Clear this driver from this device?')){
@@ -4126,6 +4132,7 @@ function resetApp(){
           if(k.startsWith(K+'data_'+id+'_')) localStorage.removeItem(k);
         });
         localStorage.removeItem(K+'driver');
+        Object.keys(preservedConfig).forEach(function(k){ localStorage.setItem(k, preservedConfig[k]); });
         if(url) localStorage.setItem(K+'_savedSyncUrl', url);
         if(ptiSched) localStorage.setItem(K+'_savedPtiSched', ptiSched);
         location.reload();
