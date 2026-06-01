@@ -304,6 +304,16 @@
         weeklyDeductions: ownerData.weeklyDeductions || [],
         deductionTemplates: ownerData.deductionTemplates || [],
       },
+      // Pay settings sent separately so Orchestrator can persist them
+      // independently of the Apps Script profile.
+      paySettings: (function() {
+        try {
+          var raw = (typeof localStorage !== 'undefined')
+            ? localStorage.getItem('fiqD_paySettings')
+            : null;
+          return raw ? JSON.parse(raw) : null;
+        } catch(e) { return null; }
+      })(),
     };
   }
 

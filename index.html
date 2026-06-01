@@ -1634,11 +1634,30 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
     var resp = await fetch(baseUrl+'/v1/fleet/config?crewbiq_id='+encodeURIComponent(crewbiqId), {headers:headers});
     if(!resp.ok) return;
     var data = await resp.json();
-    if(data.ok && Array.isArray(data.trucks) && data.trucks.length) {
-      saveTrucks(data.trucks);
-      renderTrucksList();
-      renderFleetPage();
-      console.info('[CrewBIQ Fleet] restored', data.trucks.length, 'truck(s) from Orchestrator');
+    if(data.ok){
+      if(Array.isArray(data.trucks) && data.trucks.length){
+        saveTrucks(data.trucks);
+        renderTrucksList();
+        renderFleetPage();
+        console.info('[CrewBIQ Fleet] restored', data.trucks.length, 'truck(s) from Orchestrator');
+      }
+      // Restore pay settings if not already set locally
+      if(data.pay_config && data.pay_config.payType){
+        var existing = localStorage.getItem(K+'paySettings');
+        if(!existing){
+          localStorage.setItem(K+'paySettings', JSON.stringify(data.pay_config));
+          // Apply to live driver object too
+          if(typeof driver !== 'undefined' && driver){
+            driver.payType      = data.pay_config.payType      || driver.payType;
+            driver.cpmRate      = Number(data.pay_config.cpmRate      || driver.cpmRate || 0);
+            driver.grossPercent = Number(data.pay_config.grossPercent || driver.grossPercent || 0);
+            driver.cpmBase      = data.pay_config.cpmBase      || driver.cpmBase;
+            saveAll();
+            renderAll();
+          }
+          console.info('[CrewBIQ Fleet] restored pay config from Orchestrator:', data.pay_config.payType);
+        }
+      }
     }
   } catch(e) {
     console.warn('[CrewBIQ Fleet] fleet config restore failed:', e.message);
