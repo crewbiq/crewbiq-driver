@@ -685,15 +685,15 @@
       <button class="btn ghost" onclick="toggleSettingsAdvancedSync()" style="padding:10px;margin-top:4px" id="advSettingsBtn">🔒 Advanced Settings</button>
       <div id="settingsAdvancedSync" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:12px">
         <div class="muted" style="font-size:12px;margin-bottom:10px;color:var(--am)">Only change these if CrewBIQ support tells you to.</div>
-        <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
+        <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..." onchange="saveAdvancedSyncSettings(false)"></div>
         <div class="sfield">
           <div class="slabel">Orchestrator Sync URL</div>
-          <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync">
+          <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync" onchange="saveAdvancedSyncSettings(false)">
           <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional support setting. Google Apps Script sync remains primary.</div>
         </div>
         <div class="sfield">
           <div class="slabel">Orchestrator Secret</div>
-          <input id="setOrchestratorSecret" placeholder="optional">
+          <input id="setOrchestratorSecret" type="password" autocomplete="off" placeholder="optional" onchange="saveAdvancedSyncSettings(false)">
           <div style="font-size:10px;color:var(--mu);margin-top:2px">Do not change unless CrewBIQ support provides a value.</div>
         </div>
         <div class="sfield">
@@ -702,7 +702,7 @@
         </div>
         <div style="display:flex;gap:8px;margin-top:4px">
           <button onclick="restoreFromCloud()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">⬇️ Pull from Cloud</button>
-          <button onclick="forceFullSync()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">↕️ Full Sync</button>
+          <button onclick="saveAdvancedSyncSettings(false); forceFullSync()" class="btn" style="flex:1;background:var(--s2);border:1px solid var(--bd);padding:10px;border-radius:10px;font-size:13px">↕️ Full Sync</button>
         </div>
         <div id="restoreStatus" style="font-size:11px;color:var(--mu);margin-top:4px;text-align:center"></div>
       </div>
@@ -1258,7 +1258,14 @@ const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
 // Trucks and driver profiles use scopedSave so the actual key includes
 // the driver identity: fiqD_data_{identity}_trucks etc.
 var FLEET_CONFIG_KEY_PATTERNS = ['_trucks', '_driverProfiles', '_svcRate'];
-var FLEET_DIRECT_KEYS = ['fiqD_userRole', 'fiqD_paySettings'];
+var FLEET_DIRECT_KEYS = [
+  'fiqD_userRole',
+  'fiqD_paySettings',
+  'fiqD_orchestratorUrl',
+  'fiqD_orchestratorSecret',
+  'fiqD__savedSyncUrl',
+  'fiqD_advancedSettingsUnlocked'
+];
 
 function getFleetConfigKeys(){
   var keys = FLEET_DIRECT_KEYS.slice();
@@ -1367,6 +1374,7 @@ function loadAll(){
   loadDriverScopedData(!!driver);
 }
 async function restoreFromCloud(){
+  saveAdvancedSyncSettings(false);
   if (typeof pullFromCloud === 'function') {
     await pullFromCloud({ silent:false });
     return;
@@ -3934,7 +3942,8 @@ const DEFAULT_ORCHESTRATOR_SYNC_URL = 'https://crewbiq-orchestrator-production.u
 // Protects sync/orchestrator fields from accidental changes.
 // Change this value in Settings → Advanced to something only admins know.
 const ADVANCED_SETTINGS_SECRET = 'cbq-sync-2026';
-let _advSettingsUnlocked = false;
+const ADVANCED_SETTINGS_UNLOCK_KEY = K + 'advancedSettingsUnlocked';
+let _advSettingsUnlocked = localStorage.getItem(ADVANCED_SETTINGS_UNLOCK_KEY) === '1';
 
 function toggleSettingsAdvancedSync(){
   const box = document.getElementById('settingsAdvancedSync');
@@ -3946,10 +3955,32 @@ function toggleSettingsAdvancedSync(){
     toast('Invalid key', 'err'); return;
   }
   _advSettingsUnlocked = true;
+  localStorage.setItem(ADVANCED_SETTINGS_UNLOCK_KEY, '1');
   box.style.display = 'block';
   const btn = document.getElementById('advSettingsBtn');
   if (btn) btn.textContent = '🔓 Advanced Settings';
   toast('Advanced settings unlocked');
+}
+
+function saveAdvancedSyncSettings(showToast=true){
+  const syncEl = document.getElementById('setSyncUrl');
+  const orchEl = document.getElementById('setOrchestratorUrl');
+  const secretEl = document.getElementById('setOrchestratorSecret');
+  if(syncEl){
+    const syncUrl = String(syncEl.value || '').trim();
+    if(syncUrl){
+      localStorage.setItem(K + '_savedSyncUrl', syncUrl);
+      if(driver) driver.syncUrl = syncUrl;
+    }
+  }
+  if(orchEl){
+    localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(orchEl.value));
+  }
+  if(secretEl){
+    localStorage.setItem(K + 'orchestratorSecret', String(secretEl.value || '').trim());
+  }
+  renderOrchestratorSettingsStatus();
+  if(showToast) toast('Advanced sync settings saved');
 }
 
 function normalizeOrchestratorSyncUrl(value){
@@ -4058,9 +4089,8 @@ function saveSettings(){
     savedAt: new Date().toISOString()
   }));
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
+  saveAdvancedSyncSettings(false);
   driver.syncUrl = document.getElementById('setSyncUrl').value.trim() || DEFAULT_SYNC_URL;
-  localStorage.setItem(K + 'orchestratorUrl', normalizeOrchestratorSyncUrl(document.getElementById('setOrchestratorUrl').value));
-  localStorage.setItem(K + 'orchestratorSecret', document.getElementById('setOrchestratorSecret').value.trim());
   const newIdentityKey = getDriverIdentityKey(driver);
   if(oldIdentityKey && newIdentityKey && oldIdentityKey !== newIdentityKey){
     saveDriverScopedData();
