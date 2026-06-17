@@ -9,10 +9,10 @@
   <link rel="manifest" href="manifest.json"/>
   <meta name="theme-color" content="#3b82f6"/>
   <title>CrewBIQ Driver</title>
-  <script src="core.js"></script>
-  <script src="sync.js"></script>
-  <script src="pti.js"></script>
-  <script src="loads.js"></script>
+  <script src="core.js?v=20260617-pg-pwa"></script>
+  <script src="sync.js?v=20260617-pg-pwa"></script>
+  <script src="pti.js?v=20260617-pg-pwa"></script>
+  <script src="loads.js?v=20260617-pg-pwa"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--tx);max-width:480px;margin:0 auto;min-height:100vh}
@@ -4334,7 +4334,7 @@ document.addEventListener('change', function(e){
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/crewbiq-driver/sw.js')
+    navigator.serviceWorker.register('/crewbiq-driver/sw.js?v=20260617-pg-pwa')
       .then(r => console.log('[CrewBIQ] SW registered:', r.scope))
       .catch(e => console.warn('[CrewBIQ] SW error:', e));
   });
