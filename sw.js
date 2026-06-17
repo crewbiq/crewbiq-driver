@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.48
+ * CrewBIQ Driver — Service Worker v1.0.49
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -8,7 +8,7 @@
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v49';
+const CACHE_NAME = 'crewbiq-driver-v50';
 
 // App shell — these files are cached on install
 const APP_SHELL = [
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.48 activated');
+        console.log('[CrewBIQ SW] v1.0.49 activated');
         return self.clients.claim(); // take control immediately
       })
   );

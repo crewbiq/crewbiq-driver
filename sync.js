@@ -335,7 +335,7 @@
     if (payloadHasOwnerData(ownerData)) return true;
     try {
       const role = typeof global.getUserRole === 'function' ? global.getUserRole() : '';
-      return role === 'owner' || role === 'fleet';
+      return role === 'owner' || role === 'owner_op' || role === 'fleet';
     } catch (e) {
       return false;
     }
@@ -532,7 +532,7 @@
 
     const payload = buildSyncPayload(forceAll);
 
-    if ((payload.loads.length + payload.ptiLog.length) === 0 && !payloadHasOwnerData(payload.ownerData) && !forceAll) {
+    if ((payload.loads.length + payload.ptiLog.length) === 0 && !payload.ownerData && !forceAll) {
       Core.events.emit('sync:skip', { reason: 'nothing_to_push' });
       return { ok: true, skipped: true, reason: 'nothing_to_push' };
     }

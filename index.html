@@ -2434,7 +2434,7 @@ function exportFleetData(format){
 // ── FUEL TRACKER MODULE ──────────────────────────────────────────────────────
 
 function loadFuelLogs(){ return scopedLoad('fuelLogs', []); }
-function saveFuelLogs(v){ scopedSave('fuelLogs', v || []); }
+function saveFuelLogs(v){ scopedSave('fuelLogs', v || []); queueFleetConfigSync(); }
 
 function recalcFuel(){
   var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
@@ -2551,9 +2551,9 @@ function renderFuelPage(){
 // ── DEDUCTIONS MODULE ─────────────────────────────────────────────────────────
 
 function loadDedTemplates(){ return scopedLoad('dedTemplates', []); }
-function saveDedTemplates(v){ scopedSave('dedTemplates', v || []); }
+function saveDedTemplates(v){ scopedSave('dedTemplates', v || []); queueFleetConfigSync(); }
 function loadWeeklyDeds(){ return scopedLoad('weeklyDeds', []); }
-function saveWeeklyDeds(v){ scopedSave('weeklyDeds', v || []); }
+function saveWeeklyDeds(v){ scopedSave('weeklyDeds', v || []); queueFleetConfigSync(); }
 
 function getDedWeekKey(){
   // Monday-based week key
@@ -2690,7 +2690,7 @@ function renderDeductionsPage(){
 var SVC_RATE_KEY = K+'svcRate'; // $/mile maintenance reserve rate
 
 function loadServiceLogs(){ return scopedLoad('serviceLogs', []); }
-function saveServiceLogs(v){ scopedSave('serviceLogs', v || []); }
+function saveServiceLogs(v){ scopedSave('serviceLogs', v || []); queueFleetConfigSync(); }
 function getSvcRate(){ return parseFloat(localStorage.getItem(SVC_RATE_KEY)||'0.20'); }
 function setSvcRate(r){ localStorage.setItem(SVC_RATE_KEY, String(r)); }
 
@@ -2795,7 +2795,7 @@ function escHtml(s){ return String(s||'').replace(/[&<>"']/g,function(m){return(
 // ── TRUCKS MODULE ─────────────────────────────────────────────────────────────
 
 function loadTrucks(){ return scopedLoad('trucks', []); }
-function saveTrucks(v){ scopedSave('trucks', v || []); }
+function saveTrucks(v){ scopedSave('trucks', v || []); queueFleetConfigSync(); }
 
 function ensureDefaultTruckFromDriver(){
   if(!driver || !driver.unitNumber || loadTrucks().length) return;
@@ -2973,7 +2973,7 @@ function renderTrucksList(){
 // ── DRIVERS MODULE ────────────────────────────────────────────────────────────
 
 function loadDriverProfiles(){ return scopedLoad('driverProfiles', []); }
-function saveDriverProfiles(v){ scopedSave('driverProfiles', v || []); }
+function saveDriverProfiles(v){ scopedSave('driverProfiles', v || []); queueFleetConfigSync(); }
 
 function openDriverForm(id){
   var d = id ? loadDriverProfiles().find(function(x){ return x.id===id; }) : null;
