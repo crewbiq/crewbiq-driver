@@ -613,6 +613,9 @@
       const profile = data.profile || null;
       const remoteLoads = data.loads || [];
       const remotePti   = data.ptiLog || [];
+      const ownerRestore = (data.ownerData && typeof global.applyOwnerSyncData === 'function')
+        ? global.applyOwnerSyncData(data.ownerData)
+        : { changed: false };
       const loadMerge = mergeById(_get.loads(), remoteLoads);
       const ptiMerge  = mergeById(_get.ptiLog(), remotePti);
 
@@ -623,7 +626,7 @@
         _set.ptiLog(ptiMerge.list);
       }
 
-      if (loadMerge.imported || loadMerge.updated || ptiMerge.imported || ptiMerge.updated) {
+      if (loadMerge.imported || loadMerge.updated || ptiMerge.imported || ptiMerge.updated || ownerRestore.changed) {
         _saveAll();
         if (_renderAll) _renderAll();
       }
@@ -638,6 +641,7 @@
         loadsUpdated:  loadMerge.updated,
         ptiImported:   ptiMerge.imported,
         ptiUpdated:    ptiMerge.updated,
+        ownerData:      ownerRestore,
         profile
       });
 
@@ -647,6 +651,7 @@
         loadsUpdated:  loadMerge.updated,
         ptiImported:   ptiMerge.imported,
         ptiUpdated:    ptiMerge.updated,
+        ownerData: ownerRestore,
         profile,
         driverId: data.driverId || '',
         crewId: data.crewId || '',

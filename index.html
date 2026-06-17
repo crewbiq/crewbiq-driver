@@ -1622,6 +1622,9 @@ function applyAuthRestoreData(data, syncUrl){
   if(typeof data.pointsBalance === 'number') driver.points = data.pointsBalance;
   if(Array.isArray(data.loads)) loads = sortLoadsNewest(data.loads);
   if(Array.isArray(data.ptiLog)) ptiLog = data.ptiLog;
+  if(data.ownerData && typeof applyOwnerSyncData === 'function') {
+    applyOwnerSyncData(data.ownerData);
+  }
   // Re-apply user's locally saved pay settings — they take priority over
   // the Apps Script profile which may not have been synced yet.
   try {
@@ -2017,7 +2020,9 @@ function getOwnerSyncData(){
   };
 }
 
+var _suppressFleetConfigSync = false;
 function queueFleetConfigSync(){
+  if(_suppressFleetConfigSync) return;
   clearTimeout(window._fleetConfigSyncTimer);
   window._fleetConfigSyncTimer = setTimeout(function(){
     if(typeof forceFullSync === 'function' && driver && driver.syncUrl){
@@ -2026,6 +2031,40 @@ function queueFleetConfigSync(){
       });
     }
   }, 800);
+}
+
+function withFleetConfigSyncSuppressed(fn){
+  _suppressFleetConfigSync = true;
+  try { return fn(); }
+  finally { _suppressFleetConfigSync = false; }
+}
+
+function applyOwnerSyncData(ownerData){
+  if(!ownerData || typeof ownerData !== 'object') return {changed:false};
+  var counts = {
+    trucks: Array.isArray(ownerData.trucks) ? ownerData.trucks.length : 0,
+    driverProfiles: Array.isArray(ownerData.driverProfiles) ? ownerData.driverProfiles.length : 0,
+    fuelLogs: Array.isArray(ownerData.fuelLogs) ? ownerData.fuelLogs.length : 0,
+    serviceLogs: Array.isArray(ownerData.serviceLogs) ? ownerData.serviceLogs.length : 0,
+    weeklyDeductions: Array.isArray(ownerData.weeklyDeductions) ? ownerData.weeklyDeductions.length : 0,
+    deductionTemplates: Array.isArray(ownerData.deductionTemplates) ? ownerData.deductionTemplates.length : 0,
+  };
+  var changed = Object.keys(counts).some(function(k){ return counts[k] > 0; });
+  if(!changed) return {changed:false, counts:counts};
+  withFleetConfigSyncSuppressed(function(){
+    if(Array.isArray(ownerData.trucks)) saveTrucks(ownerData.trucks);
+    if(Array.isArray(ownerData.driverProfiles)) saveDriverProfiles(ownerData.driverProfiles);
+    if(Array.isArray(ownerData.fuelLogs)) saveFuelLogs(ownerData.fuelLogs);
+    if(Array.isArray(ownerData.serviceLogs)) saveServiceLogs(ownerData.serviceLogs);
+    if(Array.isArray(ownerData.weeklyDeductions)) saveWeeklyDeds(ownerData.weeklyDeductions);
+    if(Array.isArray(ownerData.deductionTemplates)) saveDedTemplates(ownerData.deductionTemplates);
+  });
+  renderTrucksList();
+  renderDriversPage();
+  renderFleetPage();
+  renderFleetStats();
+  renderRealNetCard();
+  return {changed:true, counts:counts};
 }
 
 function renderRealNetCard(){
