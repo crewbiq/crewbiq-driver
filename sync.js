@@ -349,6 +349,18 @@
     return 'DB error';
   }
 
+  function getPwaOrchestratorSyncUrl(orchestratorUrl) {
+    return String(orchestratorUrl || '').replace(/\/v1\/sync\/?$/i, '/v1/sync/pwa');
+  }
+
+  async function postOrchestratorSync(url, body, headers) {
+    return fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+  }
+
   async function pushToOrchestrator(payload) {
     const orchestratorUrl = getOrchestratorSyncUrl();
 
@@ -370,11 +382,16 @@
     };
 
     try {
-      const resp = await fetch(orchestratorUrl, {
-        method: 'POST',
-        headers: buildOrchestratorHeaders(),
-        body: JSON.stringify(body),
-      });
+      const headers = buildOrchestratorHeaders();
+      let resp = await postOrchestratorSync(orchestratorUrl, body, headers);
+      let usedPwaFallback = false;
+      if (resp.status === 401) {
+        const pwaUrl = getPwaOrchestratorSyncUrl(orchestratorUrl);
+        if (pwaUrl && pwaUrl !== orchestratorUrl) {
+          resp = await postOrchestratorSync(pwaUrl, body, { 'Content-Type': 'application/json' });
+          usedPwaFallback = true;
+        }
+      }
 
       let result = {};
       try { result = await resp.json(); } catch (e) {}
@@ -403,9 +420,10 @@
       console.info('[CrewBIQ Orchestrator] sync ok', {
         ok: true,
         status: resp.status,
+        pwaFallback: usedPwaFallback,
         result,
       });
-      return { ok: true, status: resp.status, result };
+      return { ok: true, status: resp.status, result, pwaFallback: usedPwaFallback };
     } catch (e) {
       setLastOrchestratorCopyStatus({
         ok: false,

@@ -1657,22 +1657,24 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
   if(secret) headers['X-CrewBIQ-Secret'] = secret;
   try {
     var resp = await fetch(baseUrl+'/v1/fleet/config?crewbiq_id='+encodeURIComponent(crewbiqId), {headers:headers});
-    if(!resp.ok) return;
+    if(resp.status === 401) {
+      resp = await fetch(baseUrl+'/v1/fleet/config/pwa?crewbiq_id='+encodeURIComponent(crewbiqId), {
+        headers: {'Content-Type':'application/json'}
+      });
+    }
+    if(!resp.ok) {
+      console.warn('[CrewBIQ Fleet] fleet config restore failed: HTTP '+resp.status);
+      return;
+    }
     var data = await resp.json();
     if(data.ok){
-      if(Array.isArray(data.trucks) && data.trucks.length){
-        saveTrucks(data.trucks);
-        renderTrucksList();
-        renderFleetPage();
-        console.info('[CrewBIQ Fleet] restored', data.trucks.length, 'truck(s) from Orchestrator');
-      }
       var restoredDrivers = data.driver_profiles || data.driverProfiles || [];
-      if(Array.isArray(restoredDrivers) && restoredDrivers.length){
-        saveDriverProfiles(restoredDrivers);
-        renderDriversPage();
-        renderFleetPage();
-        renderFleetStats();
-        console.info('[CrewBIQ Fleet] restored', restoredDrivers.length, 'driver profile(s) from Orchestrator');
+      var restored = applyOwnerSyncData({
+        trucks: Array.isArray(data.trucks) ? data.trucks : [],
+        driverProfiles: Array.isArray(restoredDrivers) ? restoredDrivers : [],
+      });
+      if(restored.changed){
+        console.info('[CrewBIQ Fleet] restored owner config from Orchestrator', restored.counts);
       }
       // Restore pay settings if not already set locally
       if(data.pay_config && data.pay_config.payType){
