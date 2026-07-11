@@ -1195,6 +1195,29 @@ function setUserRole(role){
   if (!ROLE_CONFIG[role]) return;
   localStorage.setItem(K+'userRole', role);
 }
+function ownerDataCounts(ownerData){
+  ownerData = ownerData || {};
+  return {
+    trucks: Array.isArray(ownerData.trucks) ? ownerData.trucks.length : 0,
+    driverProfiles: Array.isArray(ownerData.driverProfiles) ? ownerData.driverProfiles.length : 0,
+    fuelLogs: Array.isArray(ownerData.fuelLogs) ? ownerData.fuelLogs.length : 0,
+    serviceLogs: Array.isArray(ownerData.serviceLogs) ? ownerData.serviceLogs.length : 0,
+    weeklyDeductions: Array.isArray(ownerData.weeklyDeductions) ? ownerData.weeklyDeductions.length : 0,
+    deductionTemplates: Array.isArray(ownerData.deductionTemplates) ? ownerData.deductionTemplates.length : 0,
+  };
+}
+function restoreRoleFromOwnerData(ownerData){
+  var counts = ownerDataCounts(ownerData);
+  var hasOwnerData = Object.keys(counts).some(function(k){ return counts[k] > 0; });
+  if(!hasOwnerData) return {changed:false, counts:counts, role:getUserRole()};
+  var targetRole = (counts.trucks > 1 || counts.driverProfiles > 1) ? 'fleet' : 'owner_op';
+  var currentRole = getUserRole();
+  if(currentRole === 'driver'){
+    setUserRole(targetRole);
+    return {changed:true, counts:counts, role:targetRole};
+  }
+  return {changed:false, counts:counts, role:currentRole};
+}
 
 // Called from the setup screen role picker
 function setupSelectRole(role, btn){
@@ -1379,6 +1402,19 @@ function loadAll(){
 }
 async function restoreFromCloud(){
   saveAdvancedSyncSettings(false);
+  var sessionToken = getSavedSessionToken();
+  if(sessionToken){
+    setLoginStatus('Restoring cloud data...');
+    try{
+      var restored = await restoreSession({sessionToken:sessionToken, syncUrl:getAuthSyncUrl(), silent:false});
+      boot();
+      return restored;
+    }catch(e){
+      setLoginStatus('Restore failed at '+formatAuthError(e),'err');
+      toast('Cloud restore failed: '+((e&&e.message)||'unknown'), 'err');
+      return;
+    }
+  }
   if (typeof pullFromCloud === 'function') {
     await pullFromCloud({ silent:false });
     return;
@@ -1529,6 +1565,19 @@ function formatAuthError(err){
   const endpoint = err && err.endpoint ? err.endpoint + ': ' : '';
   return endpoint + ((err && err.message) || 'Request failed');
 }
+function formatRestoreSummary(data, fleetRestore){
+  data = unwrapAuthResponse(data);
+  var ownerCounts = ownerDataCounts(data.ownerData || {});
+  if(fleetRestore && fleetRestore.counts){
+    ownerCounts.trucks = Math.max(ownerCounts.trucks, Number(fleetRestore.counts.trucks || 0));
+    ownerCounts.driverProfiles = Math.max(ownerCounts.driverProfiles, Number(fleetRestore.counts.driverProfiles || 0));
+  }
+  return [
+    (Array.isArray(data.loads) ? data.loads.length : 0) + ' load(s)',
+    ownerCounts.trucks + ' truck(s)',
+    ownerCounts.driverProfiles + ' driver(s)'
+  ].join(', ');
+}
 function getAuthSyncUrl(){
   const input=(document.getElementById('loginSyncUrl')||{}).value || '';
   const saved=localStorage.getItem(K+'_savedSyncUrl') || '';
@@ -1641,22 +1690,21 @@ function applyAuthRestoreData(data, syncUrl){
   save('assignments', driver.assignments || []);
   saveAll();
   saveDriverProfile();
-  // On a fresh device, trucks may be empty — fetch from Orchestrator in background
-  if((!loadTrucks().length || !loadDriverProfiles().length) && driver.crewId) {
-    restoreFleetConfigFromOrchestrator(driver.crewId).catch(function(){});
-  }
   return data;
 }
 
 async function restoreFleetConfigFromOrchestrator(crewbiqId){
   var orchUrl = (typeof getOrchestratorSyncUrl === 'function') ? getOrchestratorSyncUrl() : '';
-  if(!orchUrl || !crewbiqId) return;
+  if(!orchUrl || !crewbiqId) return {ok:false, reason:'missing_orchestrator_url_or_crew'};
   var baseUrl = orchUrl.replace(/\/v1\/sync\/?$/, '');
   var secret  = (typeof localStorage !== 'undefined') ? getStoredOrchestratorSecret() : '';
   var headers = {'Content-Type':'application/json'};
   if(secret) headers['X-CrewBIQ-Secret'] = secret;
   try {
-    var resp = await fetch(baseUrl+'/v1/fleet/config?crewbiq_id='+encodeURIComponent(crewbiqId), {headers:headers});
+    var publicUrl = baseUrl+'/v1/fleet/config/pwa?crewbiq_id='+encodeURIComponent(crewbiqId);
+    var resp = secret
+      ? await fetch(baseUrl+'/v1/fleet/config?crewbiq_id='+encodeURIComponent(crewbiqId), {headers:headers})
+      : await fetch(publicUrl, {headers: {'Content-Type':'application/json'}});
     if(resp.status === 401) {
       resp = await fetch(baseUrl+'/v1/fleet/config/pwa?crewbiq_id='+encodeURIComponent(crewbiqId), {
         headers: {'Content-Type':'application/json'}
@@ -1664,15 +1712,16 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
     }
     if(!resp.ok) {
       console.warn('[CrewBIQ Fleet] fleet config restore failed: HTTP '+resp.status);
-      return;
+      return {ok:false, reason:'http_'+resp.status};
     }
     var data = await resp.json();
     if(data.ok){
       var restoredDrivers = data.driver_profiles || data.driverProfiles || [];
-      var restored = applyOwnerSyncData({
+      var ownerSnapshot = {
         trucks: Array.isArray(data.trucks) ? data.trucks : [],
         driverProfiles: Array.isArray(restoredDrivers) ? restoredDrivers : [],
-      });
+      };
+      var restored = applyOwnerSyncData(ownerSnapshot);
       if(restored.changed){
         console.info('[CrewBIQ Fleet] restored owner config from Orchestrator', restored.counts);
       }
@@ -1693,9 +1742,12 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
           console.info('[CrewBIQ Fleet] restored pay config from Orchestrator:', data.pay_config.payType);
         }
       }
+      return {ok:true, counts: restored.counts || ownerDataCounts(ownerSnapshot), data:data};
     }
+    return {ok:false, reason:data.reason || 'not_ok', data:data};
   } catch(e) {
     console.warn('[CrewBIQ Fleet] fleet config restore failed:', e.message);
+    return {ok:false, reason:e.message};
   }
 }
 async function restoreSession(options={}){
@@ -1704,8 +1756,15 @@ async function restoreSession(options={}){
   if(!sessionToken) throw endpointError('auth_restore', 'sessionToken missing before restore');
   const data=await authPost('auth_restore', {sessionToken}, syncUrl);
   applyAuthRestoreData(data, syncUrl);
-  if(!options.silent) setLoginStatus('Restored cloud data','ok');
-  return data;
+  var fleetRestore = null;
+  if(driver && driver.crewId && (!loadTrucks().length || !loadDriverProfiles().length)){
+    fleetRestore = await restoreFleetConfigFromOrchestrator(driver.crewId);
+  }
+  saveAll();
+  saveDriverProfile();
+  renderAll();
+  if(!options.silent) setLoginStatus('Restored cloud data: '+formatRestoreSummary(data, fleetRestore),'ok');
+  return {...unwrapAuthResponse(data), fleetRestore};
 }
 async function authLogin(){
   const syncUrl=getAuthSyncUrl();
@@ -1728,8 +1787,8 @@ async function authLogin(){
     const restored=await restoreSession({sessionToken, syncUrl, silent:true});
     document.getElementById('setupScreen').style.display='none';
     boot();
-    setLoginStatus('Logged in','ok');
-    toast('Signed in');
+    setLoginStatus('Logged in. Restored '+formatRestoreSummary(restored, restored.fleetRestore),'ok');
+    toast('Signed in and restored');
     return restored;
   }catch(e){
     setLoginStatus('Login failed at '+formatAuthError(e),'err');
@@ -1767,7 +1826,7 @@ async function authSignup(){
     const restored=await restoreSession({sessionToken, syncUrl, silent:true});
     document.getElementById('setupScreen').style.display='none';
     boot();
-    setLoginStatus('Account created','ok');
+    setLoginStatus('Account created. Restored '+formatRestoreSummary(restored, restored.fleetRestore),'ok');
     toast('Account created');
     return restored;
   }catch(e){
@@ -2043,16 +2102,10 @@ function withFleetConfigSyncSuppressed(fn){
 
 function applyOwnerSyncData(ownerData){
   if(!ownerData || typeof ownerData !== 'object') return {changed:false};
-  var counts = {
-    trucks: Array.isArray(ownerData.trucks) ? ownerData.trucks.length : 0,
-    driverProfiles: Array.isArray(ownerData.driverProfiles) ? ownerData.driverProfiles.length : 0,
-    fuelLogs: Array.isArray(ownerData.fuelLogs) ? ownerData.fuelLogs.length : 0,
-    serviceLogs: Array.isArray(ownerData.serviceLogs) ? ownerData.serviceLogs.length : 0,
-    weeklyDeductions: Array.isArray(ownerData.weeklyDeductions) ? ownerData.weeklyDeductions.length : 0,
-    deductionTemplates: Array.isArray(ownerData.deductionTemplates) ? ownerData.deductionTemplates.length : 0,
-  };
+  var counts = ownerDataCounts(ownerData);
   var changed = Object.keys(counts).some(function(k){ return counts[k] > 0; });
   if(!changed) return {changed:false, counts:counts};
+  var roleRestore = restoreRoleFromOwnerData(ownerData);
   withFleetConfigSyncSuppressed(function(){
     if(Array.isArray(ownerData.trucks)) saveTrucks(ownerData.trucks);
     if(Array.isArray(ownerData.driverProfiles)) saveDriverProfiles(ownerData.driverProfiles);
@@ -2066,7 +2119,7 @@ function applyOwnerSyncData(ownerData){
   renderFleetPage();
   renderFleetStats();
   renderRealNetCard();
-  return {changed:true, counts:counts};
+  return {changed:true, counts:counts, role:roleRestore.role, roleChanged:roleRestore.changed};
 }
 
 function renderRealNetCard(){
@@ -3310,6 +3363,9 @@ function scanEndpointUrl(){
   var syncUrl = typeof normalizeOrchestratorSyncUrl === 'function' ? normalizeOrchestratorSyncUrl(raw) : raw;
   return syncUrl.replace(/\/v1\/sync\/?$/i, '/v1/ocr/extract');
 }
+function scanPwaEndpointUrl(){
+  return scanEndpointUrl().replace(/\/v1\/ocr\/extract\/?$/i, '/v1/ocr/extract/pwa');
+}
 function scanHeaders(){
   var h = {'Content-Type':'application/json'};
   var secret = getStoredOrchestratorSecret();
@@ -3362,16 +3418,25 @@ async function extractScanDocument(){
     if(status) status.textContent = 'Extracting fields...';
     if(btn) btn.disabled = true;
     var dataBase64 = await fileToBase64(file);
-    var resp = await fetch(scanEndpointUrl(), {
-      method:'POST',
-      headers: scanHeaders(),
-      body: JSON.stringify({
-        document_type: docType,
-        media_type: scanMediaType(file),
-        filename: file.name || '',
-        data_base64: dataBase64
-      })
+    var requestBody = JSON.stringify({
+      document_type: docType,
+      media_type: scanMediaType(file),
+      filename: file.name || '',
+      data_base64: dataBase64
     });
+    var hasSecret = !!getStoredOrchestratorSecret();
+    var resp = await fetch(hasSecret ? scanEndpointUrl() : scanPwaEndpointUrl(), {
+      method:'POST',
+      headers: hasSecret ? scanHeaders() : {'Content-Type':'application/json'},
+      body: requestBody
+    });
+    if(resp.status === 401 && hasSecret){
+      resp = await fetch(scanPwaEndpointUrl(), {
+        method:'POST',
+        headers: {'Content-Type':'application/json'},
+        body: requestBody
+      });
+    }
     var result = await resp.json().catch(function(){ return {ok:false, reason:'bad_response'}; });
     if(!resp.ok && !result.reason) result.reason = 'http_'+resp.status;
     lastScanResult = result;
@@ -4367,7 +4432,7 @@ document.addEventListener('change', function(e){
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/crewbiq-driver/sw.js?v=20260710-ocr-scan')
+    navigator.serviceWorker.register('/crewbiq-driver/sw.js?v=20260710-restore-ocr')
       .then(r => console.log('[CrewBIQ] SW registered:', r.scope))
       .catch(e => console.warn('[CrewBIQ] SW error:', e));
   });
