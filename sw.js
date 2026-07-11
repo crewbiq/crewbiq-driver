@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.52 activated');
+        console.log('[CrewBIQ SW] v1.0.53 activated');
         return self.clients.claim(); // take control immediately
       })
   );
