@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.52
+ * CrewBIQ Driver — Service Worker v1.0.53
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -8,7 +8,7 @@
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v53';
+const CACHE_NAME = 'crewbiq-driver-v54';
 
 // App shell — these files are cached on install
 const APP_SHELL = [

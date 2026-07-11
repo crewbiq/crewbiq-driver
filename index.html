@@ -3327,6 +3327,29 @@ function fileToBase64(file){
     reader.readAsDataURL(file);
   });
 }
+function scanMediaType(file){
+  var raw = String((file && file.type) || '').split(';')[0].trim().toLowerCase();
+  if(raw && raw !== 'application/octet-stream') return raw;
+  var name = String((file && file.name) || '').toLowerCase();
+  if(/\.(jpe?g)$/.test(name)) return 'image/jpeg';
+  if(/\.png$/.test(name)) return 'image/png';
+  if(/\.pdf$/.test(name)) return 'application/pdf';
+  if(/\.webp$/.test(name)) return 'image/webp';
+  if(/\.gif$/.test(name)) return 'image/gif';
+  return raw || 'application/octet-stream';
+}
+function scanErrorMessage(result, httpStatus){
+  var reason = (result && result.reason) || '';
+  if(httpStatus === 401) return 'Orchestrator secret is missing or wrong.';
+  if(reason === 'ocr_unavailable') return 'OCR provider is not configured on Orchestrator.';
+  if(reason === 'unsupported_media_type') return 'Unsupported file type. Use PDF, JPG, PNG, WEBP, or GIF.';
+  if(reason === 'file_too_large') return 'File is too large. Max 8 MB.';
+  if(reason === 'invalid_base64') return 'Could not read the selected file.';
+  if(reason === 'ocr_provider_error') return 'OCR provider rejected the request.';
+  if(reason === 'ocr_parse_failed') return 'OCR returned an unreadable response.';
+  if(reason === 'ocr_request_failed') return 'Could not reach OCR provider.';
+  return reason ? ('Could not extract: ' + reason) : 'Could not extract.';
+}
 async function extractScanDocument(){
   var fileEl = document.getElementById('scanFile');
   var status = document.getElementById('scanStatus');
@@ -3344,7 +3367,7 @@ async function extractScanDocument(){
       headers: scanHeaders(),
       body: JSON.stringify({
         document_type: docType,
-        media_type: file.type || 'application/octet-stream',
+        media_type: scanMediaType(file),
         filename: file.name || '',
         data_base64: dataBase64
       })
@@ -3353,7 +3376,7 @@ async function extractScanDocument(){
     if(!resp.ok && !result.reason) result.reason = 'http_'+resp.status;
     lastScanResult = result;
     renderScanReview();
-    if(status) status.textContent = result.ok ? 'Fields extracted. Review before saving.' : ('Could not extract: '+(result.reason||'unknown'));
+    if(status) status.textContent = result.ok ? 'Fields extracted. Review before saving.' : scanErrorMessage(result, resp.status);
     toast(result.ok ? 'Scan ready for review' : 'Scan failed', result.ok ? 'ok' : 'err');
   }catch(e){
     if(status) status.textContent = 'Scan failed: '+e.message;
@@ -3381,6 +3404,16 @@ function renderScanReview(){
   var warn = (r.warnings || []).map(function(w){ return '<div class="muted" style="font-size:11px;color:var(--am)">⚠ '+escHtml(w)+'</div>'; }).join('');
 
   // ── FUEL INVOICE — multi-transaction view ──────────────────────────────────
+  if(!r.ok){
+    el.innerHTML = '<div class="card">'+
+      '<div style="font-size:15px;font-weight:800;color:var(--am);margin-bottom:6px">Scan failed</div>'+
+      '<div class="muted" style="font-size:12px;margin-bottom:8px">'+escHtml(scanErrorMessage(r, 0))+'</div>'+
+      (r.reason ? '<div class="muted" style="font-size:11px">reason: '+escHtml(r.reason)+'</div>' : '')+
+      (warn ? '<div style="margin-top:8px">'+warn+'</div>' : '')+
+    '</div>';
+    return;
+  }
+
   if(r.document_type === 'fuel_invoice' || r.requested_document_type === 'fuel_invoice'){
     var txns = r.transactions || [];
     var tots = r.totals || {};
