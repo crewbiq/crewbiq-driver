@@ -8,11 +8,13 @@ on:
       - restore-hotfix.js
       - settings-hotfix.js
       - ocr-hotfix.js
+      - ocr-invoice-review.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
+      - tests/ocr_invoice_review.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -23,11 +25,13 @@ on:
       - restore-hotfix.js
       - settings-hotfix.js
       - ocr-hotfix.js
+      - ocr-invoice-review.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
+      - tests/ocr_invoice_review.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -59,14 +63,19 @@ jobs:
       - name: Run authenticated OCR transport contract
         run: node tests/ocr_authenticated_transport.test.mjs
 
+      - name: Run multi-driver invoice review contract
+        run: node tests/ocr_invoice_review.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
           grep -q "restore-hotfix.js" core.js
           grep -q "settings-hotfix.js" core.js
           grep -q "ocr-hotfix.js" core.js
-          grep -q "crewbiq-driver-v61" sw.js
+          grep -q "ocr-invoice-review.js" core.js
+          grep -q "crewbiq-driver-v62" sw.js
           grep -q "restore-hotfix.js" sw.js
           grep -q "settings-hotfix.js" sw.js
           grep -q "ocr-hotfix.js" sw.js
+          grep -q "ocr-invoice-review.js" sw.js
           grep -q "railway.app" sw.js
