@@ -9,12 +9,14 @@ on:
       - settings-hotfix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
+      - ocr-item-alias-hotfix.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
       - tests/ocr_invoice_review.test.mjs
+      - tests/ocr_defd_alias.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -26,12 +28,14 @@ on:
       - settings-hotfix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
+      - ocr-item-alias-hotfix.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
       - tests/ocr_invoice_review.test.mjs
+      - tests/ocr_defd_alias.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -66,6 +70,9 @@ jobs:
       - name: Run multi-driver invoice review contract
         run: node tests/ocr_invoice_review.test.mjs
 
+      - name: Run TBC DEFD alias regression contract
+        run: node tests/ocr_defd_alias.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
@@ -73,9 +80,11 @@ jobs:
           grep -q "settings-hotfix.js" core.js
           grep -q "ocr-hotfix.js" core.js
           grep -q "ocr-invoice-review.js" core.js
-          grep -q "crewbiq-driver-v62" sw.js
+          grep -q "ocr-item-alias-hotfix.js" core.js
+          grep -q "crewbiq-driver-v63" sw.js
           grep -q "restore-hotfix.js" sw.js
           grep -q "settings-hotfix.js" sw.js
           grep -q "ocr-hotfix.js" sw.js
           grep -q "ocr-invoice-review.js" sw.js
+          grep -q "ocr-item-alias-hotfix.js" sw.js
           grep -q "railway.app" sw.js
