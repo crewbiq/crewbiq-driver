@@ -134,7 +134,7 @@ for (const filename of ['core-runtime.js', 'restore-hotfix.js', 'settings-hotfix
   vm.runInNewContext(source, context, { filename });
 }
 
-assert.equal(context.CrewBIQSettingsHotfix.version, '0.2.0');
+assert.equal(context.CrewBIQSettingsHotfix.version, '0.2.1');
 localStorage.setItem('fiqD_sessionToken', 'token-owner-1');
 
 // A brand-new device has no manual profile marker and must not publish defaults.
@@ -166,6 +166,7 @@ assert.equal(localStorage.getItem('fiqD_accent'), 'cyan');
 assert.equal(localStorage.getItem('fiqD_weekStart'), '5');
 assert.equal(localStorage.getItem('fiqD_rateEffectiveDate'), '2026-07-08');
 assert.equal(localStorage.getItem('fiqD_settingsProfileSavedAt'), null);
+assert.equal(localStorage.getItem('fiqD_settingsProfileSnapshot'), null);
 assert.deepEqual(JSON.parse(localStorage.getItem('fiqD_paySettings')), {
   payType: 'gross_percent',
   cpmRate: 0,
@@ -219,10 +220,9 @@ assert.deepEqual(syncBody.settings.profile, {});
 assert.equal(syncBody.settings.preferences.accent, 'cyan');
 assert.equal(syncBody.settings.profileSource, undefined);
 
-// A manual Save marker authorizes the complete profile snapshot.
-localStorage.setItem('fiqD_driver', JSON.stringify({
-  crewId: 'CBQ-AUTH',
-  email: 'owner@example.com',
+// A manual Save stores a separate safe profile snapshot. Even if the driver
+// object is later cleared, the final sync still publishes the saved profile.
+const savedProfile = {
   name: 'Izzet',
   company: 'Kaunas Express',
   truckName: 'Mack Anthem',
@@ -233,11 +233,24 @@ localStorage.setItem('fiqD_driver', JSON.stringify({
   cpmBase: 'total',
   ptiEnabled: false,
   ptiSchedule: 'weekly',
+};
+localStorage.setItem('fiqD_settingsProfileSnapshot', JSON.stringify(savedProfile));
+localStorage.setItem('fiqD_settingsProfileSavedAt', '2026-07-12T17:31:00Z');
+localStorage.setItem('fiqD_settingsUpdatedAt', '2026-07-12T17:31:00Z');
+localStorage.setItem('fiqD_driver', JSON.stringify({
+  crewId: 'CBQ-AUTH',
+  email: 'owner@example.com',
+  name: 'Izzet',
+  company: '',
+  truckName: '',
+  unitNumber: '',
+  plate: '',
+  payType: 'cpm',
+  cpmRate: 0,
+  cpmBase: 'loaded',
   syncUrl: 'https://must-not-sync.invalid',
   sessionToken: 'must-not-sync',
 }));
-localStorage.setItem('fiqD_settingsProfileSavedAt', '2026-07-12T17:31:00Z');
-localStorage.setItem('fiqD_settingsUpdatedAt', '2026-07-12T17:31:00Z');
 
 const syncResponse = await context.fetch('https://script.google.com/macros/s/example/exec', {
   method: 'POST',
@@ -258,6 +271,8 @@ assert.equal(syncCall.url, 'https://crewbiq-orchestrator-production.up.railway.a
 syncBody = JSON.parse(syncCall.body);
 assert.equal(syncBody.settings.profileSource, 'manual');
 assert.equal(syncBody.settings.profile.company, 'Kaunas Express');
+assert.equal(syncBody.settings.profile.truckName, 'Mack Anthem');
+assert.equal(syncBody.settings.profile.unitNumber, '1919');
 assert.equal(syncBody.settings.profile.grossPercent, 42);
 assert.equal(syncBody.settings.preferences.accent, 'cyan');
 assert.equal(syncBody.ownerData.settings.preferences.rateEffectiveDate, '2026-07-08');
