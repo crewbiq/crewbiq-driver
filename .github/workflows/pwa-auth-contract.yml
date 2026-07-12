@@ -1,0 +1,33 @@
+name: PWA Auth Contract
+
+on:
+  pull_request:
+    paths:
+      - core.js
+      - tests/orchestrator_transport.test.mjs
+      - .github/workflows/pwa-auth-contract.yml
+  push:
+    branches:
+      - main
+    paths:
+      - core.js
+      - tests/orchestrator_transport.test.mjs
+      - .github/workflows/pwa-auth-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  orchestrator-transport:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run authenticated transport contract
+        run: node tests/orchestrator_transport.test.mjs
