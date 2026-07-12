@@ -1,10 +1,11 @@
 /**
- * CrewBIQ authenticated Settings durability adapter v0.1.0
+ * CrewBIQ authenticated Settings durability adapter v0.2.1
  *
- * Loaded after restore-hotfix.js. Adds a bounded Settings snapshot to every
- * authenticated driver report and hydrates it during auth_restore. Identity,
- * roles, credentials, sync URLs and orchestrator secrets are never copied from
- * the client snapshot.
+ * Adds a bounded Settings snapshot to authenticated driver reports and hydrates
+ * it during auth_restore. A clean device cannot publish profile settings until
+ * the user explicitly taps Save Settings. The manual profile is stored separately
+ * so a local driver reset cannot replace it with blank defaults. Identity, roles,
+ * credentials, URLs, tokens and orchestrator secrets are never copied.
  */
 (function (global) {
   'use strict';
@@ -51,14 +52,29 @@
     return value && typeof value === 'object' ? value : {};
   }
 
-  function safeScalar(value) {
+  function meaningfulScalar(value) {
     if (typeof value === 'boolean') return true;
     if (typeof value === 'number') return Number.isFinite(value);
-    return typeof value === 'string' && value.length <= 500;
+    return typeof value === 'string' && value.trim().length > 0 && value.length <= 500;
+  }
+
+  function normalizedScalar(value) {
+    return typeof value === 'string' ? value.trim() : value;
   }
 
   function boundedText(value, limit) {
     return String(value || '').trim().slice(0, limit);
+  }
+
+  function collectProfile(source) {
+    const profile = {};
+    if (!source || typeof source !== 'object') return profile;
+    PROFILE_FIELDS.forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(source, key) && meaningfulScalar(source[key])) {
+        profile[key] = normalizedScalar(source[key]);
+      }
+    });
+    return profile;
   }
 
   function sanitizeCustomPti(value) {
@@ -78,49 +94,62 @@
     if (!raw || typeof raw !== 'object') return null;
     const rawProfile = raw.profile && typeof raw.profile === 'object' ? raw.profile : raw;
     const rawPreferences = raw.preferences && typeof raw.preferences === 'object' ? raw.preferences : raw;
-    const profile = {};
+    const profile = collectProfile(rawProfile);
     const preferences = {};
 
-    PROFILE_FIELDS.forEach(function (key) {
-      if (Object.prototype.hasOwnProperty.call(rawProfile, key) && safeScalar(rawProfile[key])) {
-        profile[key] = rawProfile[key];
-      }
-    });
     PREFERENCE_FIELDS.forEach(function (key) {
-      if (Object.prototype.hasOwnProperty.call(rawPreferences, key) && safeScalar(rawPreferences[key])) {
-        preferences[key] = rawPreferences[key];
+      if (Object.prototype.hasOwnProperty.call(rawPreferences, key) && meaningfulScalar(rawPreferences[key])) {
+        preferences[key] = normalizedScalar(rawPreferences[key]);
       }
     });
 
+    const customPresent = Array.isArray(raw.customPti);
     const customPti = sanitizeCustomPti(raw.customPti);
-    if (!Object.keys(profile).length && !Object.keys(preferences).length && !customPti.length) return null;
+    if (!Object.keys(profile).length && !Object.keys(preferences).length && !customPresent) return null;
 
-    const result = { version: 1, profile, preferences };
-    if (customPti.length) result.customPti = customPti;
+    const result = { version: 2, profile, preferences };
+    if (customPresent) result.customPti = customPti;
     const updatedAt = boundedText(raw.updatedAt, 64);
     if (updatedAt) result.updatedAt = updatedAt;
+    if (raw.profileSource === 'manual') result.profileSource = 'manual';
     return result;
   }
 
+  function manualProfileSnapshot() {
+    const saved = storedJson(K + 'settingsProfileSnapshot', null);
+    if (saved && typeof saved === 'object') {
+      const clean = collectProfile(saved);
+      if (Object.keys(clean).length) return clean;
+    }
+    return collectProfile(storedDriver());
+  }
+
   function settingsSnapshot() {
-    const driver = storedDriver();
-    const profile = {};
-    PROFILE_FIELDS.forEach(function (key) {
-      if (Object.prototype.hasOwnProperty.call(driver, key) && safeScalar(driver[key])) {
-        profile[key] = driver[key];
+    const manualSavedAt = String(localStorage.getItem(K + 'settingsProfileSavedAt') || '').trim();
+    const settingsUpdatedAt = String(localStorage.getItem(K + 'settingsUpdatedAt') || '').trim();
+
+    // A brand-new or freshly-cleared device must not publish defaults as if they
+    // were user settings. Cloud restore or manual Save creates the readiness marker.
+    if (!manualSavedAt && !settingsUpdatedAt) return null;
+
+    const profile = manualSavedAt ? manualProfileSnapshot() : {};
+    const preferences = {};
+    const storedPreferences = {
+      theme: localStorage.getItem(K + 'theme'),
+      accent: localStorage.getItem(K + 'accent'),
+      weekStart: localStorage.getItem(K + 'weekStart'),
+      rateEffectiveDate: localStorage.getItem(K + 'rateEffectiveDate'),
+    };
+    PREFERENCE_FIELDS.forEach(function (key) {
+      if (meaningfulScalar(storedPreferences[key])) {
+        preferences[key] = normalizedScalar(storedPreferences[key]);
       }
     });
 
-    const preferences = {
-      theme: localStorage.getItem(K + 'theme') || 'dark',
-      accent: localStorage.getItem(K + 'accent') || 'blue',
-      weekStart: localStorage.getItem(K + 'weekStart') || '1',
-      rateEffectiveDate: localStorage.getItem(K + 'rateEffectiveDate') || '',
-    };
-
     return sanitizeSettings({
-      version: 1,
-      updatedAt: localStorage.getItem(K + 'settingsUpdatedAt') || new Date().toISOString(),
+      version: 2,
+      updatedAt: manualSavedAt || settingsUpdatedAt,
+      profileSource: manualSavedAt ? 'manual' : 'none',
       profile,
       preferences,
       customPti: storedJson(K + 'ptiCustom', []),
@@ -189,21 +218,59 @@
       });
       if (!response.ok) return null;
       const data = await responseJson(response);
-      return sanitizeSettings(data.settings);
+      const settings = sanitizeSettings(data.settings);
+      return settings ? {
+        settings,
+        diagnostics: data.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : {},
+        source: String(data.source || ''),
+      } : null;
     } catch (e) {
       console.warn('[CrewBIQ Settings] cloud restore unavailable:', e && e.message ? e.message : e);
       return null;
     }
   }
 
-  function applyLocalSettings(raw) {
+  function validPayConfig(profile) {
+    if (!profile || typeof profile !== 'object') return false;
+    if (profile.payType === 'cpm') return Number(profile.cpmRate || 0) > 0;
+    if (profile.payType === 'gross_percent') return Number(profile.grossPercent || 0) > 0;
+    return false;
+  }
+
+  function persistSettingsRestoreReport(settings, diagnostics, source) {
+    const report = {
+      at: new Date().toISOString(),
+      source: source || '',
+      profileFields: Object.keys((settings && settings.profile) || {}).length,
+      preferenceFields: Object.keys((settings && settings.preferences) || {}).length,
+      validPayConfig: validPayConfig((settings && settings.profile) || {}),
+      diagnostics: diagnostics || {},
+    };
+    try { localStorage.setItem(K + 'lastSettingsRestoreReport', JSON.stringify(report)); } catch (e) {}
+    global.lastCrewBIQSettingsRestoreReport = report;
+    return report;
+  }
+
+  function showSettingsRestoreReport(report) {
+    if (!report || typeof setTimeout !== 'function') return;
+    setTimeout(function () {
+      if (typeof global.toast !== 'function') return;
+      global.toast(
+        'Settings restored: ' + report.profileFields + ' profile fields, ' +
+          report.preferenceFields + ' preferences',
+        report.profileFields > 0 ? '' : 'warn'
+      );
+    }, 1500);
+  }
+
+  function applyLocalSettings(raw, diagnostics, source) {
     const settings = sanitizeSettings(raw);
     if (!settings) return null;
     const profile = settings.profile || {};
     const preferences = settings.preferences || {};
 
     try {
-      if (profile.payType) {
+      if (validPayConfig(profile)) {
         localStorage.setItem(K + 'paySettings', JSON.stringify({
           payType: profile.payType,
           cpmRate: Number(profile.cpmRate || 0),
@@ -231,12 +298,18 @@
         localStorage.setItem(K + 'ptiCustom', JSON.stringify(settings.customPti));
       }
       localStorage.setItem(K + 'settingsUpdatedAt', settings.updatedAt || new Date().toISOString());
+      localStorage.setItem(K + 'settingsCloudRestoredAt', new Date().toISOString());
+      // Deliberately do not set settingsProfileSavedAt or settingsProfileSnapshot.
+      // Only a manual Save authorizes this device to publish profile fields.
     } catch (e) {}
 
     try {
       if (typeof global.applyTheme === 'function' && preferences.theme) global.applyTheme(preferences.theme);
       if (typeof global.setAccent === 'function' && preferences.accent) global.setAccent(preferences.accent);
     } catch (e) {}
+
+    const report = persistSettingsRestoreReport(settings, diagnostics, source);
+    showSettingsRestoreReport(report);
     return settings;
   }
 
@@ -265,19 +338,32 @@
     const embedded = sanitizeSettings(
       (data.ownerData && data.ownerData.settings) || data.settings
     );
-    const cloud = await fetchCloudSettings(tokenFrom(body));
-    const settings = cloud || embedded;
+    const cloudResult = await fetchCloudSettings(tokenFrom(body));
+    const settings = (cloudResult && cloudResult.settings) || embedded;
     if (!settings) return response;
-    applyLocalSettings(settings);
+    const diagnostics = (cloudResult && cloudResult.diagnostics) || {};
+    const source = (cloudResult && cloudResult.source) || 'embedded';
+    applyLocalSettings(settings, diagnostics, source);
     mergeSettingsIntoAuthPayload(data, settings);
+    data.settingsRestoreDiagnostics = {
+      source,
+      profileFields: Object.keys(settings.profile || {}).length,
+      preferenceFields: Object.keys(settings.preferences || {}).length,
+      validPayConfig: validPayConfig(settings.profile || {}),
+      ...diagnostics,
+    };
     return jsonResponseLike(response, data);
   }
 
   function persistSettingsFormState() {
     try {
+      const now = new Date().toISOString();
       const effective = document.getElementById('setRateEffectiveDate');
       if (effective) localStorage.setItem(K + 'rateEffectiveDate', String(effective.value || ''));
-      localStorage.setItem(K + 'settingsUpdatedAt', new Date().toISOString());
+      const profile = collectProfile(storedDriver());
+      localStorage.setItem(K + 'settingsProfileSnapshot', JSON.stringify(profile));
+      localStorage.setItem(K + 'settingsProfileSavedAt', now);
+      localStorage.setItem(K + 'settingsUpdatedAt', now);
     } catch (e) {}
   }
 
@@ -285,7 +371,6 @@
     const originalSave = global.saveSettings;
     if (typeof originalSave === 'function' && !originalSave.__crewbiqSettingsHook) {
       const wrappedSave = function () {
-        persistSettingsFormState();
         const result = originalSave.apply(this, arguments);
         persistSettingsFormState();
         return result;
@@ -327,11 +412,13 @@
 
   global.fetch = routedFetch;
   global.CrewBIQSettingsHotfix = {
-    version: '0.1.0',
+    version: '0.2.1',
     settingsSnapshot,
     sanitizeSettings,
     applyLocalSettings,
     attachSettingsToReport,
+    validPayConfig,
+    manualProfileSnapshot,
   };
 
   if (typeof document !== 'undefined') {
@@ -342,5 +429,5 @@
     }
   }
 
-  console.info('[CrewBIQ Settings] cloud Settings durability v0.1.0 loaded');
+  console.info('[CrewBIQ Settings] cloud Settings durability v0.2.1 loaded');
 })(window);

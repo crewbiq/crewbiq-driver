@@ -57,7 +57,7 @@ jobs:
           grep -q "core-runtime.js" core.js
           grep -q "restore-hotfix.js" core.js
           grep -q "settings-hotfix.js" core.js
-          grep -q "crewbiq-driver-v59" sw.js
+          grep -q "crewbiq-driver-v60" sw.js
           grep -q "restore-hotfix.js" sw.js
           grep -q "settings-hotfix.js" sw.js
           grep -q "railway.app" sw.js
