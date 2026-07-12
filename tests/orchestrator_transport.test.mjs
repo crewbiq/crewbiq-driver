@@ -132,6 +132,10 @@ assert.equal(restored.ok, true);
 assert.deepEqual(restored.ownerData.trucks.map(item => item.id), ['truck_active']);
 assert.deepEqual(restored.ownerData.driverProfiles.map(item => item.id), ['driver_active']);
 assert.equal(restored.pay_config.payType, 'cpm');
+assert.deepEqual(JSON.parse(localStorage.getItem('fiqD_paySettings')), {
+  payType: 'cpm',
+  cpmRate: 0.7,
+});
 assert.equal(calls.at(-2).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/me');
 assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/fleet/config');
 assert.equal(calls.at(-2).headers.get('authorization'), 'Bearer token-owner-1');
