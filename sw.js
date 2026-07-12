@@ -1,14 +1,14 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.54
+ * CrewBIQ Driver — Service Worker v1.0.55
  * CrewBIQ Technologies
  *
  * Strategy:
  *   - App shell (index.html, core.js, sync.js, pti.js, loads.js) → Cache First
- *   - Google Sheets sync (fetch to external URL) → Network Only (skip cache)
+ *   - External API and POST requests → Network Only (skip cache)
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v55';
+const CACHE_NAME = 'crewbiq-driver-v56';
 
 // App shell — these files are cached on install
 const APP_SHELL = [
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.54 activated');
+        console.log('[CrewBIQ SW] v1.0.55 activated');
         return self.clients.claim(); // take control immediately
       })
   );
@@ -62,11 +62,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. Google Sheets / external sync requests → Network Only
-  //    Never cache these — always need fresh data
+  // 1. External APIs and all POST requests → Network Only
+  //    Never cache auth, restore, sync, OCR, or Google integration traffic.
   if (
     url.hostname.includes('script.google.com') ||
     url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('railway.app') ||
     event.request.method === 'POST'
   ) {
     event.respondWith(fetch(event.request));
@@ -74,8 +75,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 2. App shell files → Cache First, then network
-  //    If cached → serve instantly (works offline)
-  //    If not cached → fetch and cache for next time
+  //    The versioned cache name above is the deployment rotation mechanism.
   if (APP_SHELL.some(path => url.pathname === path || url.pathname.endsWith(path.replace('/crewbiq-driver', '')))) {
     event.respondWith(
       caches.match(event.request)
