@@ -42,13 +42,13 @@ jobs:
           sed "s#../core.js#../core-runtime.js#" tests/orchestrator_transport.test.mjs > tests/.runtime-contract.mjs
           node tests/.runtime-contract.mjs
 
-      - name: Run complete restore contract
+      - name: Run complete restore and expense contract
         run: node tests/full_restore_transport.test.mjs
 
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
           grep -q "restore-hotfix.js" core.js
-          grep -q "crewbiq-driver-v57" sw.js
+          grep -q "crewbiq-driver-v58" sw.js
           grep -q "restore-hotfix.js" sw.js
           grep -q "railway.app" sw.js
