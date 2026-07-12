@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.60
+ * CrewBIQ Driver — Service Worker v1.0.61
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -8,7 +8,7 @@
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v61';
+const CACHE_NAME = 'crewbiq-driver-v62';
 
 // App shell — these files are cached on install
 const APP_SHELL = [
@@ -19,13 +19,12 @@ const APP_SHELL = [
   '/crewbiq-driver/restore-hotfix.js',
   '/crewbiq-driver/settings-hotfix.js',
   '/crewbiq-driver/ocr-hotfix.js',
+  '/crewbiq-driver/ocr-invoice-review.js',
   '/crewbiq-driver/sync.js',
   '/crewbiq-driver/pti.js',
   '/crewbiq-driver/loads.js',
   '/crewbiq-driver/manifest.json',
 ];
-
-// ── INSTALL ────────────────────────────────────────────────────────────────
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -39,8 +38,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// ── ACTIVATE ───────────────────────────────────────────────────────────────
-
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -53,19 +50,15 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.60 activated');
+        console.log('[CrewBIQ SW] v1.0.61 activated');
         return self.clients.claim();
       })
   );
 });
 
-// ── FETCH ──────────────────────────────────────────────────────────────────
-
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // External APIs and all POST requests → Network Only.
-  // Never cache auth, restore, sync, OCR, or Google integration traffic.
   if (
     url.hostname.includes('script.google.com') ||
     url.hostname.includes('googleapis.com') ||
@@ -76,7 +69,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // App shell files → Cache First, then network.
   if (APP_SHELL.some(path => url.pathname === path || url.pathname.endsWith(path.replace('/crewbiq-driver', '')))) {
     event.respondWith(
       caches.match(event.request)
@@ -94,7 +86,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else → Network First, fallback to cache.
   event.respondWith(
     fetch(event.request)
       .then(response => {
