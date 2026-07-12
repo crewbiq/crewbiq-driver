@@ -239,6 +239,13 @@
     } catch (e) {}
   }
 
+  function persistPayConfig(payConfig) {
+    if (!payConfig || typeof payConfig !== 'object' || !payConfig.payType) return;
+    try {
+      localStorage.setItem(K + 'paySettings', JSON.stringify(payConfig));
+    } catch (e) {}
+  }
+
   function legacyProfile(user, roles, effectiveOwnerId) {
     const crewId = String(user.crewbiq_id || '');
     const email = String(user.email || '');
@@ -365,7 +372,9 @@
 
     const user = meResult.data.user || {};
     const roles = user.roles || [];
+    const payConfig = fleetResult.data.pay_config || {};
     persistAuthenticatedUser(user, roles);
+    persistPayConfig(payConfig);
 
     return jsonResponse({
       ok: true,
@@ -378,7 +387,7 @@
           ? fleetResult.data.driver_profiles
           : (Array.isArray(fleetResult.data.driverProfiles) ? fleetResult.data.driverProfiles : []),
       },
-      pay_config: fleetResult.data.pay_config || {},
+      pay_config: payConfig,
     });
   }
 
@@ -471,6 +480,7 @@
       headers: authHeaders(token),
       cache: 'no-store',
     });
+    if (upstream.resp.ok) persistPayConfig(upstream.data.pay_config || {});
     return jsonResponse(upstream.data, upstream.resp.status || 200);
   }
 
