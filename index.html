@@ -1350,6 +1350,50 @@ let autoSyncTimer = null;
 function save(k,v){ localStorage.setItem(K+k, JSON.stringify(v)); }
 function load(k,def){ try{ let v=localStorage.getItem(K+k); return v?JSON.parse(v):def; }catch(e){ return def; } }
 
+var _fleetRestoreSettled = false;
+var _fleetFormState = {
+  truck: { mode: 'idle', id: '' },
+  driverProfile: { mode: 'idle', id: '' },
+};
+
+function setFleetRestoreSettled(value){
+  _fleetRestoreSettled = !!value;
+}
+
+function beginFleetForm(kind, mode, id){
+  if(!_fleetFormState[kind]) return;
+  _fleetFormState[kind] = { mode: mode || 'idle', id: String(id || '') };
+}
+
+function clearFleetForm(kind){
+  if(!_fleetFormState[kind]) return;
+  _fleetFormState[kind] = { mode: 'idle', id: '' };
+}
+
+function hasActiveFleetForm(){
+  return !!(
+    (_fleetFormState.truck.mode !== 'idle') ||
+    (_fleetFormState.driverProfile.mode !== 'idle') ||
+    document.getElementById('truckModalWrap') ||
+    document.getElementById('driverModalWrap')
+  );
+}
+
+function generateFleetEntityId(kind){
+  var prefix = kind === 'driverProfile' ? 'drv' : 'truck';
+  return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function showFleetFormConflict(kind, message){
+  var id = kind === 'driverProfile' ? 'dfConflict' : 'tfConflict';
+  var el = document.getElementById(id);
+  if(el){
+    el.style.display = '';
+    el.textContent = message;
+  }
+  if(typeof toast === 'function') toast(message, 'err');
+}
+
 // ── IDENTITY / LOGIN MVP ──
 // Important: loads, PTI, expenses and module choices must belong to a driver identity,
 // not only to the browser/device. This prevents another driver from seeing old data.
@@ -1751,6 +1795,7 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
   }
 }
 async function restoreSession(options={}){
+  setFleetRestoreSettled(false);
   const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
   const syncUrl=String(options.syncUrl || getAuthSyncUrl()).trim();
   if(!sessionToken) throw endpointError('auth_restore', 'sessionToken missing before restore');
@@ -1763,6 +1808,7 @@ async function restoreSession(options={}){
   saveAll();
   saveDriverProfile();
   renderAll();
+  setFleetRestoreSettled(true);
   if(!options.silent) setLoginStatus('Restored cloud data: '+formatRestoreSummary(data, fleetRestore),'ok');
   return {...unwrapAuthResponse(data), fleetRestore};
 }
@@ -2105,21 +2151,36 @@ function applyOwnerSyncData(ownerData){
   var counts = ownerDataCounts(ownerData);
   var changed = Object.keys(counts).some(function(k){ return counts[k] > 0; });
   if(!changed) return {changed:false, counts:counts};
-  var roleRestore = restoreRoleFromOwnerData(ownerData);
+  var deferFleetArrays = hasActiveFleetForm();
+  var skippedFleetArrays = {
+    trucks: deferFleetArrays && Array.isArray(ownerData.trucks),
+    driverProfiles: deferFleetArrays && Array.isArray(ownerData.driverProfiles),
+  };
+  var roleRestore = deferFleetArrays
+    ? {changed:false, role:getUserRole()}
+    : restoreRoleFromOwnerData(ownerData);
+  var applied = false;
   withFleetConfigSyncSuppressed(function(){
-    if(Array.isArray(ownerData.trucks)) saveTrucks(ownerData.trucks);
-    if(Array.isArray(ownerData.driverProfiles)) saveDriverProfiles(ownerData.driverProfiles);
-    if(Array.isArray(ownerData.fuelLogs)) saveFuelLogs(ownerData.fuelLogs);
-    if(Array.isArray(ownerData.serviceLogs)) saveServiceLogs(ownerData.serviceLogs);
-    if(Array.isArray(ownerData.weeklyDeductions)) saveWeeklyDeds(ownerData.weeklyDeductions);
-    if(Array.isArray(ownerData.deductionTemplates)) saveDedTemplates(ownerData.deductionTemplates);
+    if(Array.isArray(ownerData.trucks) && !deferFleetArrays){ saveTrucks(ownerData.trucks); applied = true; }
+    if(Array.isArray(ownerData.driverProfiles) && !deferFleetArrays){ saveDriverProfiles(ownerData.driverProfiles); applied = true; }
+    if(Array.isArray(ownerData.fuelLogs)){ saveFuelLogs(ownerData.fuelLogs); applied = true; }
+    if(Array.isArray(ownerData.serviceLogs)){ saveServiceLogs(ownerData.serviceLogs); applied = true; }
+    if(Array.isArray(ownerData.weeklyDeductions)){ saveWeeklyDeds(ownerData.weeklyDeductions); applied = true; }
+    if(Array.isArray(ownerData.deductionTemplates)){ saveDedTemplates(ownerData.deductionTemplates); applied = true; }
   });
+  if(skippedFleetArrays.trucks || skippedFleetArrays.driverProfiles){
+    showFleetFormConflict(
+      _fleetFormState.driverProfile.mode !== 'idle' ? 'driverProfile' : 'truck',
+      'Cloud fleet restore paused while this edit is open. Save or cancel, then pull again.'
+    );
+  }
+  if(!applied) return {changed:false, counts:counts, skippedFleetArrays:skippedFleetArrays};
   renderTrucksList();
   renderDriversPage();
   renderFleetPage();
   renderFleetStats();
   renderRealNetCard();
-  return {changed:true, counts:counts, role:roleRestore.role, roleChanged:roleRestore.changed};
+  return {changed:true, counts:counts, role:roleRestore.role, roleChanged:roleRestore.changed, skippedFleetArrays:skippedFleetArrays};
 }
 
 function renderRealNetCard(){
@@ -2892,6 +2953,7 @@ function loadTrucks(){ return scopedLoad('trucks', []); }
 function saveTrucks(v){ scopedSave('trucks', v || []); queueFleetConfigSync(); }
 
 function ensureDefaultTruckFromDriver(){
+  if(!_fleetRestoreSettled) return;
   if(!driver || !driver.unitNumber || loadTrucks().length) return;
   saveTrucks([{
     id: 'truck_'+stableHash([driver.crewId||driver.email||'', driver.unitNumber].join('|')),
@@ -2957,11 +3019,15 @@ function recordMatchesTruck(record, truck){
 
 function openTruckForm(id){
   var t = id ? loadTrucks().find(function(x){ return x.id===id; }) : null;
+  if(id && !t){ toast('Truck edit conflict: this truck is no longer available. Pull latest data and try again.','err'); return; }
+  beginFleetForm('truck', t ? 'edit' : 'create', t ? t.id : '');
   var html =
     '<div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:90;display:flex;align-items:flex-end;justify-content:center" id="truckModal">'+
     '<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">'+
     '<div style="font-size:17px;font-weight:800;color:var(--acc);margin-bottom:14px">'+(t?'Edit Truck':'Add Truck')+'</div>'+
     '<input type="hidden" id="tfId" value="'+(t?t.id:'')+'">'+
+    '<input type="hidden" id="tfMode" value="'+(t?'edit':'create')+'">'+
+    '<div id="tfConflict" class="muted" style="display:none;color:var(--rd);font-size:12px;margin-bottom:10px"></div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Unit Number *</div><input id="tfUnit" placeholder="e.g. 10" value="'+(t&&t.unitNumber?escHtml(t.unitNumber):'')+'"></div>'+
       '<div class="fg"><div class="slabel">Year</div><input type="number" id="tfYear" placeholder="2021" value="'+(t&&t.year?t.year:'')+'"></div>'+
@@ -2999,12 +3065,24 @@ function openTruckForm(id){
 function closeTruckModal(){
   var el = document.getElementById('truckModalWrap');
   if(el) el.remove();
+  clearFleetForm('truck');
 }
 
 function saveTruckForm(){
   var unit = (document.getElementById('tfUnit').value||'').trim();
   if(!unit){ toast('Unit number required','err'); return; }
-  var id = document.getElementById('tfId').value || ('truck_'+Date.now());
+  var modeEl = document.getElementById('tfMode');
+  var idEl = document.getElementById('tfId');
+  var mode = (_fleetFormState.truck.mode !== 'idle' ? _fleetFormState.truck.mode : (modeEl && modeEl.value) || (idEl && idEl.value ? 'edit' : 'create'));
+  var id = mode === 'edit'
+    ? (_fleetFormState.truck.id || (idEl && idEl.value) || '')
+    : generateFleetEntityId('truck');
+  var list = loadTrucks();
+  var idx  = mode === 'edit' ? list.findIndex(function(x){ return x.id===id; }) : -1;
+  if(mode === 'edit' && idx < 0){
+    showFleetFormConflict('truck', 'Truck edit conflict: this truck changed or disappeared during restore. Reload/pull latest data and try again.');
+    return;
+  }
   var entry = {
     id:              id,
     unitNumber:      unit,
@@ -3019,9 +3097,7 @@ function saveTruckForm(){
     purchaseCost:    parseFloat((document.getElementById('tfPurchaseCost')||{}).value)||0,
     active:          document.getElementById('tfActive').value === '1',
   };
-  var list = loadTrucks();
-  var idx  = list.findIndex(function(x){ return x.id===id; });
-  if(idx>=0) list[idx]=entry; else list.push(entry);
+  if(mode === 'edit') list[idx]=entry; else list.push(entry);
   saveTrucks(list);
   closeTruckModal();
   renderTrucksList();
@@ -3071,6 +3147,8 @@ function saveDriverProfiles(v){ scopedSave('driverProfiles', v || []); queueFlee
 
 function openDriverForm(id){
   var d = id ? loadDriverProfiles().find(function(x){ return x.id===id; }) : null;
+  if(id && !d){ toast('Driver edit conflict: this driver is no longer available. Pull latest data and try again.','err'); return; }
+  beginFleetForm('driverProfile', d ? 'edit' : 'create', d ? d.id : '');
   var trucks = loadTrucks();
   var truckOptions = trucks.map(function(t){
     var sel = (d && d.truckId===t.id) ? 'selected' : '';
@@ -3081,6 +3159,8 @@ function openDriverForm(id){
     '<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">'+
     '<div style="font-size:17px;font-weight:800;color:var(--acc);margin-bottom:14px">'+(d?'Edit Driver':'Add Driver')+'</div>'+
     '<input type="hidden" id="dfId" value="'+(d?d.id:'')+'">'+
+    '<input type="hidden" id="dfMode" value="'+(d?'edit':'create')+'">'+
+    '<div id="dfConflict" class="muted" style="display:none;color:var(--rd);font-size:12px;margin-bottom:10px"></div>'+
     '<div class="sfield"><div class="slabel">Driver Name *</div><input id="dfName" placeholder="Full name" value="'+(d?escHtml(d.name):'')+'"></div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Pay Type</div>'+
@@ -3133,12 +3213,24 @@ function toggleDriverPayFields(){
 function closeDriverModal(){
   var el = document.getElementById('driverModalWrap');
   if(el) el.remove();
+  clearFleetForm('driverProfile');
 }
 
 function saveDriverForm(){
   var name = (document.getElementById('dfName').value||'').trim();
   if(!name){ toast('Driver name required','err'); return; }
-  var id = document.getElementById('dfId').value || ('drv_'+Date.now());
+  var modeEl = document.getElementById('dfMode');
+  var idEl = document.getElementById('dfId');
+  var mode = (_fleetFormState.driverProfile.mode !== 'idle' ? _fleetFormState.driverProfile.mode : (modeEl && modeEl.value) || (idEl && idEl.value ? 'edit' : 'create'));
+  var id = mode === 'edit'
+    ? (_fleetFormState.driverProfile.id || (idEl && idEl.value) || '')
+    : generateFleetEntityId('driverProfile');
+  var list = loadDriverProfiles();
+  var idx  = mode === 'edit' ? list.findIndex(function(x){ return x.id===id; }) : -1;
+  if(mode === 'edit' && idx < 0){
+    showFleetFormConflict('driverProfile', 'Driver edit conflict: this driver changed or disappeared during restore. Reload/pull latest data and try again.');
+    return;
+  }
   var truckEl = document.getElementById('dfTruck');
   var entry = {
     id:         id,
@@ -3153,9 +3245,7 @@ function saveDriverForm(){
       ? ((document.getElementById('dfTermDate')||{}).value || new Date().toISOString().slice(0,10))
       : null,
   };
-  var list = loadDriverProfiles();
-  var idx  = list.findIndex(function(x){ return x.id===id; });
-  if(idx>=0) list[idx]=entry; else list.push(entry);
+  if(mode === 'edit') list[idx]=entry; else list.push(entry);
   saveDriverProfiles(list);
   closeDriverModal();
   renderDriversPage();
@@ -4498,6 +4588,7 @@ if(_savedSession && (_savedUrl || (driver && driver.syncUrl))){
     .catch(e => console.warn('[CrewBIQ Auth] session restore failed:', e.message))
     .finally(() => boot());
 } else {
+  setFleetRestoreSettled(true);
   boot();
 }
 </script>
