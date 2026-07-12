@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - core.js
+      - sw.js
       - tests/orchestrator_transport.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
@@ -11,6 +12,7 @@ on:
       - main
     paths:
       - core.js
+      - sw.js
       - tests/orchestrator_transport.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
@@ -31,3 +33,8 @@ jobs:
 
       - name: Run authenticated transport contract
         run: node tests/orchestrator_transport.test.mjs
+
+      - name: Verify service-worker cache rotation
+        run: |
+          grep -q "crewbiq-driver-v56" sw.js
+          grep -q "railway.app" sw.js
