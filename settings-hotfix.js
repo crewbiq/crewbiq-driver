@@ -1,10 +1,11 @@
 /**
- * CrewBIQ authenticated Settings durability adapter v0.2.0
+ * CrewBIQ authenticated Settings durability adapter v0.2.1
  *
  * Adds a bounded Settings snapshot to authenticated driver reports and hydrates
  * it during auth_restore. A clean device cannot publish profile settings until
- * the user explicitly taps Save Settings. Identity, roles, credentials, URLs,
- * tokens and orchestrator secrets are never copied from the client snapshot.
+ * the user explicitly taps Save Settings. The manual profile is stored separately
+ * so a local driver reset cannot replace it with blank defaults. Identity, roles,
+ * credentials, URLs, tokens and orchestrator secrets are never copied.
  */
 (function (global) {
   'use strict';
@@ -65,6 +66,17 @@
     return String(value || '').trim().slice(0, limit);
   }
 
+  function collectProfile(source) {
+    const profile = {};
+    if (!source || typeof source !== 'object') return profile;
+    PROFILE_FIELDS.forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(source, key) && meaningfulScalar(source[key])) {
+        profile[key] = normalizedScalar(source[key]);
+      }
+    });
+    return profile;
+  }
+
   function sanitizeCustomPti(value) {
     if (!Array.isArray(value)) return [];
     return value.slice(0, 50).map(function (item) {
@@ -82,14 +94,9 @@
     if (!raw || typeof raw !== 'object') return null;
     const rawProfile = raw.profile && typeof raw.profile === 'object' ? raw.profile : raw;
     const rawPreferences = raw.preferences && typeof raw.preferences === 'object' ? raw.preferences : raw;
-    const profile = {};
+    const profile = collectProfile(rawProfile);
     const preferences = {};
 
-    PROFILE_FIELDS.forEach(function (key) {
-      if (Object.prototype.hasOwnProperty.call(rawProfile, key) && meaningfulScalar(rawProfile[key])) {
-        profile[key] = normalizedScalar(rawProfile[key]);
-      }
-    });
     PREFERENCE_FIELDS.forEach(function (key) {
       if (Object.prototype.hasOwnProperty.call(rawPreferences, key) && meaningfulScalar(rawPreferences[key])) {
         preferences[key] = normalizedScalar(rawPreferences[key]);
@@ -108,6 +115,15 @@
     return result;
   }
 
+  function manualProfileSnapshot() {
+    const saved = storedJson(K + 'settingsProfileSnapshot', null);
+    if (saved && typeof saved === 'object') {
+      const clean = collectProfile(saved);
+      if (Object.keys(clean).length) return clean;
+    }
+    return collectProfile(storedDriver());
+  }
+
   function settingsSnapshot() {
     const manualSavedAt = String(localStorage.getItem(K + 'settingsProfileSavedAt') || '').trim();
     const settingsUpdatedAt = String(localStorage.getItem(K + 'settingsUpdatedAt') || '').trim();
@@ -116,16 +132,7 @@
     // were user settings. Cloud restore or manual Save creates the readiness marker.
     if (!manualSavedAt && !settingsUpdatedAt) return null;
 
-    const driver = storedDriver();
-    const profile = {};
-    if (manualSavedAt) {
-      PROFILE_FIELDS.forEach(function (key) {
-        if (Object.prototype.hasOwnProperty.call(driver, key) && meaningfulScalar(driver[key])) {
-          profile[key] = normalizedScalar(driver[key]);
-        }
-      });
-    }
-
+    const profile = manualSavedAt ? manualProfileSnapshot() : {};
     const preferences = {};
     const storedPreferences = {
       theme: localStorage.getItem(K + 'theme'),
@@ -292,8 +299,8 @@
       }
       localStorage.setItem(K + 'settingsUpdatedAt', settings.updatedAt || new Date().toISOString());
       localStorage.setItem(K + 'settingsCloudRestoredAt', new Date().toISOString());
-      // Deliberately do not set settingsProfileSavedAt here. Only a manual Save
-      // authorizes this device to publish profile fields back to the cloud.
+      // Deliberately do not set settingsProfileSavedAt or settingsProfileSnapshot.
+      // Only a manual Save authorizes this device to publish profile fields.
     } catch (e) {}
 
     try {
@@ -353,6 +360,8 @@
       const now = new Date().toISOString();
       const effective = document.getElementById('setRateEffectiveDate');
       if (effective) localStorage.setItem(K + 'rateEffectiveDate', String(effective.value || ''));
+      const profile = collectProfile(storedDriver());
+      localStorage.setItem(K + 'settingsProfileSnapshot', JSON.stringify(profile));
       localStorage.setItem(K + 'settingsProfileSavedAt', now);
       localStorage.setItem(K + 'settingsUpdatedAt', now);
     } catch (e) {}
@@ -403,12 +412,13 @@
 
   global.fetch = routedFetch;
   global.CrewBIQSettingsHotfix = {
-    version: '0.2.0',
+    version: '0.2.1',
     settingsSnapshot,
     sanitizeSettings,
     applyLocalSettings,
     attachSettingsToReport,
     validPayConfig,
+    manualProfileSnapshot,
   };
 
   if (typeof document !== 'undefined') {
@@ -419,5 +429,5 @@
     }
   }
 
-  console.info('[CrewBIQ Settings] cloud Settings durability v0.2.0 loaded');
+  console.info('[CrewBIQ Settings] cloud Settings durability v0.2.1 loaded');
 })(window);
