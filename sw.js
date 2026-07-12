@@ -1,20 +1,22 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.55
+ * CrewBIQ Driver — Service Worker v1.0.56
  * CrewBIQ Technologies
  *
  * Strategy:
- *   - App shell (index.html, core.js, sync.js, pti.js, loads.js) → Cache First
+ *   - App shell → Cache First
  *   - External API and POST requests → Network Only (skip cache)
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v56';
+const CACHE_NAME = 'crewbiq-driver-v57';
 
 // App shell — these files are cached on install
 const APP_SHELL = [
   '/crewbiq-driver/',
   '/crewbiq-driver/index.html',
   '/crewbiq-driver/core.js',
+  '/crewbiq-driver/core-runtime.js',
+  '/crewbiq-driver/restore-hotfix.js',
   '/crewbiq-driver/sync.js',
   '/crewbiq-driver/pti.js',
   '/crewbiq-driver/loads.js',
@@ -22,7 +24,6 @@ const APP_SHELL = [
 ];
 
 // ── INSTALL ────────────────────────────────────────────────────────────────
-// Cache app shell immediately on install
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -30,14 +31,13 @@ self.addEventListener('install', (event) => {
       .then(cache => cache.addAll(APP_SHELL))
       .then(() => {
         console.log('[CrewBIQ SW] App shell cached');
-        return self.skipWaiting(); // activate immediately
+        return self.skipWaiting();
       })
       .catch(err => console.warn('[CrewBIQ SW] Cache install error:', err))
   );
 });
 
 // ── ACTIVATE ───────────────────────────────────────────────────────────────
-// Delete old caches on activate
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -51,8 +51,8 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.55 activated');
-        return self.clients.claim(); // take control immediately
+        console.log('[CrewBIQ SW] v1.0.56 activated');
+        return self.clients.claim();
       })
   );
 });
@@ -62,8 +62,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. External APIs and all POST requests → Network Only
-  //    Never cache auth, restore, sync, OCR, or Google integration traffic.
+  // External APIs and all POST requests → Network Only.
+  // Never cache auth, restore, sync, OCR, or Google integration traffic.
   if (
     url.hostname.includes('script.google.com') ||
     url.hostname.includes('googleapis.com') ||
@@ -74,8 +74,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. App shell files → Cache First, then network
-  //    The versioned cache name above is the deployment rotation mechanism.
+  // App shell files → Cache First, then network.
   if (APP_SHELL.some(path => url.pathname === path || url.pathname.endsWith(path.replace('/crewbiq-driver', '')))) {
     event.respondWith(
       caches.match(event.request)
@@ -93,7 +92,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Everything else → Network First, fallback to cache
+  // Everything else → Network First, fallback to cache.
   event.respondWith(
     fetch(event.request)
       .then(response => {
