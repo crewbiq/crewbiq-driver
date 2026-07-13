@@ -5,6 +5,7 @@ on:
     paths:
       - core.js
       - core-runtime.js
+      - offline-sync-queue.js
       - restore-hotfix.js
       - settings-hotfix.js
       - owner-snapshot-hotfix.js
@@ -17,6 +18,7 @@ on:
       - service-invoice-legacy-upgrade.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
+      - tests/offline_sync_queue.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
@@ -33,6 +35,7 @@ on:
     paths:
       - core.js
       - core-runtime.js
+      - offline-sync-queue.js
       - restore-hotfix.js
       - settings-hotfix.js
       - owner-snapshot-hotfix.js
@@ -45,6 +48,7 @@ on:
       - service-invoice-legacy-upgrade.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
+      - tests/offline_sync_queue.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
@@ -76,6 +80,9 @@ jobs:
           sed "s#../core.js#../core-runtime.js#" tests/orchestrator_transport.test.mjs > tests/.runtime-contract.mjs
           node tests/.runtime-contract.mjs
 
+      - name: Run durable offline queue contract
+        run: node tests/offline_sync_queue.test.mjs
+
       - name: Run complete restore and expense contract
         run: node tests/full_restore_transport.test.mjs
 
@@ -106,6 +113,7 @@ jobs:
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
+          grep -q "offline-sync-queue.js?v=20260713-offline-sync-v1" core.js
           grep -q "restore-hotfix.js" core.js
           grep -q "settings-hotfix.js" core.js
           grep -q "owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2" core.js
@@ -116,7 +124,8 @@ jobs:
           grep -q "ocr-item-alias-hotfix.js" core.js
           grep -q "ocr-service-invoice-review.js" core.js
           grep -q "service-invoice-legacy-upgrade.js" core.js
-          grep -q "crewbiq-driver-v68" sw.js
+          grep -q "crewbiq-driver-v69" sw.js
+          grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
           grep -q "service-invoice-legacy-upgrade.js" sw.js
