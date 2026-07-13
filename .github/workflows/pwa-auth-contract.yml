@@ -7,6 +7,7 @@ on:
       - core-runtime.js
       - restore-hotfix.js
       - settings-hotfix.js
+      - owner-snapshot-hotfix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
       - ocr-item-alias-hotfix.js
@@ -14,6 +15,7 @@ on:
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
+      - tests/owner_snapshot_deletion.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
       - tests/ocr_invoice_review.test.mjs
       - tests/ocr_defd_alias.test.mjs
@@ -26,6 +28,7 @@ on:
       - core-runtime.js
       - restore-hotfix.js
       - settings-hotfix.js
+      - owner-snapshot-hotfix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
       - ocr-item-alias-hotfix.js
@@ -33,6 +36,7 @@ on:
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
+      - tests/owner_snapshot_deletion.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
       - tests/ocr_invoice_review.test.mjs
       - tests/ocr_defd_alias.test.mjs
@@ -64,6 +68,9 @@ jobs:
       - name: Run Settings snapshot contract
         run: node tests/settings_restore_transport.test.mjs
 
+      - name: Run owner snapshot deletion contract
+        run: node tests/owner_snapshot_deletion.test.mjs
+
       - name: Run authenticated OCR transport contract
         run: node tests/ocr_authenticated_transport.test.mjs
 
@@ -78,12 +85,14 @@ jobs:
           grep -q "core-runtime.js" core.js
           grep -q "restore-hotfix.js" core.js
           grep -q "settings-hotfix.js" core.js
+          grep -q "owner-snapshot-hotfix.js" core.js
           grep -q "ocr-hotfix.js" core.js
           grep -q "ocr-invoice-review.js" core.js
           grep -q "ocr-item-alias-hotfix.js" core.js
-          grep -q "crewbiq-driver-v63" sw.js
+          grep -q "crewbiq-driver-v64" sw.js
           grep -q "restore-hotfix.js" sw.js
           grep -q "settings-hotfix.js" sw.js
+          grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "ocr-hotfix.js" sw.js
           grep -q "ocr-invoice-review.js" sw.js
           grep -q "ocr-item-alias-hotfix.js" sw.js
