@@ -1,15 +1,15 @@
 /**
- * CrewBIQ Core loader v0.3.0
+ * CrewBIQ Core loader v0.3.1
  *
  * Loads authenticated sync/restore, effective truck deductions, protected OCR,
- * segmented fuel/service invoice review, and safe legacy service upgrades.
+ * segmented fuel/service invoice review, and durable service deletion snapshots.
  */
 (function () {
   'use strict';
   document.write('<script src="core-runtime.js?v=20260712-full-restore"><\/script>');
   document.write('<script src="restore-hotfix.js?v=20260712-full-restore"><\/script>');
   document.write('<script src="settings-hotfix.js?v=20260712-settings-reconcile-v2"><\/script>');
-  document.write('<script src="owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v1"><\/script>');
+  document.write('<script src="owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2"><\/script>');
   document.write('<script src="deduction-policy-hotfix.js?v=20260713-deduction-policy-v1"><\/script>');
   document.write('<script src="deduction-policy-ui-fix.js?v=20260713-deduction-policy-ui-v1"><\/script>');
   document.write('<script src="ocr-hotfix.js?v=20260712-ocr-auth-v1"><\/script>');
