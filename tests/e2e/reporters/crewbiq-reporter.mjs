@@ -83,6 +83,7 @@ export default class CrewBIQReporter {
     const finishedAt = new Date();
     const viewport = this.project.use.viewport || { width: 1280, height: 720 };
     const authenticatedRun = this.evidencePolicy.sensitive_run;
+    const localUxRun = String(process.env.E2E_LOCAL_UX_RUN || '') === '1';
     const overallStatus = reportedOverallStatus(result.status, this.scenarios);
     const artifact = {
       schema_version: '1.0.0',
@@ -114,6 +115,10 @@ export default class CrewBIQReporter {
         'Credentials are supplied at runtime and are not written to evidence.',
         'Every scenario starts in an independent Playwright browser context.',
         'Screenshots and traces are disabled for this authenticated run.',
+      ] : localUxRun ? [
+        'CrewBIQ repository files are served by an ephemeral localhost-only server.',
+        'No CrewBIQ account, credential, login submission or application API request is used.',
+        'Screenshots and traces are disabled; uploaded evidence is redacted text only.',
       ] : [
         'No CrewBIQ account or production credential is used.',
         'The page and network response are synthetic and local to the test.',
@@ -128,6 +133,10 @@ export default class CrewBIQReporter {
       limitations: authenticatedRun ? [
         'Reusable E2E identities and manifest-owned fixtures are intentionally retained.',
         'Scenarios attempt to revoke only the sessions they create.',
+      ] : localUxRun ? [
+        'Automated measurements are observations for human review, not WCAG certification.',
+        'Only the unauthenticated setup and login shell is covered.',
+        'PostgreSQL, Orchestrator, staging and production are not contacted.',
       ] : [
         'This harness self-test does not verify CrewBIQ product behavior.',
         'PostgreSQL, Orchestrator and production are not contacted.',

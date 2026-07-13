@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crewbiq.test/schemas/e2e-ux-observation-v1.json",
+  "title": "CrewBIQ local UX observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "entered_values_omitted",
+    "viewport",
+    "hard_assertions",
+    "measurements",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "scenario_id": { "enum": ["UX-01", "A11Y-01", "RESPONSIVE-01"] },
+    "entered_values_omitted": { "const": true },
+    "viewport": {
+      "oneOf": [
+        { "$ref": "#/$defs/viewport" },
+        { "type": "null" }
+      ]
+    },
+    "viewports": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/viewport" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "hard_assertions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "boolean" }
+    },
+    "measurements": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "summary", "review_required"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string", "minLength": 1 },
+          "review_required": { "const": true }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}
