@@ -68,15 +68,17 @@ jobs:
     env:
       E2E_ENVIRONMENT: staging
       E2E_AUTHENTICATED_RUN: '1'
-      E2E_TESTER_ROLE: authenticated-browser-tester
+      E2E_TESTER_ROLE: multi-role-browser-testers
       E2E_APPLICATION_ROLE: fleet
-      E2E_TENANT_ALIASES: A
+      E2E_TENANT_ALIASES: A,B
       E2E_BASE_URL: ${{ vars.CREWBIQ_E2E_BASE_URL }}
       E2E_ORCHESTRATOR_URL: ${{ vars.CREWBIQ_E2E_ORCHESTRATOR_URL }}
       E2E_ALLOWED_HOSTS: ${{ vars.CREWBIQ_E2E_ALLOWED_HOSTS }}
       E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
       CREWBIQ_E2E_FLEET_A_EMAIL: ${{ secrets.CREWBIQ_E2E_FLEET_A_EMAIL }}
       CREWBIQ_E2E_FLEET_A_PASSWORD: ${{ secrets.CREWBIQ_E2E_FLEET_A_PASSWORD }}
+      CREWBIQ_E2E_FLEET_B_EMAIL: ${{ secrets.CREWBIQ_E2E_FLEET_B_EMAIL }}
+      CREWBIQ_E2E_FLEET_B_PASSWORD: ${{ secrets.CREWBIQ_E2E_FLEET_B_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
