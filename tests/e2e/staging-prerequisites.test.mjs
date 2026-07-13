@@ -174,7 +174,8 @@ test('staging specs have no production or real Google URL and retain reusable id
   const authSource = fs.readFileSync(new URL('./staging-auth-restore.spec.mjs', import.meta.url), 'utf8');
   const fleetSource = fs.readFileSync(new URL('./staging-fleet-integrity.spec.mjs', import.meta.url), 'utf8');
   const tenantSource = fs.readFileSync(new URL('./staging-tenant-isolation.spec.mjs', import.meta.url), 'utf8');
-  const combined = `${authSource}\n${fleetSource}\n${tenantSource}`;
+  const offlineSource = fs.readFileSync(new URL('./staging-offline-retry.spec.mjs', import.meta.url), 'utf8');
+  const combined = `${authSource}\n${fleetSource}\n${tenantSource}\n${offlineSource}`;
   assert.doesNotMatch(combined, /crewbiq-orchestrator-production/i);
   assert.doesNotMatch(combined, /script\.google\.com/i);
   assert.match(authSource, /legacy-fallback\.invalid/);
@@ -206,4 +207,17 @@ test('TENANT-01 uses an empty business probe and deterministic idempotency key',
   assert.match(api, /ptiLog: \[\]/);
   assert.match(api, /ownerData: \{\}/);
   assert.doesNotMatch(spec, /delete|truncate|deprovision/i);
+});
+
+test('OFFLINE-01 uses one manifest-owned truck, sanitized queue checks, and exact rollback', () => {
+  const spec = fs.readFileSync(new URL('./staging-offline-retry.spec.mjs', import.meta.url), 'utf8');
+  assert.match(spec, /config\.fleetA\.activeTruckIds\[0\]/);
+  assert.match(spec, /page\.route\(syncPattern/);
+  assert.match(spec, /route\.abort\('failed'\)/);
+  assert.match(spec, /fiqD_pendingSyncOperations/);
+  assert.match(spec, /containsSessionToken/);
+  assert.match(spec, /observedRequestIds\[0\].*observedRequestIds\[1\]/s);
+  assert.match(spec, /pushOwnerData\([\s\S]*originalTruck[\s\S]*'rollback'/);
+  assert.match(spec, /orchestrator issue 35/);
+  assert.doesNotMatch(spec, /fleet_loads|driver_loads|insert into|delete from|truncate/i);
 });
