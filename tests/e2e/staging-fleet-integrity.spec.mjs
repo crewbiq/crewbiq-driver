@@ -57,9 +57,45 @@ function activeFleetSnapshot(response) {
   };
 }
 
-async function softRevoke(page, config, token) {
+function softFleetSnapshot(response) {
+  expect.soft(response && response.status).toBe(200);
+  expect.soft(response && response.body && response.body.ok).toBe(true);
+  return {
+    trucks: Array.isArray(response && response.body && response.body.trucks)
+      ? response.body.trucks : [],
+    driverProfiles: Array.isArray(response && response.body && response.body.driver_profiles)
+      ? response.body.driver_profiles : [],
+  };
+}
+
+async function cleanupStep(label, observations, operation) {
+  try {
+    await operation();
+    return true;
+  } catch (error) {
+    observations.push({
+      cleanup: label,
+      status: 'failed',
+      error_class: error && error.name ? error.name : 'Error',
+    });
+    expect.soft(false, `${label} cleanup failed`).toBe(true);
+    return false;
+  }
+}
+
+async function softRevoke(page, config, token, observations, contextAlias) {
   if (!token) return;
-  expect.soft((await revokeSession(page, config, token)).status).toBe(200);
+  await cleanupStep(`revoke-${contextAlias}`, observations, async () => {
+    const response = await revokeSession(page, config, token);
+    expect.soft(response.status).toBe(200);
+    observations.push({
+      context: contextAlias,
+      method: 'POST',
+      path: '/v1/auth/logout',
+      status: response.status,
+      cleanup: 'session-revoked',
+    });
+  });
 }
 
 test(
@@ -110,8 +146,8 @@ test(
       const write = await pushOwnerData(
         page, config, phoneToken, { trucks: [editedTruck] }, 'DEVICE-01', 'write',
       );
+      mutationApplied = write.status === 200;
       expect(write.status).toBe(200);
-      mutationApplied = true;
       observations.push({
         context: 'phone', method: 'POST', path: '/v1/sync/pwa', status: write.status,
         stable_id_preserved: true,
@@ -131,28 +167,33 @@ test(
       });
     } finally {
       if (mutationApplied && originalTruck && phoneToken) {
-        const rollback = await pushOwnerData(
-          page, config, phoneToken, { trucks: [originalTruck] }, 'DEVICE-01', 'rollback',
-        );
-        expect.soft(rollback.status).toBe(200);
-        observations.push({
-          context: 'phone', method: 'POST', path: '/v1/sync/pwa',
-          status: rollback.status, cleanup: 'restore-before-state',
-        });
-        if (desktopToken) {
-          const verify = await restoreFleet(desktopPage, config, desktopToken);
-          const restored = activeFleetSnapshot(verify);
-          const restoredMatches = exactlyOneById(restored.trucks, originalTruck.id);
-          expect.soft(restoredMatches).toHaveLength(1);
-          if (restoredMatches.length === 1) {
-            expect.soft(restoredMatches[0].plate || '').toBe(originalTruck.plate || '');
+        await cleanupStep('device-before-state-rollback', observations, async () => {
+          const rollback = await pushOwnerData(
+            page, config, phoneToken, { trucks: [originalTruck] }, 'DEVICE-01', 'rollback',
+          );
+          expect.soft(rollback.status).toBe(200);
+          observations.push({
+            context: 'phone', method: 'POST', path: '/v1/sync/pwa',
+            status: rollback.status, cleanup: 'restore-before-state',
+          });
+          if (desktopToken && rollback.status === 200) {
+            const verify = await restoreFleet(desktopPage, config, desktopToken);
+            const restored = softFleetSnapshot(verify);
+            const restoredMatches = exactlyOneById(restored.trucks, originalTruck.id);
+            expect.soft(restoredMatches).toHaveLength(1);
+            if (restoredMatches.length === 1) {
+              expect.soft(restoredMatches[0].plate || '').toBe(originalTruck.plate || '');
+            }
           }
-        }
+        });
       }
-      await softRevoke(page, config, phoneToken);
-      await softRevoke(desktopPage, config, desktopToken);
-      await attachSafeObservations(testInfo, 'fleet-device-observations', observations);
-      await desktopContext.close();
+      await softRevoke(page, config, phoneToken, observations, 'phone');
+      await softRevoke(desktopPage, config, desktopToken, observations, 'desktop');
+      try {
+        await attachSafeObservations(testInfo, 'fleet-device-observations', observations);
+      } finally {
+        await desktopContext.close();
+      }
     }
   },
 );
@@ -238,13 +279,16 @@ test(
       });
     } finally {
       if (localBefore) {
-        await page.evaluate(before => {
-          window.scopedSave('trucks', before);
-          if (typeof window.closeTruckModal === 'function') window.closeTruckModal();
-          if (typeof window.renderTrucksList === 'function') window.renderTrucksList();
-        }, localBefore);
+        await cleanupStep('local-edit-before-state-rollback', observations, async () => {
+          await page.evaluate(before => {
+            window.scopedSave('trucks', before);
+            if (typeof window.closeTruckModal === 'function') window.closeTruckModal();
+            if (typeof window.renderTrucksList === 'function') window.renderTrucksList();
+          }, localBefore);
+          observations.push({ cleanup: 'local-before-state-restored', status: 'complete' });
+        });
       }
-      await softRevoke(page, config, token);
+      await softRevoke(page, config, token, observations, 'single-pwa');
       await attachSafeObservations(testInfo, 'fleet-edit-conflict-observations', observations);
     }
   },
@@ -298,8 +342,8 @@ test(
         trucks: [deactivatedTruck],
         driverProfiles: [deactivatedProfile],
       }, 'RESTORE-02', 'deactivate');
+      mutationApplied = write.status === 200;
       expect(write.status).toBe(200);
-      mutationApplied = true;
 
       const inactiveRestore = await restoreFleet(recoveryPage, config, recoveryToken);
       const after = activeFleetSnapshot(inactiveRestore);
@@ -324,32 +368,37 @@ test(
       });
     } finally {
       if (mutationApplied && originalTruck && originalProfile && writerToken) {
-        const rollback = await pushOwnerData(page, config, writerToken, {
-          trucks: [originalTruck],
-          driverProfiles: [originalProfile],
-        }, 'RESTORE-02', 'rollback');
-        expect.soft(rollback.status).toBe(200);
-        if (recoveryToken) {
-          const verify = await restoreFleet(recoveryPage, config, recoveryToken);
-          const restored = activeFleetSnapshot(verify);
-          expect.soft(exactlyOneById(restored.trucks, originalTruck.id)).toHaveLength(1);
-          expect.soft(exactlyOneById(restored.driverProfiles, originalProfile.id)).toHaveLength(1);
-          for (const id of config.fleetA.inactiveTruckIds) {
-            expect.soft(exactlyOneById(restored.trucks, id)).toHaveLength(0);
+        await cleanupStep('inactive-before-state-rollback', observations, async () => {
+          const rollback = await pushOwnerData(page, config, writerToken, {
+            trucks: [originalTruck],
+            driverProfiles: [originalProfile],
+          }, 'RESTORE-02', 'rollback');
+          expect.soft(rollback.status).toBe(200);
+          observations.push({
+            context: 'writer', method: 'POST', path: '/v1/sync/pwa',
+            status: rollback.status, cleanup: 'restore-truck-and-profile-before-state',
+          });
+          if (recoveryToken && rollback.status === 200) {
+            const verify = await restoreFleet(recoveryPage, config, recoveryToken);
+            const restored = softFleetSnapshot(verify);
+            expect.soft(exactlyOneById(restored.trucks, originalTruck.id)).toHaveLength(1);
+            expect.soft(exactlyOneById(restored.driverProfiles, originalProfile.id)).toHaveLength(1);
+            for (const id of config.fleetA.inactiveTruckIds) {
+              expect.soft(exactlyOneById(restored.trucks, id)).toHaveLength(0);
+            }
+            for (const id of config.fleetA.inactiveDriverProfileIds) {
+              expect.soft(exactlyOneById(restored.driverProfiles, id)).toHaveLength(0);
+            }
           }
-          for (const id of config.fleetA.inactiveDriverProfileIds) {
-            expect.soft(exactlyOneById(restored.driverProfiles, id)).toHaveLength(0);
-          }
-        }
-        observations.push({
-          context: 'writer', method: 'POST', path: '/v1/sync/pwa',
-          status: rollback.status, cleanup: 'restore-truck-and-profile-before-state',
         });
       }
-      await softRevoke(page, config, writerToken);
-      await softRevoke(recoveryPage, config, recoveryToken);
-      await attachSafeObservations(testInfo, 'fleet-inactive-restore-observations', observations);
-      await recoveryContext.close();
+      await softRevoke(page, config, writerToken, observations, 'writer');
+      await softRevoke(recoveryPage, config, recoveryToken, observations, 'recovery');
+      try {
+        await attachSafeObservations(testInfo, 'fleet-inactive-restore-observations', observations);
+      } finally {
+        await recoveryContext.close();
+      }
     }
   },
 );
