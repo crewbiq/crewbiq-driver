@@ -2,6 +2,12 @@ name: E2E Harness Manual
 
 on:
   workflow_dispatch:
+    inputs:
+      run_staging_journeys:
+        description: Run authenticated staging journeys with protected secrets
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -25,8 +31,8 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run redaction tests
-        run: npm run test:e2e:redaction
+      - name: Run test-tooling contracts
+        run: npm run test:e2e:tooling
 
       - name: Run harness self-test
         run: npm run test:e2e:self
@@ -51,6 +57,56 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crewbiq-e2e-harness-${{ github.run_id }}
+          path: artifacts/e2e/upload/
+          if-no-files-found: error
+          retention-days: 7
+
+  staging-journeys:
+    if: ${{ inputs.run_staging_journeys }}
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      E2E_ENVIRONMENT: staging
+      E2E_AUTHENTICATED_RUN: '1'
+      E2E_TESTER_ROLE: authenticated-browser-tester
+      E2E_APPLICATION_ROLE: fleet
+      E2E_TENANT_ALIASES: A
+      E2E_BASE_URL: ${{ vars.CREWBIQ_E2E_BASE_URL }}
+      E2E_ORCHESTRATOR_URL: ${{ vars.CREWBIQ_E2E_ORCHESTRATOR_URL }}
+      E2E_ALLOWED_HOSTS: ${{ vars.CREWBIQ_E2E_ALLOWED_HOSTS }}
+      E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
+      CREWBIQ_E2E_FLEET_A_EMAIL: ${{ secrets.CREWBIQ_E2E_FLEET_A_EMAIL }}
+      CREWBIQ_E2E_FLEET_A_PASSWORD: ${{ secrets.CREWBIQ_E2E_FLEET_A_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install test tooling
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare exact fixture manifest
+        env:
+          E2E_FIXTURE_MANIFEST_JSON: ${{ secrets.CREWBIQ_E2E_FIXTURE_MANIFEST_JSON }}
+        shell: bash
+        run: printf '%s' "$E2E_FIXTURE_MANIFEST_JSON" > "$E2E_FIXTURE_MANIFEST_PATH"
+
+      - name: Run authenticated staging journeys
+        run: npm run test:e2e:staging
+
+      - name: Upload redacted staging evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crewbiq-e2e-staging-${{ github.run_id }}
           path: artifacts/e2e/upload/
           if-no-files-found: error
           retention-days: 7
