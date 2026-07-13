@@ -19,8 +19,8 @@
     "scenarios",
     "cleanup_status",
     "limitations",
-    "report",
-    "redacted"
+    "evidence_policy",
+    "report"
   ],
   "properties": {
     "schema_version": { "const": "1.0.0" },
@@ -92,6 +92,26 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "evidence_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "sensitive_run",
+        "text_evidence_redacted",
+        "binary_evidence_safe",
+        "binary_evidence_omitted",
+        "allowlist_manifest"
+      ],
+      "properties": {
+        "mode": { "enum": ["safe", "synthetic", "disposable"] },
+        "sensitive_run": { "type": "boolean" },
+        "text_evidence_redacted": { "const": true },
+        "binary_evidence_safe": { "type": "boolean" },
+        "binary_evidence_omitted": { "type": "boolean" },
+        "allowlist_manifest": { "type": "string", "minLength": 1 }
+      }
+    },
     "report": {
       "type": "object",
       "additionalProperties": false,
@@ -100,8 +120,7 @@
         "json": { "type": "string", "minLength": 1 },
         "markdown": { "type": "string", "minLength": 1 }
       }
-    },
-    "redacted": { "const": true }
+    }
   },
   "$defs": {
     "scenario": {
@@ -145,13 +164,14 @@
         "evidence": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["screenshots", "traces", "console", "network", "other"],
+          "required": ["screenshots", "traces", "console", "network", "other", "omitted"],
           "properties": {
             "screenshots": { "$ref": "#/$defs/references" },
             "traces": { "$ref": "#/$defs/references" },
             "console": { "$ref": "#/$defs/references" },
             "network": { "$ref": "#/$defs/references" },
-            "other": { "$ref": "#/$defs/references" }
+            "other": { "$ref": "#/$defs/references" },
+            "omitted": { "$ref": "#/$defs/references" }
           }
         },
         "intentional_failure": { "type": "boolean" }

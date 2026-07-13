@@ -70,10 +70,24 @@ test('writes redacted JSON and Markdown reports', () => {
       result_class: 'pass',
       expected_result: 'Cookie: session=cookie-canary',
       actual_result: 'token=query-token-canary',
-      evidence: { screenshots: [], traces: [], console: [], network: [], other: [] },
+      evidence: {
+        screenshots: [],
+        traces: [],
+        console: [],
+        network: [],
+        other: [],
+        omitted: [],
+      },
     }],
     cleanup_status: 'not_required',
     limitations: ['sessionToken=session-canary'],
+    evidence_policy: {
+      mode: 'safe',
+      sensitive_run: true,
+      text_evidence_redacted: true,
+      binary_evidence_safe: false,
+      binary_evidence_omitted: true,
+    },
   };
 
   try {

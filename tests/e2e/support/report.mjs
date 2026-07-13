@@ -38,6 +38,14 @@ Application role and tenant aliases: ${artifact.tester.application_role}; ${arti
 
 Browser/viewport: ${artifact.browser.engine}; ${artifact.browser.viewport.width}x${artifact.browser.viewport.height}
 
+Evidence mode: ${artifact.evidence_policy.mode}
+
+Text evidence redacted: ${artifact.evidence_policy.text_evidence_redacted}
+
+Binary evidence safe: ${artifact.evidence_policy.binary_evidence_safe}
+
+Binary evidence omitted: ${artifact.evidence_policy.binary_evidence_omitted}
+
 ## Preconditions
 
 ${markdownList(artifact.preconditions)}

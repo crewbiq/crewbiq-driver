@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { resolveEvidencePolicy } from './tests/e2e/support/evidence.mjs';
+
 const artifactDir = process.env.E2E_ARTIFACT_DIR || 'artifacts/e2e';
+const evidencePolicy = resolveEvidencePolicy();
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -16,8 +19,8 @@ export default defineConfig({
     ['./tests/e2e/reporters/crewbiq-reporter.mjs', { outputDir: artifactDir }],
   ],
   use: {
-    screenshot: 'only-on-failure',
-    trace: 'retain-on-failure',
+    screenshot: evidencePolicy.binary_evidence_safe ? 'only-on-failure' : 'off',
+    trace: evidencePolicy.binary_evidence_safe ? 'retain-on-failure' : 'off',
   },
   projects: [
     {

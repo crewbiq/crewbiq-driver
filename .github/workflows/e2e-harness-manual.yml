@@ -51,6 +51,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crewbiq-e2e-harness-${{ github.run_id }}
-          path: artifacts/e2e/
+          path: artifacts/e2e/upload/
           if-no-files-found: error
           retention-days: 7

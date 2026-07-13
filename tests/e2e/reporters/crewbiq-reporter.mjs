@@ -1,44 +1,13 @@
 import path from 'node:path';
 
+import {
+  publishScenarioAttachments,
+  resetUploadDirectory,
+  resolveEvidencePolicy,
+  writeUploadManifest,
+} from '../support/evidence.mjs';
 import { writeRunArtifacts } from '../support/report.mjs';
 import { redactString } from '../support/redact.mjs';
-
-function referenceFor(attachment) {
-  if (attachment.path) {
-    return path.relative(process.cwd(), attachment.path).replaceAll('\\', '/');
-  }
-  return `inline:${attachment.name}`;
-}
-
-function evidenceFrom(attachments) {
-  const evidence = {
-    screenshots: [],
-    traces: [],
-    console: [],
-    network: [],
-    other: [],
-  };
-
-  for (const attachment of attachments) {
-    const reference = referenceFor(attachment);
-    const name = attachment.name.toLowerCase();
-    if (name.includes('screenshot') || attachment.contentType.startsWith('image/')) {
-      evidence.screenshots.push(reference);
-    } else if (name.includes('trace')) {
-      evidence.traces.push(reference);
-    } else if (name.includes('console')) {
-      evidence.console.push(reference);
-    } else if (name.includes('network')) {
-      evidence.network.push(reference);
-    } else {
-      evidence.other.push(reference);
-    }
-  }
-
-  return Object.fromEntries(
-    Object.entries(evidence).map(([kind, references]) => [kind, [...new Set(references)]]),
-  );
-}
 
 function resultClass(status, intentionalFailure) {
   if (intentionalFailure && status === 'failed') return 'pass';
@@ -51,6 +20,9 @@ function resultClass(status, intentionalFailure) {
 export default class CrewBIQReporter {
   constructor(options = {}) {
     this.outputDir = options.outputDir || 'artifacts/e2e';
+    this.uploadDir = path.join(this.outputDir, 'upload');
+    this.uploadReference = this.uploadDir.replaceAll('\\', '/');
+    this.evidencePolicy = resolveEvidencePolicy();
     this.scenarios = [];
   }
 
@@ -73,12 +45,26 @@ export default class CrewBIQReporter {
       actual_result: error ? redactString(error) : result.status,
       retry_count: result.retry,
       steps: [],
-      evidence: evidenceFrom(result.attachments),
+      attachments: result.attachments,
       intentional_failure: intentionalFailure,
     });
   }
 
   async onEnd(result) {
+    resetUploadDirectory(this.uploadDir);
+    const publishedArtifacts = [];
+    this.scenarios = this.scenarios.map(scenario => {
+      const { attachments, ...reportableScenario } = scenario;
+      const published = publishScenarioAttachments({
+        attachments,
+        uploadDir: this.uploadDir,
+        scenarioId: scenario.id,
+        policy: this.evidencePolicy,
+      });
+      publishedArtifacts.push(...published.artifacts);
+      return { ...reportableScenario, evidence: published.evidence };
+    });
+
     const finishedAt = new Date();
     const viewport = this.project.use.viewport || { width: 1280, height: 720 };
     const artifact = {
@@ -117,13 +103,17 @@ export default class CrewBIQReporter {
         'This harness self-test does not verify CrewBIQ product behavior.',
         'PostgreSQL, Orchestrator and production are not contacted.',
       ],
-      report: {
-        json: `${this.outputDir}/run.json`,
-        markdown: `${this.outputDir}/report.md`,
+      evidence_policy: {
+        ...this.evidencePolicy,
+        allowlist_manifest: `${this.uploadReference}/upload-manifest.json`,
       },
-      redacted: true,
+      report: {
+        json: `${this.uploadReference}/run.json`,
+        markdown: `${this.uploadReference}/report.md`,
+      },
     };
 
-    writeRunArtifacts(artifact, this.outputDir);
+    writeRunArtifacts(artifact, this.uploadDir);
+    writeUploadManifest(this.uploadDir, this.evidencePolicy, publishedArtifacts);
   }
 }
