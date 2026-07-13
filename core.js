@@ -1,9 +1,8 @@
 /**
- * CrewBIQ Core loader v0.2.9
+ * CrewBIQ Core loader v0.3.0
  *
- * Loads the stable authenticated Core runtime, full restore, Settings durability,
- * durable owner snapshots, effective-dated truck deductions, authenticated OCR,
- * safe fuel invoice review, vendor aliases, and segmented service invoice review.
+ * Loads authenticated sync/restore, effective truck deductions, protected OCR,
+ * segmented fuel/service invoice review, and safe legacy service upgrades.
  */
 (function () {
   'use strict';
@@ -17,4 +16,5 @@
   document.write('<script src="ocr-invoice-review.js?v=20260712-ocr-invoice-v2"><\/script>');
   document.write('<script src="ocr-item-alias-hotfix.js?v=20260712-defd-alias-v1"><\/script>');
   document.write('<script src="ocr-service-invoice-review.js?v=20260713-service-invoice-v1"><\/script>');
+  document.write('<script src="service-invoice-legacy-upgrade.js?v=20260713-service-legacy-v1"><\/script>');
 })();
