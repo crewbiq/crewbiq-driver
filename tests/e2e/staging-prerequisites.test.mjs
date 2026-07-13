@@ -5,7 +5,7 @@ import test from 'node:test';
 import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
 
 const manifest = {
-  schema_version: '1.0',
+  schema_version: '1.1',
   environment: 'staging',
   run_id: 'fleet-integrity-01',
   display_prefix: 'E2E-fleet-integrity-01-',
@@ -42,6 +42,14 @@ const manifest = {
     {
       entity: 'fleet_driver_profiles', key: 'driver-b-active',
       owner_crewbiq_id: 'CBQ-E2E-TENANT-B', is_active: true,
+    },
+    {
+      entity: 'driver_loads', key: 'load-a-1', owner_crewbiq_id: 'CBQ-E2E-TENANT-A',
+      owner_column: 'crewbiq_id',
+    },
+    {
+      entity: 'driver_loads', key: 'load-b-1', owner_crewbiq_id: 'CBQ-E2E-TENANT-B',
+      owner_column: 'crewbiq_id',
     },
   ],
 };
@@ -98,6 +106,7 @@ test('valid Fleet A prerequisites expose exact active and inactive manifest IDs'
   assert.deepEqual(result.config.fleetA.inactiveTruckIds, ['truck-a-inactive']);
   assert.deepEqual(result.config.fleetA.activeDriverProfileIds, ['driver-a-active']);
   assert.deepEqual(result.config.fleetA.inactiveDriverProfileIds, ['driver-a-inactive']);
+  assert.deepEqual(result.config.fleetA.driverLoadIds, ['load-a-1']);
   assert.doesNotMatch(JSON.stringify(result), /password-[ab]-secret-canary/);
 });
 
@@ -111,6 +120,7 @@ test('TENANT-01 prerequisites require distinct Fleet A and Fleet B contracts', (
   assert.equal(result.config.fleetB.ownerCrewbiqId, 'CBQ-E2E-TENANT-B');
   assert.deepEqual(result.config.fleetB.activeTruckIds, ['truck-b-active']);
   assert.deepEqual(result.config.fleetB.activeDriverProfileIds, ['driver-b-active']);
+  assert.deepEqual(result.config.fleetB.driverLoadIds, ['load-b-1']);
   assert.notEqual(result.config.fleetA.authCrewbiqId, result.config.fleetB.authCrewbiqId);
   assert.notEqual(result.config.fleetA.ownerCrewbiqId, result.config.fleetB.ownerCrewbiqId);
 });
@@ -154,6 +164,42 @@ test('manifest environment and tenant mismatches fail closed', () => {
   assert.equal(result.ready, false);
   assert.ok(result.reasons.some(reason => reason.includes('environment')));
   assert.ok(result.reasons.some(reason => reason.includes('tenant A')));
+});
+
+test('legacy schema 1.0 and fleet_loads cannot qualify as current staging evidence', () => {
+  const legacy = structuredClone(manifest);
+  legacy.schema_version = '1.0';
+  legacy.fixtures = legacy.fixtures.map(item => (
+    item.entity === 'driver_loads'
+      ? { ...item, entity: 'fleet_loads', owner_column: undefined }
+      : item
+  ));
+  const result = resolveStagingPrerequisites(validEnvironment(), {
+    readFile: () => JSON.stringify(legacy),
+    requireFleetB: true,
+  });
+
+  assert.equal(result.ready, false);
+  assert.ok(result.reasons.some(reason => reason.includes('schema 1.0 is legacy cleanup-only')));
+  assert.ok(result.reasons.some(reason => reason.includes('legacy fleet_loads')));
+  assert.ok(result.reasons.some(reason => reason.includes('E2E-FLEET-A driver_loads')));
+  assert.ok(result.reasons.some(reason => reason.includes('E2E-FLEET-B driver_loads')));
+});
+
+test('missing owner column and cross-tenant load ownership fail closed', () => {
+  const unsafe = structuredClone(manifest);
+  const loadA = unsafe.fixtures.find(item => item.key === 'load-a-1');
+  const loadB = unsafe.fixtures.find(item => item.key === 'load-b-1');
+  delete loadA.owner_column;
+  loadB.owner_crewbiq_id = 'CBQ-E2E-TENANT-A';
+  const result = resolveStagingPrerequisites(validEnvironment(), {
+    readFile: () => JSON.stringify(unsafe),
+    requireFleetB: true,
+  });
+
+  assert.equal(result.ready, false);
+  assert.ok(result.reasons.some(reason => reason.includes('owner_column=crewbiq_id')));
+  assert.ok(result.reasons.some(reason => reason.includes('E2E-FLEET-B driver_loads')));
 });
 
 test('invalid run identity, prefix, or duplicate fixture key fails closed', () => {
@@ -218,6 +264,6 @@ test('OFFLINE-01 uses one manifest-owned truck, sanitized queue checks, and exac
   assert.match(spec, /containsSessionToken/);
   assert.match(spec, /observedRequestIds\[0\].*observedRequestIds\[1\]/s);
   assert.match(spec, /pushOwnerData\([\s\S]*originalTruck[\s\S]*'rollback'/);
-  assert.match(spec, /orchestrator issue 35/);
+  assert.match(spec, /retry contract is entity-independent/);
   assert.doesNotMatch(spec, /fleet_loads|driver_loads|insert into|delete from|truncate/i);
 });

@@ -44,7 +44,9 @@ function readManifest(manifestPath, environment, reasons, readFile) {
   }
   try {
     const manifest = JSON.parse(readFile(manifestPath));
-    if (manifest.schema_version !== '1.0') reasons.push('Fixture manifest schema_version must be 1.0');
+    if (manifest.schema_version !== '1.1') {
+      reasons.push('Fixture manifest schema_version must be current 1.1; schema 1.0 is legacy cleanup-only evidence');
+    }
     if (manifest.environment !== environment) reasons.push('Fixture manifest environment does not match E2E_ENVIRONMENT');
     if (!runIdPattern.test(String(manifest.run_id || ''))) {
       reasons.push('Fixture manifest run_id is missing or invalid');
@@ -58,6 +60,14 @@ function readManifest(manifestPath, environment, reasons, readFile) {
     }
     const keys = manifest.fixtures.map(item => `${item.entity}:${item.key}`);
     if (new Set(keys).size !== keys.length) reasons.push('Fixture manifest contains duplicate entity keys');
+    if (manifest.fixtures.some(item => item.entity === 'fleet_loads')) {
+      reasons.push('Fixture manifest contains legacy fleet_loads instead of restorable driver_loads');
+    }
+    if (manifest.fixtures.some(item => (
+      item.entity === 'driver_loads' && item.owner_column !== 'crewbiq_id'
+    ))) {
+      reasons.push('Every driver_loads fixture must declare owner_column=crewbiq_id');
+    }
     return manifest;
   } catch {
     reasons.push('E2E fixture manifest is missing or invalid');
@@ -70,11 +80,14 @@ function fleetContract(manifest, reasons, {
   tenantAlias,
   required,
   requireInactive,
+  requireDriverLoad,
 }) {
   if (!manifest) return null;
   const identity = manifest.identities.find(item => item.alias === identityAlias);
   if (!identity) {
-    if (required) reasons.push(`Fixture manifest does not contain the ${identityAlias} fleet identity`);
+    if (required || requireDriverLoad) {
+      reasons.push(`Fixture manifest does not contain the ${identityAlias} fleet identity`);
+    }
     return null;
   }
   if (identity.role !== 'fleet' || !identity.owner_crewbiq_id) {
@@ -99,6 +112,10 @@ function fleetContract(manifest, reasons, {
     inactiveTruckIds: ids('trucks', false),
     activeDriverProfileIds: ids('fleet_driver_profiles', true),
     inactiveDriverProfileIds: ids('fleet_driver_profiles', false),
+    driverLoadIds: owned
+      .filter(item => item.entity === 'driver_loads' && item.owner_column === 'crewbiq_id')
+      .map(item => item.key)
+      .sort(),
   };
   if (required) {
     if (contract.activeTruckIds.length === 0) reasons.push(`Fixture manifest has no ${identityAlias} activeTruckIds`);
@@ -109,6 +126,11 @@ function fleetContract(manifest, reasons, {
     if (requireInactive && contract.inactiveDriverProfileIds.length === 0) {
       reasons.push(`Fixture manifest has no ${identityAlias} inactiveDriverProfileIds`);
     }
+  }
+  if (requireDriverLoad && contract.driverLoadIds.length === 0) {
+    reasons.push(
+      `Fixture manifest has no ${identityAlias} driver_loads owned through crewbiq_id`,
+    );
   }
   return contract;
 }
@@ -146,10 +168,12 @@ export function resolveStagingPrerequisites(env = process.env, options = {}) {
   const readFile = options.readFile || (filePath => fs.readFileSync(filePath, 'utf8'));
   const manifest = readManifest(env.E2E_FIXTURE_MANIFEST_PATH, environment, reasons, readFile);
   const fleetA = fleetContract(manifest, reasons, {
-    identityAlias: 'E2E-FLEET-A', tenantAlias: 'A', required: true, requireInactive: true,
+    identityAlias: 'E2E-FLEET-A', tenantAlias: 'A', required: true,
+    requireInactive: true, requireDriverLoad: true,
   });
   const fleetB = fleetContract(manifest, reasons, {
-    identityAlias: 'E2E-FLEET-B', tenantAlias: 'B', required: requireFleetB, requireInactive: false,
+    identityAlias: 'E2E-FLEET-B', tenantAlias: 'B', required: requireFleetB,
+    requireInactive: false, requireDriverLoad: true,
   });
   if (requireFleetB && fleetA && fleetB && fleetA.ownerCrewbiqId === fleetB.ownerCrewbiqId) {
     reasons.push('Fixture manifest Fleet A and Fleet B effective owners must be distinct');

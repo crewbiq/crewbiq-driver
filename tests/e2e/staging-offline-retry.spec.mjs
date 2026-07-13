@@ -17,7 +17,7 @@ test.beforeEach(async ({}, testInfo) => {
   testInfo.annotations.push({ type: 'context', description: 'isolated-offline-writer-and-recovery-contexts' });
   testInfo.annotations.push({
     type: 'limitation',
-    description: 'Uses one exact manifest-owned truck because the current load fixture does not share the authenticated PWA sync/restore contract; tracked by orchestrator issue 35.',
+    description: 'Uses one exact manifest-owned truck; the durable retry contract is entity-independent and current load fixtures are validated separately.',
   });
 });
 
