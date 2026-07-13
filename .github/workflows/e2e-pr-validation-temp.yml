@@ -1,0 +1,53 @@
+name: Temporary E2E PR Validation
+
+on:
+  pull_request:
+    paths:
+      - 'tests/e2e/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.mjs'
+      - '.github/workflows/e2e-pr-validation-temp.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tooling contracts
+        run: npm run test:e2e:tooling
+
+      - name: Run harness self-test
+        run: npm run test:e2e:self
+
+      - name: Prove staging suite fails closed as not_run without secrets
+        run: npm run test:e2e:staging
+
+      - name: Run focused Python contracts
+        run: python -m pytest -q tests/test_fleet_edit_contract.py
+
+      - name: Check whitespace
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
