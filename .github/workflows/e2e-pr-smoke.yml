@@ -1,0 +1,82 @@
+name: E2E PR Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'tests/e2e/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.mjs'
+      - '.github/workflows/e2e-pr-smoke.yml'
+      - '.github/workflows/e2e-harness-manual.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-pr-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_EVIDENCE_MODE: safe
+      E2E_ALLOW_BINARY_EVIDENCE: '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install test tooling
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tooling and workflow contracts
+        run: npm run test:e2e:tooling
+
+      - name: Run harness self-test
+        run: npm run test:e2e:self
+
+      - name: Parse complete protected suite without credentials
+        run: npm run test:e2e:staging
+
+      - name: Require fail-closed not_run classification
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report = JSON.parse(fs.readFileSync('artifacts/e2e/upload/run.json', 'utf8'));
+          if (report.overall_status !== 'not_run') {
+            console.error(`Expected overall_status=not_run, received ${report.overall_status}`);
+            process.exit(1);
+          }
+          if (report.evidence_policy?.binary_evidence_omitted !== true) {
+            console.error('Binary evidence must be omitted in PR smoke.');
+            process.exit(1);
+          }
+          NODE
+
+      - name: Check changed-file whitespace
+        env:
+          BASE_REF: ${{ github.base_ref || 'main' }}
+        run: git diff --check "origin/${BASE_REF}...HEAD"
+
+      - name: Upload redacted PR evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crewbiq-e2e-pr-smoke-${{ github.run_id }}
+          path: artifacts/e2e/upload/
+          if-no-files-found: error
+          retention-days: 7
