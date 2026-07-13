@@ -20,6 +20,7 @@ const APP_SHELL = [
   '/crewbiq-driver/settings-hotfix.js',
   '/crewbiq-driver/owner-snapshot-hotfix.js',
   '/crewbiq-driver/deduction-policy-hotfix.js',
+  '/crewbiq-driver/deduction-policy-ui-fix.js',
   '/crewbiq-driver/ocr-hotfix.js',
   '/crewbiq-driver/ocr-invoice-review.js',
   '/crewbiq-driver/ocr-item-alias-hotfix.js',
