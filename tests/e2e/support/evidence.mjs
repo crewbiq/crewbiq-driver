@@ -36,15 +36,31 @@ export function resetUploadDirectory(uploadDir) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-function writeRedactedText(sourcePath, destinationPath) {
-  const raw = fs.readFileSync(sourcePath, 'utf8');
-  let output;
+function redactedText(raw) {
   try {
-    output = `${JSON.stringify(redactValue(JSON.parse(raw)), null, 2)}\n`;
+    return `${JSON.stringify(redactValue(JSON.parse(raw)), null, 2)}\n`;
   } catch {
-    output = redactString(raw);
+    return redactString(raw);
   }
-  fs.writeFileSync(destinationPath, output, 'utf8');
+}
+
+function writeRedactedText(sourcePath, destinationPath) {
+  fs.writeFileSync(destinationPath, redactedText(fs.readFileSync(sourcePath, 'utf8')), 'utf8');
+}
+
+function writeRedactedAttachment(attachment, destinationPath) {
+  if (attachment.path) {
+    writeRedactedText(attachment.path, destinationPath);
+    return;
+  }
+  if (attachment.body !== undefined) {
+    const raw = Buffer.isBuffer(attachment.body)
+      ? attachment.body.toString('utf8')
+      : String(attachment.body);
+    fs.writeFileSync(destinationPath, redactedText(raw), 'utf8');
+    return;
+  }
+  throw new Error('Text evidence attachment has no path or body');
 }
 
 export function publishScenarioAttachments({
@@ -66,10 +82,12 @@ export function publishScenarioAttachments({
   fs.mkdirSync(scenarioDir, { recursive: true });
 
   for (const attachment of attachments) {
-    const name = String(attachment.name || '').toLowerCase();
+    const rawName = String(attachment.name || '');
+    const name = rawName.toLowerCase();
     const contentType = String(attachment.contentType || '');
     const isConsole = name === 'console-log' && contentType === 'application/json';
     const isNetwork = name === 'network-log' && contentType === 'application/json';
+    const isObservation = name.endsWith('-observations') && contentType === 'application/json';
     const isScreenshot = name.includes('screenshot') || contentType.startsWith('image/');
     const isTrace = name.includes('trace') || contentType === 'application/zip';
 
@@ -81,6 +99,19 @@ export function publishScenarioAttachments({
       artifacts.push({
         path: path.relative(uploadDir, destination).replaceAll('\\', '/'),
         kind: `redacted_${kind}`,
+        media_type: 'application/json',
+      });
+      continue;
+    }
+
+    if (isObservation && (attachment.path || attachment.body !== undefined)) {
+      const baseName = safeName(rawName) || 'observations';
+      const destination = path.join(scenarioDir, `${baseName}.json`);
+      writeRedactedAttachment(attachment, destination);
+      evidence.other.push(referenceFor(destination));
+      artifacts.push({
+        path: path.relative(uploadDir, destination).replaceAll('\\', '/'),
+        kind: 'redacted_observations',
         media_type: 'application/json',
       });
       continue;

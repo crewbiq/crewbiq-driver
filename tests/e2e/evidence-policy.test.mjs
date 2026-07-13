@@ -32,6 +32,15 @@ function createRawAttachments(root) {
   return [
     { name: 'console-log', contentType: 'application/json', path: consolePath },
     { name: 'network-log', contentType: 'application/json', path: networkPath },
+    {
+      name: 'fleet-device-observations',
+      contentType: 'application/json',
+      body: Buffer.from(JSON.stringify({
+        stable_id_preserved: true,
+        authorization: `Bearer ${tokenCanary}`,
+        nested: { password: passwordCanary },
+      })),
+    },
     { name: 'screenshot', contentType: 'image/png', path: screenshotPath },
     { name: 'trace', contentType: 'application/zip', path: tracePath },
   ];
@@ -99,6 +108,9 @@ test('default upload allowlist redacts text and omits screenshot and trace', () 
     assert.equal(files.some(file => /\.(png|zip)$/i.test(file)), false);
     assert.deepEqual(published.evidence.screenshots, []);
     assert.deepEqual(published.evidence.traces, []);
+    assert.equal(published.evidence.other.length, 1);
+    assert.match(published.evidence.other[0], /fleet-device-observations\.json$/);
+    assert.ok(published.artifacts.some(item => item.kind === 'redacted_observations'));
     assert.equal(published.evidence.omitted.length, 2);
     assert.equal(policy.text_evidence_redacted, true);
     assert.equal(policy.binary_evidence_safe, false);
@@ -130,6 +142,7 @@ test('binary evidence requires explicit synthetic or disposable mode', () => {
     assert.equal(policy.binary_evidence_omitted, false);
     assert.equal(published.evidence.screenshots.length, 1);
     assert.equal(published.evidence.traces.length, 1);
+    assert.equal(published.evidence.other.length, 1);
     assert.equal(published.evidence.omitted.length, 0);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

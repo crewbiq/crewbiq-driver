@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const allowedEnvironments = new Set(['staging', 'test']);
+const runIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
 const requiredSecretNames = [
   'CREWBIQ_E2E_FLEET_A_EMAIL',
   'CREWBIQ_E2E_FLEET_A_PASSWORD',
@@ -41,10 +42,18 @@ function readManifest(manifestPath, environment, reasons, readFile) {
     const manifest = JSON.parse(readFile(manifestPath));
     if (manifest.schema_version !== '1.0') reasons.push('Fixture manifest schema_version must be 1.0');
     if (manifest.environment !== environment) reasons.push('Fixture manifest environment does not match E2E_ENVIRONMENT');
+    if (!runIdPattern.test(String(manifest.run_id || ''))) {
+      reasons.push('Fixture manifest run_id is missing or invalid');
+    }
+    if (manifest.display_prefix !== `E2E-${manifest.run_id || ''}-`) {
+      reasons.push('Fixture manifest display_prefix does not match run_id');
+    }
     if (!Array.isArray(manifest.identities) || !Array.isArray(manifest.tenants) || !Array.isArray(manifest.fixtures)) {
       reasons.push('Fixture manifest is missing identities, tenants, or fixtures');
       return null;
     }
+    const keys = manifest.fixtures.map(item => `${item.entity}:${item.key}`);
+    if (new Set(keys).size !== keys.length) reasons.push('Fixture manifest contains duplicate entity keys');
     return manifest;
   } catch {
     reasons.push('E2E fixture manifest is missing or invalid');
@@ -120,6 +129,8 @@ export function resolveStagingPrerequisites(env = process.env, options = {}) {
       baseUrl: baseUrl.href,
       orchestratorUrl: orchestratorUrl.origin,
       manifestReference: path.basename(env.E2E_FIXTURE_MANIFEST_PATH),
+      runId: manifest.run_id,
+      displayPrefix: manifest.display_prefix,
       fleetA,
     } : null,
   };
