@@ -1,4 +1,4 @@
-import { fleetACredentials } from './staging-prerequisites.mjs';
+import { fleetACredentials, fleetBCredentials } from './staging-prerequisites.mjs';
 import { redactValue } from './redact.mjs';
 
 export function endpoint(baseUrl, pathname) {
@@ -45,6 +45,17 @@ export async function loginFleetA(page, config, env = process.env) {
   });
 }
 
+export async function loginFleetB(page, config, env = process.env) {
+  return browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
+    method: 'POST',
+    body: fleetBCredentials(env),
+  });
+}
+
+export async function readMe(page, config, token) {
+  return browserJson(page, config.orchestratorUrl, '/v1/me', { token });
+}
+
 export async function revokeSession(page, config, token) {
   if (!token) return { status: 0, ok: false, body: { reason: 'missing_token' } };
   return browserJson(page, config.orchestratorUrl, '/v1/auth/logout', {
@@ -53,14 +64,21 @@ export async function revokeSession(page, config, token) {
   });
 }
 
-export async function restoreFleet(page, config, token) {
-  return browserJson(page, config.orchestratorUrl, '/v1/fleet/config/pwa', { token });
+export async function restoreFleet(page, config, token, claimedOwner = '') {
+  const query = claimedOwner ? `?crewbiq_id=${encodeURIComponent(claimedOwner)}` : '';
+  return browserJson(page, config.orchestratorUrl, `/v1/fleet/config/pwa${query}`, { token });
 }
 
 export function makeRecordId(config, scenarioId, phase) {
   const safeRun = String(config.runId || 'run').replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 40);
   const random = Math.random().toString(36).slice(2, 10);
   return `e2e_${safeRun}_${scenarioId.toLowerCase()}_${phase}_${Date.now()}_${random}`;
+}
+
+export function deterministicProbeRecordId(config, scenarioId) {
+  const safeRun = String(config.runId || 'run').replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 40);
+  const safeScenario = String(scenarioId || 'probe').toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  return `e2e_${safeRun}_${safeScenario}_audit_probe`;
 }
 
 export async function pushOwnerData(page, config, token, ownerData, scenarioId, phase) {
@@ -79,6 +97,34 @@ export async function pushOwnerData(page, config, token, ownerData, scenarioId, 
       loads: [],
       ptiLog: [],
       ownerData,
+    },
+  });
+}
+
+export async function pushTenantSubstitutionProbe(page, config, token) {
+  return browserJson(page, config.orchestratorUrl, '/v1/sync/pwa', {
+    method: 'POST',
+    token,
+    body: {
+      record_id: deterministicProbeRecordId(config, 'tenant-01'),
+      type: 'driver_report',
+      deviceId: 'e2e-tenant-01-probe',
+      crewbiq_id: config.fleetB.ownerCrewbiqId,
+      ownerKey: 'crew_e2e_tenant_b',
+      driver: {
+        crewId: config.fleetB.authCrewbiqId,
+        crewbiq_id: config.fleetB.authCrewbiqId,
+        ownerKey: 'crew_e2e_tenant_b',
+        email: 'e2e-redacted@example.test',
+        role: 'fleet',
+      },
+      profile: {
+        crewbiq_id: config.fleetB.ownerCrewbiqId,
+        ownerKey: 'crew_e2e_tenant_b',
+      },
+      loads: [],
+      ptiLog: [],
+      ownerData: {},
     },
   });
 }
