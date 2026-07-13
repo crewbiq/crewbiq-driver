@@ -9,6 +9,7 @@ on:
       - settings-hotfix.js
       - owner-snapshot-hotfix.js
       - deduction-policy-hotfix.js
+      - deduction-policy-ui-fix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
       - ocr-item-alias-hotfix.js
@@ -32,6 +33,7 @@ on:
       - settings-hotfix.js
       - owner-snapshot-hotfix.js
       - deduction-policy-hotfix.js
+      - deduction-policy-ui-fix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
       - ocr-item-alias-hotfix.js
@@ -94,6 +96,7 @@ jobs:
           grep -q "settings-hotfix.js" core.js
           grep -q "owner-snapshot-hotfix.js" core.js
           grep -q "deduction-policy-hotfix.js" core.js
+          grep -q "deduction-policy-ui-fix.js" core.js
           grep -q "ocr-hotfix.js" core.js
           grep -q "ocr-invoice-review.js" core.js
           grep -q "ocr-item-alias-hotfix.js" core.js
@@ -102,6 +105,7 @@ jobs:
           grep -q "settings-hotfix.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "deduction-policy-hotfix.js" sw.js
+          grep -q "deduction-policy-ui-fix.js" sw.js
           grep -q "ocr-hotfix.js" sw.js
           grep -q "ocr-invoice-review.js" sw.js
           grep -q "ocr-item-alias-hotfix.js" sw.js
