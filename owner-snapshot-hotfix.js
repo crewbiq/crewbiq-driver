@@ -1,15 +1,16 @@
 /**
- * CrewBIQ owner snapshot durability adapter v0.1.0
+ * CrewBIQ owner snapshot durability adapter v0.2.0
  *
- * Adds explicit complete-snapshot semantics for Expenses, Deduction Templates,
- * and Weekly Deductions. Local edits remain authoritative until an authenticated
- * sync succeeds, preventing a cloud pull from resurrecting pending deletions.
+ * Adds explicit complete-snapshot semantics for Expenses, Service Logs,
+ * Deduction Templates, and Weekly Deductions. Local edits remain authoritative
+ * until authenticated sync succeeds, preventing cloud restore from resurrecting
+ * pending deletions.
  */
 (function (global) {
   'use strict';
 
   const K = 'fiqD_';
-  const ENTITIES = ['expenses', 'deductionTemplates', 'weeklyDeductions'];
+  const ENTITIES = ['expenses', 'serviceLogs', 'deductionTemplates', 'weeklyDeductions'];
   const previousFetch = typeof global.fetch === 'function' ? global.fetch.bind(global) : null;
   let applyingCloudRestore = false;
   let retryTimer = null;
@@ -74,6 +75,9 @@
         if (typeof global.loadExpenses === 'function') {
           return { available: true, value: global.loadExpenses() };
         }
+      }
+      if (entity === 'serviceLogs' && typeof global.loadServiceLogs === 'function') {
+        return { available: true, value: global.loadServiceLogs() };
       }
       if (entity === 'deductionTemplates' && typeof global.loadDedTemplates === 'function') {
         return { available: true, value: global.loadDedTemplates() };
@@ -223,6 +227,7 @@
 
   function installHooks() {
     wrapSaver('saveExpenses', 'expenses');
+    wrapSaver('saveServiceLogs', 'serviceLogs');
     wrapSaver('saveDedTemplates', 'deductionTemplates');
     wrapSaver('saveWeeklyDeds', 'weeklyDeductions');
     wrapCloudRestore();
@@ -232,7 +237,7 @@
 
   global.fetch = routedFetch;
   global.CrewBIQOwnerSnapshots = {
-    version: '0.1.0',
+    version: '0.2.0',
     loadPending,
     markPending,
     pendingOverlay,
@@ -245,5 +250,5 @@
     else setTimeout(installHooks, 0);
   }
 
-  console.info('[CrewBIQ Owner Snapshot] deletion durability v0.1.0 loaded');
+  console.info('[CrewBIQ Owner Snapshot] deletion durability v0.2.0 loaded');
 })(window);
