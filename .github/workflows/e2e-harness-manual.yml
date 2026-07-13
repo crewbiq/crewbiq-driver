@@ -74,7 +74,6 @@ jobs:
       E2E_BASE_URL: ${{ vars.CREWBIQ_E2E_BASE_URL }}
       E2E_ORCHESTRATOR_URL: ${{ vars.CREWBIQ_E2E_ORCHESTRATOR_URL }}
       E2E_ALLOWED_HOSTS: ${{ vars.CREWBIQ_E2E_ALLOWED_HOSTS }}
-      E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
       CREWBIQ_E2E_FLEET_A_EMAIL: ${{ secrets.CREWBIQ_E2E_FLEET_A_EMAIL }}
       CREWBIQ_E2E_FLEET_A_PASSWORD: ${{ secrets.CREWBIQ_E2E_FLEET_A_PASSWORD }}
       CREWBIQ_E2E_FLEET_B_EMAIL: ${{ secrets.CREWBIQ_E2E_FLEET_B_EMAIL }}
@@ -97,11 +96,14 @@ jobs:
 
       - name: Prepare exact fixture manifest
         env:
+          E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
           E2E_FIXTURE_MANIFEST_JSON: ${{ secrets.CREWBIQ_E2E_FIXTURE_MANIFEST_JSON }}
         shell: bash
         run: printf '%s' "$E2E_FIXTURE_MANIFEST_JSON" > "$E2E_FIXTURE_MANIFEST_PATH"
 
       - name: Run authenticated staging journeys
+        env:
+          E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
         run: npm run test:e2e:staging
 
       - name: Upload redacted staging evidence
