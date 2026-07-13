@@ -1,0 +1,17 @@
+{
+  "name": "crewbiq-driver-test-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "npm run test:e2e:redaction && npm run test:e2e:self",
+    "test:e2e:redaction": "node --test tests/e2e/redaction.test.mjs",
+    "test:e2e:self": "playwright test tests/e2e/harness-self-test.spec.mjs && npm run test:e2e:validate",
+    "test:e2e:intentional-failure": "cross-env E2E_RUN_INTENTIONAL_FAILURE=1 playwright test tests/e2e/intentional-failure.spec.mjs",
+    "test:e2e:validate": "node tests/e2e/validate-artifact.mjs artifacts/e2e/run.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "ajv": "8.20.0",
+    "cross-env": "10.1.0"
+  }
+}

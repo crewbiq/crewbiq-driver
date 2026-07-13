@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crewbiq.test/schemas/e2e-run-artifact-v1.json",
+  "title": "CrewBIQ E2E run artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "started_at",
+    "finished_at",
+    "overall_status",
+    "environment",
+    "application",
+    "tester",
+    "browser",
+    "preconditions",
+    "fixture_manifest_reference",
+    "scenarios",
+    "cleanup_status",
+    "limitations",
+    "report",
+    "redacted"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "minLength": 1 },
+    "finished_at": { "type": "string", "minLength": 1 },
+    "overall_status": {
+      "enum": ["passed", "failed", "timed_out", "interrupted"]
+    },
+    "environment": { "type": "string", "minLength": 1 },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "base_url"],
+      "properties": {
+        "repository": { "const": "crewbiq/crewbiq-driver" },
+        "commit": { "type": "string", "minLength": 1 },
+        "base_url": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tester": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tester_role", "application_role", "tenant_aliases"],
+      "properties": {
+        "tester_role": { "type": "string", "minLength": 1 },
+        "application_role": { "type": "string", "minLength": 1 },
+        "tenant_aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "profile", "viewport"],
+      "properties": {
+        "engine": { "type": "string", "minLength": 1 },
+        "profile": { "type": "string", "minLength": 1 },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "fixture_manifest_reference": {
+      "type": ["string", "null"]
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    },
+    "cleanup_status": {
+      "enum": ["not_required", "complete", "incomplete", "not_run"]
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["json", "markdown"],
+      "properties": {
+        "json": { "type": "string", "minLength": 1 },
+        "markdown": { "type": "string", "minLength": 1 }
+      }
+    },
+    "redacted": { "const": true }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "status",
+        "result_class",
+        "expected_result",
+        "actual_result",
+        "retry_count",
+        "steps",
+        "evidence",
+        "intentional_failure"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": ["passed", "failed", "timed_out", "skipped", "interrupted"]
+        },
+        "result_class": {
+          "enum": [
+            "pass",
+            "reproducible_defect",
+            "suspected_defect",
+            "ux_concern",
+            "environment_failure",
+            "not_run"
+          ]
+        },
+        "expected_result": { "type": "string" },
+        "actual_result": { "type": "string" },
+        "retry_count": { "type": "integer", "minimum": 0 },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["screenshots", "traces", "console", "network", "other"],
+          "properties": {
+            "screenshots": { "$ref": "#/$defs/references" },
+            "traces": { "$ref": "#/$defs/references" },
+            "console": { "$ref": "#/$defs/references" },
+            "network": { "$ref": "#/$defs/references" },
+            "other": { "$ref": "#/$defs/references" }
+          }
+        },
+        "intentional_failure": { "type": "boolean" }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}
