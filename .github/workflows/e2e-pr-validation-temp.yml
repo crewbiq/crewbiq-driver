@@ -1,0 +1,45 @@
+name: Temporary E2E PR Validation
+
+on:
+  pull_request:
+    paths:
+      - 'tests/e2e/**'
+      - 'package.json'
+      - '.github/workflows/e2e-pr-validation-temp.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tooling contracts
+        run: npm run test:e2e:tooling
+
+      - name: Run offline queue product contract
+        run: node tests/offline_sync_queue.test.mjs
+
+      - name: Prove staging suite fails closed without protected prerequisites
+        run: npm run test:e2e:staging
+
+      - name: Check whitespace
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
