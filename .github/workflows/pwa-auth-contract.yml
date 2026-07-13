@@ -14,6 +14,7 @@ on:
       - ocr-invoice-review.js
       - ocr-item-alias-hotfix.js
       - ocr-service-invoice-review.js
+      - service-invoice-legacy-upgrade.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
@@ -24,6 +25,7 @@ on:
       - tests/ocr_invoice_review.test.mjs
       - tests/ocr_defd_alias.test.mjs
       - tests/ocr_service_invoice_review.test.mjs
+      - tests/service_invoice_legacy_upgrade.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -40,6 +42,7 @@ on:
       - ocr-invoice-review.js
       - ocr-item-alias-hotfix.js
       - ocr-service-invoice-review.js
+      - service-invoice-legacy-upgrade.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/full_restore_transport.test.mjs
@@ -50,6 +53,7 @@ on:
       - tests/ocr_invoice_review.test.mjs
       - tests/ocr_defd_alias.test.mjs
       - tests/ocr_service_invoice_review.test.mjs
+      - tests/service_invoice_legacy_upgrade.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -96,6 +100,9 @@ jobs:
       - name: Run segmented service invoice review contract
         run: node tests/ocr_service_invoice_review.test.mjs
 
+      - name: Run legacy service invoice upgrade contract
+        run: node tests/service_invoice_legacy_upgrade.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
@@ -108,6 +115,8 @@ jobs:
           grep -q "ocr-invoice-review.js" core.js
           grep -q "ocr-item-alias-hotfix.js" core.js
           grep -q "ocr-service-invoice-review.js" core.js
-          grep -q "crewbiq-driver-v66" sw.js
+          grep -q "service-invoice-legacy-upgrade.js" core.js
+          grep -q "crewbiq-driver-v67" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
+          grep -q "service-invoice-legacy-upgrade.js" sw.js
           grep -q "railway.app" sw.js
