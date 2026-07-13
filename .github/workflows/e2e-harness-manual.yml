@@ -1,0 +1,56 @@
+name: E2E Harness Manual
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install test tooling
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run redaction tests
+        run: npm run test:e2e:redaction
+
+      - name: Run harness self-test
+        run: npm run test:e2e:self
+
+      - name: Run controlled intentional failure
+        id: intentional
+        continue-on-error: true
+        run: npm run test:e2e:intentional-failure
+
+      - name: Require the controlled failure
+        if: steps.intentional.outcome != 'failure'
+        run: |
+          echo "Intentional-failure scenario unexpectedly passed."
+          exit 1
+
+      - name: Validate failed-run artifact
+        if: always()
+        run: npm run test:e2e:validate
+
+      - name: Upload redacted evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crewbiq-e2e-harness-${{ github.run_id }}
+          path: artifacts/e2e/upload/
+          if-no-files-found: error
+          retention-days: 7
