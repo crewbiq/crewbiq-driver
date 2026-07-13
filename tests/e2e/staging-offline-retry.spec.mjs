@@ -33,7 +33,7 @@ test.beforeEach(async ({}, testInfo) => {
   });
   testInfo.annotations.push({
     type: 'limitation',
-    description: 'Uses an exact manifest-owned truck because the current E2E load fixture is stored in fleet_loads while PWA restore uses driver_loads; tracked by orchestrator issue 35.',
+    description: 'Uses an exact manifest-owned truck because the current load fixture does not share the authenticated PWA sync/restore contract; tracked by orchestrator issue 35.',
   });
 });
 
