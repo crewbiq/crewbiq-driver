@@ -3,9 +3,13 @@ import path from 'node:path';
 
 const allowedEnvironments = new Set(['staging', 'test']);
 const runIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
-const requiredSecretNames = [
+const fleetASecretNames = [
   'CREWBIQ_E2E_FLEET_A_EMAIL',
   'CREWBIQ_E2E_FLEET_A_PASSWORD',
+];
+const fleetBSecretNames = [
+  'CREWBIQ_E2E_FLEET_B_EMAIL',
+  'CREWBIQ_E2E_FLEET_B_PASSWORD',
 ];
 
 function checkedUrl(name, value, environment, allowedHosts, reasons) {
@@ -61,16 +65,25 @@ function readManifest(manifestPath, environment, reasons, readFile) {
   }
 }
 
-function fleetAContract(manifest, reasons) {
+function fleetContract(manifest, reasons, {
+  identityAlias,
+  tenantAlias,
+  required,
+  requireInactive,
+}) {
   if (!manifest) return null;
-  const identity = manifest.identities.find(item => item.alias === 'E2E-FLEET-A');
-  if (!identity || identity.role !== 'fleet' || !identity.owner_crewbiq_id) {
-    reasons.push('Fixture manifest does not contain the E2E-FLEET-A fleet identity');
+  const identity = manifest.identities.find(item => item.alias === identityAlias);
+  if (!identity) {
+    if (required) reasons.push(`Fixture manifest does not contain the ${identityAlias} fleet identity`);
     return null;
   }
-  const tenant = manifest.tenants.find(item => item.alias === 'A');
+  if (identity.role !== 'fleet' || !identity.owner_crewbiq_id) {
+    reasons.push(`${identityAlias} must be a fleet identity with an effective owner`);
+    return null;
+  }
+  const tenant = manifest.tenants.find(item => item.alias === tenantAlias);
   if (!tenant || tenant.owner_crewbiq_id !== identity.owner_crewbiq_id) {
-    reasons.push('Fixture manifest tenant A does not match E2E-FLEET-A');
+    reasons.push(`Fixture manifest tenant ${tenantAlias} does not match ${identityAlias}`);
   }
   const owned = manifest.fixtures.filter(item => item.owner_crewbiq_id === identity.owner_crewbiq_id);
   const ids = (entity, active) => owned
@@ -87,14 +100,22 @@ function fleetAContract(manifest, reasons) {
     activeDriverProfileIds: ids('fleet_driver_profiles', true),
     inactiveDriverProfileIds: ids('fleet_driver_profiles', false),
   };
-  for (const [name, values] of Object.entries(contract)) {
-    if (name.endsWith('Ids') && values.length === 0) reasons.push(`Fixture manifest has no ${name}`);
+  if (required) {
+    if (contract.activeTruckIds.length === 0) reasons.push(`Fixture manifest has no ${identityAlias} activeTruckIds`);
+    if (contract.activeDriverProfileIds.length === 0) reasons.push(`Fixture manifest has no ${identityAlias} activeDriverProfileIds`);
+    if (requireInactive && contract.inactiveTruckIds.length === 0) {
+      reasons.push(`Fixture manifest has no ${identityAlias} inactiveTruckIds`);
+    }
+    if (requireInactive && contract.inactiveDriverProfileIds.length === 0) {
+      reasons.push(`Fixture manifest has no ${identityAlias} inactiveDriverProfileIds`);
+    }
   }
   return contract;
 }
 
 export function resolveStagingPrerequisites(env = process.env, options = {}) {
   const reasons = [];
+  const requireFleetB = options.requireFleetB === true;
   const environment = String(env.E2E_ENVIRONMENT || '').trim().toLowerCase();
   if (!allowedEnvironments.has(environment)) {
     reasons.push('E2E_ENVIRONMENT must be exactly staging or test');
@@ -102,8 +123,13 @@ export function resolveStagingPrerequisites(env = process.env, options = {}) {
   if (String(env.E2E_AUTHENTICATED_RUN || '') !== '1') {
     reasons.push('E2E_AUTHENTICATED_RUN must equal 1');
   }
-  for (const name of requiredSecretNames) {
+  for (const name of fleetASecretNames) {
     if (!String(env[name] || '')) reasons.push(`${name} must be supplied at runtime`);
+  }
+  if (requireFleetB) {
+    for (const name of fleetBSecretNames) {
+      if (!String(env[name] || '')) reasons.push(`${name} must be supplied at runtime`);
+    }
   }
 
   const allowedHosts = new Set(
@@ -119,7 +145,18 @@ export function resolveStagingPrerequisites(env = process.env, options = {}) {
   );
   const readFile = options.readFile || (filePath => fs.readFileSync(filePath, 'utf8'));
   const manifest = readManifest(env.E2E_FIXTURE_MANIFEST_PATH, environment, reasons, readFile);
-  const fleetA = fleetAContract(manifest, reasons);
+  const fleetA = fleetContract(manifest, reasons, {
+    identityAlias: 'E2E-FLEET-A', tenantAlias: 'A', required: true, requireInactive: true,
+  });
+  const fleetB = fleetContract(manifest, reasons, {
+    identityAlias: 'E2E-FLEET-B', tenantAlias: 'B', required: requireFleetB, requireInactive: false,
+  });
+  if (requireFleetB && fleetA && fleetB && fleetA.ownerCrewbiqId === fleetB.ownerCrewbiqId) {
+    reasons.push('Fixture manifest Fleet A and Fleet B effective owners must be distinct');
+  }
+  if (requireFleetB && fleetA && fleetB && fleetA.authCrewbiqId === fleetB.authCrewbiqId) {
+    reasons.push('Fixture manifest Fleet A and Fleet B auth identities must be distinct');
+  }
 
   return {
     ready: reasons.length === 0,
@@ -132,6 +169,7 @@ export function resolveStagingPrerequisites(env = process.env, options = {}) {
       runId: manifest.run_id,
       displayPrefix: manifest.display_prefix,
       fleetA,
+      fleetB,
     } : null,
   };
 }
@@ -140,5 +178,12 @@ export function fleetACredentials(env = process.env) {
   return {
     email: String(env.CREWBIQ_E2E_FLEET_A_EMAIL || ''),
     password: String(env.CREWBIQ_E2E_FLEET_A_PASSWORD || ''),
+  };
+}
+
+export function fleetBCredentials(env = process.env) {
+  return {
+    email: String(env.CREWBIQ_E2E_FLEET_B_EMAIL || ''),
+    password: String(env.CREWBIQ_E2E_FLEET_B_PASSWORD || ''),
   };
 }
