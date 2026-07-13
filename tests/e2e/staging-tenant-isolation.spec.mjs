@@ -68,9 +68,11 @@ function allFixtureIds(contract) {
 }
 
 function assertTenantScope(snapshot, own, other) {
+  const expectedTrucks = [...own.activeTruckIds].sort();
+  const expectedProfiles = [...own.activeDriverProfileIds].sort();
   const otherIds = allFixtureIds(other);
-  for (const id of own.activeTruckIds) expect(snapshot.truckIds).toContain(id);
-  for (const id of own.activeDriverProfileIds) expect(snapshot.driverProfileIds).toContain(id);
+  expect(snapshot.truckIds).toEqual(expectedTrucks);
+  expect(snapshot.driverProfileIds).toEqual(expectedProfiles);
   for (const id of own.inactiveTruckIds) expect(snapshot.truckIds).not.toContain(id);
   for (const id of own.inactiveDriverProfileIds) expect(snapshot.driverProfileIds).not.toContain(id);
   for (const id of otherIds.trucks) expect(snapshot.truckIds).not.toContain(id);
@@ -107,10 +109,10 @@ test(
       'Open clean independent Tenant A and Tenant B browser contexts.',
       'Login with the exact E2E-FLEET-A and E2E-FLEET-B identities.',
       'Verify /v1/me returns distinct auth identities and effective owners from the manifest.',
-      'Capture each tenant active fleet fixture set.',
+      'Capture each tenant exact active fleet fixture set.',
       'Request each fleet while claiming the opposite owner in the query string.',
       'Submit an empty business-state sync probe from A whose client identity fields claim B.',
-      'Verify both tenant fleet fixture sets remain unchanged and no cross-tenant IDs appear.',
+      'Verify both tenant exact fleet fixture sets remain unchanged and no cross-tenant IDs appear.',
       'Revoke both scenario sessions.',
     ],
   ),
