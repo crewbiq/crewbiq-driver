@@ -9,6 +9,7 @@ import {
   resolveEvidencePolicy,
   writeUploadManifest,
 } from './support/evidence.mjs';
+import { reportedOverallStatus } from './reporters/crewbiq-reporter.mjs';
 import { writeRunArtifacts } from './support/report.mjs';
 
 const tokenCanary = 'synthetic-token-canary';
@@ -146,4 +147,15 @@ test('authenticated or sensitive marker overrides synthetic binary opt-in', () =
     assert.equal(policy.binary_evidence_safe, false);
     assert.equal(policy.binary_evidence_omitted, true);
   }
+});
+
+test('all-skipped scenario set reports overall not_run instead of pass', () => {
+  assert.equal(reportedOverallStatus('passed', [
+    { result_class: 'not_run' },
+    { result_class: 'not_run' },
+  ]), 'not_run');
+  assert.equal(reportedOverallStatus('failed', [
+    { result_class: 'not_run' },
+    { result_class: 'reproducible_defect' },
+  ]), 'failed');
 });
