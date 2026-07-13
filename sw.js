@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.65
+ * CrewBIQ Driver — Service Worker v1.0.66
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -8,7 +8,7 @@
  *   - Everything else → Network First, fallback to cache
  */
 
-const CACHE_NAME = 'crewbiq-driver-v66';
+const CACHE_NAME = 'crewbiq-driver-v67';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
@@ -24,6 +24,7 @@ const APP_SHELL = [
   '/crewbiq-driver/ocr-invoice-review.js',
   '/crewbiq-driver/ocr-item-alias-hotfix.js',
   '/crewbiq-driver/ocr-service-invoice-review.js',
+  '/crewbiq-driver/service-invoice-legacy-upgrade.js',
   '/crewbiq-driver/sync.js',
   '/crewbiq-driver/pti.js',
   '/crewbiq-driver/loads.js',
@@ -54,7 +55,7 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.65 activated');
+        console.log('[CrewBIQ SW] v1.0.66 activated');
         return self.clients.claim();
       })
   );
