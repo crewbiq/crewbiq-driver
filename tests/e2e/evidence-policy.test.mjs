@@ -57,7 +57,10 @@ function runArtifact(evidence, policy, uploadDir) {
     run_id: 'synthetic-sensitive-scenario',
     overall_status: 'failed',
     environment: 'local',
-    application: { commit: 'unverified-local' },
+    application: {
+      workflow_commit: 'unverified-local',
+      deployment_commit: 'not-supplied',
+    },
     tester: {
       tester_role: 'harness-self-test',
       application_role: 'none',

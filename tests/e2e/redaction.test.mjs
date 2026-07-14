@@ -55,7 +55,10 @@ test('writes redacted JSON and Markdown reports', () => {
     run_id: 'redaction-self-test',
     overall_status: 'failed',
     environment: 'local',
-    application: { commit: 'unverified-local' },
+    application: {
+      workflow_commit: 'unverified-local',
+      deployment_commit: 'not-supplied',
+    },
     tester: {
       tester_role: 'harness-self-test',
       application_role: 'none',

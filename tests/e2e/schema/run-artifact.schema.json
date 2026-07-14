@@ -34,10 +34,11 @@
     "application": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "commit", "base_url"],
+      "required": ["repository", "workflow_commit", "deployment_commit", "base_url"],
       "properties": {
         "repository": { "const": "crewbiq/crewbiq-driver" },
-        "commit": { "type": "string", "minLength": 1 },
+        "workflow_commit": { "type": "string", "minLength": 1 },
+        "deployment_commit": { "type": "string", "minLength": 1 },
         "base_url": { "type": "string", "minLength": 1 }
       }
     },
