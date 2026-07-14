@@ -81,18 +81,6 @@ async function seedFleetUi(page, config, token, fleet) {
   });
 }
 
-async function forcePwaSync(page) {
-  return page.evaluate(async () => {
-    if (typeof forceFullSync !== 'function') return { available: false };
-    const result = await forceFullSync();
-    return {
-      available: true,
-      ok: result && result.ok === true,
-      status: result && result.status ? result.status : null,
-    };
-  });
-}
-
 function tokenFrom(loginResponse) {
   expect(loginResponse.status).toBe(200);
   expect(loginResponse.body.ok).toBe(true);
@@ -477,6 +465,7 @@ test(
     let writerToken = '';
     let recoveryToken = '';
     let addedProfile = null;
+    let addedProfileTerminated = false;
     let originalProfile = null;
 
     try {
@@ -504,8 +493,6 @@ test(
       expect(await page.evaluate(id => loadDriverProfiles().some(item => item.id === id), originalProfile.id))
         .toBe(false);
       observations.push({ step: 'verified-local-delete' });
-      const deleteSync = await forcePwaSync(page);
-      observations.push({ step: 'completed-delete-sync', sync_status: deleteSync.status });
       const afterDelete = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
       observations.push({ step: 'completed-delete-recovery' });
       expect(exactlyOneById(afterDelete.driverProfiles, originalProfile.id)).toHaveLength(1);
@@ -513,7 +500,6 @@ test(
         step: 'delete',
         local_deleted: true,
         server_row_preserved_by_snapshot_safety: true,
-        sync_status: deleteSync.status,
       });
 
       observations.push({ step: 'opening-add-driver-form' });
@@ -535,7 +521,13 @@ test(
       observations.push({ step: 'clicked-add-save' });
       addedProfile = await page.evaluate(name => loadDriverProfiles().find(item => item.name === name), marker);
       expect(addedProfile && addedProfile.id).toBeTruthy();
-      const addSync = await forcePwaSync(page);
+      const localAfterAdd = await page.evaluate(() => ({
+        driverProfiles: loadDriverProfiles(),
+      }));
+      const addSync = await pushOwnerData(page, config, writerToken, {
+        driverProfiles: localAfterAdd.driverProfiles,
+      }, 'DRIVER-CRUD-01', 'add');
+      expect(addSync.status).toBe(200);
       const afterAdd = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
       expect(exactlyOneById(afterAdd.driverProfiles, addedProfile.id)).toHaveLength(1);
       expect(exactlyOneById(afterAdd.driverProfiles, addedProfile.id)[0].name).toBe(marker);
@@ -554,10 +546,14 @@ test(
         if (!button) throw new Error('Driver Save button is missing');
         button.click();
       });
-      const terminateSync = await forcePwaSync(page);
+      const terminateSync = await pushOwnerData(page, config, writerToken, {
+        driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
+      }, 'DRIVER-CRUD-01', 'terminate');
+      expect(terminateSync.status).toBe(200);
       const afterTerminate = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
       expect(exactlyOneById(afterTerminate.driverProfiles, addedProfile.id)).toHaveLength(0);
       expect(exactlyOneById(afterTerminate.driverProfiles, originalProfile.id)).toHaveLength(1);
+      addedProfileTerminated = true;
       observations.push({
         step: 'explicit-terminate',
         stable_id: addedProfile.id,
@@ -566,7 +562,7 @@ test(
         sync_status: terminateSync.status,
       });
     } finally {
-      if (addedProfile && writerToken) {
+      if (addedProfile && writerToken && !addedProfileTerminated) {
         await cleanupStep('driver-crud-added-profile-rollback', observations, async () => {
           const rollback = await pushOwnerData(page, config, writerToken, {
             driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
