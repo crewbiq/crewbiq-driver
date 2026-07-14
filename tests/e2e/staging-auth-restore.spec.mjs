@@ -2,6 +2,7 @@ import { test, expect } from './fixtures/observability.mjs';
 import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
 import {
   browserJson,
+  endpoint,
   loginFleetA,
   openFreshApplication,
   revokeSession,
