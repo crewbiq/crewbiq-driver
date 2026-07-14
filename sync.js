@@ -183,6 +183,13 @@
     return headers;
   }
 
+  function buildAuthenticatedPwaHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const sessionToken = getSessionToken();
+    if (sessionToken) headers.Authorization = 'Bearer ' + sessionToken;
+    return headers;
+  }
+
   function _secureId() {
     // Use crypto.randomUUID() when available (all modern browsers).
     // Fallback combines timestamp + Math.random() for older environments.
@@ -388,7 +395,7 @@
       if (resp.status === 401) {
         const pwaUrl = getPwaOrchestratorSyncUrl(orchestratorUrl);
         if (pwaUrl && pwaUrl !== orchestratorUrl) {
-          resp = await postOrchestratorSync(pwaUrl, body, { 'Content-Type': 'application/json' });
+          resp = await postOrchestratorSync(pwaUrl, body, buildAuthenticatedPwaHeaders());
           usedPwaFallback = true;
         }
       }
@@ -435,6 +442,38 @@
         ok: false,
         error: e.message,
       });
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function forceFleetConfigSync() {
+    if (!assertReady()) return { ok: false, reason: 'not_ready' };
+    const sessionToken = getSessionToken();
+    if (!sessionToken) return { ok: false, reason: 'missing_session_token' };
+
+    const payload = buildSyncPayload(true);
+    const pwaUrl = getPwaOrchestratorSyncUrl(getOrchestratorSyncUrl());
+    if (!pwaUrl) return { ok: false, reason: 'no_orchestrator_url' };
+
+    try {
+      const resp = await postOrchestratorSync(
+        pwaUrl,
+        payload,
+        buildAuthenticatedPwaHeaders(),
+      );
+      let result = {};
+      try { result = await resp.json(); } catch (e) {}
+      if (!resp.ok || result.error || result.ok === false) {
+        return {
+          ok: false,
+          status: resp.status,
+          error: result.error || result.reason || ('HTTP ' + resp.status),
+        };
+      }
+      setLastOrchestratorCopyStatus({ ok: true, skipped: false, status: resp.status, reason: 'ok' });
+      return { ok: true, status: resp.status, payload, result };
+    } catch (e) {
+      setLastOrchestratorCopyStatus({ ok: false, skipped: false, status: null, reason: 'network_error' });
       return { ok: false, error: e.message };
     }
   }
@@ -688,7 +727,7 @@
   }
 
   async function doSync(options = {}) {
-    if (!assertReady()) return;
+    if (!assertReady()) return { ok: false, reason: 'not_ready' };
     if (_syncInProgress) {
       console.info('[CrewBIQ Sync] Sync already in progress, skipping');
       return { ok: false, skipped: true, reason: 'sync_in_progress' };
@@ -700,7 +739,7 @@
 
     if (!(driver && driver.syncUrl)) {
       setSyncUI('idle', 'No sync URL');
-      return;
+      return { ok: false, reason: 'no_sync_url' };
     }
 
     setSyncUI('busy', 'Syncing...');
@@ -743,10 +782,18 @@
         time: timeStr,
       });
 
+      return {
+        ok: !dbFailed,
+        push,
+        pull,
+        orchestratorCopy,
+      };
+
     } catch (e) {
       setSyncUI('err', 'Failed: ' + e.message);
       Core.toast('Sync failed: ' + e.message, 'err');
       Core.events.emit('sync:error', { message: e.message });
+      return { ok: false, error: e.message };
     }
     } finally {
       _syncInProgress = false;
@@ -822,6 +869,7 @@
     pushToCloud,
     pullFromCloud,
     forceFullSync,
+    forceFleetConfigSync,
     syncPTIEntry,
     setSyncUI,
     scheduleAutoSync,
@@ -836,6 +884,7 @@
   global.pushToCloud      = pushToCloud;
   global.pullFromCloud    = pullFromCloud;
   global.forceFullSync    = forceFullSync;
+  global.forceFleetConfigSync = forceFleetConfigSync;
   global.syncPTIEntry     = syncPTIEntry;
   global.setSyncUI        = setSyncUI;
   global.scheduleAutoSync = scheduleAutoSync;
