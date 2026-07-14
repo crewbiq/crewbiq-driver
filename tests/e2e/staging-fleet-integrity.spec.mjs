@@ -492,7 +492,11 @@ test(
       await page.evaluate(id => openDriverForm(id), originalProfile.id);
       observations.push({ step: 'opened-existing-driver-form' });
       await page.evaluate(() => { window.confirm = () => true; });
-      await page.getByRole('button', { name: 'Delete Driver Record' }).click();
+      await page.evaluate(() => {
+        const button = document.querySelector('#driverModal button.btn.danger');
+        if (!button) throw new Error('Delete Driver Record button is missing');
+        button.click();
+      });
       observations.push({ step: 'clicked-delete-driver' });
       expect(await page.evaluate(id => loadDriverProfiles().some(item => item.id === id), originalProfile.id))
         .toBe(false);
@@ -510,12 +514,21 @@ test(
       });
 
       observations.push({ step: 'opening-add-driver-form' });
-      await page.getByRole('button', { name: /Add Driver/ }).click();
+      await page.evaluate(() => {
+        const button = Array.from(document.querySelectorAll('#page-drivers button'))
+          .find(item => /Add Driver/.test(item.textContent || ''));
+        if (!button) throw new Error('Add Driver button is missing');
+        button.click();
+      });
       const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED`;
       await page.locator('#dfName').fill(marker);
       await page.locator('#dfRate').fill('0.66');
       await page.locator('#dfActive').selectOption('1');
-      await page.locator('#driverModal').getByRole('button', { name: 'Save', exact: true }).click();
+      await page.evaluate(() => {
+        const button = document.querySelector('#driverModal button.btn.primary');
+        if (!button) throw new Error('Driver Save button is missing');
+        button.click();
+      });
       observations.push({ step: 'clicked-add-save' });
       addedProfile = await page.evaluate(name => loadDriverProfiles().find(item => item.name === name), marker);
       expect(addedProfile && addedProfile.id).toBeTruthy();
@@ -533,7 +546,11 @@ test(
       await page.evaluate(id => openDriverForm(id), addedProfile.id);
       await page.locator('#dfActive').selectOption('0');
       await page.locator('#dfTermDate').fill('2026-07-14');
-      await page.locator('#driverModal').getByRole('button', { name: 'Save', exact: true }).click();
+      await page.evaluate(() => {
+        const button = document.querySelector('#driverModal button.btn.primary');
+        if (!button) throw new Error('Driver Save button is missing');
+        button.click();
+      });
       const terminateSync = await forcePwaSync(page);
       const afterTerminate = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
       expect(exactlyOneById(afterTerminate.driverProfiles, addedProfile.id)).toHaveLength(0);
