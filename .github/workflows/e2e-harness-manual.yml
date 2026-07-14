@@ -8,6 +8,17 @@ on:
         required: true
         default: false
         type: boolean
+      mission_role:
+        description: Role mission set to execute in staging
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - fleet
+          - driver
+          - recovery
+          - security
       app_deployment_commit:
         description: Explicit commit currently deployed by the staging app
         required: false
@@ -110,13 +121,13 @@ jobs:
       - name: Run authenticated staging journeys
         env:
           E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
-        run: npm run test:e2e:staging
+        run: npm run test:e2e:missions -- --role=${{ inputs.mission_role }}
 
       - name: Upload redacted staging evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: crewbiq-e2e-staging-${{ github.run_id }}
-          path: artifacts/e2e/upload/
+          path: artifacts/e2e/roles/*/upload/
           if-no-files-found: error
           retention-days: 7

@@ -43,10 +43,16 @@ test('PR evidence upload is allowlisted and retained for seven days', () => {
 test('protected credentials remain confined to the manual staging job', () => {
   assert.match(manual, /workflow_dispatch:/);
   assert.match(manual, /environment: staging/);
+  assert.match(manual, /mission_role:/);
+  assert.match(manual, /- all\s+- fleet\s+- driver\s+- recovery\s+- security/);
   assert.match(manual, /secrets\.CREWBIQ_E2E_FLEET_A_EMAIL/);
   assert.match(manual, /secrets\.CREWBIQ_E2E_FLEET_B_EMAIL/);
   assert.match(manual, /secrets\.CREWBIQ_E2E_FIXTURE_MANIFEST_JSON/);
   assert.doesNotMatch(workflow, /secrets\.CREWBIQ_E2E_/);
+});
+
+test('manual staging runs the selected role mission runner', () => {
+  assert.match(manual, /npm run test:e2e:missions -- --role=\$\{\{ inputs\.mission_role \}\}/);
 });
 
 test('manual staging reports workflow and explicitly supplied deployment commits separately', () => {

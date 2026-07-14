@@ -49,6 +49,14 @@
       "properties": {
         "tester_role": { "type": "string", "minLength": 1 },
         "application_role": { "type": "string", "minLength": 1 },
+        "mission_role": { "type": "string", "minLength": 1 },
+        "agent_mode": { "type": "string", "minLength": 1 },
+        "agent_controller": { "type": "string", "minLength": 1 },
+        "mission_journeys": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
         "tenant_aliases": {
           "type": "array",
           "items": { "type": "string" },
