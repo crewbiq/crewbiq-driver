@@ -491,7 +491,7 @@ test(
       observations.push({ step: 'seeded-driver-ui', original_id: originalProfile.id });
       await page.evaluate(id => openDriverForm(id), originalProfile.id);
       observations.push({ step: 'opened-existing-driver-form' });
-      page.once('dialog', async dialog => dialog.accept());
+      await page.evaluate(() => { window.confirm = () => true; });
       await page.getByRole('button', { name: 'Delete Driver Record' }).click();
       observations.push({ step: 'clicked-delete-driver' });
       expect(await page.evaluate(id => loadDriverProfiles().some(item => item.id === id), originalProfile.id))
