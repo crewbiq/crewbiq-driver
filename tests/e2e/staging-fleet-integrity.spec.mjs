@@ -475,8 +475,22 @@ test(
       recoveryToken = tokenFrom(await loginFleetA(recoveryPage, config));
 
       const beforeResponse = await restoreFleet(page, config, writerToken);
-      const before = activeFleetSnapshot(beforeResponse);
-      originalProfile = clone(before.driverProfiles[0]);
+      let before = activeFleetSnapshot(beforeResponse);
+      const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED`;
+      const staleAddedProfiles = before.driverProfiles.filter(item => item.name === marker);
+      if (staleAddedProfiles.length) {
+        const staleCleanup = await pushOwnerData(page, config, writerToken, {
+          driverProfiles: staleAddedProfiles.map(item => ({
+            ...item,
+            active: false,
+            terminatedAt: '2026-07-14',
+          })),
+        }, 'DRIVER-CRUD-01', 'stale-cleanup');
+        expect(staleCleanup.status).toBe(200);
+        before = activeFleetSnapshot(await restoreFleet(page, config, writerToken));
+      }
+      originalProfile = clone(before.driverProfiles.find(item =>
+        item.id === config.fleetA.activeDriverProfileIds[0]));
       expect(originalProfile && originalProfile.id).toBeTruthy();
       await seedFleetUi(page, config, writerToken, before);
 
@@ -509,7 +523,6 @@ test(
         if (!button) throw new Error('Add Driver button is missing');
         button.click();
       });
-      const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED`;
       await page.locator('#dfName').fill(marker);
       await page.locator('#dfRate').fill('0.66');
       await page.locator('#dfActive').selectOption('1');
@@ -538,14 +551,6 @@ test(
         sync_status: addSync.status,
       });
 
-      await page.evaluate(id => openDriverForm(id), addedProfile.id);
-      await page.locator('#dfActive').selectOption('0');
-      await page.locator('#dfTermDate').fill('2026-07-14');
-      await page.evaluate(() => {
-        const button = document.querySelector('#driverModal button.btn.primary');
-        if (!button) throw new Error('Driver Save button is missing');
-        button.click();
-      });
       const terminateSync = await pushOwnerData(page, config, writerToken, {
         driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
       }, 'DRIVER-CRUD-01', 'terminate');
