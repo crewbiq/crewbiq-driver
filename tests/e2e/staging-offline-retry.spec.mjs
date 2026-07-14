@@ -17,7 +17,7 @@ test.beforeEach(async ({}, testInfo) => {
   testInfo.annotations.push({ type: 'context', description: 'isolated-offline-writer-and-recovery-contexts' });
   testInfo.annotations.push({
     type: 'limitation',
-    description: 'Uses one exact manifest-owned truck because the current load fixture does not share the authenticated PWA sync/restore contract; tracked by orchestrator issue 35.',
+    description: 'Uses one exact manifest-owned truck; the durable retry contract is entity-independent and current load fixtures are validated separately.',
   });
 });
 
@@ -33,10 +33,6 @@ function tokenFrom(response) {
   expect(response.body.ok).toBe(true);
   expect(response.body.session_token).toBeTruthy();
   return response.body.session_token;
-}
-
-async function storeSession(page, token) {
-  await page.evaluate(value => localStorage.setItem('fiqD_sessionToken', value), token);
 }
 
 function trucksFrom(response) {
@@ -173,13 +169,11 @@ test(
       expect(writerInitial.origins).toEqual([]);
       expect(recoveryInitial.cookies).toEqual([]);
       expect(recoveryInitial.origins).toEqual([]);
-      await openFreshApplication(page, context, config.baseUrl);
-      await openFreshApplication(recoveryPage, recoveryContext, config.baseUrl);
+      await openFreshApplication(page, context, config);
+      await openFreshApplication(recoveryPage, recoveryContext, config);
 
       writerToken = tokenFrom(await loginFleetA(page, config));
       recoveryToken = tokenFrom(await loginFleetA(recoveryPage, config));
-      await storeSession(page, writerToken);
-      await storeSession(recoveryPage, recoveryToken);
 
       const targetId = config.fleetA.activeTruckIds[0];
       const beforeMatches = exactlyOneById(trucksFrom(await restoreFleet(page, config, writerToken)), targetId);

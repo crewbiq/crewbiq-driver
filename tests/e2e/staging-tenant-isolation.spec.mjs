@@ -125,8 +125,8 @@ test(
     let tokenB = '';
 
     try {
-      assertEmptyStorage(await openFreshApplication(page, context, config.baseUrl));
-      assertEmptyStorage(await openFreshApplication(tenantBPage, tenantBContext, config.baseUrl));
+      assertEmptyStorage(await openFreshApplication(page, context, config));
+      assertEmptyStorage(await openFreshApplication(tenantBPage, tenantBContext, config));
 
       const loginA = await loginFleetA(page, config);
       tokenA = tokenFrom(loginA);
