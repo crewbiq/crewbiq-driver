@@ -35,10 +35,6 @@ function tokenFrom(response) {
   return response.body.session_token;
 }
 
-async function storeSession(page, token) {
-  await page.evaluate(value => localStorage.setItem('fiqD_sessionToken', value), token);
-}
-
 function trucksFrom(response) {
   expect(response.status).toBe(200);
   expect(response.body.ok).toBe(true);
@@ -173,13 +169,11 @@ test(
       expect(writerInitial.origins).toEqual([]);
       expect(recoveryInitial.cookies).toEqual([]);
       expect(recoveryInitial.origins).toEqual([]);
-      await openFreshApplication(page, context, config.baseUrl);
-      await openFreshApplication(recoveryPage, recoveryContext, config.baseUrl);
+      await openFreshApplication(page, context, config);
+      await openFreshApplication(recoveryPage, recoveryContext, config);
 
       writerToken = tokenFrom(await loginFleetA(page, config));
       recoveryToken = tokenFrom(await loginFleetA(recoveryPage, config));
-      await storeSession(page, writerToken);
-      await storeSession(recoveryPage, recoveryToken);
 
       const targetId = config.fleetA.activeTruckIds[0];
       const beforeMatches = exactlyOneById(trucksFrom(await restoreFleet(page, config, writerToken)), targetId);

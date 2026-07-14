@@ -122,8 +122,8 @@ test(
     let mutationApplied = false;
 
     try {
-      assertEmptyStorage(await openFreshApplication(page, context, config.baseUrl));
-      assertEmptyStorage(await openFreshApplication(desktopPage, desktopContext, config.baseUrl));
+      assertEmptyStorage(await openFreshApplication(page, context, config));
+      assertEmptyStorage(await openFreshApplication(desktopPage, desktopContext, config));
 
       const phoneLogin = await loginFleetA(page, config);
       phoneToken = tokenFrom(phoneLogin);
@@ -219,7 +219,7 @@ test(
     let localBefore = null;
 
     try {
-      assertEmptyStorage(await openFreshApplication(page, context, config.baseUrl));
+      assertEmptyStorage(await openFreshApplication(page, context, config));
       token = tokenFrom(await loginFleetA(page, config));
       const restoreResponse = await restoreFleet(page, config, token);
       const restored = activeFleetSnapshot(restoreResponse);
@@ -320,8 +320,8 @@ test(
     let mutationApplied = false;
 
     try {
-      assertEmptyStorage(await openFreshApplication(page, context, config.baseUrl));
-      assertEmptyStorage(await openFreshApplication(recoveryPage, recoveryContext, config.baseUrl));
+      assertEmptyStorage(await openFreshApplication(page, context, config));
+      assertEmptyStorage(await openFreshApplication(recoveryPage, recoveryContext, config));
       writerToken = tokenFrom(await loginFleetA(page, config));
       recoveryToken = tokenFrom(await loginFleetA(recoveryPage, config));
 
