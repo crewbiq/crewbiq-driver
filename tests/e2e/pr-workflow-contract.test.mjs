@@ -49,6 +49,23 @@ test('protected credentials remain confined to the manual staging job', () => {
   assert.doesNotMatch(workflow, /secrets\.CREWBIQ_E2E_/);
 });
 
+test('manual staging manifest path uses runner context only at step scope', () => {
+  const stagingJob = manual.slice(manual.indexOf('  staging-journeys:'));
+  const jobEnv = stagingJob.slice(stagingJob.indexOf('    env:'), stagingJob.indexOf('    steps:'));
+  const runnerManifestPath = /E2E_FIXTURE_MANIFEST_PATH: \$\{\{ runner\.temp \}\}\/crewbiq-e2e-manifest\.json/g;
+
+  assert.doesNotMatch(jobEnv, /\$\{\{\s*runner\./);
+  assert.equal(manual.match(runnerManifestPath)?.length, 2);
+  assert.match(
+    manual,
+    /- name: Prepare exact fixture manifest\s+env:\s+E2E_FIXTURE_MANIFEST_PATH: \$\{\{ runner\.temp \}\}\/crewbiq-e2e-manifest\.json/,
+  );
+  assert.match(
+    manual,
+    /- name: Run authenticated staging journeys\s+env:\s+E2E_FIXTURE_MANIFEST_PATH: \$\{\{ runner\.temp \}\}\/crewbiq-e2e-manifest\.json/,
+  );
+});
+
 test('CI source contains no production or legacy application endpoint', () => {
   const combined = `${workflow}\n${manual}`;
   assert.doesNotMatch(combined, /crewbiq-orchestrator-production/i);
