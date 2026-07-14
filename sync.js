@@ -688,7 +688,7 @@
   }
 
   async function doSync(options = {}) {
-    if (!assertReady()) return;
+    if (!assertReady()) return { ok: false, reason: 'not_ready' };
     if (_syncInProgress) {
       console.info('[CrewBIQ Sync] Sync already in progress, skipping');
       return { ok: false, skipped: true, reason: 'sync_in_progress' };
@@ -700,7 +700,7 @@
 
     if (!(driver && driver.syncUrl)) {
       setSyncUI('idle', 'No sync URL');
-      return;
+      return { ok: false, reason: 'no_sync_url' };
     }
 
     setSyncUI('busy', 'Syncing...');
@@ -743,10 +743,18 @@
         time: timeStr,
       });
 
+      return {
+        ok: !dbFailed,
+        push,
+        pull,
+        orchestratorCopy,
+      };
+
     } catch (e) {
       setSyncUI('err', 'Failed: ' + e.message);
       Core.toast('Sync failed: ' + e.message, 'err');
       Core.events.emit('sync:error', { message: e.message });
+      return { ok: false, error: e.message };
     }
     } finally {
       _syncInProgress = false;

@@ -444,14 +444,15 @@ test(
 );
 
 test(
-  'DRIVER-CRUD-01 UI delete is local-only and add survives authenticated restore',
+  'DRIVER-CRUD-01 UI delete persists inactive state and add survives authenticated restore',
   scenario(
-    'The Driver form deletes only local state unless explicit active=false is written, while a new UI-added profile survives restore on another device.',
+    'The Driver form writes an explicit inactive state, active-only restore omits that profile, and a new UI-added profile survives restore on another device.',
     [
       'Open independent writer and recovery contexts.',
       'Restore the exact manifest-owned active driver profile set.',
+      'Edit the existing driver through the real form and verify CPM and Gross values on recovery.',
       'Delete one existing driver through the real Driver form.',
-      'Verify snapshot safety keeps the server row on recovery restore.',
+      'Verify authenticated active-only restore omits the deactivated server row.',
       'Add a new driver through the real Add Driver form.',
       'Verify the new profile appears once on recovery restore.',
       'Terminate the added profile explicitly and verify exact rollback state.',
@@ -466,6 +467,8 @@ test(
     let recoveryToken = '';
     let addedProfile = null;
     let addedProfileTerminated = false;
+    let originalProfileMutated = false;
+    let originalProfileDeactivated = false;
     let originalProfile = null;
 
     try {
@@ -495,25 +498,65 @@ test(
       await seedFleetUi(page, config, writerToken, before);
 
       observations.push({ step: 'seeded-driver-ui', original_id: originalProfile.id });
+      originalProfileMutated = true;
+      await page.evaluate(async ({ id, payType, rate }) => {
+        openDriverForm(id);
+        const payTypeEl = document.querySelector('#dfPayType');
+        const rateEl = document.querySelector('#dfRate');
+        if (!payTypeEl || !rateEl) throw new Error('Driver pay fields are missing');
+        payTypeEl.value = payType;
+        rateEl.value = String(rate);
+        toggleDriverPayFields();
+        await saveDriverForm();
+      }, { id: originalProfile.id, payType: 'cpm', rate: 0.91 });
+      const afterCpmEdit = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const cpmProfile = exactlyOneById(afterCpmEdit.driverProfiles, originalProfile.id);
+      expect(cpmProfile).toHaveLength(1);
+      expect(cpmProfile[0].payType).toBe('cpm');
+      expect(cpmProfile[0].rate).toBe(0.91);
+      await page.evaluate(async ({ id, payType, rate }) => {
+        openDriverForm(id);
+        const payTypeEl = document.querySelector('#dfPayType');
+        const rateEl = document.querySelector('#dfRate');
+        if (!payTypeEl || !rateEl) throw new Error('Driver pay fields are missing');
+        payTypeEl.value = payType;
+        rateEl.value = String(rate);
+        toggleDriverPayFields();
+        await saveDriverForm();
+      }, { id: originalProfile.id, payType: 'gross_percent', rate: 27.5 });
+      const afterGrossEdit = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const grossProfile = exactlyOneById(afterGrossEdit.driverProfiles, originalProfile.id);
+      expect(grossProfile).toHaveLength(1);
+      expect(grossProfile[0].payType).toBe('gross_percent');
+      expect(grossProfile[0].rate).toBe(27.5);
+      observations.push({
+        step: 'edit-pay-fields',
+        stable_id: originalProfile.id,
+        cpm_rate: cpmProfile[0].rate,
+        gross_percent: grossProfile[0].rate,
+      });
       await page.evaluate(id => openDriverForm(id), originalProfile.id);
       observations.push({ step: 'opened-existing-driver-form' });
       await page.evaluate(() => { window.confirm = () => true; });
-      await page.evaluate(() => {
+      await page.evaluate(async id => {
         const button = document.querySelector('#driverModal button.btn.danger');
         if (!button) throw new Error('Delete Driver Record button is missing');
-        button.click();
-      });
+        await deleteDriverConfirm(id);
+      }, originalProfile.id);
       observations.push({ step: 'clicked-delete-driver' });
-      expect(await page.evaluate(id => loadDriverProfiles().some(item => item.id === id), originalProfile.id))
-        .toBe(false);
-      observations.push({ step: 'verified-local-delete' });
+      expect(await page.evaluate(id => {
+        const item = loadDriverProfiles().find(profile => profile.id === id);
+        return item ? item.active : null;
+      }, originalProfile.id)).toBe(false);
+      originalProfileDeactivated = true;
+      observations.push({ step: 'verified-local-inactive-tombstone' });
       const afterDelete = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
       observations.push({ step: 'completed-delete-recovery' });
-      expect(exactlyOneById(afterDelete.driverProfiles, originalProfile.id)).toHaveLength(1);
+      expect(exactlyOneById(afterDelete.driverProfiles, originalProfile.id)).toHaveLength(0);
       observations.push({
         step: 'delete',
-        local_deleted: true,
-        server_row_preserved_by_snapshot_safety: true,
+        local_active: false,
+        omitted_from_active_restore: true,
       });
 
       observations.push({ step: 'opening-add-driver-form' });
@@ -557,13 +600,13 @@ test(
       expect(terminateSync.status).toBe(200);
       const afterTerminate = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
       expect(exactlyOneById(afterTerminate.driverProfiles, addedProfile.id)).toHaveLength(0);
-      expect(exactlyOneById(afterTerminate.driverProfiles, originalProfile.id)).toHaveLength(1);
+      expect(exactlyOneById(afterTerminate.driverProfiles, originalProfile.id)).toHaveLength(0);
       addedProfileTerminated = true;
       observations.push({
         step: 'explicit-terminate',
         stable_id: addedProfile.id,
         omitted_from_active_restore: true,
-        original_profile_preserved: true,
+        original_profile_remains_inactive: true,
         sync_status: terminateSync.status,
       });
     } finally {
@@ -572,6 +615,18 @@ test(
           const rollback = await pushOwnerData(page, config, writerToken, {
             driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
           }, 'DRIVER-CRUD-01', 'rollback');
+          expect.soft(rollback.status).toBe(200);
+        });
+      }
+      if (originalProfile && originalProfileMutated && writerToken) {
+        await cleanupStep('driver-crud-original-profile-rollback', observations, async () => {
+          const rollback = await pushOwnerData(page, config, writerToken, {
+            driverProfiles: [{
+              ...originalProfile,
+              active: true,
+              terminatedAt: null,
+            }],
+          }, 'DRIVER-CRUD-01', 'original-rollback');
           expect.soft(rollback.status).toBe(200);
         });
       }
