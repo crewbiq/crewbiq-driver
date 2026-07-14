@@ -488,13 +488,19 @@ test(
       expect(originalProfile && originalProfile.id).toBeTruthy();
       await seedFleetUi(page, config, writerToken, before);
 
+      observations.push({ step: 'seeded-driver-ui', original_id: originalProfile.id });
       await page.evaluate(id => openDriverForm(id), originalProfile.id);
+      observations.push({ step: 'opened-existing-driver-form' });
       page.once('dialog', async dialog => dialog.accept());
       await page.getByRole('button', { name: 'Delete Driver Record' }).click();
+      observations.push({ step: 'clicked-delete-driver' });
       expect(await page.evaluate(id => loadDriverProfiles().some(item => item.id === id), originalProfile.id))
         .toBe(false);
+      observations.push({ step: 'verified-local-delete' });
       const deleteSync = await forcePwaSync(page);
+      observations.push({ step: 'completed-delete-sync', sync_status: deleteSync.status });
       const afterDelete = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      observations.push({ step: 'completed-delete-recovery' });
       expect(exactlyOneById(afterDelete.driverProfiles, originalProfile.id)).toHaveLength(1);
       observations.push({
         step: 'delete',
@@ -503,12 +509,14 @@ test(
         sync_status: deleteSync.status,
       });
 
+      observations.push({ step: 'opening-add-driver-form' });
       await page.getByRole('button', { name: /Add Driver/ }).click();
       const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED`;
       await page.locator('#dfName').fill(marker);
       await page.locator('#dfRate').fill('0.66');
       await page.locator('#dfActive').selectOption('1');
       await page.locator('#driverModal').getByRole('button', { name: 'Save', exact: true }).click();
+      observations.push({ step: 'clicked-add-save' });
       addedProfile = await page.evaluate(name => loadDriverProfiles().find(item => item.name === name), marker);
       expect(addedProfile && addedProfile.id).toBeTruthy();
       const addSync = await forcePwaSync(page);
