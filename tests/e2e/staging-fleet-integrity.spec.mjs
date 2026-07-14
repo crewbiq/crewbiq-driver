@@ -41,6 +41,55 @@ function assertEmptyStorage(state) {
   expect(state.origins).toEqual([]);
 }
 
+function fleetStorageKey(crewbiqId, entity) {
+  const slug = String(crewbiqId || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60);
+  return `fiqD_data_crew_${slug}_${entity}`;
+}
+
+async function seedFleetUi(page, config, token, fleet) {
+  await page.evaluate(({ authId, email, syncUrl, sessionToken, trucks, driverProfiles, profileKey, truckKey }) => {
+    localStorage.setItem('fiqD_driver', JSON.stringify({
+      crewId: authId,
+      email,
+      nickname: 'E2E Fleet A',
+      syncUrl,
+    }));
+    localStorage.setItem('fiqD_sessionToken', sessionToken);
+    localStorage.setItem('fiqD_userRole', 'fleet');
+    localStorage.setItem('fiqD_authRoles', JSON.stringify(['fleet']));
+    localStorage.setItem(profileKey, JSON.stringify(driverProfiles));
+    localStorage.setItem(truckKey, JSON.stringify(trucks));
+    if (typeof showPage === 'function') showPage('fleet');
+    if (typeof renderDriversPage === 'function') renderDriversPage();
+  }, {
+    authId: config.fleetA.authCrewbiqId,
+    email: 'e2e-redacted@example.test',
+    syncUrl: `${config.orchestratorUrl}/v1/sync`,
+    sessionToken: token,
+    trucks: fleet.trucks,
+    driverProfiles: fleet.driverProfiles,
+    profileKey: fleetStorageKey(config.fleetA.authCrewbiqId, 'driverProfiles'),
+    truckKey: fleetStorageKey(config.fleetA.authCrewbiqId, 'trucks'),
+  });
+}
+
+async function forcePwaSync(page) {
+  return page.evaluate(async () => {
+    if (typeof forceFullSync !== 'function') return { available: false };
+    const result = await forceFullSync();
+    return {
+      available: true,
+      ok: result && result.ok === true,
+      status: result && result.status ? result.status : null,
+    };
+  });
+}
+
 function tokenFrom(loginResponse) {
   expect(loginResponse.status).toBe(200);
   expect(loginResponse.body.ok).toBe(true);
@@ -396,6 +445,111 @@ test(
       await softRevoke(recoveryPage, config, recoveryToken, observations, 'recovery');
       try {
         await attachSafeObservations(testInfo, 'fleet-inactive-restore-observations', observations);
+      } finally {
+        await recoveryContext.close();
+      }
+    }
+  },
+);
+
+test(
+  'DRIVER-CRUD-01 UI delete is local-only and add survives authenticated restore',
+  scenario(
+    'The Driver form deletes only local state unless explicit active=false is written, while a new UI-added profile survives restore on another device.',
+    [
+      'Open independent writer and recovery contexts.',
+      'Restore the exact manifest-owned active driver profile set.',
+      'Delete one existing driver through the real Driver form.',
+      'Verify snapshot safety keeps the server row on recovery restore.',
+      'Add a new driver through the real Add Driver form.',
+      'Verify the new profile appears once on recovery restore.',
+      'Terminate the added profile explicitly and verify exact rollback state.',
+    ],
+  ),
+  async ({ page, context, browser }, testInfo) => {
+    const config = prerequisites.config;
+    const recoveryContext = await browser.newContext({ serviceWorkers: 'block' });
+    const recoveryPage = await recoveryContext.newPage();
+    const observations = [];
+    let writerToken = '';
+    let recoveryToken = '';
+    let addedProfile = null;
+    let originalProfile = null;
+
+    try {
+      assertEmptyStorage(await openFreshApplication(page, context, config));
+      assertEmptyStorage(await openFreshApplication(recoveryPage, recoveryContext, config));
+      writerToken = tokenFrom(await loginFleetA(page, config));
+      recoveryToken = tokenFrom(await loginFleetA(recoveryPage, config));
+
+      const beforeResponse = await restoreFleet(page, config, writerToken);
+      const before = activeFleetSnapshot(beforeResponse);
+      originalProfile = clone(before.driverProfiles[0]);
+      expect(originalProfile && originalProfile.id).toBeTruthy();
+      await seedFleetUi(page, config, writerToken, before);
+
+      await page.evaluate(id => openDriverForm(id), originalProfile.id);
+      page.once('dialog', async dialog => dialog.accept());
+      await page.getByRole('button', { name: 'Delete Driver Record' }).click();
+      expect(await page.evaluate(id => loadDriverProfiles().some(item => item.id === id), originalProfile.id))
+        .toBe(false);
+      const deleteSync = await forcePwaSync(page);
+      const afterDelete = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      expect(exactlyOneById(afterDelete.driverProfiles, originalProfile.id)).toHaveLength(1);
+      observations.push({
+        step: 'delete',
+        local_deleted: true,
+        server_row_preserved_by_snapshot_safety: true,
+        sync_status: deleteSync.status,
+      });
+
+      await page.getByRole('button', { name: /Add Driver/ }).click();
+      const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED`;
+      await page.locator('#dfName').fill(marker);
+      await page.locator('#dfRate').fill('0.66');
+      await page.locator('#dfActive').selectOption('1');
+      await page.locator('#driverModal').getByRole('button', { name: 'Save', exact: true }).click();
+      addedProfile = await page.evaluate(name => loadDriverProfiles().find(item => item.name === name), marker);
+      expect(addedProfile && addedProfile.id).toBeTruthy();
+      const addSync = await forcePwaSync(page);
+      const afterAdd = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      expect(exactlyOneById(afterAdd.driverProfiles, addedProfile.id)).toHaveLength(1);
+      expect(exactlyOneById(afterAdd.driverProfiles, addedProfile.id)[0].name).toBe(marker);
+      observations.push({
+        step: 'add',
+        stable_id: addedProfile.id,
+        active_on_recovery_restore: true,
+        sync_status: addSync.status,
+      });
+
+      await page.evaluate(id => openDriverForm(id), addedProfile.id);
+      await page.locator('#dfActive').selectOption('0');
+      await page.locator('#dfTermDate').fill('2026-07-14');
+      await page.locator('#driverModal').getByRole('button', { name: 'Save', exact: true }).click();
+      const terminateSync = await forcePwaSync(page);
+      const afterTerminate = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      expect(exactlyOneById(afterTerminate.driverProfiles, addedProfile.id)).toHaveLength(0);
+      expect(exactlyOneById(afterTerminate.driverProfiles, originalProfile.id)).toHaveLength(1);
+      observations.push({
+        step: 'explicit-terminate',
+        stable_id: addedProfile.id,
+        omitted_from_active_restore: true,
+        original_profile_preserved: true,
+        sync_status: terminateSync.status,
+      });
+    } finally {
+      if (addedProfile && writerToken) {
+        await cleanupStep('driver-crud-added-profile-rollback', observations, async () => {
+          const rollback = await pushOwnerData(page, config, writerToken, {
+            driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
+          }, 'DRIVER-CRUD-01', 'rollback');
+          expect.soft(rollback.status).toBe(200);
+        });
+      }
+      await softRevoke(page, config, writerToken, observations, 'writer');
+      await softRevoke(recoveryPage, config, recoveryToken, observations, 'recovery');
+      try {
+        await attachSafeObservations(testInfo, 'driver-crud-observations', observations);
       } finally {
         await recoveryContext.close();
       }
