@@ -32,24 +32,45 @@ export async function browserJson(page, baseUrl, pathname, options = {}) {
   });
 }
 
-export async function openFreshApplication(page, context, baseUrl) {
+export async function openFreshApplication(page, context, config) {
   const initialState = await context.storageState();
+  const baseUrl = String(config?.baseUrl || '').trim();
+  const orchestratorUrl = String(config?.orchestratorUrl || '').trim().replace(/\/+$/, '');
+  if (!baseUrl || !orchestratorUrl) {
+    throw new Error('Staging application and Orchestrator URLs are required');
+  }
+  const syncUrl = endpoint(orchestratorUrl, '/v1/sync');
+  await context.addInitScript(({ sync }) => {
+    localStorage.setItem('fiqD_orchestratorUrl', sync);
+    localStorage.setItem('fiqD_orchestratorUrlBackup', sync);
+    localStorage.setItem('fiqD__savedSyncUrl', sync);
+  }, { sync: syncUrl });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
   return initialState;
 }
 
+export async function persistAuthenticatedSession(page, response) {
+  const token = String(response?.body?.session_token || '').trim();
+  if (response?.status === 200 && token) {
+    await page.evaluate(value => localStorage.setItem('fiqD_sessionToken', value), token);
+  }
+  return response;
+}
+
 export async function loginFleetA(page, config, env = process.env) {
-  return browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
+  const response = await browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
     method: 'POST',
     body: fleetACredentials(env),
   });
+  return persistAuthenticatedSession(page, response);
 }
 
 export async function loginFleetB(page, config, env = process.env) {
-  return browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
+  const response = await browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
     method: 'POST',
     body: fleetBCredentials(env),
   });
+  return persistAuthenticatedSession(page, response);
 }
 
 export async function readMe(page, config, token) {

@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
+import {
+  openFreshApplication,
+  persistAuthenticatedSession,
+} from './support/staging-api.mjs';
 
 const manifest = {
   schema_version: '1.1',
@@ -229,6 +233,67 @@ test('staging specs have no production or real Google URL and retain reusable id
   assert.match(combined, /trace: 'off'/);
   assert.match(combined, /\/v1\/auth\/logout/);
   assert.doesNotMatch(combined, /deprovision|truncate/i);
+});
+
+test('fresh browser setup binds PWA transport to the configured staging Orchestrator', async () => {
+  const initialState = { cookies: [], origins: [] };
+  let initScript;
+  let navigatedTo = '';
+  const context = {
+    storageState: async () => initialState,
+    addInitScript: async (callback, value) => { initScript = { callback, value }; },
+  };
+  const page = {
+    goto: async url => { navigatedTo = url; },
+  };
+  const config = {
+    baseUrl: 'https://driver.staging.example.test/',
+    orchestratorUrl: 'https://orchestrator.staging.example.test',
+  };
+
+  const returned = await openFreshApplication(page, context, config);
+  assert.equal(returned, initialState);
+  assert.equal(navigatedTo, config.baseUrl);
+
+  const stored = new Map();
+  const previousStorage = globalThis.localStorage;
+  globalThis.localStorage = { setItem: (key, value) => stored.set(key, value) };
+  try {
+    initScript.callback(initScript.value);
+  } finally {
+    globalThis.localStorage = previousStorage;
+  }
+  const expectedSync = 'https://orchestrator.staging.example.test/v1/sync';
+  assert.equal(stored.get('fiqD_orchestratorUrl'), expectedSync);
+  assert.equal(stored.get('fiqD_orchestratorUrlBackup'), expectedSync);
+  assert.equal(stored.get('fiqD__savedSyncUrl'), expectedSync);
+  assert.equal(stored.has('fiqD_sessionToken'), false);
+});
+
+test('successful direct login is adopted by the PWA browser session', async () => {
+  const stored = new Map();
+  const page = {
+    evaluate: async (callback, value) => {
+      const previousStorage = globalThis.localStorage;
+      globalThis.localStorage = { setItem: (key, item) => stored.set(key, item) };
+      try {
+        callback(value);
+      } finally {
+        globalThis.localStorage = previousStorage;
+      }
+    },
+  };
+  const response = {
+    status: 200,
+    body: { ok: true, session_token: 'synthetic-staging-session' },
+  };
+
+  const returned = await persistAuthenticatedSession(page, response);
+  assert.equal(returned, response);
+  assert.equal(stored.get('fiqD_sessionToken'), 'synthetic-staging-session');
+
+  const apiSource = fs.readFileSync(new URL('./support/staging-api.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(apiSource, /crewbiq-orchestrator-production/i);
 });
 
 test('fleet integrity spec mutates only existing IDs and contains exact rollback paths', () => {

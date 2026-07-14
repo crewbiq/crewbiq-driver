@@ -1,8 +1,11 @@
 import { test, expect } from './fixtures/observability.mjs';
+import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
 import {
-  fleetACredentials,
-  resolveStagingPrerequisites,
-} from './support/staging-prerequisites.mjs';
+  browserJson,
+  loginFleetA,
+  openFreshApplication,
+  revokeSession,
+} from './support/staging-api.mjs';
 
 const prerequisites = resolveStagingPrerequisites();
 const legacySentinelUrl = 'https://legacy-fallback.invalid/e2e';
@@ -28,57 +31,12 @@ function scenario(expectedResult, steps) {
   };
 }
 
-function endpoint(baseUrl, pathname) {
-  return new URL(pathname, `${baseUrl}/`).href;
-}
-
-async function browserJson(page, baseUrl, pathname, options = {}) {
-  return page.evaluate(async request => {
-    try {
-      const headers = { Accept: 'application/json' };
-      if (request.body !== undefined) headers['Content-Type'] = 'application/json';
-      if (request.token) headers.Authorization = `Bearer ${request.token}`;
-      const response = await fetch(request.url, {
-        method: request.method || 'GET',
-        headers,
-        body: request.body === undefined ? undefined : JSON.stringify(request.body),
-        cache: 'no-store',
-      });
-      const text = await response.text();
-      let body = {};
-      try { body = JSON.parse(text); } catch { body = { nonJsonResponse: true }; }
-      return { status: response.status, ok: response.ok, body };
-    } catch (error) {
-      return { status: 0, ok: false, body: { networkError: error.name || 'Error' } };
-    }
-  }, {
-    url: endpoint(baseUrl, pathname),
-    method: options.method,
-    token: options.token,
-    body: options.body,
-  });
-}
-
-async function openFreshApplication(page, context, baseUrl) {
-  const initialState = await context.storageState();
-  expect(initialState.cookies).toEqual([]);
-  expect(initialState.origins).toEqual([]);
-  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-}
-
 async function login(page, config) {
-  const credentials = fleetACredentials();
-  return browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
-    method: 'POST',
-    body: credentials,
-  });
+  return loginFleetA(page, config);
 }
 
 async function revoke(page, config, token) {
-  return browserJson(page, config.orchestratorUrl, '/v1/auth/logout', {
-    method: 'POST',
-    token,
-  });
+  return revokeSession(page, config, token);
 }
 
 test(
@@ -90,7 +48,9 @@ test(
   async ({ page, context }) => {
     const config = prerequisites.config;
     let token = '';
-    await openFreshApplication(page, context, config.baseUrl);
+    const initialState = await openFreshApplication(page, context, config);
+    expect(initialState.cookies).toEqual([]);
+    expect(initialState.origins).toEqual([]);
     try {
       const loginResponse = await login(page, config);
       expect(loginResponse.status).toBe(200);
@@ -122,7 +82,9 @@ test(
     const config = prerequisites.config;
     let token = '';
     let loggedOut = false;
-    await openFreshApplication(page, context, config.baseUrl);
+    const initialState = await openFreshApplication(page, context, config);
+    expect(initialState.cookies).toEqual([]);
+    expect(initialState.origins).toEqual([]);
     try {
       const loginResponse = await login(page, config);
       expect(loginResponse.status).toBe(200);
@@ -149,7 +111,9 @@ test(
   async ({ page, context }) => {
     const config = prerequisites.config;
     let token = '';
-    await openFreshApplication(page, context, config.baseUrl);
+    const initialState = await openFreshApplication(page, context, config);
+    expect(initialState.cookies).toEqual([]);
+    expect(initialState.origins).toEqual([]);
     try {
       const loginResponse = await login(page, config);
       expect(loginResponse.status).toBe(200);
@@ -185,7 +149,9 @@ test(
       legacyRequests.push({ method: route.request().method(), url: route.request().url() });
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
     });
-    await openFreshApplication(page, context, config.baseUrl);
+    const initialState = await openFreshApplication(page, context, config);
+    expect(initialState.cookies).toEqual([]);
+    expect(initialState.origins).toEqual([]);
     try {
       const loginResponse = await login(page, config);
       expect(loginResponse.status).toBe(200);
