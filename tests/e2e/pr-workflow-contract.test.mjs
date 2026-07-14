@@ -49,6 +49,11 @@ test('protected credentials remain confined to the manual staging job', () => {
   assert.doesNotMatch(workflow, /secrets\.CREWBIQ_E2E_/);
 });
 
+test('manual staging reports workflow and explicitly supplied deployment commits separately', () => {
+  assert.match(manual, /app_deployment_commit:/);
+  assert.match(manual, /E2E_APP_DEPLOYMENT_COMMIT: \$\{\{ inputs\.app_deployment_commit \}\}/);
+});
+
 test('manual staging manifest path uses runner context only at step scope', () => {
   const stagingJob = manual.slice(manual.indexOf('  staging-journeys:'));
   const jobEnv = stagingJob.slice(stagingJob.indexOf('    env:'), stagingJob.indexOf('    steps:'));

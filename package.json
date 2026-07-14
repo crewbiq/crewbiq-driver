@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test:e2e": "npm run test:e2e:tooling && npm run test:e2e:self",
-    "test:e2e:tooling": "node --test tests/e2e/redaction.test.mjs tests/e2e/evidence-policy.test.mjs tests/e2e/staging-prerequisites.test.mjs tests/e2e/pr-workflow-contract.test.mjs tests/e2e/service-worker-path.test.mjs",
+    "test:e2e:tooling": "node --test tests/e2e/redaction.test.mjs tests/e2e/evidence-policy.test.mjs tests/e2e/report-metadata.test.mjs tests/e2e/staging-prerequisites.test.mjs tests/e2e/pr-workflow-contract.test.mjs tests/e2e/service-worker-path.test.mjs",
     "test:e2e:redaction": "node --test tests/e2e/redaction.test.mjs tests/e2e/evidence-policy.test.mjs",
     "test:e2e:self": "playwright test tests/e2e/harness-self-test.spec.mjs && npm run test:e2e:validate",
     "test:e2e:staging": "npm run test:e2e:tooling && cross-env E2E_AUTHENTICATED_RUN=1 playwright test tests/e2e/staging-auth-restore.spec.mjs tests/e2e/staging-fleet-integrity.spec.mjs tests/e2e/staging-tenant-isolation.spec.mjs tests/e2e/staging-offline-retry.spec.mjs && npm run test:e2e:validate",

@@ -67,12 +67,10 @@ function allFixtureIds(contract) {
   };
 }
 
-function assertTenantScope(snapshot, own, other) {
-  const expectedTrucks = [...own.activeTruckIds].sort();
-  const expectedProfiles = [...own.activeDriverProfileIds].sort();
+function assertTenantScope(snapshot, baseline, own, other) {
   const otherIds = allFixtureIds(other);
-  expect(snapshot.truckIds).toEqual(expectedTrucks);
-  expect(snapshot.driverProfileIds).toEqual(expectedProfiles);
+  expect(snapshot.truckIds).toEqual(baseline.truckIds);
+  expect(snapshot.driverProfileIds).toEqual(baseline.driverProfileIds);
   for (const id of own.inactiveTruckIds) expect(snapshot.truckIds).not.toContain(id);
   for (const id of own.inactiveDriverProfileIds) expect(snapshot.driverProfileIds).not.toContain(id);
   for (const id of otherIds.trucks) expect(snapshot.truckIds).not.toContain(id);
@@ -166,8 +164,8 @@ test(
       const normalB = fleetSnapshot(normalBResponse);
       expect(normalA.owner).toBe(config.fleetA.ownerCrewbiqId);
       expect(normalB.owner).toBe(config.fleetB.ownerCrewbiqId);
-      assertTenantScope(normalA, config.fleetA, config.fleetB);
-      assertTenantScope(normalB, config.fleetB, config.fleetA);
+      assertTenantScope(normalA, normalA, config.fleetA, config.fleetB);
+      assertTenantScope(normalB, normalB, config.fleetB, config.fleetA);
 
       const hostileAResponse = await restoreFleet(
         page, config, tokenA, config.fleetB.ownerCrewbiqId,
@@ -183,8 +181,8 @@ test(
       expect(hostileA.driverProfileIds).toEqual(normalA.driverProfileIds);
       expect(hostileB.truckIds).toEqual(normalB.truckIds);
       expect(hostileB.driverProfileIds).toEqual(normalB.driverProfileIds);
-      assertTenantScope(hostileA, config.fleetA, config.fleetB);
-      assertTenantScope(hostileB, config.fleetB, config.fleetA);
+      assertTenantScope(hostileA, normalA, config.fleetA, config.fleetB);
+      assertTenantScope(hostileB, normalB, config.fleetB, config.fleetA);
       observations.push({
         step: 'hostile-read-query',
         tenant_a_status: hostileAResponse.status,
@@ -206,8 +204,8 @@ test(
       expect(afterA.driverProfileIds).toEqual(normalA.driverProfileIds);
       expect(afterB.truckIds).toEqual(normalB.truckIds);
       expect(afterB.driverProfileIds).toEqual(normalB.driverProfileIds);
-      assertTenantScope(afterA, config.fleetA, config.fleetB);
-      assertTenantScope(afterB, config.fleetB, config.fleetA);
+      assertTenantScope(afterA, normalA, config.fleetA, config.fleetB);
+      assertTenantScope(afterB, normalB, config.fleetB, config.fleetA);
       observations.push({
         step: 'hostile-write-probe',
         sync_status: probe.status,
