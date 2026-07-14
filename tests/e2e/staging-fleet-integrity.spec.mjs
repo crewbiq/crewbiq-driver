@@ -64,7 +64,7 @@ async function seedFleetUi(page, config, token, fleet) {
     localStorage.setItem('fiqD_authRoles', JSON.stringify(['fleet']));
     localStorage.setItem(profileKey, JSON.stringify(driverProfiles));
     localStorage.setItem(truckKey, JSON.stringify(trucks));
-    if (typeof showPage === 'function') showPage('fleet');
+    if (typeof showPage === 'function') showPage('drivers');
     if (typeof renderDriversPage === 'function') renderDriversPage();
   }, {
     authId: config.fleetA.authCrewbiqId,
