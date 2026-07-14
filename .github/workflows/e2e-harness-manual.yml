@@ -8,6 +8,17 @@ on:
         required: true
         default: false
         type: boolean
+      mission_role:
+        description: Role mission set to execute in staging
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - fleet
+          - driver
+          - recovery
+          - security
 
 permissions:
   contents: read
@@ -104,7 +115,7 @@ jobs:
       - name: Run authenticated staging journeys
         env:
           E2E_FIXTURE_MANIFEST_PATH: ${{ runner.temp }}/crewbiq-e2e-manifest.json
-        run: npm run test:e2e:staging
+        run: npm run test:e2e:missions -- --role=${{ inputs.mission_role }}
 
       - name: Upload redacted staging evidence
         if: always()

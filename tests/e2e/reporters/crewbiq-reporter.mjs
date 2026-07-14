@@ -99,6 +99,13 @@ export default class CrewBIQReporter {
       tester: {
         tester_role: process.env.E2E_TESTER_ROLE || 'harness-self-test',
         application_role: process.env.E2E_APPLICATION_ROLE || 'none',
+        mission_role: process.env.E2E_MISSION_ROLE || 'none',
+        agent_mode: process.env.E2E_AGENT_MODE || 'none',
+        agent_controller: process.env.E2E_AGENT_CONTROLLER || 'none',
+        mission_journeys: (process.env.E2E_MISSION_JOURNEYS || '')
+          .split(',')
+          .map(value => value.trim())
+          .filter(Boolean),
         tenant_aliases: (process.env.E2E_TENANT_ALIASES || '')
           .split(',')
           .map(value => value.trim())

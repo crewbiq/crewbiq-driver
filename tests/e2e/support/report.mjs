@@ -36,6 +36,10 @@ Tester role: ${artifact.tester.tester_role}
 
 Application role and tenant aliases: ${artifact.tester.application_role}; ${artifact.tester.tenant_aliases.join(', ') || 'none'}
 
+Mission role and controller: ${artifact.tester.mission_role || 'none'}; ${artifact.tester.agent_controller || 'none'} (${artifact.tester.agent_mode || 'none'})
+
+Mission journeys: ${(artifact.tester.mission_journeys || []).join(', ') || 'none'}
+
 Browser/viewport: ${artifact.browser.engine}; ${artifact.browser.viewport.width}x${artifact.browser.viewport.height}
 
 Evidence mode: ${artifact.evidence_policy.mode}
