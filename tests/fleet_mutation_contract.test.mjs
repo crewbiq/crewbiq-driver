@@ -29,4 +29,13 @@ test('full sync exposes a result for mutation callers', () => {
   assert.match(syncSource, /async function forceFullSync\(\)\s*\{\s*return doSync\(\{\s*forceAll: true\s*\}\);/);
 });
 
+test('fleet mutation sync uses authenticated PWA write contract', () => {
+  assert.match(syncSource, /function buildAuthenticatedPwaHeaders\(\)/);
+  assert.match(syncSource, /headers\.Authorization = 'Bearer ' \+ sessionToken/);
+  assert.match(syncSource, /async function forceFleetConfigSync\(\)/);
+  assert.match(syncSource, /getPwaOrchestratorSyncUrl\(getOrchestratorSyncUrl\(\)\)/);
+  assert.match(indexSource, /typeof forceFleetConfigSync !== 'function'/);
+  assert.match(indexSource, /var synced = await syncFleetConfigMutation\(\)/);
+});
+
 console.log('Fleet mutation contract: ok');

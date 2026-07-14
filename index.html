@@ -2150,12 +2150,12 @@ async function syncFleetConfigMutation(){
     toast('Saved locally. Sign in to sync this fleet change.','warn');
     return false;
   }
-  if(typeof forceFullSync !== 'function'){
+  if(typeof forceFleetConfigSync !== 'function'){
     toast('Saved locally. Sync is unavailable; retry after reconnecting.','err');
     return false;
   }
   cancelQueuedFleetConfigSync();
-  const result = await forceFullSync();
+  const result = await forceFleetConfigSync();
   if(!result || result.ok !== true){
     toast('Saved locally, but cloud sync failed. Retry Sync before leaving.','err');
     return false;
