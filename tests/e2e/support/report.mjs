@@ -30,7 +30,9 @@ Status: ${artifact.overall_status}
 
 Environment: ${artifact.environment}
 
-App/deployment commit: ${artifact.application.commit}
+Workflow commit: ${artifact.application.workflow_commit}
+
+App/deployment commit: ${artifact.application.deployment_commit}
 
 Tester role: ${artifact.tester.tester_role}
 

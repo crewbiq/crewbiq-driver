@@ -30,6 +30,13 @@ export function reportedOverallStatus(runStatus, scenarios) {
     : runStatus;
 }
 
+export function resolveApplicationCommits(env = process.env) {
+  return {
+    workflow_commit: env.GITHUB_SHA || env.E2E_COMMIT || 'unverified-local',
+    deployment_commit: env.E2E_APP_DEPLOYMENT_COMMIT || 'not-supplied',
+  };
+}
+
 export default class CrewBIQReporter {
   constructor(options = {}) {
     this.outputDir = options.outputDir || 'artifacts/e2e';
@@ -93,7 +100,7 @@ export default class CrewBIQReporter {
       environment: process.env.E2E_ENVIRONMENT || 'local',
       application: {
         repository: 'crewbiq/crewbiq-driver',
-        commit: process.env.GITHUB_SHA || process.env.E2E_COMMIT || 'unverified-local',
+        ...resolveApplicationCommits(),
         base_url: process.env.E2E_BASE_URL || 'self-contained-test-page',
       },
       tester: {

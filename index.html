@@ -2140,6 +2140,29 @@ function queueFleetConfigSync(){
   }, 800);
 }
 
+function cancelQueuedFleetConfigSync(){
+  clearTimeout(window._fleetConfigSyncTimer);
+  window._fleetConfigSyncTimer = null;
+}
+
+async function syncFleetConfigMutation(){
+  if(typeof getSavedSessionToken !== 'function' || !getSavedSessionToken()){
+    toast('Saved locally. Sign in to sync this fleet change.','warn');
+    return false;
+  }
+  if(typeof forceFleetConfigSync !== 'function'){
+    toast('Saved locally. Sync is unavailable; retry after reconnecting.','err');
+    return false;
+  }
+  cancelQueuedFleetConfigSync();
+  const result = await forceFleetConfigSync();
+  if(!result || result.ok !== true){
+    toast('Saved locally, but cloud sync failed. Retry Sync before leaving.','err');
+    return false;
+  }
+  return true;
+}
+
 function withFleetConfigSyncSuppressed(fn){
   _suppressFleetConfigSync = true;
   try { return fn(); }
@@ -3216,7 +3239,7 @@ function closeDriverModal(){
   clearFleetForm('driverProfile');
 }
 
-function saveDriverForm(){
+async function saveDriverForm(){
   var name = (document.getElementById('dfName').value||'').trim();
   if(!name){ toast('Driver name required','err'); return; }
   var modeEl = document.getElementById('dfMode');
@@ -3232,11 +3255,15 @@ function saveDriverForm(){
     return;
   }
   var truckEl = document.getElementById('dfTruck');
+  var payType = document.getElementById('dfPayType').value || 'cpm';
+  var rate = parseFloat(document.getElementById('dfRate').value)||0;
   var entry = {
     id:         id,
     name:       name,
-    payType:    document.getElementById('dfPayType').value || 'cpm',
-    rate:       parseFloat(document.getElementById('dfRate').value)||0,
+    payType:    payType,
+    rate:       rate,
+    cpmRate:    payType === 'cpm' ? rate : 0,
+    grossPercent: payType === 'gross_percent' ? rate : 0,
     cpmBase:    (document.getElementById('dfCpmBase')||{}).value || 'loaded',
     truckId:    truckEl ? truckEl.value : '',
     teamDriver: !!(document.getElementById('dfTeam')||{}).checked,
@@ -3244,6 +3271,7 @@ function saveDriverForm(){
     terminatedAt: document.getElementById('dfActive').value === '0'
       ? ((document.getElementById('dfTermDate')||{}).value || new Date().toISOString().slice(0,10))
       : null,
+    updatedAt: new Date().toISOString(),
   };
   if(mode === 'edit') list[idx]=entry; else list.push(entry);
   saveDriverProfiles(list);
@@ -3251,19 +3279,32 @@ function saveDriverForm(){
   renderDriversPage();
   renderFleetPage();
   renderFleetStats();
-  queueFleetConfigSync();
+  var synced = await syncFleetConfigMutation();
+  if(!synced) return;
   toast('Driver saved ✅');
 }
 
-function deleteDriverConfirm(id){
+async function deleteDriverConfirm(id){
   if(!confirm('Remove this driver?')) return;
-  saveDriverProfiles(loadDriverProfiles().filter(function(x){ return x.id!==id; }));
+  var list = loadDriverProfiles();
+  var idx = list.findIndex(function(x){ return x.id===id; });
+  if(idx < 0){
+    showFleetFormConflict('driverProfile', 'Driver delete conflict: this driver changed or disappeared during restore. Reload/latest data and try again.');
+    return;
+  }
+  list[idx] = {
+    ...list[idx],
+    active: false,
+    terminatedAt: list[idx].terminatedAt || today(),
+    updatedAt: new Date().toISOString(),
+  };
+  saveDriverProfiles(list);
   closeDriverModal();
   renderDriversPage();
   renderFleetPage();
   renderFleetStats();
-  queueFleetConfigSync();
-  toast('Driver removed');
+  var synced = await syncFleetConfigMutation();
+  if(synced) toast('Driver deactivated and synced');
 }
 
 function calcDriverPay(load, driver){
