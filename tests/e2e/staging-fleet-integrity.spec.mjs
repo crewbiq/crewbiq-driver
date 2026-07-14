@@ -64,8 +64,6 @@ async function seedFleetUi(page, config, token, fleet) {
     localStorage.setItem('fiqD_authRoles', JSON.stringify(['fleet']));
     localStorage.setItem(profileKey, JSON.stringify(driverProfiles));
     localStorage.setItem(truckKey, JSON.stringify(trucks));
-    if (typeof showPage === 'function') showPage('drivers');
-    if (typeof renderDriversPage === 'function') renderDriversPage();
   }, {
     authId: config.fleetA.authCrewbiqId,
     email: 'e2e-redacted@example.test',
@@ -75,6 +73,11 @@ async function seedFleetUi(page, config, token, fleet) {
     driverProfiles: fleet.driverProfiles,
     profileKey: fleetStorageKey(config.fleetA.authCrewbiqId, 'driverProfiles'),
     truckKey: fleetStorageKey(config.fleetA.authCrewbiqId, 'trucks'),
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    if (typeof showPage === 'function') showPage('drivers');
+    if (typeof renderDriversPage === 'function') renderDriversPage();
   });
 }
 
