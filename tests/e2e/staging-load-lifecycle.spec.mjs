@@ -17,7 +17,7 @@ test.use({
 });
 
 test.beforeEach(async ({}, testInfo) => {
-  testInfo.setTimeout(45_000);
+  testInfo.setTimeout(60_000);
   test.skip(!prerequisites.ready, `not_run: ${prerequisites.reasons.join('; ')}`);
   testInfo.annotations.push({ type: 'context', description: 'isolated-driver-browser-contexts' });
 });
@@ -114,6 +114,17 @@ test(
 
       await seedDriverIdentity(page, config, writerToken);
       observations.push({ step: 'seeded-driver-identity' });
+
+      // boot() only runs inside restoreSession().finally() when a saved session
+      // exists (index.html bottom-of-file init). showApp() — the only thing that
+      // adds the 'show' class to #app — runs at the end of boot(). Waiting for a
+      // concrete signal here avoids racing the async auto-restore that fires on
+      // every reload once fiqD_sessionToken is present.
+      await page.waitForFunction(() => {
+        const app = document.getElementById('app');
+        return !!(app && app.classList.contains('show'));
+      }, { timeout: 20_000 });
+      observations.push({ step: 'app-ready' });
 
       const marker = `${config.displayPrefix}LOAD-01`.slice(0, 40).toUpperCase().replace(/[^A-Z0-9-]/g, '');
       await page.evaluate(() => { if (typeof showPage === 'function') showPage('load'); });
