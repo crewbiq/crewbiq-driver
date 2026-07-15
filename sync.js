@@ -41,16 +41,18 @@
   // Filled by init(). All sync functions go through these — never direct refs.
 
   let _get = {
-    driver: null,
-    loads:  null,
-    ptiLog: null,
-    timer:  null,
+    driver:   null,
+    loads:    null,
+    ptiLog:   null,
+    disputes: null,
+    timer:    null,
   };
   let _renderAll = null;
   let _set = {
-    loads:  null,
-    ptiLog: null,
-    timer:  null,
+    loads:    null,
+    ptiLog:   null,
+    disputes: null,
+    timer:    null,
   };
   let _saveAll = null;
   let _ready = false;
@@ -61,8 +63,10 @@
     _get.driver = opts.getDriver;
     _get.loads  = opts.getLoads;
     _set.loads  = opts.setLoads;
-    _get.ptiLog = opts.getPtiLog;
-    _set.ptiLog = opts.setPtiLog;
+    _get.ptiLog   = opts.getPtiLog;
+    _set.ptiLog   = opts.setPtiLog;
+    _get.disputes = opts.getDisputes || (() => []);
+    _set.disputes = opts.setDisputes || (() => {});
     _saveAll    = opts.saveAll;
     _get.timer  = opts.getTimer;
     _set.timer  = opts.setTimer;
@@ -294,9 +298,10 @@
 
   function buildSyncPayload(forceAll = false) {
     if (!assertReady()) return null;
-    const driver = _get.driver();
-    const loads  = _get.loads();
-    const ptiLog = _get.ptiLog();
+    const driver   = _get.driver();
+    const loads    = _get.loads();
+    const ptiLog   = _get.ptiLog();
+    const disputes = _get.disputes ? _get.disputes() : [];
     const ownerData = typeof global.getOwnerSyncData === 'function'
       ? (global.getOwnerSyncData() || {})
       : {};
@@ -316,8 +321,9 @@
       deviceId: getDeviceId(),
       driver: cloneDriver(driver),
       profile: { driver: cloneDriver(driver), ownerKey: ownerKey(driver), updatedAt: new Date().toISOString() },
-      loads:  (forceAll ? loads : loads.filter(x => !x.synced)).map(stampRecord),
-      ptiLog: (forceAll ? ptiLog : ptiLog.filter(p => !p.synced).slice(0, 10)).map(stampRecord),
+      loads:    (forceAll ? loads : loads.filter(x => !x.synced)).map(stampRecord),
+      ptiLog:   (forceAll ? ptiLog : ptiLog.filter(p => !p.synced).slice(0, 10)).map(stampRecord),
+      disputes: (forceAll ? disputes : disputes.filter(d => !d.synced)).map(stampRecord),
       ownerData: shouldSendOwnerData(normalizedOwnerData) ? normalizedOwnerData : null,
       // Pay settings sent separately so Orchestrator can persist them
       // independently of the Apps Script profile.
@@ -589,13 +595,14 @@
 
     const payload = buildSyncPayload(forceAll);
 
-    if ((payload.loads.length + payload.ptiLog.length) === 0 && !payload.ownerData && !forceAll) {
+    if ((payload.loads.length + payload.ptiLog.length + payload.disputes.length) === 0 && !payload.ownerData && !forceAll) {
       Core.events.emit('sync:skip', { reason: 'nothing_to_push' });
       return { ok: true, skipped: true, reason: 'nothing_to_push' };
     }
 
-    const syncedLoadIds = new Set(payload.loads.map(x => x.id));
-    const syncedPtiIds  = new Set(payload.ptiLog.map(x => x.id));
+    const syncedLoadIds    = new Set(payload.loads.map(x => x.id));
+    const syncedPtiIds     = new Set(payload.ptiLog.map(x => x.id));
+    const syncedDisputeIds = new Set(payload.disputes.map(x => x.id));
 
     const resp = await fetch(driver.syncUrl, {
       method: 'POST',
@@ -617,6 +624,11 @@
     _set.ptiLog(_get.ptiLog().map(p =>
       syncedPtiIds.has(p.id) ? { ...p, synced: true } : p
     ));
+    if (_get.disputes && _set.disputes) {
+      _set.disputes(_get.disputes().map(d =>
+        syncedDisputeIds.has(d.id) ? { ...d, synced: true } : d
+      ));
+    }
 
     _saveAll();
 
@@ -624,6 +636,7 @@
       ok: true,
       pushedLoads: syncedLoadIds.size,
       pushedPti: syncedPtiIds.size,
+      pushedDisputes: syncedDisputeIds.size,
       payload,
       result,
     };
@@ -668,13 +681,17 @@
       if (data.error || data.ok === false) throw new Error(data.error || data.reason || 'Cloud returned error');
 
       const profile = data.profile || null;
-      const remoteLoads = data.loads || [];
-      const remotePti   = data.ptiLog || [];
+      const remoteLoads    = data.loads || [];
+      const remotePti      = data.ptiLog || [];
+      const remoteDisputes = data.disputes || [];
       const ownerRestore = (data.ownerData && typeof global.applyOwnerSyncData === 'function')
         ? global.applyOwnerSyncData(data.ownerData)
         : { changed: false };
-      const loadMerge = mergeById(_get.loads(), remoteLoads);
-      const ptiMerge  = mergeById(_get.ptiLog(), remotePti);
+      const loadMerge    = mergeById(_get.loads(), remoteLoads);
+      const ptiMerge     = mergeById(_get.ptiLog(), remotePti);
+      const disputeMerge = _get.disputes && _set.disputes
+        ? mergeById(_get.disputes(), remoteDisputes)
+        : { imported: 0, updated: 0, list: [] };
 
       if (loadMerge.imported || loadMerge.updated) {
         _set.loads(sortLoads(loadMerge.list));
@@ -682,8 +699,12 @@
       if (ptiMerge.imported || ptiMerge.updated) {
         _set.ptiLog(ptiMerge.list);
       }
+      if ((disputeMerge.imported || disputeMerge.updated) && _set.disputes) {
+        _set.disputes(disputeMerge.list);
+      }
 
-      if (loadMerge.imported || loadMerge.updated || ptiMerge.imported || ptiMerge.updated || ownerRestore.changed) {
+      if (loadMerge.imported || loadMerge.updated || ptiMerge.imported || ptiMerge.updated ||
+          disputeMerge.imported || disputeMerge.updated || ownerRestore.changed) {
         _saveAll();
         if (_renderAll) _renderAll();
       }
@@ -694,10 +715,12 @@
         Core.toast(msg + ' ✅');
       }
       Core.events.emit('sync:pull_success', {
-        loadsImported: loadMerge.imported,
-        loadsUpdated:  loadMerge.updated,
-        ptiImported:   ptiMerge.imported,
-        ptiUpdated:    ptiMerge.updated,
+        loadsImported:    loadMerge.imported,
+        loadsUpdated:     loadMerge.updated,
+        ptiImported:      ptiMerge.imported,
+        ptiUpdated:       ptiMerge.updated,
+        disputesImported: disputeMerge.imported,
+        disputesUpdated:  disputeMerge.updated,
         ownerData:      ownerRestore,
         profile
       });

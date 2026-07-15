@@ -1474,6 +1474,8 @@ function initSync(){
     setLoads:  (v) => { loads = sortLoadsNewest(v); },
     getPtiLog: () => ptiLog,
     setPtiLog: (v) => { ptiLog = v; },
+    getDisputes: () => (typeof getDriverDisputed === 'function' ? getDriverDisputed() : []),
+    setDisputes: (v) => { if (typeof setDriverDisputed === 'function') setDriverDisputed(v); },
     saveAll:   saveAll,
     getTimer:  () => autoSyncTimer,
     setTimer:  (v) => { autoSyncTimer = v; },
@@ -1715,6 +1717,9 @@ function applyAuthRestoreData(data, syncUrl){
   if(typeof data.pointsBalance === 'number') driver.points = data.pointsBalance;
   if(Array.isArray(data.loads)) loads = sortLoadsNewest(data.loads);
   if(Array.isArray(data.ptiLog)) ptiLog = data.ptiLog;
+  if(Array.isArray(data.disputes) && typeof setDriverDisputed === 'function') {
+    setDriverDisputed(data.disputes);
+  }
   if(data.ownerData && typeof applyOwnerSyncData === 'function') {
     applyOwnerSyncData(data.ownerData);
   }
