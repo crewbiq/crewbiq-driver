@@ -522,7 +522,7 @@
   <div id="page-stats" class="page">
     <div class="card" style="margin-top:16px">
       <div class="label">Period</div>
-      <select id="statsPeriod" onchange="renderStats()" style="margin-bottom:12px">
+      <select id="statsPeriod" onchange="renderStats();if(typeof renderFleetStats==='function')renderFleetStats();" style="margin-bottom:12px">
         <option value="week">This Week</option>
         <option value="month">This Month</option>
         <option value="all">All Time</option>
