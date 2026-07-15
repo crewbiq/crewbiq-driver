@@ -132,7 +132,12 @@ test(
       }, undefined, { timeout: 20_000 });
       observations.push({ step: 'app-ready' });
 
-      const marker = `${config.displayPrefix}EXPENSES-01`.slice(0, 60);
+      // Includes a per-run timestamp: addExpense() has no duplicate-date dedup
+      // (unlike saveLoad()), and there is no delete-sync path for expenses, so
+      // a fixed marker collides with the still-present, merely-"denied" row
+      // left by a previous run's cleanup — confirmed the hard way on the first
+      // repeat run of the driver-role suite (restore returned 2 matches, not 1).
+      const marker = `${config.displayPrefix}EXPENSES-01-${Date.now()}`.slice(0, 60);
       await page.evaluate(() => { if (typeof showPage === 'function') showPage('expenses'); });
 
       const expenseDate = new Date().toISOString().slice(0, 10);

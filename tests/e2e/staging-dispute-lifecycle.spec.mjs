@@ -135,7 +135,12 @@ test(
       }, undefined, { timeout: 20_000 });
       observations.push({ step: 'app-ready' });
 
-      const marker = `${config.displayPrefix}DISPUTE-01`.slice(0, 40).toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      // Per-run timestamp: addDriverDisputed()'s own dedup only blocks a second
+      // *pending* dispute for the same loadId, and this test resolves the
+      // dispute (won) rather than leaving it pending, so a fixed marker would
+      // silently create a second row on every repeat run — same class of bug
+      // caught in EXPENSES-01 on its first repeat run.
+      const marker = `${config.displayPrefix}DISPUTE-01-${Date.now()}`.slice(0, 60).toUpperCase().replace(/[^A-Z0-9-]/g, '');
       await page.evaluate(() => { if (typeof showPage === 'function') showPage('disputes'); });
 
       await page.locator('#dDisputeLoadId').fill(marker);
