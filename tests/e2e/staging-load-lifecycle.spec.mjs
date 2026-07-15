@@ -58,6 +58,11 @@ async function seedDriverIdentity(page, config, token) {
       cpmRate: 0.55,
       cpmBase: 'loaded',
       unitNumber: '',
+      // Without a PTI log entry for today, needsPTI() (pti.js) returns true and
+      // boot() shows the mandatory PTI blocker instead of the app — explicitly
+      // opting this synthetic identity out, since LOAD-01 tests load creation,
+      // not the PTI gate.
+      ptiEnabled: false,
     }));
     localStorage.setItem('fiqD_sessionToken', sessionToken);
     localStorage.setItem(loadsKey, '[]');
@@ -116,14 +121,24 @@ test(
       observations.push({ step: 'seeded-driver-identity' });
 
       // boot() only runs inside restoreSession().finally() when a saved session
-      // exists (index.html bottom-of-file init). showApp() — the only thing that
-      // adds the 'show' class to #app — runs at the end of boot(). Waiting for a
-      // concrete signal here avoids racing the async auto-restore that fires on
-      // every reload once fiqD_sessionToken is present.
+      // exists (index.html bottom-of-file init). boot() shows #ptiBlocker instead
+      // of calling showApp() when needsPTI() is true (pti.js) — showPTIBlocker()
+      // explicitly removes the 'show' class from #app, so a missing PTI record
+      // for today makes this wait fail closed, not hang open, once ptiEnabled is
+      // set correctly above. waitForFunction's signature is (pageFunction, arg,
+      // options) — the timeout MUST be the third argument, not the second, or it
+      // silently falls back to the outer test timeout instead of failing at 20s.
       await page.waitForFunction(() => {
         const app = document.getElementById('app');
         return !!(app && app.classList.contains('show'));
-      }, { timeout: 20_000 });
+      }, undefined, { timeout: 20_000 }).catch(async error => {
+        const ptiBlockerShown = await page.evaluate(() => {
+          const blocker = document.getElementById('ptiBlocker');
+          return !!(blocker && blocker.classList.contains('show'));
+        }).catch(() => null);
+        observations.push({ step: 'app-ready-failed', pti_blocker_shown: ptiBlockerShown });
+        throw error;
+      });
       observations.push({ step: 'app-ready' });
 
       const marker = `${config.displayPrefix}LOAD-01`.slice(0, 40).toUpperCase().replace(/[^A-Z0-9-]/g, '');
