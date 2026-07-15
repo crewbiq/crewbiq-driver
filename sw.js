@@ -1,14 +1,25 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.68
+ * CrewBIQ Driver — Service Worker v1.0.69
  * CrewBIQ Technologies
  *
  * Strategy:
  *   - App shell → Cache First
  *   - External API and POST requests → Network Only (skip cache)
  *   - Everything else → Network First, fallback to cache
+ *
+ * IMPORTANT: bump CACHE_NAME any time an APP_SHELL file changes. The
+ * app-shell cache-first strategy means a stale-installed PWA never sees
+ * new deploys of index.html/loads.js/sync.js/etc. until this file's own
+ * bytes change -- browsers re-check the registered service worker URL
+ * directly (bypassing this worker's own cache-first fetch handler), so
+ * a byte difference here is what actually triggers install/activate on
+ * an already-installed device. A version bump in index.html's
+ * registration query string alone does NOT do this: an installed PWA is
+ * still running the OLD index.html, so it never even requests the new
+ * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v69';
+const CACHE_NAME = 'crewbiq-driver-v70';
 
 const APP_SHELL = [
   '/crewbiq-driver/',

@@ -4593,7 +4593,7 @@ document.addEventListener('change', function(e){
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    const serviceWorkerUrl = new URL('sw.js?v=20260710-restore-ocr', document.baseURI).href;
+    const serviceWorkerUrl = new URL('sw.js?v=20260715-realnet-fix', document.baseURI).href;
     navigator.serviceWorker.register(serviceWorkerUrl)
       .then(r => console.log('[CrewBIQ] SW registered:', r.scope))
       .catch(e => console.warn('[CrewBIQ] SW error:', e));
