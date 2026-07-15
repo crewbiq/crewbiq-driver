@@ -170,6 +170,8 @@ test(
       await page.locator('#grossInput').fill('1850.00');
       const pickupDate = new Date().toISOString().slice(0, 10);
       await page.locator('#pickupDate').fill(pickupDate);
+      await page.locator('#pickupLocation').fill('Buffalo, NY');
+      await page.locator('#deliveryLocation').fill('Lancaster, PA');
       await page.evaluate(() => {
         const button = document.getElementById('saveLoadBtn');
         if (!button) throw new Error('Add Load button is missing');
@@ -196,11 +198,20 @@ test(
       expect(matches[0].id).toBe(addedLoadId);
       expect(Number(matches[0].loadedMiles)).toBe(612);
       expect(Number(matches[0].gross)).toBe(1850);
+      // pickupLocation/deliveryLocation have no dedicated driver_loads columns --
+      // they round-trip only through the raw_payload JSONB pass-through in
+      // _restore_loads (crewbiq-orchestrator/app/routers/restore.py). Asserting
+      // them here is the only real proof that mechanism actually preserves new,
+      // unrecognized client fields instead of silently dropping them.
+      expect(matches[0].pickupLocation).toBe('Buffalo, NY');
+      expect(matches[0].deliveryLocation).toBe('Lancaster, PA');
       observations.push({
         step: 'verified-recovery-restore',
         stable_id_preserved: matches[0].id === addedLoadId,
         loaded_miles_match: Number(matches[0].loadedMiles) === 612,
         gross_match: Number(matches[0].gross) === 1850,
+        pickup_location_match: matches[0].pickupLocation === 'Buffalo, NY',
+        delivery_location_match: matches[0].deliveryLocation === 'Lancaster, PA',
       });
     } finally {
       if (addedLoadId) {

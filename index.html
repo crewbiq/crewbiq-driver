@@ -461,6 +461,10 @@
         <div class="fg"><div class="label">Load ID *</div><input id="loadId" placeholder="e.g. DSR12345" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
         <div class="fg"><div class="label">Pickup Date</div><input type="date" id="pickupDate"></div>
       </div>
+      <div class="frow">
+        <div class="fg"><div class="label">Pickup Location</div><input id="pickupLocation" placeholder="e.g. Buffalo, NY"></div>
+        <div class="fg"><div class="label">Delivery Location</div><input id="deliveryLocation" placeholder="e.g. Lancaster, PA"></div>
+      </div>
       <div class="sfield" id="loadTruckRow" style="display:none">
         <div class="slabel">Truck</div>
         <select id="loadTruckSelect"></select>
@@ -3775,10 +3779,11 @@ function applyScanToLoad(){
   setIfPresent('loadId', f.load_id);
   setIfPresent('pickupDate', f.pickup_date);
   setIfPresent('deliveryDate', f.delivery_date);
+  setIfPresent('pickupLocation', f.pickup_location);
+  setIfPresent('deliveryLocation', f.delivery_location);
   setIfPresent('loadedMiles', f.miles);
   setIfPresent('grossInput', f.gross);
-  var route = [f.pickup_location, f.delivery_location].filter(Boolean).join(' → ');
-  setIfPresent('loadNotes', [route, f.broker, f.notes].filter(Boolean).join(' · '));
+  setIfPresent('loadNotes', [f.broker, f.notes].filter(Boolean).join(' · '));
   if(typeof calcPreview === 'function') calcPreview();
   toast('Review load fields, then Save');
 }

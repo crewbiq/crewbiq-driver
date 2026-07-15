@@ -311,6 +311,8 @@
     document.getElementById('loadId').value            = '';
     document.getElementById('pickupDate').value        = _today();
     document.getElementById('deliveryDate').value      = '';
+    document.getElementById('pickupLocation').value    = '';
+    document.getElementById('deliveryLocation').value  = '';
     document.getElementById('loadedMiles').value       = '';
     document.getElementById('deadMiles').value         = '0';
     document.getElementById('grossInput').value        = '';
@@ -361,6 +363,8 @@
       loadedMiles: loaded, deadMiles: dead, totalMiles: total,
       driverPay: pay, detention, layover,
       pickup: pickupVal, delivery: document.getElementById('deliveryDate').value,
+      pickupLocation: document.getElementById('pickupLocation').value.trim(),
+      deliveryLocation: document.getElementById('deliveryLocation').value.trim(),
       notes: document.getElementById('loadNotes').value.trim(),
       truckId: truckSel.truckId || (existingEntry && existingEntry.truckId) || '',
       unitNumber: truckSel.unitNumber || driver.unitNumber,
@@ -390,6 +394,8 @@
     document.getElementById('loadId').value       = x.loadId || '';
     document.getElementById('pickupDate').value   = x.pickup || '';
     document.getElementById('deliveryDate').value = x.delivery || '';
+    document.getElementById('pickupLocation').value   = x.pickupLocation || '';
+    document.getElementById('deliveryLocation').value = x.deliveryLocation || '';
     document.getElementById('loadedMiles').value  = x.loadedMiles || '';
     document.getElementById('deadMiles').value    = x.deadMiles || '0';
     document.getElementById('grossInput').value   = (x.gross || 0).toFixed(2);
@@ -1073,6 +1079,7 @@
           <div>
             <div class="item-title">${_escHtml(x.loadId)} ${statusBadge}</div>
             <div class="muted">${x.pickup || ''} ${x.delivery ? '→ ' + x.delivery : ''}</div>
+            ${(x.pickupLocation || x.deliveryLocation) ? `<div class="muted">${_escHtml(x.pickupLocation || '')} ${x.deliveryLocation ? '→ ' + _escHtml(x.deliveryLocation) : ''}</div>` : ''}
             <div class="muted">${(x.loadedMiles || 0).toLocaleString()} mi · ${_fmt(x.gross)}</div>
             ${x.detention > 0 ? `<div class="muted" style="font-size:11px;color:var(--gr)">Detention: ${_fmt(x.detention)}</div>` : ''}
             ${x.layover   > 0 ? `<div class="muted" style="font-size:11px;color:var(--gr)">Layover: ${_fmt(x.layover)}</div>`   : ''}
