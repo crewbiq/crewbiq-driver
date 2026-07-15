@@ -88,6 +88,11 @@ test(
     const config = prerequisites.config;
     const recoveryContext = await browser.newContext({ serviceWorkers: 'block' });
     const recoveryPage = await recoveryContext.newPage();
+    // The real Add Load form calls confirm() when a load already exists for the
+    // same pickup date. Headless Chromium has no human to answer a native dialog,
+    // so without a handler this hangs until the test timeout.
+    page.on('dialog', dialog => dialog.accept());
+    recoveryPage.on('dialog', dialog => dialog.accept());
     const observations = [];
     let writerToken = '';
     let recoveryToken = '';
