@@ -3665,10 +3665,12 @@ function renderScanReview(){
     '</div>'+
     scanFieldRows(f)+
     (warn?'<div style="margin-top:10px">'+warn+'</div>':'')+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'+
-      '<button class="btn primary" onclick="applyScanToFuel()">Use for Fuel</button>'+
-      '<button class="btn ghost" onclick="applyScanToService()">Use for Service</button>'+
-    '</div>'+
+    (r.document_type === 'bol'
+      ? '<div style="margin-top:12px"><button class="btn primary" onclick="applyScanToLoad()" style="width:100%">Use for Load</button></div>'
+      : '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">'+
+          '<button class="btn primary" onclick="applyScanToFuel()">Use for Fuel</button>'+
+          '<button class="btn ghost" onclick="applyScanToService()">Use for Service</button>'+
+        '</div>')+
     '<div class="muted" style="font-size:11px;margin-top:10px">OCR can be wrong. Check every field before tapping Save.</div>'+
   '</div>';
 }
@@ -3764,6 +3766,21 @@ function applyScanToService(){
   setSelectIfPresent('svcCategory', f.service_category, 'Other');
   setIfPresent('svcDesc', [f.vendor, f.service_description, f.notes].filter(Boolean).join(' - '));
   toast('Review service fields, then Save');
+}
+function applyScanToLoad(){
+  if(!lastScanResult){ toast('Nothing to apply','err'); return; }
+  var f = lastScanResult.fields || {};
+  showPage('load');
+  resetLoadForm();
+  setIfPresent('loadId', f.load_id);
+  setIfPresent('pickupDate', f.pickup_date);
+  setIfPresent('deliveryDate', f.delivery_date);
+  setIfPresent('loadedMiles', f.miles);
+  setIfPresent('grossInput', f.gross);
+  var route = [f.pickup_location, f.delivery_location].filter(Boolean).join(' → ');
+  setIfPresent('loadNotes', [route, f.broker, f.notes].filter(Boolean).join(' · '));
+  if(typeof calcPreview === 'function') calcPreview();
+  toast('Review load fields, then Save');
 }
 
 // ── BOTTOM NAV ──
