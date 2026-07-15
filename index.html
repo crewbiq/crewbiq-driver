@@ -3074,6 +3074,7 @@ function openTruckForm(id){
     '</div>'+
     '<div class="sfield"><div class="slabel">Company / Carrier</div><input id="tfCompany" placeholder="e.g. Basaev LLC" value="'+(t&&t.company?escHtml(t.company):'')+'"></div>'+
     '<div class="sfield"><div class="slabel">MC Number</div><input id="tfMC" placeholder="MC-123456 (changes when you get your own)" value="'+(t&&t.mc?escHtml(t.mc):'')+'"></div>'+
+    '<div class="sfield"><div class="slabel">VIN</div><input id="tfVin" placeholder="17-character VIN, stays the same if the unit number ever changes" value="'+(t&&t.vin?escHtml(t.vin):'')+'" maxlength="17" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Maint. Rate $/mi</div><input type="number" step="0.01" id="tfMaintRate" placeholder="0.20" value="'+(t&&t.maintenanceRate!=null?t.maintenanceRate:'0.20')+'"></div>'+
       '<div class="fg"><div class="slabel">Purchase Cost</div><input type="number" step="100" id="tfPurchaseCost" placeholder="85000" value="'+(t&&t.purchaseCost!=null?t.purchaseCost:'')+'"></div>'+
@@ -3125,6 +3126,7 @@ function saveTruckForm(){
     dispatchPercent: parseFloat(document.getElementById('tfDispatch').value)||0,
     company:         (document.getElementById('tfCompany').value||'').trim(),
     mc:              (document.getElementById('tfMC').value||'').trim(),
+    vin:             (document.getElementById('tfVin').value||'').trim(),
     maintenanceRate: parseFloat(document.getElementById('tfMaintRate').value)||0.20,
     purchaseCost:    parseFloat((document.getElementById('tfPurchaseCost')||{}).value)||0,
     active:          document.getElementById('tfActive').value === '1',
