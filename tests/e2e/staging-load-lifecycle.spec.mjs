@@ -162,7 +162,21 @@ test(
       });
       observations.push({ step: 'app-ready' });
 
-      const marker = `${config.displayPrefix}LOAD-01`.slice(0, 40).toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      // Per-run timestamp, not just a fixed marker: boot's restoreSession()
+      // pulls this identity's existing server-side loads into the local
+      // `loads` array BEFORE the test ever touches the form. A fixed marker
+      // that already exists server-side from an earlier run makes
+      // saveLoad()'s `loads.find(x => x.loadId === loadId)` guard silently
+      // reject the save via a toast -- no exception, no thrown error -- and
+      // the pre-existing stale record (with today's older field values)
+      // satisfies a weak "does a matching entry exist" assertion. Confirmed
+      // directly: the same record_id/timestamp appeared in this identity's
+      // sync events across 5 different runs spanning 03:42-18:09 UTC, none
+      // of them actually creating anything new. Only surfaced once a new
+      // field (pickupLocation) was added that the stale record didn't have --
+      // gross/loadedMiles were identical every run, so those assertions kept
+      // passing on a load that was never actually re-saved.
+      const marker = `${config.displayPrefix}LOAD-01-${Date.now()}`.slice(0, 60).toUpperCase().replace(/[^A-Z0-9-]/g, '');
       await page.evaluate(() => { if (typeof showPage === 'function') showPage('load'); });
 
       await page.locator('#loadId').fill(marker);
