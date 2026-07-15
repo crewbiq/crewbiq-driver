@@ -85,6 +85,10 @@ export async function revokeSession(page, config, token) {
   });
 }
 
+export async function restorePwa(page, config, token) {
+  return browserJson(page, config.orchestratorUrl, '/v1/restore/pwa', { token });
+}
+
 export async function restoreFleet(page, config, token, claimedOwner = '') {
   const query = claimedOwner ? `?crewbiq_id=${encodeURIComponent(claimedOwner)}` : '';
   return browserJson(page, config.orchestratorUrl, `/v1/fleet/config/pwa${query}`, { token });
