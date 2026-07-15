@@ -44,10 +44,10 @@ function loadsStorageKey(crewbiqId) {
   return `fiqD_data_crew_${identitySlug(crewbiqId)}_loads`;
 }
 
-async function seedDriverIdentity(page, context, config, token) {
-  const initialState = await openFreshApplication(page, context, config);
-  expect(initialState.cookies).toEqual([]);
-  expect(initialState.origins).toEqual([]);
+async function seedDriverIdentity(page, config, token) {
+  // Caller must already have run openFreshApplication() and loginFleetA() on this
+  // page — localStorage is only reachable after a real navigation has happened,
+  // not from the default about:blank document.
   await page.evaluate(({ authId, email, syncUrl, sessionToken, loadsKey }) => {
     localStorage.setItem('fiqD_driver', JSON.stringify({
       crewId: authId,
@@ -95,12 +95,19 @@ test(
     let markedInert = false;
 
     try {
+      const writerInitialState = await openFreshApplication(page, context, config);
+      expect(writerInitialState.cookies).toEqual([]);
+      expect(writerInitialState.origins).toEqual([]);
+      const recoveryInitialState = await openFreshApplication(recoveryPage, recoveryContext, config);
+      expect(recoveryInitialState.cookies).toEqual([]);
+      expect(recoveryInitialState.origins).toEqual([]);
+
       writerToken = (await loginFleetA(page, config)).body.session_token;
       expect(writerToken).toBeTruthy();
       recoveryToken = (await loginFleetA(recoveryPage, config)).body.session_token;
       expect(recoveryToken).toBeTruthy();
 
-      await seedDriverIdentity(page, context, config, writerToken);
+      await seedDriverIdentity(page, config, writerToken);
       observations.push({ step: 'seeded-driver-identity' });
 
       const marker = `${config.displayPrefix}LOAD-01`.slice(0, 40).toUpperCase().replace(/[^A-Z0-9-]/g, '');
