@@ -44,6 +44,27 @@ function loadsStorageKey(crewbiqId) {
   return `fiqD_data_crew_${identitySlug(crewbiqId)}_loads`;
 }
 
+// saveLoad() (loads.js) already fires its own fire-and-forget doSync() call.
+// Calling window.doSync() again immediately can race that in-flight sync and
+// hit its `_syncInProgress` guard, which returns { ok:false, skipped:true,
+// reason:'sync_in_progress' } even though the original sync succeeds moments
+// later — confirmed via the "[CrewBIQ Orchestrator] sync ok" console line
+// still appearing in a run where the explicit call reported skipped. Retry
+// only that specific skip reason; treat anything else as a real result.
+async function forceSyncWithRetry(page, { attempts = 5, retryDelayMs = 1000 } = {}) {
+  let last = null;
+  for (let i = 0; i < attempts; i += 1) {
+    last = await page.evaluate(() => window.doSync({ forceAll: true }));
+    if (last && last.ok) return last;
+    if (last && last.skipped && last.reason === 'sync_in_progress') {
+      await page.waitForTimeout(retryDelayMs);
+      continue;
+    }
+    return last;
+  }
+  return last || { ok: false, reason: 'sync_retry_exhausted' };
+}
+
 async function seedDriverIdentity(page, config, token) {
   // Caller must already have run openFreshApplication() and loginFleetA() on this
   // page — localStorage is only reachable after a real navigation has happened,
@@ -162,7 +183,7 @@ test(
       addedLoadId = localMatch.id;
       observations.push({ step: 'verified-local-add', local_id: addedLoadId });
 
-      const syncResult = await page.evaluate(() => window.doSync({ forceAll: true }));
+      const syncResult = await forceSyncWithRetry(page);
       expect(syncResult && syncResult.ok).toBe(true);
       observations.push({ step: 'forced-sync', sync_ok: true });
 
@@ -184,10 +205,8 @@ test(
     } finally {
       if (addedLoadId) {
         try {
-          const inertSync = await page.evaluate(async id => {
-            window.setLoadStatus(id, 'cancel');
-            return window.doSync({ forceAll: true });
-          }, addedLoadId);
+          await page.evaluate(id => { window.setLoadStatus(id, 'cancel'); }, addedLoadId);
+          const inertSync = await forceSyncWithRetry(page);
           markedInert = !!(inertSync && inertSync.ok);
           observations.push({ cleanup: 'load-marked-cancelled', status: markedInert ? 'complete' : 'best_effort' });
         } catch (error) {
