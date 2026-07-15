@@ -242,6 +242,7 @@
       ...legacyProfile(user, roles),
       loads: Array.isArray(restore.loads) ? restore.loads : [],
       ptiLog: Array.isArray(restore.ptiLog) ? restore.ptiLog : [],
+      disputes: Array.isArray(restore.disputes) ? restore.disputes : [],
       ownerData,
       pay_config: payConfig,
       restoreCounts: restore.counts || {},

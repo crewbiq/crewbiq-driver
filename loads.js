@@ -203,12 +203,30 @@
 
   // ── DISPUTES STORAGE ──────────────────────────────────────────────────────
 
+  // Scoped by driver identity (scopedLoad/scopedSave, defined in index.html)
+  // like loads/ptiLog/expenses — a flat key here would mix disputes across
+  // driver identities that share a device/browser. One-time migration below
+  // (mirrors loadDriverScopedData()'s allowLegacy pattern for loads/ptiLog)
+  // so any disputes already stored under the old flat key before this patch
+  // aren't silently orphaned.
   function getDriverDisputed() {
-    try { return JSON.parse(localStorage.getItem(K + 'disputed') || '[]'); }
-    catch(e) { return []; }
+    if (typeof scopedLoad !== 'function') {
+      try { return JSON.parse(localStorage.getItem(K + 'disputed') || '[]'); }
+      catch(e) { return []; }
+    }
+    let scoped = scopedLoad('disputed', null);
+    if (scoped === null) {
+      try {
+        const legacy = JSON.parse(localStorage.getItem(K + 'disputed') || 'null');
+        scoped = Array.isArray(legacy) ? legacy : [];
+      } catch(e) { scoped = []; }
+      if (typeof scopedSave === 'function') scopedSave('disputed', scoped);
+    }
+    return scoped;
   }
 
   function setDriverDisputed(v) {
+    if (typeof scopedSave === 'function') { scopedSave('disputed', v); return; }
     localStorage.setItem(K + 'disputed', JSON.stringify(v));
   }
 
