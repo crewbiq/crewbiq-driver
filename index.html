@@ -1080,7 +1080,7 @@
           <option value="fuel_receipt">Fuel Receipt (single stop)</option>
           <option value="fuel_invoice">Fuel Invoice (TBC, EFS, Comdata — weekly)</option>
           <option value="service_invoice">Service Invoice</option>
-          <option value="bol">BOL</option>
+          <option value="bol">BOL / Load Assignment</option>
           <option value="other_receipt">Other Receipt</option>
         </select>
       </div>
@@ -3783,7 +3783,8 @@ function applyScanToLoad(){
   setIfPresent('deliveryLocation', f.delivery_location);
   setIfPresent('loadedMiles', f.miles);
   setIfPresent('grossInput', f.gross);
-  setIfPresent('loadNotes', [f.broker, f.notes].filter(Boolean).join(' · '));
+  var refs = [f.pu_number ? 'PU#'+f.pu_number : '', f.po_number ? 'PO#'+f.po_number : ''].filter(Boolean).join(' ');
+  setIfPresent('loadNotes', [f.broker, refs, f.notes].filter(Boolean).join(' · '));
   if(typeof calcPreview === 'function') calcPreview();
   toast('Review load fields, then Save');
 }
