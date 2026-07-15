@@ -10,8 +10,8 @@ export const ROLE_MISSIONS = Object.freeze({
     role: 'driver',
     applicationRole: 'driver',
     tenantAliases: ['A'],
-    specs: ['tests/e2e/staging-auth-restore.spec.mjs', 'tests/e2e/staging-load-lifecycle.spec.mjs', 'tests/e2e/staging-pti-lifecycle.spec.mjs'],
-    journeys: ['AUTH-01', 'AUTH-02', 'RESTORE-01', 'LEGACY-01', 'LOAD-01', 'PTI-01'],
+    specs: ['tests/e2e/staging-auth-restore.spec.mjs', 'tests/e2e/staging-load-lifecycle.spec.mjs', 'tests/e2e/staging-pti-lifecycle.spec.mjs', 'tests/e2e/staging-expenses-lifecycle.spec.mjs'],
+    journeys: ['AUTH-01', 'AUTH-02', 'RESTORE-01', 'LEGACY-01', 'LOAD-01', 'PTI-01', 'EXPENSES-01'],
   }),
   recovery: Object.freeze({
     role: 'recovery',
