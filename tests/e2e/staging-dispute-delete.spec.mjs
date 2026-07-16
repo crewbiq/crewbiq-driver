@@ -47,6 +47,18 @@ function disputesStorageKey(crewbiqId) {
 }
 
 async function seedDriverIdentity(page, config, token) {
+  // The real PWA performs a primary Apps Script sync before the authenticated
+  // PostgreSQL mirror. This protected journey must never mutate Apps Script or
+  // treat the shared-secret Orchestrator endpoint as that primary backend.
+  // Fulfil only the exact synthetic primary URL inside Playwright; the mirror
+  // still reaches the real Orchestrator and must use its Bearer /pwa fallback.
+  const primarySyncUrl = new URL('/__e2e_primary_sync', config.baseUrl).href;
+  await page.route(primarySyncUrl, route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, e2ePrimaryNoop: true }),
+  }));
+
   await page.evaluate(({ authId, email, syncUrl, sessionToken, disputesKey }) => {
     localStorage.setItem('fiqD_driver', JSON.stringify({
       crewId: authId,
@@ -64,7 +76,7 @@ async function seedDriverIdentity(page, config, token) {
   }, {
     authId: config.fleetA.authCrewbiqId,
     email: 'e2e-redacted@example.test',
-    syncUrl: `${config.orchestratorUrl}/v1/sync`,
+    syncUrl: primarySyncUrl,
     sessionToken: token,
     disputesKey: disputesStorageKey(config.fleetA.authCrewbiqId),
   });
