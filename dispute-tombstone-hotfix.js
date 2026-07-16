@@ -55,6 +55,24 @@
       return result || { ok: false, reason: 'sync_in_progress' };
     }
 
+    function postgresAcknowledged(result) {
+      var copy = result && result.orchestratorCopy;
+      return !!(result && result.ok && copy && copy.ok && !copy.skipped);
+    }
+
+    function keepPendingTombstone(id) {
+      var current = rawGet() || [];
+      var index = current.findIndex(function (item) { return item && item.id === id; });
+      if (index < 0) return;
+      current[index] = Object.assign({}, current[index], {
+        status: 'deleted',
+        deletedAt: current[index].deletedAt || new Date().toISOString(),
+        synced: false,
+      });
+      rawSet(current);
+      renderVisibleDisputes();
+    }
+
     async function durableDeleteDispute(id) {
       if (!global.confirm('Delete this dispute?')) return false;
 
@@ -75,7 +93,11 @@
 
       if (global.CrewBIQCore) global.CrewBIQCore.toast('Deleting dispute...');
       var result = await syncWithBusyRetry();
-      if (result && result.ok) {
+      if (postgresAcknowledged(result)) {
+        // PostgreSQL and the event log now retain the monotonic tombstone. The
+        // local copy can be pruned so it does not grow forever.
+        rawSet((rawGet() || []).filter(function (item) { return !item || item.id !== id; }));
+        renderVisibleDisputes();
         if (global.CrewBIQCore) global.CrewBIQCore.toast('Dispute deleted and synced');
         if (global.CrewBIQCore && global.CrewBIQCore.events) {
           global.CrewBIQCore.events.emit('dispute:deleted', { id: id, durable: true });
@@ -83,6 +105,10 @@
         return true;
       }
 
+      // The legacy/cloud leg may already have marked the record synced even when
+      // the PostgreSQL copy failed or was skipped. Restore synced:false so a later
+      // normal sync still carries the tombstone.
+      keepPendingTombstone(id);
       if (global.CrewBIQCore) {
         global.CrewBIQCore.toast('Deletion is pending sync. It will retry when connection returns.', 'warn');
       }
