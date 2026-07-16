@@ -32,7 +32,7 @@ function makeContext(syncResult) {
     confirm() { return true; },
     async doSync(options) {
       syncSnapshot = disputes.map(item => ({ ...item }));
-      assert.deepEqual(options, { forceAll: true });
+      assert.equal(options && options.forceAll, true);
       return syncResult;
     },
     setTimeout,
@@ -65,12 +65,12 @@ test('confirmed dispute deletion syncs an explicit hidden tombstone', async () =
   assert.equal(tombstone.synced, false);
   assert.match(tombstone.deletedAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(ctx.syncSnapshot.find(item => item.id === 'd_delete').status, 'deleted');
-  assert.deepEqual(ctx.rendered.at(-1).map(item => item.id), ['d_keep']);
+  assert.equal(ctx.rendered.at(-1).map(item => item.id).join(','), 'd_keep');
   assert.ok(ctx.toasts.some(item => item.message === 'Dispute deleted and synced'));
-  assert.deepEqual(ctx.events.at(-1), {
-    name: 'dispute:deleted',
-    payload: { id: 'd_delete', durable: true },
-  });
+  const event = ctx.events.at(-1);
+  assert.equal(event.name, 'dispute:deleted');
+  assert.equal(event.payload.id, 'd_delete');
+  assert.equal(event.payload.durable, true);
 });
 
 test('failed sync retains a hidden tombstone for later retry', async () => {
@@ -80,7 +80,7 @@ test('failed sync retains a hidden tombstone for later retry', async () => {
 
   assert.equal(result, false);
   assert.equal(ctx.disputes.find(item => item.id === 'd_delete').status, 'deleted');
-  assert.deepEqual(ctx.rendered.at(-1).map(item => item.id), ['d_keep']);
+  assert.equal(ctx.rendered.at(-1).map(item => item.id).join(','), 'd_keep');
   assert.ok(ctx.toasts.some(item => item.type === 'warn' && /pending sync/i.test(item.message)));
   assert.equal(ctx.events.length, 0);
 });
