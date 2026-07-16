@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.69
+ * CrewBIQ Driver — Service Worker v1.0.70
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v70';
+const CACHE_NAME = 'crewbiq-driver-v71';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
@@ -37,6 +37,7 @@ const APP_SHELL = [
   '/crewbiq-driver/ocr-item-alias-hotfix.js',
   '/crewbiq-driver/ocr-service-invoice-review.js',
   '/crewbiq-driver/service-invoice-legacy-upgrade.js',
+  '/crewbiq-driver/dispute-tombstone-hotfix.js',
   '/crewbiq-driver/sync.js',
   '/crewbiq-driver/pti.js',
   '/crewbiq-driver/loads.js',
@@ -67,7 +68,7 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.68 activated');
+        console.log('[CrewBIQ SW] v1.0.70 activated');
         return self.clients.claim();
       })
   );
