@@ -81,6 +81,13 @@ async function collisionProbe(page, config, token, body) {
   });
 }
 
+async function pendingQueueCount(page) {
+  return page.evaluate(() => {
+    const api = window.CrewBIQOfflineSync;
+    return api && typeof api.pendingCount === 'function' ? api.pendingCount() : -1;
+  });
+}
+
 async function safeRevoke(page, config, token, alias, observations) {
   if (!token) return;
   const response = await revokeSession(page, config, token);
@@ -91,15 +98,15 @@ async function safeRevoke(page, config, token, alias, observations) {
 test(
   'TENANT-ID-01 foreign stable IDs cannot mutate or reassign business rows',
   scenario(
-    'Tenant B receives bounded HTTP 409 when reusing Tenant A manifest-owned truck and load IDs, while both tenants retain their exact pre-probe fleet/load baselines.',
+    'Tenant B receives bounded HTTP 409 when reusing Tenant A manifest-owned truck and load IDs, the permanent rejection is not left in the offline retry queue, and both tenants retain their exact pre-probe fleet/load baselines.',
     [
       'Open clean independent Tenant A and Tenant B contexts.',
       'Login using the exact protected E2E identities.',
       'Capture Tenant A manifest-owned truck and driver-load rows plus both tenant baselines.',
       'Submit a Tenant B truck mutation using Tenant A exact truck ID.',
-      'Require bounded 409 without foreign owner or row details.',
+      'Require bounded normalized 409 without foreign owner or row details and no queued retry.',
       'Submit a Tenant B load mutation using Tenant A exact driver-load record ID.',
-      'Require the same bounded 409 response.',
+      'Require the same bounded terminal response and empty queue.',
       'Re-read both tenants and prove no IDs or target fields changed.',
       'Revoke both scenario sessions.',
     ],
@@ -154,6 +161,10 @@ test(
         crewId: config.fleetB.authCrewbiqId,
         email: 'e2e-redacted@example.test',
       };
+      const boundedClientError = {
+        ok: false,
+        error: 'Entity ID is already owned by another tenant',
+      };
 
       const truckProbe = await collisionProbe(tenantBPage, config, tokenB, {
         record_id: makeRecordId(config, 'TENANT-ID-01', 'truck-collision'),
@@ -173,14 +184,16 @@ test(
         },
       });
       expect(truckProbe.status).toBe(409);
-      expect(truckProbe.body).toEqual({ detail: 'Entity ID is already owned by another tenant' });
+      expect(truckProbe.body).toEqual(boundedClientError);
       expect(JSON.stringify(truckProbe.body)).not.toContain(config.fleetA.ownerCrewbiqId);
       expect(JSON.stringify(truckProbe.body)).not.toContain(targetTruckId);
+      expect(await pendingQueueCount(tenantBPage)).toBe(0);
       observations.push({
         step: 'foreign-truck-id-rejected',
         status: truckProbe.status,
         bounded_detail: true,
         foreign_identifiers_exposed: false,
+        terminal_rejection_queued: false,
       });
 
       const loadProbe = await collisionProbe(tenantBPage, config, tokenB, {
@@ -199,14 +212,16 @@ test(
         ownerData: null,
       });
       expect(loadProbe.status).toBe(409);
-      expect(loadProbe.body).toEqual({ detail: 'Entity ID is already owned by another tenant' });
+      expect(loadProbe.body).toEqual(boundedClientError);
       expect(JSON.stringify(loadProbe.body)).not.toContain(config.fleetA.ownerCrewbiqId);
       expect(JSON.stringify(loadProbe.body)).not.toContain(targetLoadId);
+      expect(await pendingQueueCount(tenantBPage)).toBe(0);
       observations.push({
         step: 'foreign-load-id-rejected',
         status: loadProbe.status,
         bounded_detail: true,
         foreign_identifiers_exposed: false,
+        terminal_rejection_queued: false,
       });
 
       const fleetAAfterResponse = await restoreFleet(page, config, tokenA);
