@@ -23,6 +23,18 @@ test('driver delete writes an explicit inactive tombstone and syncs it', () => {
   assert.doesNotMatch(indexSource, /deleteDriverConfirm[\s\S]{0,900}loadDriverProfiles\(\)\.filter\(function\(x\)\{ return x\.id!==id; \}\)/);
 });
 
+test('truck delete writes an explicit inactive tombstone and syncs it', () => {
+  // Regression test: deleteTruckConfirm() used to only remove the truck from
+  // the local array. Trucks are upsert-only server-side (no delete-on-omission
+  // snapshot semantics), so the server row was never told to deactivate --
+  // confirmed in production, a stale local push resurrected an already-deleted
+  // truck hours after cleanup. Must mirror deleteDriverConfirm()'s fix.
+  assert.match(indexSource, /async function deleteTruckConfirm\(id\)/);
+  assert.match(indexSource, /deleteTruckConfirm[\s\S]{0,1500}active:\s+false/);
+  assert.match(indexSource, /deleteTruckConfirm[\s\S]{0,1500}var synced = await syncFleetConfigMutation\(\)/);
+  assert.doesNotMatch(indexSource, /deleteTruckConfirm[\s\S]{0,1500}loadTrucks\(\)\.filter\(function\(x\)\{ return x\.id!==id; \}\)/);
+});
+
 test('full sync exposes a result for mutation callers', () => {
   assert.match(syncSource, /return \{\s*ok: !dbFailed,/);
   assert.match(syncSource, /return \{ ok: false, error: e\.message \};/);

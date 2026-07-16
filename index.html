@@ -3141,15 +3141,33 @@ function saveTruckForm(){
   toast('Truck saved ✅');
 }
 
-function deleteTruckConfirm(id){
+async function deleteTruckConfirm(id){
   if(!confirm('Delete this truck? Load history is kept.')) return;
-  saveTrucks(loadTrucks().filter(function(x){ return x.id!==id; }));
+  var list = loadTrucks();
+  var idx = list.findIndex(function(x){ return x.id===id; });
+  if(idx < 0){
+    showFleetFormConflict('truck', 'Truck delete conflict: this truck changed or disappeared during restore. Reload/latest data and try again.');
+    return;
+  }
+  // Removing the truck from the local array only hides it on this device --
+  // trucks are upsert-only server-side (no "delete on omission" snapshot
+  // semantics like expenses/deductions have), so the server row was never
+  // told to deactivate and a later restore/pull brought it right back.
+  // Confirmed in production: a stale local truck pushed by a background
+  // sync resurrected an already-deleted row hours after cleanup. Mirrors
+  // deleteDriverConfirm()'s explicit-tombstone-plus-confirmed-sync fix.
+  list[idx] = {
+    ...list[idx],
+    active: false,
+    updatedAt: new Date().toISOString(),
+  };
+  saveTrucks(list);
   closeTruckModal();
   renderTrucksList();
   renderFleetPage();
   renderFleetStats();
-  queueFleetConfigSync();
-  toast('Truck deleted');
+  var synced = await syncFleetConfigMutation();
+  if(synced) toast('Truck deactivated and synced');
 }
 
 function renderTrucksList(){
@@ -3163,9 +3181,16 @@ function renderTrucksList(){
     el.innerHTML = '<div class="empty">No trucks yet. Add your first truck.</div>';
     return;
   }
-  el.innerHTML = trucks.map(function(t){
-    return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)">'+
-      '<div><div style="font-weight:700">Unit '+escHtml(t.unitNumber)+(t.make?' · '+escHtml(t.make)+(t.model?' '+escHtml(t.model):''):'')+'</div>'+
+  var active   = trucks.filter(function(t){ return t.active !== false; });
+  var inactive = trucks.filter(function(t){ return t.active === false; });
+  var sorted   = active.concat(inactive);
+  el.innerHTML = sorted.map(function(t){
+    var isActive = t.active !== false;
+    var statusBadge = isActive
+      ? ''
+      : ' <span style="font-size:10px;color:var(--rd);font-weight:700">🔴 Deleted</span>';
+    return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);'+(isActive?'':'opacity:.65')+'">'+
+      '<div><div style="font-weight:700">Unit '+escHtml(t.unitNumber)+(t.make?' · '+escHtml(t.make)+(t.model?' '+escHtml(t.model):''):'')+statusBadge+'</div>'+
       '<div class="muted" style="font-size:11px">'+
         (t.company?escHtml(t.company):'')+(t.mc?' · '+escHtml(t.mc):'')+(t.dispatchPercent?' · Dispatch: '+t.dispatchPercent+'%':'')+
       '</div></div>'+
@@ -4593,7 +4618,7 @@ document.addEventListener('change', function(e){
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    const serviceWorkerUrl = new URL('sw.js?v=20260710-restore-ocr', document.baseURI).href;
+    const serviceWorkerUrl = new URL('sw.js?v=20260715-realnet-fix', document.baseURI).href;
     navigator.serviceWorker.register(serviceWorkerUrl)
       .then(r => console.log('[CrewBIQ] SW registered:', r.scope))
       .catch(e => console.warn('[CrewBIQ] SW error:', e));
