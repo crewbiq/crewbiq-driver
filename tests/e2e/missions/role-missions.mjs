@@ -34,8 +34,11 @@ export const ROLE_MISSIONS = Object.freeze({
     role: 'security',
     applicationRole: 'fleet',
     tenantAliases: ['A', 'B'],
-    specs: ['tests/e2e/staging-tenant-isolation.spec.mjs'],
-    journeys: ['TENANT-01'],
+    specs: [
+      'tests/e2e/staging-tenant-isolation.spec.mjs',
+      'tests/e2e/staging-tenant-id-collision.spec.mjs',
+    ],
+    journeys: ['TENANT-01', 'TENANT-ID-01'],
   }),
 });
 
