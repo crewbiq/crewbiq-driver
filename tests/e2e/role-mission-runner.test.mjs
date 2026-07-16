@@ -25,8 +25,9 @@ test('all missions produce a deduplicated safe runner environment', () => {
   assert.equal(env.testerRole, 'ai-browser-mission-runner');
   assert.equal(env.applicationRole, 'multi-role');
   assert.equal(env.tenantAliases, 'A,B');
-  assert.equal(env.specs.length, 9);
+  assert.equal(env.specs.length, 10);
   assert.ok(env.journeys.includes('TENANT-01'));
+  assert.ok(env.journeys.includes('TENANT-ID-01'));
   assert.ok(env.journeys.includes('DISPUTE-DELETE-01'));
 });
 
