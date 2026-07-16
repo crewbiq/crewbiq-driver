@@ -16,6 +16,7 @@ on:
       - ocr-item-alias-hotfix.js
       - ocr-service-invoice-review.js
       - service-invoice-legacy-upgrade.js
+      - dispute-tombstone-hotfix.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/offline_sync_queue.test.mjs
@@ -28,6 +29,7 @@ on:
       - tests/ocr_defd_alias.test.mjs
       - tests/ocr_service_invoice_review.test.mjs
       - tests/service_invoice_legacy_upgrade.test.mjs
+      - tests/dispute_tombstone_hotfix.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -46,6 +48,7 @@ on:
       - ocr-item-alias-hotfix.js
       - ocr-service-invoice-review.js
       - service-invoice-legacy-upgrade.js
+      - dispute-tombstone-hotfix.js
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/offline_sync_queue.test.mjs
@@ -58,6 +61,7 @@ on:
       - tests/ocr_defd_alias.test.mjs
       - tests/ocr_service_invoice_review.test.mjs
       - tests/service_invoice_legacy_upgrade.test.mjs
+      - tests/dispute_tombstone_hotfix.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -110,6 +114,9 @@ jobs:
       - name: Run legacy service invoice upgrade contract
         run: node tests/service_invoice_legacy_upgrade.test.mjs
 
+      - name: Run durable dispute deletion contract
+        run: node tests/dispute_tombstone_hotfix.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
@@ -124,9 +131,11 @@ jobs:
           grep -q "ocr-item-alias-hotfix.js" core.js
           grep -q "ocr-service-invoice-review.js" core.js
           grep -q "service-invoice-legacy-upgrade.js" core.js
-          grep -q "crewbiq-driver-v70" sw.js
+          grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
+          grep -q "crewbiq-driver-v71" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
           grep -q "service-invoice-legacy-upgrade.js" sw.js
+          grep -q "dispute-tombstone-hotfix.js" sw.js
           grep -q "railway.app" sw.js
