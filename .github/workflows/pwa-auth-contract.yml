@@ -20,6 +20,7 @@ on:
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/offline_sync_queue.test.mjs
+      - tests/offline_sync_terminal_409.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
@@ -52,6 +53,7 @@ on:
       - sw.js
       - tests/orchestrator_transport.test.mjs
       - tests/offline_sync_queue.test.mjs
+      - tests/offline_sync_terminal_409.test.mjs
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
@@ -87,6 +89,9 @@ jobs:
       - name: Run durable offline queue contract
         run: node tests/offline_sync_queue.test.mjs
 
+      - name: Run terminal 409 queue contract
+        run: node tests/offline_sync_terminal_409.test.mjs
+
       - name: Run complete restore and expense contract
         run: node tests/full_restore_transport.test.mjs
 
@@ -120,7 +125,7 @@ jobs:
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
-          grep -q "offline-sync-queue.js?v=20260713-offline-sync-v1" core.js
+          grep -q "offline-sync-queue.js?v=20260716-offline-sync-v2" core.js
           grep -q "restore-hotfix.js" core.js
           grep -q "settings-hotfix.js" core.js
           grep -q "owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2" core.js
@@ -132,7 +137,7 @@ jobs:
           grep -q "ocr-service-invoice-review.js" core.js
           grep -q "service-invoice-legacy-upgrade.js" core.js
           grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
-          grep -q "crewbiq-driver-v71" sw.js
+          grep -q "crewbiq-driver-v72" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
