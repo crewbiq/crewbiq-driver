@@ -6,8 +6,12 @@ export const ROLE_MISSIONS = Object.freeze({
     specs: [
       'tests/e2e/staging-fleet-integrity.spec.mjs',
       'tests/e2e/staging-deduction-period-v2.spec.mjs',
+      'tests/e2e/staging-deduction-week-exception.spec.mjs',
     ],
-    journeys: ['DEVICE-01', 'EDIT-01', 'RESTORE-02', 'DRIVER-CRUD-01', 'DEDUCTION-PERIOD-01'],
+    journeys: [
+      'DEVICE-01', 'EDIT-01', 'RESTORE-02', 'DRIVER-CRUD-01',
+      'DEDUCTION-PERIOD-01', 'DEDUCTION-WEEK-OFF-01',
+    ],
   }),
   driver: Object.freeze({
     role: 'driver',
