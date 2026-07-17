@@ -94,7 +94,11 @@
       '<select id="tfSettlementWeekEnd">' +
         '<option value="legacy">Current default · Sunday (Mon–Sun)</option>' +
         DAY_LABELS.map(function (label, day) {
-          return '<option value="' + day + '">' + label + '</option>';
+          // Custom Sunday cannot be distinguished by the current PostgreSQL
+          // writer because numeric zero is its falsey fallback. The legacy
+          // option already represents Sunday safely, so expose Monday-Saturday
+          // as explicit custom calendars.
+          return day === LEGACY_WEEK_END_DAY ? '' : '<option value="' + day + '">' + label + '</option>';
         }).join('') +
       '</select>' +
       '<div class="muted" style="font-size:10px;margin-top:3px">' +
@@ -112,6 +116,9 @@
       select.value = truck && text(truck.weekType).toLowerCase() === 'custom'
         ? String(normalizeDay(truck.weekEndDay, LEGACY_WEEK_END_DAY))
         : 'legacy';
+      // Defensive repair for impossible/custom Sunday state: keep the UI on the
+      // safe legacy option rather than presenting an option that is not emitted.
+      if (!select.value) select.value = 'legacy';
     }
   }
 
