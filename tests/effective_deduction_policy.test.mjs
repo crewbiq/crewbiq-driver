@@ -23,9 +23,16 @@ vm.runInNewContext(
   context,
   { filename: 'deduction-policy-hotfix.js' },
 );
+vm.runInNewContext(
+  fs.readFileSync(new URL('../deduction-period-hotfix.js', import.meta.url), 'utf8'),
+  context,
+  { filename: 'deduction-period-hotfix.js' },
+);
 
 const api = context.CrewBIQDeductionPolicies;
+const periods = context.CrewBIQDeductionPeriods;
 assert.equal(api.version, '0.1.0');
+assert.equal(periods.version, '0.2.0');
 
 const initial = [
   {
@@ -125,5 +132,64 @@ assert.equal(sameDateUpdate.updated, true);
 assert.equal(sameDateUpdate.templates.length, 4);
 assert.equal(sameDateUpdate.policy.amount, 525);
 assert.equal(api.effectivePolicies(sameDateUpdate.templates, 'truck_1919', '2026-07-20')[0].amount, 525);
+
+// Explicit End Date is retained and the earlier version closes automatically.
+const explicitEnd = periods.versionPolicy(initial, {
+  truckId: 'truck_1919',
+  unitNumber: '1919',
+  company: 'Carrier C',
+  name: 'Insurance',
+  amount: 500,
+  category: 'insurance',
+  effectiveFrom: '2026-07-15',
+  effectiveTo: '2026-07-31',
+});
+assert.equal(explicitEnd.ok, true);
+assert.equal(explicitEnd.policy.effectiveFrom, '2026-07-15');
+assert.equal(explicitEnd.policy.effectiveTo, '2026-07-31');
+assert.equal(explicitEnd.templates.find(item => item.id === 'dt_1919_ins_v1').effectiveTo, '2026-07-14');
+assert.equal(explicitEnd.templates.find(item => item.id === 'dt_1010_ins_v1').effectiveTo, '');
+
+// End Date before Start Date is rejected without changing the supplied history.
+const invalid = periods.versionPolicy(initial, {
+  truckId: 'truck_1919',
+  name: 'ELD',
+  amount: 50,
+  category: 'equipment',
+  effectiveFrom: '2026-08-01',
+  effectiveTo: '2026-07-31',
+});
+assert.equal(invalid.ok, false);
+assert.equal(invalid.reason, 'end_before_start');
+assert.equal(invalid.templates.length, initial.length);
+
+// A version inserted before an already-planned future version cannot overlap it.
+const withFuture = initial.concat([{
+  id: 'dt_1919_ins_v3',
+  policyId: 'dp_1919_ins',
+  version: 3,
+  truckId: 'truck_1919',
+  unitNumber: '1919',
+  company: 'Carrier D',
+  name: 'Insurance',
+  amount: 600,
+  category: 'insurance',
+  effectiveFrom: '2026-08-01',
+  effectiveTo: '',
+}]);
+const inserted = periods.versionPolicy(withFuture, {
+  truckId: 'truck_1919',
+  unitNumber: '1919',
+  company: 'Carrier C',
+  name: 'Insurance',
+  amount: 500,
+  category: 'insurance',
+  effectiveFrom: '2026-07-15',
+  effectiveTo: '2026-08-10',
+});
+assert.equal(inserted.ok, true);
+assert.equal(inserted.policy.effectiveTo, '2026-07-31');
+assert.equal(inserted.templates.find(item => item.id === 'dt_1919_ins_v1').effectiveTo, '2026-07-14');
+assert.equal(inserted.templates.find(item => item.id === 'dt_1919_ins_v3').effectiveFrom, '2026-08-01');
 
 console.log('Effective deduction policy contract: ok');
