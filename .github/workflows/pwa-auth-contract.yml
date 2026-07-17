@@ -11,6 +11,7 @@ on:
       - owner-snapshot-hotfix.js
       - deduction-policy-hotfix.js
       - deduction-period-hotfix.js
+      - deduction-trip-resolution.js
       - deduction-policy-ui-fix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
@@ -26,6 +27,7 @@ on:
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
       - tests/effective_deduction_policy.test.mjs
+      - tests/deduction_trip_resolution.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
       - tests/ocr_invoice_review.test.mjs
       - tests/ocr_defd_alias.test.mjs
@@ -45,6 +47,7 @@ on:
       - owner-snapshot-hotfix.js
       - deduction-policy-hotfix.js
       - deduction-period-hotfix.js
+      - deduction-trip-resolution.js
       - deduction-policy-ui-fix.js
       - ocr-hotfix.js
       - ocr-invoice-review.js
@@ -60,6 +63,7 @@ on:
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
       - tests/effective_deduction_policy.test.mjs
+      - tests/deduction_trip_resolution.test.mjs
       - tests/ocr_authenticated_transport.test.mjs
       - tests/ocr_invoice_review.test.mjs
       - tests/ocr_defd_alias.test.mjs
@@ -106,6 +110,9 @@ jobs:
       - name: Run effective truck deduction policy contract
         run: node tests/effective_deduction_policy.test.mjs
 
+      - name: Run trip-date deduction settlement contract
+        run: node tests/deduction_trip_resolution.test.mjs
+
       - name: Run authenticated OCR transport contract
         run: node tests/ocr_authenticated_transport.test.mjs
 
@@ -133,6 +140,7 @@ jobs:
           grep -q "owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2" core.js
           grep -q "deduction-policy-hotfix.js" core.js
           grep -q "deduction-period-hotfix.js?v=20260717-deduction-period-v1" core.js
+          grep -q "deduction-trip-resolution.js?v=20260717-deduction-trip-v1" core.js
           grep -q "deduction-policy-ui-fix.js" core.js
           grep -q "ocr-hotfix.js" core.js
           grep -q "ocr-invoice-review.js" core.js
@@ -140,10 +148,11 @@ jobs:
           grep -q "ocr-service-invoice-review.js" core.js
           grep -q "service-invoice-legacy-upgrade.js" core.js
           grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
-          grep -q "crewbiq-driver-v73" sw.js
+          grep -q "crewbiq-driver-v74" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "deduction-period-hotfix.js" sw.js
+          grep -q "deduction-trip-resolution.js" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
           grep -q "service-invoice-legacy-upgrade.js" sw.js
           grep -q "dispute-tombstone-hotfix.js" sw.js
