@@ -4,8 +4,8 @@ import {
   attachSafeObservations,
   clone,
   loginFleetA,
+  makeRecordId,
   openFreshApplication,
-  pushOwnerData,
   restoreFleet,
   restorePwa,
   revokeSession,
@@ -52,21 +52,43 @@ function withoutStaleTestPolicies(templates) {
   ));
 }
 
-async function writeTemplateSnapshot(page, config, token, templates, phase) {
-  const response = await pushOwnerData(
-    page,
-    config,
-    token,
+async function writeTemplateSnapshot(requestContext, config, token, templates, phase) {
+  // Use Playwright's APIRequestContext rather than window.fetch. The production
+  // owner-snapshot durability adapter intentionally overlays every browser sync
+  // request with pending local state; that is correct for users, but it would
+  // replace this controlled rollback payload with the two policies still stored
+  // in the test page. A direct authenticated API request proves the server
+  // contract without disabling the real UI adapter used to create the policies.
+  const response = await requestContext.post(
+    new URL('/v1/sync/pwa', `${config.orchestratorUrl}/`).href,
     {
-      snapshotEntities: ['deductionTemplates'],
-      deductionTemplates: clone(templates),
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      data: {
+        record_id: makeRecordId(config, 'DEDUCTION-PERIOD-01', phase),
+        type: 'driver_report',
+        deviceId: `e2e-deduction-period-01-${phase}`,
+        driver: {
+          crewId: config.fleetA.authCrewbiqId,
+          email: 'e2e-redacted@example.test',
+        },
+        loads: [],
+        ptiLog: [],
+        ownerData: {
+          snapshotEntities: ['deductionTemplates'],
+          deductionTemplates: clone(templates),
+        },
+      },
     },
-    'DEDUCTION-PERIOD-01',
-    phase,
   );
-  expect(response.status, `${phase}: HTTP ${response.status}`).toBe(200);
-  expect(response.body?.ok, `${phase}: ${response.body?.error || response.body?.reason || 'server rejected snapshot'}`).toBe(true);
-  return response;
+  const status = response.status();
+  let body = {};
+  try { body = await response.json(); } catch { body = { nonJsonResponse: true }; }
+  expect(status, `${phase}: HTTP ${status}`).toBe(200);
+  expect(body?.ok, `${phase}: ${body?.error || body?.reason || 'server rejected snapshot'}`).toBe(true);
+  return { status, ok: response.ok(), body };
 }
 
 async function seedFleetOwnerUi(page, config, token, ownerData) {
@@ -173,7 +195,7 @@ test(
       baselineOwner.deductionTemplates = clone(baselineTemplates);
 
       // Clean a possible leftover from an interrupted earlier E2E run.
-      await writeTemplateSnapshot(page, config, writerToken, baselineTemplates, 'preflight-clean');
+      await writeTemplateSnapshot(context.request, config, writerToken, baselineTemplates, 'preflight-clean');
       await seedFleetOwnerUi(page, config, writerToken, baselineOwner);
       policyName = uniquePolicyName(config);
 
@@ -184,7 +206,7 @@ test(
         company: 'E2E Carrier A',
         startDate: '2026-06-01',
       });
-      await writeTemplateSnapshot(page, config, writerToken, templates, 'first-period');
+      await writeTemplateSnapshot(context.request, config, writerToken, templates, 'first-period');
 
       const firstRestore = await restorePwa(recoveryPage, config, recoveryToken);
       expect(firstRestore.status).toBe(200);
@@ -202,7 +224,7 @@ test(
         company: 'E2E Carrier B',
         startDate: '2026-07-15',
       });
-      await writeTemplateSnapshot(page, config, writerToken, templates, 'second-period');
+      await writeTemplateSnapshot(context.request, config, writerToken, templates, 'second-period');
 
       const finalRestore = await restorePwa(recoveryPage, config, recoveryToken);
       expect(finalRestore.status).toBe(200);
@@ -245,7 +267,7 @@ test(
       if (writerToken) {
         try {
           const cleanup = await writeTemplateSnapshot(
-            page, config, writerToken, baselineTemplates, 'rollback',
+            context.request, config, writerToken, baselineTemplates, 'rollback',
           );
           observations.push({ cleanup: 'baseline-restored', status: cleanup.status });
           if (recoveryToken && policyName) {
