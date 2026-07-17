@@ -1,4 +1,4 @@
-/** CrewBIQ Core loader v0.3.5 */
+/** CrewBIQ Core loader v0.3.6 */
 (function () {
   'use strict';
   function load(src) {
@@ -11,6 +11,7 @@
   load('owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2');
   load('deduction-policy-hotfix.js?v=20260713-deduction-policy-v1');
   load('deduction-period-hotfix.js?v=20260717-deduction-period-v1');
+  load('deduction-trip-resolution.js?v=20260717-deduction-trip-v1');
   load('deduction-policy-ui-fix.js?v=20260713-deduction-policy-ui-v1');
   load('ocr-hotfix.js?v=20260712-ocr-auth-v1');
   load('ocr-invoice-review.js?v=20260712-ocr-invoice-v2');
