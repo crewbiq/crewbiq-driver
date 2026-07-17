@@ -35,6 +35,8 @@ const calendar = context.CrewBIQSettlementWeek;
 const api = context.CrewBIQDeductionTripResolution;
 assert.equal(calendar.version, '0.1.0');
 assert.equal(api.version, '0.2.0');
+assert.equal(calendar.configuredWeekEndDay({ weekType: 'custom', weekEndDay: 4 }), 4);
+assert.equal(calendar.configuredWeekEndDay({ weekType: 'amazon', weekEndDay: 6 }), 0);
 
 const truck = {
   id: 'truck_1919',
