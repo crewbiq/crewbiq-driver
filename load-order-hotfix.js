@@ -1,20 +1,36 @@
 /**
- * CrewBIQ load chronology hotfix v0.1.0
+ * CrewBIQ load chronology and restored-edit hotfix v0.2.0
  *
- * The canonical load date remains pickup-first. Older/imported records that do
- * not contain a pickup date fall back to their delivery date instead of being
- * assigned an empty sort key and collecting at the bottom of the list.
+ * Chronology:
+ * - pickup remains the canonical load date;
+ * - older/imported records without pickup fall back to delivery;
+ * - restored lists are sorted on read without rewriting storage.
  *
- * This file loads before loads.js, so it intercepts CrewBIQLoads assignment and
- * wraps init() before the application supplies its load accessors.
+ * Editing:
+ * - PostgreSQL/legacy restores may return monetary fields as strings;
+ * - loads.js historically called `.toFixed()` directly on those values, so the
+ *   pencil button aborted before opening the form;
+ * - this adapter normalizes the selected in-memory record immediately before
+ *   edit and assigns an ID to an id-less legacy record for safe replacement.
+ *
+ * This file loads before loads.js and intercepts both CrewBIQLoads and the
+ * backwards-compatible global editLoad assignment.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.0';
+  const state = {
+    getLoads: () => [],
+    setLoads: () => {},
+  };
+
+  function text(value) {
+    return String(value == null ? '' : value).trim();
+  }
 
   function normalizeDate(value) {
-    const raw = String(value == null ? '' : value).trim();
+    const raw = text(value);
     if (!raw) return '';
 
     const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -56,6 +72,90 @@
       .map(item => item.load);
   }
 
+  function loadKey(load) {
+    return text(load && (load.id || load.loadId || load.record_id || load.key));
+  }
+
+  function isLoadMatch(load, key) {
+    const wanted = text(key);
+    if (!wanted || !load) return false;
+    return [load.id, load.loadId, load.record_id, load.key]
+      .some(value => text(value) === wanted) || loadKey(load) === wanted;
+  }
+
+  function stableLegacyId(load) {
+    const raw = loadKey(load) || [
+      loadDateKey(load),
+      text(load && load.unitNumber),
+      text(load && load.gross),
+    ].filter(Boolean).join('_') || String(Date.now());
+    const slug = raw.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80);
+    return 'l_' + (slug || Date.now());
+  }
+
+  function finiteNumber(value, fallback = 0) {
+    if (value === '' || value == null) return fallback;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function normalizeEditableLoad(load) {
+    if (!load || typeof load !== 'object') return load;
+    return {
+      ...load,
+      id: text(load.id) || stableLegacyId(load),
+      gross: finiteNumber(load.gross),
+      loadedMiles: finiteNumber(load.loadedMiles),
+      deadMiles: finiteNumber(load.deadMiles),
+      totalMiles: finiteNumber(
+        load.totalMiles,
+        finiteNumber(load.loadedMiles) + finiteNumber(load.deadMiles),
+      ),
+      driverPay: finiteNumber(load.driverPay),
+      detention: finiteNumber(load.detention),
+      layover: finiteNumber(load.layover),
+      adjAmount: finiteNumber(load.adjAmount),
+    };
+  }
+
+  function prepareLoadForEdit(key) {
+    const loads = Array.isArray(state.getLoads()) ? state.getLoads() : [];
+    const index = loads.findIndex(load => isLoadMatch(load, key));
+    if (index < 0) return text(key);
+
+    const current = loads[index];
+    const normalized = normalizeEditableLoad(current);
+    const changed = Object.keys(normalized).some(name => normalized[name] !== current[name]);
+    if (changed) {
+      const next = loads.slice();
+      next[index] = normalized;
+      state.setLoads(sortLoadsByDate(next));
+    }
+    return normalized.id || text(key);
+  }
+
+  function wrapEditFunction(original) {
+    if (typeof original !== 'function' || original.__crewbiqRestoredEditWrapped) return original;
+    const wrapped = function (key) {
+      const preparedKey = prepareLoadForEdit(key);
+      try {
+        return original.call(this, preparedKey);
+      } catch (error) {
+        console.error('[CrewBIQ Loads] Could not open restored load for edit:', error);
+        if (typeof global.toast === 'function') {
+          global.toast('Could not open this load for editing. Refresh and try again.', 'err');
+        }
+        return false;
+      }
+    };
+    wrapped.__crewbiqRestoredEditWrapped = true;
+    wrapped.__crewbiqOriginal = original;
+    return wrapped;
+  }
+
   function wrapApi(api) {
     if (!api || typeof api.init !== 'function' || api.init.__crewbiqLoadOrderWrapped) return api;
 
@@ -68,6 +168,9 @@
         ? options.setLoads
         : () => {};
 
+      state.getLoads = rawGetLoads;
+      state.setLoads = rawSetLoads;
+
       return originalInit.call(this, {
         ...options,
         // Sorting on read repairs display order immediately after restore/import
@@ -79,35 +182,45 @@
     };
     wrappedInit.__crewbiqLoadOrderWrapped = true;
     api.init = wrappedInit;
+    if (typeof api.editLoad === 'function') api.editLoad = wrapEditFunction(api.editLoad);
     api.loadDateKey = loadDateKey;
     api.sortLoadsByDate = sortLoadsByDate;
+    api.normalizeEditableLoad = normalizeEditableLoad;
+    api.prepareLoadForEdit = prepareLoadForEdit;
     api.loadOrderVersion = VERSION;
     return api;
   }
 
-  const existingDescriptor = Object.getOwnPropertyDescriptor(global, 'CrewBIQLoads');
-  if (existingDescriptor && existingDescriptor.configurable === false) {
-    wrapApi(global.CrewBIQLoads);
-  } else {
-    let current = global.CrewBIQLoads;
-    Object.defineProperty(global, 'CrewBIQLoads', {
+  function installIntercept(name, wrapper) {
+    const descriptor = Object.getOwnPropertyDescriptor(global, name);
+    if (descriptor && descriptor.configurable === false) {
+      if (global[name]) global[name] = wrapper(global[name]);
+      return;
+    }
+
+    let current = global[name];
+    Object.defineProperty(global, name, {
       configurable: true,
       enumerable: true,
       get() { return current; },
-      set(value) {
-        current = wrapApi(value);
-      },
+      set(value) { current = wrapper(value); },
     });
-    if (current) current = wrapApi(current);
+    if (current) current = wrapper(current);
   }
+
+  installIntercept('CrewBIQLoads', wrapApi);
+  installIntercept('editLoad', wrapEditFunction);
 
   global.CrewBIQLoadOrder = {
     version: VERSION,
     normalizeDate,
     loadDateKey,
     sortLoadsByDate,
+    normalizeEditableLoad,
+    prepareLoadForEdit,
+    wrapEditFunction,
     wrapApi,
   };
 
-  console.info('[CrewBIQ Loads] chronology hotfix v' + VERSION + ' loaded');
+  console.info('[CrewBIQ Loads] chronology/restored-edit hotfix v' + VERSION + ' loaded');
 })(window);
