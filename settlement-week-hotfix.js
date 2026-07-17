@@ -116,8 +116,6 @@
       select.value = truck && text(truck.weekType).toLowerCase() === 'custom'
         ? String(normalizeDay(truck.weekEndDay, LEGACY_WEEK_END_DAY))
         : 'legacy';
-      // Defensive repair for impossible/custom Sunday state: keep the UI on the
-      // safe legacy option rather than presenting an option that is not emitted.
       if (!select.value) select.value = 'legacy';
     }
   }
@@ -136,9 +134,6 @@
     const selected = text((document && document.getElementById('tfSettlementWeekEnd') || {}).value) || 'legacy';
     if (!unit) return previous.saveTruckForm.apply(this, arguments);
 
-    // The original form saves and immediately queues sync. Intercept those
-    // intermediate queue calls, enrich the just-saved truck with its calendar,
-    // then schedule sync for the complete final record.
     const queue = global.queueFleetConfigSync;
     if (typeof queue === 'function') global.queueFleetConfigSync = function () {};
 
@@ -166,8 +161,6 @@
     }
 
     global.saveTrucks(trucks);
-    // queueFleetConfigSync is debounced, so this explicit final call is safe even
-    // when saveTrucks also queues internally and guarantees the enriched record wins.
     if (typeof queue === 'function') queue();
     if (typeof global.renderTrucksList === 'function') global.renderTrucksList();
     return result;
