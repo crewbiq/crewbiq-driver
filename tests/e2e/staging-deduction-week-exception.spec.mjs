@@ -183,8 +183,8 @@ async function localWeekly(page) {
   });
 }
 
-async function clickConfirm(button, action, expectedText) {
-  const dialogPromise = button.page().waitForEvent('dialog');
+async function clickConfirm(page, button, action, expectedText) {
+  const dialogPromise = page.waitForEvent('dialog');
   const clickPromise = button.click();
   const dialog = await dialogPromise;
   const message = dialog.message();
@@ -263,13 +263,13 @@ test(
       const skipButton = page.getByRole('button', { name: 'Skip deductions for this week' });
       await expect(skipButton).toBeVisible();
 
-      const cancelMessage = await clickConfirm(skipButton, 'dismiss', 'Skip all deductions');
+      const cancelMessage = await clickConfirm(page, skipButton, 'dismiss', 'Skip all deductions');
       expect(cancelMessage).toContain(`${period.start} – ${period.end}`);
       const afterCancel = await localWeek(page, truckId, period.start);
       expect(Number(afterCancel?.total)).toBe(450);
       expect(afterCancel?.items?.[0]?.category).toBe('insurance');
 
-      const acceptMessage = await clickConfirm(skipButton, 'accept', 'replaced by $0');
+      const acceptMessage = await clickConfirm(page, skipButton, 'accept', 'replaced by $0');
       expect(acceptMessage).toContain(`${period.start} – ${period.end}`);
       await expect(page.getByText('Week off · deductions $0')).toBeVisible();
 
@@ -291,7 +291,7 @@ test(
 
       const restoreButton = page.getByRole('button', { name: 'Restore deductions for this week' });
       await expect(restoreButton).toBeVisible();
-      const restoreMessage = await clickConfirm(restoreButton, 'accept', 'Restore deductions');
+      const restoreMessage = await clickConfirm(page, restoreButton, 'accept', 'Restore deductions');
       expect(restoreMessage).toContain(`${period.start} – ${period.end}`);
 
       const restoredLocal = await localWeek(page, truckId, period.start);
