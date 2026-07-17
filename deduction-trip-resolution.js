@@ -1,22 +1,29 @@
 /**
- * CrewBIQ trip-date deduction resolution v0.1.0
+ * CrewBIQ settlement-date deduction resolution v0.2.0
  *
- * Resolves the deduction policy version that applies to every load date and
- * derives deterministic weekly settlement candidates without multiplying a
- * weekly policy by the number of loads. Existing weekly snapshots remain the
- * immutable accounting source of truth for their week.
+ * Loads are grouped into the truck/company settlement calendar. One policy
+ * version per lineage is selected on the configured settlement-week end date,
+ * so a mid-week Start Date never charges both old and new weekly amounts.
+ * Existing weekly snapshots remain immutable and always suppress auto charges.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.0';
 
   function clone(value) {
     try { return JSON.parse(JSON.stringify(value)); } catch (e) { return value; }
   }
 
-  function text(value) { return String(value || '').trim(); }
+  function text(value) { return String(value == null ? '' : value).trim(); }
   function dateText(value) { return text(value).slice(0, 10); }
+
+  function addDays(value, amount) {
+    const date = new Date(dateText(value) + 'T12:00:00Z');
+    if (Number.isNaN(date.getTime())) return '';
+    date.setUTCDate(date.getUTCDate() + Number(amount || 0));
+    return date.toISOString().slice(0, 10);
+  }
 
   function tripDate(load) {
     return dateText(load && (
@@ -25,19 +32,38 @@
     ));
   }
 
-  function weekKey(value) {
-    const date = dateText(value);
-    if (!date) return '';
-    if (typeof global.getWeekKey === 'function') {
-      const resolved = dateText(global.getWeekKey(date));
-      if (resolved) return resolved;
+  function fallbackWeekEndDay(truck) {
+    if (truck && text(truck.weekType).toLowerCase() === 'custom') {
+      const parsed = Number(truck.weekEndDay);
+      if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 6) return parsed;
     }
-    const parsed = new Date(date + 'T12:00:00Z');
-    if (Number.isNaN(parsed.getTime())) return '';
-    const day = parsed.getUTCDay();
-    const delta = day === 0 ? -6 : 1 - day;
-    parsed.setUTCDate(parsed.getUTCDate() + delta);
-    return parsed.toISOString().slice(0, 10);
+    return 0; // Existing PWA behavior: Monday-Sunday.
+  }
+
+  function settlementPeriod(value, truck) {
+    const api = global.CrewBIQSettlementWeek;
+    if (api && typeof api.periodForDate === 'function') return api.periodForDate(value, truck);
+
+    const date = new Date(dateText(value) + 'T12:00:00Z');
+    if (Number.isNaN(date.getTime())) {
+      return { weekType: 'legacy', weekEndDay: 0, weekEndDayLabel: 'Sunday', start: '', end: '' };
+    }
+    const weekEndDay = fallbackWeekEndDay(truck);
+    const delta = (weekEndDay - date.getUTCDay() + 7) % 7;
+    date.setUTCDate(date.getUTCDate() + delta);
+    const end = date.toISOString().slice(0, 10);
+    return {
+      weekType: truck && text(truck.weekType).toLowerCase() === 'custom' ? 'custom' : 'legacy',
+      weekEndDay,
+      weekEndDayLabel: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][weekEndDay],
+      start: addDays(end, -6),
+      end,
+    };
+  }
+
+  function weekKey(value, weekEndDay) {
+    const pseudoTruck = { weekType: 'custom', weekEndDay };
+    return settlementPeriod(value, pseudoTruck).start;
   }
 
   function policyId(policy) {
@@ -56,6 +82,14 @@
     return dateText(policy && (policy.effectiveTo || policy.effective_to));
   }
 
+  function policyLineage(policy, truckId) {
+    return policyId(policy) || [
+      text(truckId || (policy && policy.truckId)),
+      text(policy && policy.name).toLowerCase(),
+      text(policy && policy.category).toLowerCase(),
+    ].join('|');
+  }
+
   function fallbackEffectivePolicies(templates, truckId, targetDate) {
     const target = dateText(targetDate);
     const selected = new Map();
@@ -65,9 +99,7 @@
       const end = policyEnd(policy);
       if (target && start > target) return;
       if (target && end && end < target) return;
-      const lineage = policyId(policy) || [
-        text(policy.truckId), text(policy.name).toLowerCase(), text(policy.category).toLowerCase(),
-      ].join('|');
+      const lineage = policyLineage(policy, truckId);
       const current = selected.get(lineage);
       if (!current || policyStart(current) < start || (
         policyStart(current) === start && Number(current.version || 0) <= Number(policy.version || 0)
@@ -107,12 +139,15 @@
   function resolveLoad(load, truck, templates, index) {
     const date = tripDate(load);
     const truckId = text(truck && truck.id) || text(load && load.truckId);
+    const period = settlementPeriod(date, truck);
     const policies = date && truckId ? effectivePolicies(templates, truckId, date) : [];
     const items = policies.map(function (policy) { return snapshotItem(policy, truck); });
     return {
       loadId: loadIdentity(load, index || 0),
       tripDate: date,
-      weekKey: weekKey(date),
+      weekKey: period.start,
+      settlementDate: period.end,
+      weekEndDay: period.weekEndDay,
       truckId,
       unitNumber: text((truck && truck.unitNumber) || (load && load.unitNumber)),
       gap: !items.length,
@@ -125,10 +160,31 @@
     return text(snapshot && snapshot.truckId) === text(truckId);
   }
 
-  function versionKey(item) {
-    return text(item.policyVersionId) || [
-      text(item.policyId), text(item.effectiveFrom), text(item.effectiveTo), String(Number(item.amount || 0)),
-    ].join('|');
+  function recordPeriod(snapshot) {
+    const start = dateText(snapshot && snapshot.weekKey);
+    const end = dateText(snapshot && (snapshot.settlementDate || snapshot.weekEndDate)) || (start ? addDays(start, 6) : '');
+    return { start, end };
+  }
+
+  function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+    if (!aStart || !aEnd || !bStart || !bEnd) return false;
+    return aStart <= bEnd && bStart <= aEnd;
+  }
+
+  function snapshotMatch(snapshots, truckId, period) {
+    const relevant = (Array.isArray(snapshots) ? snapshots : []).filter(function (snapshot) {
+      return sameTruck(snapshot, truckId);
+    });
+    const exact = relevant.find(function (snapshot) {
+      return dateText(snapshot && snapshot.weekKey) === period.start;
+    });
+    if (exact) return { exact, overlaps: [] };
+
+    const overlaps = relevant.filter(function (snapshot) {
+      const snapshotPeriod = recordPeriod(snapshot);
+      return rangesOverlap(period.start, period.end, snapshotPeriod.start, snapshotPeriod.end);
+    });
+    return { exact: null, overlaps };
   }
 
   function resolveSettlements(loads, truck, templates, weeklySnapshots) {
@@ -146,50 +202,73 @@
       groups.get(resolution.weekKey).push(resolution);
     });
 
-    const snapshots = Array.isArray(weeklySnapshots) ? weeklySnapshots : [];
     const settlements = Array.from(groups.entries()).map(function (entry) {
       const currentWeek = entry[0];
       const resolutions = entry[1];
-      const existing = snapshots.find(function (snapshot) {
-        return dateText(snapshot && snapshot.weekKey) === currentWeek && sameTruck(snapshot, truckId);
-      });
+      const period = {
+        start: currentWeek,
+        end: resolutions[0].settlementDate,
+        weekEndDay: resolutions[0].weekEndDay,
+      };
+      const match = snapshotMatch(weeklySnapshots, truckId, period);
 
-      if (existing) {
+      if (match.exact) {
         return {
-          id: text(existing.id),
+          id: text(match.exact.id),
           source: 'immutable_weekly_snapshot',
           immutable: true,
           weekKey: currentWeek,
+          settlementDate: period.end,
+          weekEndDay: period.weekEndDay,
           truckId,
-          unitNumber: text((truck && truck.unitNumber) || existing.unitNumber),
-          items: clone(Array.isArray(existing.items) ? existing.items : []),
-          total: Number(existing.total || 0),
+          unitNumber: text((truck && truck.unitNumber) || match.exact.unitNumber),
+          items: clone(Array.isArray(match.exact.items) ? match.exact.items : []),
+          total: Number(match.exact.total || 0),
           loadResolutions: resolutions,
         };
       }
 
-      const distinctVersions = new Map();
-      resolutions.forEach(function (resolution) {
-        resolution.items.forEach(function (item) {
-          const key = versionKey(item);
-          if (!distinctVersions.has(key)) distinctVersions.set(key, item);
-        });
-      });
-      const items = Array.from(distinctVersions.values()).sort(function (a, b) {
-        return text(a.name).localeCompare(text(b.name)) || text(a.effectiveFrom).localeCompare(text(b.effectiveFrom));
-      });
+      // A custom calendar may overlap older Monday-based snapshots. Never invent
+      // another charge on top of already-confirmed historical weeks; surface the
+      // conflict for review and keep the automatic amount at zero.
+      if (match.overlaps.length) {
+        return {
+          id: 'guard_wd_' + truckId + '_' + currentWeek,
+          source: 'legacy_snapshot_overlap_guard',
+          immutable: true,
+          weekKey: currentWeek,
+          settlementDate: period.end,
+          weekEndDay: period.weekEndDay,
+          truckId,
+          unitNumber: text(truck && truck.unitNumber),
+          items: [],
+          total: 0,
+          gap: false,
+          guardedSnapshotIds: match.overlaps.map(function (snapshot) { return text(snapshot.id); }).filter(Boolean),
+          loadResolutions: resolutions,
+        };
+      }
+
+      // One weekly amount: resolve every policy lineage once on the configured
+      // settlement date. A version change inside the week therefore selects only
+      // the version active on the accounting boundary day.
+      const policies = effectivePolicies(templates, truckId, period.end);
+      const items = policies.map(function (policy) { return snapshotItem(policy, truck); });
       return {
         id: 'auto_wd_' + truckId + '_' + currentWeek,
-        source: 'trip_date_auto',
+        source: 'settlement_date_auto',
         immutable: false,
         weekKey: currentWeek,
+        settlementDate: period.end,
+        weekEndDay: period.weekEndDay,
         truckId,
         unitNumber: text(truck && truck.unitNumber),
         company: text(truck && truck.company),
         items,
         total: items.reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0),
+        gap: !items.length,
         policySnapshotVersion: 2,
-        resolutionRule: 'one_charge_per_policy_version_encountered_in_week',
+        resolutionRule: 'one_policy_version_active_on_configured_week_end_day',
         loadResolutions: resolutions,
       };
     });
@@ -198,37 +277,132 @@
       settlements,
       loadResolutions,
       automaticTotal: settlements
-        .filter(function (settlement) { return settlement.source === 'trip_date_auto'; })
+        .filter(function (settlement) { return settlement.source === 'settlement_date_auto'; })
         .reduce(function (sum, settlement) { return sum + Number(settlement.total || 0); }, 0),
-      gapCount: loadResolutions.filter(function (resolution) { return resolution.gap; }).length,
+      gapCount: settlements.filter(function (settlement) { return settlement.gap; }).length,
+      overlapGuardCount: settlements.filter(function (settlement) {
+        return settlement.source === 'legacy_snapshot_overlap_guard';
+      }).length,
+    };
+  }
+
+  function recordMatchesTruck(record, truck) {
+    if (typeof global.recordMatchesTruck === 'function') return global.recordMatchesTruck(record, truck);
+    if (!truck) return true;
+    return text(record && record.truckId) === text(truck.id) ||
+      (!!truck.unitNumber && text(record && record.unitNumber) === text(truck.unitNumber));
+  }
+
+  function recordInBounds(record, dateField, bounds) {
+    if (!bounds || (!bounds.from && !bounds.to)) return true;
+    const date = dateText(record && (record[dateField] || record.pickup || record.date || record.weekKey));
+    if (!date) return false;
+    return (!bounds.from || date >= bounds.from) && (!bounds.to || date <= bounds.to);
+  }
+
+  function boundsForTruck(truck, period) {
+    const today = new Date().toISOString().slice(0, 10);
+    const calendar = global.CrewBIQSettlementWeek;
+    if ((period === 'week' || period === 'lastweek') && calendar && typeof calendar.periodForDate === 'function') {
+      let resolved = calendar.periodForDate(today, truck);
+      if (period === 'lastweek' && typeof calendar.previousPeriod === 'function') resolved = calendar.previousPeriod(resolved);
+      return { from: resolved.start, to: resolved.end };
+    }
+    if (typeof global.financePeriodBounds === 'function') return global.financePeriodBounds(period || 'week');
+    return { from: '', to: '' };
+  }
+
+  function calcDriverPay(load, profiles, truckId) {
+    if (typeof global.calcFleetDriverPay === 'function') {
+      return global.calcFleetDriverPay(load, profiles, truckId);
+    }
+    return Number(load && load.driverPay || 0);
+  }
+
+  function calculateFinance(truck, period) {
+    const bounds = boundsForTruck(truck, period || 'week');
+    const allLoads = Array.isArray(global.loads) ? global.loads : [];
+    const truckLoads = allLoads.filter(function (load) { return recordMatchesTruck(load, truck); });
+    const tLoads = truckLoads.filter(function (load) { return recordInBounds(load, 'pickup', bounds); });
+    const fuels = (typeof global.loadFuelLogs === 'function' ? global.loadFuelLogs() : [])
+      .filter(function (item) { return recordMatchesTruck(item, truck) && recordInBounds(item, 'date', bounds); });
+    const services = (typeof global.loadServiceLogs === 'function' ? global.loadServiceLogs() : [])
+      .filter(function (item) { return recordMatchesTruck(item, truck) && recordInBounds(item, 'date', bounds); });
+    const allWeekly = typeof global.loadWeeklyDeds === 'function' ? global.loadWeeklyDeds() : [];
+    const deductions = allWeekly.filter(function (item) {
+      if (!sameTruck(item, text(truck && truck.id))) return false;
+      const accountingDate = dateText(item && (item.settlementDate || item.weekEndDate || item.weekKey));
+      return recordInBounds({ date: accountingDate }, 'date', bounds);
+    });
+
+    const profiles = typeof global.loadDriverProfiles === 'function' ? global.loadDriverProfiles() : [];
+    const truckId = text(truck && truck.id);
+    const gross = tLoads.reduce(function (sum, load) { return sum + Number(load.gross || 0); }, 0);
+    const driverPay = tLoads.reduce(function (sum, load) {
+      return sum + calcDriverPay(load, profiles, truckId);
+    }, 0);
+    const miles = tLoads.reduce(function (sum, load) {
+      return sum + (Number(load.totalMiles || 0) || (Number(load.loadedMiles || 0) + Number(load.deadMiles || 0)));
+    }, 0);
+    const dispatchFee = tLoads.reduce(function (sum, load) {
+      const rate = Number(load.dispatchPercent != null ? load.dispatchPercent : (truck && truck.dispatchPercent) || 0);
+      return sum + Number(load.dispatchFee != null ? load.dispatchFee : (Number(load.gross || 0) * rate / 100));
+    }, 0);
+    const fuelCost = fuels.reduce(function (sum, item) {
+      return sum + Number(item.fuelCost || 0) + Number(item.defCost || 0);
+    }, 0);
+    const serviceCost = services.reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+    const confirmedDeductionTotal = deductions.reduce(function (sum, item) { return sum + Number(item.total || 0); }, 0);
+
+    const templates = typeof global.loadDedTemplates === 'function' ? global.loadDedTemplates() : [];
+    const resolved = resolveSettlements(truckLoads, truck, templates, allWeekly);
+    const settlements = resolved.settlements.filter(function (settlement) {
+      return recordInBounds({ date: settlement.settlementDate || settlement.weekKey }, 'date', bounds);
+    });
+    const automaticDeductionTotal = settlements
+      .filter(function (settlement) { return settlement.source === 'settlement_date_auto'; })
+      .reduce(function (sum, settlement) { return sum + Number(settlement.total || 0); }, 0);
+
+    const deductionTotal = confirmedDeductionTotal + automaticDeductionTotal;
+    const truckNet = gross - dispatchFee;
+    const ownerNet = truckNet - driverPay;
+    const realNet = ownerNet - fuelCost - serviceCost - deductionTotal;
+    return {
+      loads: tLoads,
+      gross,
+      dispatchFee,
+      truckNet,
+      driverPay,
+      ownerNet,
+      fuelCost,
+      serviceCost,
+      deductionTotal,
+      confirmedDeductionTotal,
+      automaticDeductionTotal,
+      realNet,
+      miles,
+      cpm: miles ? realNet / miles : 0,
+      deductionSettlements: settlements,
+      deductionLoadResolutions: resolved.loadResolutions.filter(function (resolution) {
+        return recordInBounds({ date: resolution.tripDate }, 'date', bounds);
+      }),
+      deductionResolutionGapCount: settlements.filter(function (settlement) { return settlement.gap; }).length,
+      deductionOverlapGuardCount: settlements.filter(function (settlement) {
+        return settlement.source === 'legacy_snapshot_overlap_guard';
+      }).length,
+      settlementBounds: bounds,
     };
   }
 
   function installFinanceWrapper() {
     const original = global.ownerFinanceForTruck;
-    if (typeof original !== 'function' || original.__crewbiqTripDateDeductions) return false;
+    if (typeof original !== 'function' || original.__crewbiqSettlementDateDeductions) return false;
 
     const wrapped = function (truck, period) {
-      const base = original.apply(this, arguments);
-      if (!truck || !base || !Array.isArray(base.loads)) return base;
-      const templates = typeof global.loadDedTemplates === 'function' ? global.loadDedTemplates() : [];
-      const weekly = typeof global.loadWeeklyDeds === 'function' ? global.loadWeeklyDeds() : [];
-      const resolved = resolveSettlements(base.loads, truck, templates, weekly);
-      const automatic = Number(resolved.automaticTotal || 0);
-      const deductionTotal = Number(base.deductionTotal || 0) + automatic;
-      const realNet = Number(base.realNet || 0) - automatic;
-      return {
-        ...base,
-        deductionTotal,
-        automaticDeductionTotal: automatic,
-        realNet,
-        cpm: Number(base.miles || 0) ? realNet / Number(base.miles || 0) : 0,
-        deductionSettlements: resolved.settlements,
-        deductionLoadResolutions: resolved.loadResolutions,
-        deductionResolutionGapCount: resolved.gapCount,
-      };
+      if (!truck) return original.apply(this, arguments);
+      return calculateFinance(truck, period || 'week');
     };
-    wrapped.__crewbiqTripDateDeductions = true;
+    wrapped.__crewbiqSettlementDateDeductions = true;
     wrapped.__crewbiqPrevious = original;
     global.ownerFinanceForTruck = wrapped;
     return true;
@@ -238,8 +412,10 @@
     version: VERSION,
     tripDate,
     weekKey,
+    settlementPeriod,
     resolveLoad,
     resolveSettlements,
+    calculateFinance,
     installFinanceWrapper,
   };
 
@@ -248,5 +424,5 @@
     else setTimeout(installFinanceWrapper, 0);
   }
 
-  console.info('[CrewBIQ Deductions] trip-date settlement resolution v' + VERSION + ' loaded');
+  console.info('[CrewBIQ Deductions] settlement-date resolution v' + VERSION + ' loaded');
 })(window);
