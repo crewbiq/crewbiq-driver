@@ -51,8 +51,12 @@ assert.equal(thursdayPeriod.weekEndDay, 4);
 assert.equal(thursdayPeriod.weekEndDayLabel, 'Thursday');
 assert.equal(thursdayPeriod.start, '2026-07-10');
 assert.equal(thursdayPeriod.end, '2026-07-16');
-assert.equal(calendar.periodForDate('2026-07-14', { weekType: 'amazon', weekEndDay: 6 }).start, '2026-07-13');
-assert.equal(calendar.periodForDate('2026-07-14', { weekType: 'amazon', weekEndDay: 6 }).end, '2026-07-19');
+// Non-custom/legacy trucks preserve the PWA's existing Monday-Sunday calendar,
+// regardless of the database's older weekEndDay default.
+const legacyPeriod = calendar.periodForDate('2026-07-14', { weekType: 'amazon', weekEndDay: 6 });
+assert.equal(legacyPeriod.weekEndDay, 0);
+assert.equal(legacyPeriod.start, '2026-07-13');
+assert.equal(legacyPeriod.end, '2026-07-19');
 
 const templates = [
   {
