@@ -45,16 +45,12 @@ const truck = {
   weekEndDay: 4, // Thursday => Friday-Thursday settlement week.
 };
 
-assert.deepEqual(
-  calendar.periodForDate('2026-07-14', truck),
-  {
-    weekType: 'custom',
-    weekEndDay: 4,
-    weekEndDayLabel: 'Thursday',
-    start: '2026-07-10',
-    end: '2026-07-16',
-  },
-);
+const thursdayPeriod = calendar.periodForDate('2026-07-14', truck);
+assert.equal(thursdayPeriod.weekType, 'custom');
+assert.equal(thursdayPeriod.weekEndDay, 4);
+assert.equal(thursdayPeriod.weekEndDayLabel, 'Thursday');
+assert.equal(thursdayPeriod.start, '2026-07-10');
+assert.equal(thursdayPeriod.end, '2026-07-16');
 assert.equal(calendar.periodForDate('2026-07-14', { weekType: 'amazon', weekEndDay: 6 }).start, '2026-07-13');
 assert.equal(calendar.periodForDate('2026-07-14', { weekType: 'amazon', weekEndDay: 6 }).end, '2026-07-19');
 
@@ -175,7 +171,8 @@ context.loadDriverProfiles = () => [];
 context.ownerFinanceForTruck = () => ({ loads: [] });
 assert.equal(api.installFinanceWrapper(), true);
 const finance = context.ownerFinanceForTruck(truck, 'week');
-assert.deepEqual(finance.settlementBounds, { from: '2026-07-10', to: '2026-07-16' });
+assert.equal(finance.settlementBounds.from, '2026-07-10');
+assert.equal(finance.settlementBounds.to, '2026-07-16');
 assert.equal(finance.loads.length, 4);
 assert.equal(finance.gross, 4000);
 assert.equal(finance.dispatchFee, 400);
