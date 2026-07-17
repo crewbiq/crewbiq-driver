@@ -134,9 +134,24 @@
     const existingId = text((document && document.getElementById('tfId') || {}).value);
     const unit = text((document && document.getElementById('tfUnit') || {}).value);
     const selected = text((document && document.getElementById('tfSettlementWeekEnd') || {}).value) || 'legacy';
+    if (!unit) return previous.saveTruckForm.apply(this, arguments);
 
-    const result = previous.saveTruckForm.apply(this, arguments);
-    if (!unit || (document && document.getElementById('truckModalWrap'))) return result;
+    // The original form saves and immediately queues sync. Intercept only that
+    // queue call, enrich the just-saved truck with its calendar, then schedule
+    // one sync containing the complete final record.
+    const queue = global.queueFleetConfigSync;
+    let queued = false;
+    if (typeof queue === 'function') {
+      global.queueFleetConfigSync = function () { queued = true; };
+    }
+
+    let result;
+    try {
+      result = previous.saveTruckForm.apply(this, arguments);
+    } finally {
+      if (typeof queue === 'function') global.queueFleetConfigSync = queue;
+    }
+    if (document && document.getElementById('truckModalWrap')) return result;
     if (typeof global.loadTrucks !== 'function' || typeof global.saveTrucks !== 'function') return result;
 
     const trucks = global.loadTrucks();
@@ -152,7 +167,11 @@
       trucks[index].weekType = 'custom';
       trucks[index].weekEndDay = normalizeDay(selected, LEGACY_WEEK_END_DAY);
     }
+
+    // saveTrucks itself queues the final complete record. If the implementation
+    // changes and no queue was intercepted, this remains a harmless single save.
     global.saveTrucks(trucks);
+    if (!queued && typeof queue === 'function') queue();
     if (typeof global.renderTrucksList === 'function') global.renderTrucksList();
     return result;
   }
