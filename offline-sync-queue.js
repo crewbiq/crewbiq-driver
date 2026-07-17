@@ -1,9 +1,13 @@
 /**
- * CrewBIQ Offline Sync Queue v0.1.0
+ * CrewBIQ Offline Sync Queue v0.1.1
  *
  * Preserves authenticated driver_report operations across network failure and
  * reload. Queue entries contain sanitized business payloads only. Session
  * material is injected transiently at send time and is never persisted.
+ *
+ * HTTP 409 is a permanent identity/conflict rejection. It is returned to the
+ * caller unchanged and removed from the retry queue so reconnect cannot repeat
+ * an operation the server has already rejected definitively.
  */
 (function (global) {
   'use strict';
@@ -33,10 +37,6 @@
 
   function cloneJson(value) {
     return JSON.parse(JSON.stringify(value));
-  }
-
-  function requestUrl(input) {
-    return typeof input === 'string' ? input : String((input && input.url) || '');
   }
 
   function requestMethod(input, init) {
@@ -300,6 +300,18 @@
 
       const data = await safeResponseData(response);
       if (!response.ok || data.ok === false) {
+        if (response.status === 409) {
+          const rejectedCurrent = entry.record_id === currentRecordId;
+          queue.shift();
+          persistQueue(
+            queue,
+            queue.length ? 'pending' : 'idle',
+            queue.length ? 'flushing_after_terminal_409' : 'terminal_http_409',
+          );
+          if (rejectedCurrent) return response;
+          continue;
+        }
+
         const state = response.status === 401 ? 'unauthorized' : 'blocked';
         persistQueue(queue, state, 'http_' + response.status);
         return responseJson({
@@ -389,10 +401,10 @@
   setTimeout(showPendingState, 0);
 
   global.CrewBIQOfflineSync = Object.freeze({
-    version: '0.1.0',
+    version: '0.1.1',
     pendingStatus,
     pendingCount: () => pendingStatus().pending_count,
   });
 
-  console.info('[CrewBIQ Offline Sync] v0.1.0 loaded');
+  console.info('[CrewBIQ Offline Sync] v0.1.1 loaded');
 })(window);
