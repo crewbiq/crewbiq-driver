@@ -5,7 +5,7 @@ export const ROLE_MISSIONS = Object.freeze({
     tenantAliases: ['A'],
     specs: [
       'tests/e2e/staging-fleet-integrity.spec.mjs',
-      'tests/e2e/staging-deduction-period.spec.mjs',
+      'tests/e2e/staging-deduction-period-v2.spec.mjs',
     ],
     journeys: ['DEVICE-01', 'EDIT-01', 'RESTORE-02', 'DRIVER-CRUD-01', 'DEDUCTION-PERIOD-01'],
   }),
