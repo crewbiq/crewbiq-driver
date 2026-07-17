@@ -9,6 +9,7 @@ on:
       - restore-hotfix.js
       - settings-hotfix.js
       - owner-snapshot-hotfix.js
+      - load-order-hotfix.js
       - deduction-policy-hotfix.js
       - deduction-period-hotfix.js
       - settlement-week-hotfix.js
@@ -28,6 +29,7 @@ on:
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
+      - tests/load_date_ordering.test.mjs
       - tests/effective_deduction_policy.test.mjs
       - tests/deduction_trip_resolution.test.mjs
       - tests/accounting_action_guard.test.mjs
@@ -48,6 +50,7 @@ on:
       - restore-hotfix.js
       - settings-hotfix.js
       - owner-snapshot-hotfix.js
+      - load-order-hotfix.js
       - deduction-policy-hotfix.js
       - deduction-period-hotfix.js
       - settlement-week-hotfix.js
@@ -67,6 +70,7 @@ on:
       - tests/full_restore_transport.test.mjs
       - tests/settings_restore_transport.test.mjs
       - tests/owner_snapshot_deletion.test.mjs
+      - tests/load_date_ordering.test.mjs
       - tests/effective_deduction_policy.test.mjs
       - tests/deduction_trip_resolution.test.mjs
       - tests/accounting_action_guard.test.mjs
@@ -113,6 +117,9 @@ jobs:
       - name: Run owner snapshot deletion contract
         run: node tests/owner_snapshot_deletion.test.mjs
 
+      - name: Run load date ordering contract
+        run: node tests/load_date_ordering.test.mjs
+
       - name: Run effective truck deduction policy contract
         run: node tests/effective_deduction_policy.test.mjs
 
@@ -147,6 +154,7 @@ jobs:
           grep -q "restore-hotfix.js" core.js
           grep -q "settings-hotfix.js" core.js
           grep -q "owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2" core.js
+          grep -q "load-order-hotfix.js?v=20260717-load-order-v1" core.js
           grep -q "deduction-policy-hotfix.js" core.js
           grep -q "deduction-period-hotfix.js?v=20260717-deduction-period-v1" core.js
           grep -q "settlement-week-hotfix.js?v=20260717-settlement-week-v1" core.js
@@ -159,9 +167,10 @@ jobs:
           grep -q "ocr-service-invoice-review.js" core.js
           grep -q "service-invoice-legacy-upgrade.js" core.js
           grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
-          grep -q "crewbiq-driver-v76" sw.js
+          grep -q "crewbiq-driver-v77" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
+          grep -q "load-order-hotfix.js" sw.js
           grep -q "deduction-period-hotfix.js" sw.js
           grep -q "settlement-week-hotfix.js" sw.js
           grep -q "deduction-trip-resolution.js" sw.js
