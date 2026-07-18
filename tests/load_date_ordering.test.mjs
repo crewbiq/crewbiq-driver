@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+const listeners = new Map();
+const document = {
+  readyState: 'complete',
+  addEventListener(type, handler) {
+    listeners.set(type, handler);
+  },
+};
+
 const context = {
   console,
   Date,
@@ -9,6 +17,12 @@ const context = {
   Object,
   String,
   Array,
+  JSON,
+  document,
+  setTimeout(handler) {
+    handler();
+    return 1;
+  },
   window: null,
 };
 context.window = context;
@@ -43,24 +57,26 @@ const rawLoads = [
 
 let capturedOptions = null;
 let editedKey = '';
+function originalEdit(key) {
+  editedKey = key;
+  const load = capturedOptions.getLoads().find(item => item.id === key || item.loadId === key);
+  assert.ok(load, 'prepared edit target must exist');
+  assert.equal(load.gross.toFixed(2), '2097.69');
+  assert.equal(load.detention.toFixed(2), '15.50');
+  return true;
+}
+
 context.CrewBIQLoads = {
   init(options) {
     capturedOptions = options;
     return true;
   },
-  editLoad(key) {
-    editedKey = key;
-    const load = capturedOptions.getLoads().find(item => item.id === key || item.loadId === key);
-    assert.ok(load, 'prepared edit target must exist');
-    // Mirrors the historic loads.js edit path that aborted when a restored
-    // monetary field was a string instead of a JavaScript Number.
-    assert.equal(load.gross.toFixed(2), '2097.69');
-    assert.equal(load.detention.toFixed(2), '15.50');
-    return true;
-  },
+  editLoad: originalEdit,
 };
+context.editLoad = originalEdit;
+context.CrewBIQLoadOrder.installRuntimeGuard();
 
-assert.equal(context.CrewBIQLoads.loadOrderVersion, '0.2.0');
+assert.equal(context.CrewBIQLoads.loadOrderVersion, '0.3.0');
 assert.equal(context.CrewBIQLoads.init({
   getLoads: () => rawLoads,
   setLoads: value => { rawLoads.splice(0, rawLoads.length, ...value); },
@@ -80,7 +96,6 @@ assert.deepEqual(
   ],
 );
 
-// Pickup remains the canonical date even when delivery is later.
 assert.equal(
   context.CrewBIQLoadOrder.loadDateKey(rawLoads.find(load => load.loadId === 'PICKUP_WINS')),
   '2025-12-13',
@@ -96,7 +111,6 @@ assert.deepEqual(
   ['RESTORED_STRING_VALUES', 'NEWER_LEGACY', 'OLDER'],
 );
 
-// Equal dates remain stable, preventing unexpected reordering of same-day loads.
 assert.deepEqual(
   context.CrewBIQLoadOrder.sortLoadsByDate([
     { loadId: 'A', pickup: '2025-03-01' },
@@ -105,8 +119,7 @@ assert.deepEqual(
   ['A', 'B'],
 );
 
-// API edit path: restored decimal strings are converted to finite numbers and
-// an id-less legacy load receives an in-memory stable ID before edit opens.
+// Module API path.
 assert.equal(context.CrewBIQLoads.editLoad('RESTORED_STRING_VALUES'), true);
 const normalized = rawLoads.find(load => load.loadId === 'RESTORED_STRING_VALUES');
 assert.match(normalized.id, /^l_restored_string_values$/);
@@ -115,16 +128,39 @@ assert.equal(normalized.loadedMiles, 1377.74);
 assert.equal(normalized.detention, 15.5);
 assert.equal(editedKey, normalized.id);
 
-// Backwards-compatible global editLoad assignment is also intercepted because
-// the rendered pencil button calls window.editLoad(...), not the module API.
-let globalEditReceived = '';
-context.editLoad = key => {
-  globalEditReceived = key;
-  const load = rawLoads.find(item => item.id === key);
-  assert.equal(load.gross.toFixed(2), '2097.69');
-  return 'opened';
-};
-assert.equal(context.editLoad('RESTORED_STRING_VALUES'), 'opened');
-assert.equal(globalEditReceived, normalized.id);
+// Backwards-compatible global path used by inline onclick.
+editedKey = '';
+assert.equal(context.editLoad('RESTORED_STRING_VALUES'), true);
+assert.equal(editedKey, normalized.id);
 
-console.log('Load date ordering and restored edit contract: ok');
+// Capture-phase delegated guard bypasses a stale/overwritten inline handler and
+// invokes the guarded editor directly from the rendered pencil button.
+const clickHandler = listeners.get('click');
+assert.equal(typeof clickHandler, 'function');
+let prevented = false;
+let stopped = false;
+const button = {
+  getAttribute(name) {
+    assert.equal(name, 'onclick');
+    return 'editLoad("RESTORED_STRING_VALUES")';
+  },
+  closest(selector) {
+    assert.equal(selector, 'button[onclick^="editLoad("]');
+    return this;
+  },
+};
+editedKey = '';
+clickHandler({
+  target: button,
+  preventDefault() { prevented = true; },
+  stopImmediatePropagation() { stopped = true; },
+});
+assert.equal(prevented, true);
+assert.equal(stopped, true);
+assert.equal(editedKey, normalized.id);
+assert.equal(
+  context.CrewBIQLoadOrder.parseInlineEditKey('editLoad("RESTORED_STRING_VALUES")'),
+  'RESTORED_STRING_VALUES',
+);
+
+console.log('Load date ordering and direct pencil guard contract: ok');
