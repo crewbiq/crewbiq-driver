@@ -1,5 +1,5 @@
 /**
- * CrewBIQ load chronology and restored-edit hotfix v0.4.0
+ * CrewBIQ load chronology and restored-edit hotfix v0.5.0
  *
  * Chronology:
  * - pickup remains the canonical load date;
@@ -13,13 +13,14 @@
  * - this adapter normalizes the selected in-memory record immediately before
  *   edit and assigns an ID to an id-less legacy record for safe replacement;
  * - a capture-phase delegated handler invokes the guarded editor directly;
- * - after the form is populated, the viewport is returned to the top of the
- *   Load page so the edit action is visibly acknowledged on long load lists.
+ * - after the form is populated, every likely mobile scroll root is reset and
+ *   the actual form card is revealed repeatedly after layout settles. This
+ *   defeats Chrome scroll anchoring on long, re-rendered load lists.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '0.4.0';
+  const VERSION = '0.5.0';
   const state = {
     getLoads: () => [],
     setLoads: () => {},
@@ -144,34 +145,105 @@
     if (typeof global.toast === 'function') global.toast(message, 'err');
   }
 
-  function revealLoadEditor() {
-    const reveal = () => {
-      const document = global.document;
-      const page = document && document.getElementById
-        ? document.getElementById('page-load')
-        : null;
+  function uniqueNodes(nodes) {
+    return nodes.filter((node, index) => node && nodes.indexOf(node) === index);
+  }
 
-      if (page && typeof page.scrollIntoView === 'function') {
-        try { page.scrollIntoView({ block: 'start', behavior: 'auto' }); }
-        catch (error) { page.scrollIntoView(true); }
+  function resetScrollNode(node) {
+    if (!node) return;
+    try { node.scrollTop = 0; } catch (error) {}
+    try { node.scrollLeft = 0; } catch (error) {}
+    if (typeof node.scrollTo === 'function') {
+      try { node.scrollTo({ top: 0, left: 0, behavior: 'auto' }); }
+      catch (error) {
+        try { node.scrollTo(0, 0); } catch (ignored) {}
+      }
+    }
+  }
+
+  function editorElements() {
+    const document = global.document;
+    if (!document || typeof document.getElementById !== 'function') {
+      return { document: null, page: null, target: null, roots: [], anchors: [] };
+    }
+
+    const page = document.getElementById('page-load');
+    const editField = document.getElementById('loadEditId');
+    const target = editField && typeof editField.closest === 'function'
+      ? (editField.closest('.card') || page)
+      : page;
+    const app = document.getElementById('app');
+    const list = document.getElementById('allLoads');
+    const roots = uniqueNodes([
+      document.scrollingElement,
+      document.documentElement,
+      document.body,
+      app,
+      page,
+    ]);
+    const anchors = uniqueNodes([
+      document.documentElement,
+      document.body,
+      app,
+      page,
+      list,
+      target,
+    ]);
+    return { document, page, target, roots, anchors };
+  }
+
+  function revealLoadEditor() {
+    const elements = editorElements();
+    if (!elements.document) return;
+
+    const anchorState = elements.anchors.map(node => ({
+      node,
+      value: node.style ? node.style.overflowAnchor : undefined,
+    }));
+    anchorState.forEach(({ node }) => {
+      if (node.style) node.style.overflowAnchor = 'none';
+    });
+
+    const reveal = () => {
+      elements.roots.forEach(resetScrollNode);
+
+      if (elements.target) {
+        if (elements.target.style) elements.target.style.scrollMarginTop = '78px';
+        if (typeof elements.target.scrollIntoView === 'function') {
+          try {
+            elements.target.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+          } catch (error) {
+            try { elements.target.scrollIntoView(true); } catch (ignored) {}
+          }
+        }
       }
 
-      const scrollingElement = document && (
-        document.scrollingElement || document.documentElement || document.body
-      );
-      if (scrollingElement) scrollingElement.scrollTop = 0;
-
+      elements.roots.forEach(resetScrollNode);
       if (typeof global.scrollTo === 'function') {
         try { global.scrollTo({ top: 0, left: 0, behavior: 'auto' }); }
-        catch (error) { global.scrollTo(0, 0); }
+        catch (error) {
+          try { global.scrollTo(0, 0); } catch (ignored) {}
+        }
       }
     };
 
+    // Run immediately, after the next layout, and again after Chrome has had a
+    // chance to apply scroll anchoring to the re-rendered list.
+    reveal();
     if (typeof global.requestAnimationFrame === 'function') {
       global.requestAnimationFrame(() => global.requestAnimationFrame(reveal));
-    } else {
-      setTimeout(reveal, 0);
     }
+    setTimeout(reveal, 60);
+    setTimeout(reveal, 180);
+
+    setTimeout(() => {
+      anchorState.forEach(({ node, value }) => {
+        if (!node.style) return;
+        if (value) node.style.overflowAnchor = value;
+        else if (typeof node.style.removeProperty === 'function') node.style.removeProperty('overflow-anchor');
+        else node.style.overflowAnchor = '';
+      });
+    }, 500);
   }
 
   function openEditor(key, context) {
