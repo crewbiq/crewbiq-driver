@@ -3,22 +3,65 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const listeners = new Map();
-let pageScrollCalls = 0;
+let formScrollCalls = 0;
 let windowScrollCalls = 0;
-const pageLoad = {
-  scrollIntoView(options) {
-    pageScrollCalls += 1;
-    assert.equal(options.block, 'start');
+
+function scrollNode(name) {
+  return {
+    name,
+    scrollTop: 999,
+    scrollLeft: 50,
+    style: {
+      overflowAnchor: '',
+      removeProperty(prop) {
+        if (prop === 'overflow-anchor') this.overflowAnchor = '';
+      },
+    },
+    scrollTo(options) {
+      if (typeof options === 'object') {
+        this.scrollTop = options.top;
+        this.scrollLeft = options.left;
+      } else {
+        this.scrollTop = arguments[1] || 0;
+        this.scrollLeft = arguments[0] || 0;
+      }
+    },
+  };
+}
+
+const documentElement = scrollNode('documentElement');
+const body = scrollNode('body');
+const app = scrollNode('app');
+const pageLoad = scrollNode('page-load');
+const allLoads = scrollNode('allLoads');
+const formCard = scrollNode('form-card');
+formCard.scrollIntoView = options => {
+  formScrollCalls += 1;
+  assert.equal(options.block, 'start');
+  assert.equal(options.inline, 'nearest');
+};
+const editField = {
+  closest(selector) {
+    assert.equal(selector, '.card');
+    return formCard;
   },
 };
+
 const document = {
   readyState: 'complete',
-  scrollingElement: { scrollTop: 999 },
+  scrollingElement: documentElement,
+  documentElement,
+  body,
   addEventListener(type, handler) {
     listeners.set(type, handler);
   },
   getElementById(id) {
-    return id === 'page-load' ? pageLoad : null;
+    return ({
+      app,
+      'page-load': pageLoad,
+      allLoads,
+      loadEditId: editField,
+    })[id] || null;
   },
 };
 
@@ -96,7 +139,7 @@ context.CrewBIQLoads = {
 context.editLoad = originalEdit;
 context.CrewBIQLoadOrder.installRuntimeGuard();
 
-assert.equal(context.CrewBIQLoads.loadOrderVersion, '0.4.0');
+assert.equal(context.CrewBIQLoads.loadOrderVersion, '0.5.0');
 assert.equal(context.CrewBIQLoads.init({
   getLoads: () => rawLoads,
   setLoads: value => { rawLoads.splice(0, rawLoads.length, ...value); },
@@ -139,7 +182,18 @@ assert.deepEqual(
   ['A', 'B'],
 );
 
-// Module API path normalizes values and visibly reveals the form at page top.
+function assertEditorRevealed() {
+  assert.ok(formScrollCalls >= 1);
+  assert.ok(windowScrollCalls >= 1);
+  for (const node of [documentElement, body, app, pageLoad]) {
+    assert.equal(node.scrollTop, 0, `${node.name} scrollTop`);
+    assert.equal(node.scrollLeft, 0, `${node.name} scrollLeft`);
+    assert.equal(node.style.overflowAnchor, '', `${node.name} overflow-anchor restored`);
+  }
+  assert.equal(formCard.style.scrollMarginTop, '78px');
+}
+
+// Module API path normalizes values and reveals the actual form card.
 assert.equal(context.CrewBIQLoads.editLoad('RESTORED_STRING_VALUES'), true);
 const normalized = rawLoads.find(load => load.loadId === 'RESTORED_STRING_VALUES');
 assert.match(normalized.id, /^l_restored_string_values$/);
@@ -147,18 +201,16 @@ assert.equal(normalized.gross, 2097.69);
 assert.equal(normalized.loadedMiles, 1377.74);
 assert.equal(normalized.detention, 15.5);
 assert.equal(editedKey, normalized.id);
-assert.equal(pageScrollCalls, 1);
-assert.equal(windowScrollCalls, 1);
-assert.equal(document.scrollingElement.scrollTop, 0);
+assertEditorRevealed();
 
 // Backwards-compatible global path used by inline onclick.
 editedKey = '';
 assert.equal(context.editLoad('RESTORED_STRING_VALUES'), true);
 assert.equal(editedKey, normalized.id);
-assert.equal(pageScrollCalls, 2);
+assertEditorRevealed();
 
-// Capture-phase delegated guard bypasses a stale/overwritten inline handler and
-// invokes the guarded editor directly from the rendered pencil button.
+// Capture-phase delegated guard invokes the guarded editor from the rendered
+// pencil button and still reveals the form above the long list.
 const clickHandler = listeners.get('click');
 assert.equal(typeof clickHandler, 'function');
 let prevented = false;
@@ -182,12 +234,10 @@ clickHandler({
 assert.equal(prevented, true);
 assert.equal(stopped, true);
 assert.equal(editedKey, normalized.id);
-assert.equal(pageScrollCalls, 3);
-assert.equal(windowScrollCalls, 3);
-assert.equal(document.scrollingElement.scrollTop, 0);
+assertEditorRevealed();
 assert.equal(
   context.CrewBIQLoadOrder.parseInlineEditKey('editLoad("RESTORED_STRING_VALUES")'),
   'RESTORED_STRING_VALUES',
 );
 
-console.log('Load date ordering, pencil guard, and edit-form reveal contract: ok');
+console.log('Load date ordering, pencil guard, and mobile form reveal contract: ok');
