@@ -1,5 +1,5 @@
 /**
- * CrewBIQ load chronology and restored-edit hotfix v0.3.0
+ * CrewBIQ load chronology and restored-edit hotfix v0.4.0
  *
  * Chronology:
  * - pickup remains the canonical load date;
@@ -12,14 +12,14 @@
  *   pencil button aborted before opening the form;
  * - this adapter normalizes the selected in-memory record immediately before
  *   edit and assigns an ID to an id-less legacy record for safe replacement;
- * - a capture-phase delegated handler now invokes the guarded editor directly,
- *   so a stale or overwritten global inline handler cannot make the pencil tap
- *   silently do nothing.
+ * - a capture-phase delegated handler invokes the guarded editor directly;
+ * - after the form is populated, the viewport is returned to the top of the
+ *   Load page so the edit action is visibly acknowledged on long load lists.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '0.3.0';
+  const VERSION = '0.4.0';
   const state = {
     getLoads: () => [],
     setLoads: () => {},
@@ -144,6 +144,36 @@
     if (typeof global.toast === 'function') global.toast(message, 'err');
   }
 
+  function revealLoadEditor() {
+    const reveal = () => {
+      const document = global.document;
+      const page = document && document.getElementById
+        ? document.getElementById('page-load')
+        : null;
+
+      if (page && typeof page.scrollIntoView === 'function') {
+        try { page.scrollIntoView({ block: 'start', behavior: 'auto' }); }
+        catch (error) { page.scrollIntoView(true); }
+      }
+
+      const scrollingElement = document && (
+        document.scrollingElement || document.documentElement || document.body
+      );
+      if (scrollingElement) scrollingElement.scrollTop = 0;
+
+      if (typeof global.scrollTo === 'function') {
+        try { global.scrollTo({ top: 0, left: 0, behavior: 'auto' }); }
+        catch (error) { global.scrollTo(0, 0); }
+      }
+    };
+
+    if (typeof global.requestAnimationFrame === 'function') {
+      global.requestAnimationFrame(() => global.requestAnimationFrame(reveal));
+    } else {
+      setTimeout(reveal, 0);
+    }
+  }
+
   function openEditor(key, context) {
     const prepared = prepareLoadForEdit(key);
     if (!prepared.found) {
@@ -155,7 +185,9 @@
       return false;
     }
     try {
-      return state.originalEdit.call(context || global, prepared.key);
+      const result = state.originalEdit.call(context || global, prepared.key);
+      revealLoadEditor();
+      return result;
     } catch (error) {
       console.error('[CrewBIQ Loads] Could not open restored load for edit:', error);
       if (typeof global.toast === 'function') {
@@ -212,6 +244,7 @@
     api.normalizeEditableLoad = normalizeEditableLoad;
     api.prepareLoadForEdit = prepareLoadForEdit;
     api.openEditor = openEditor;
+    api.revealLoadEditor = revealLoadEditor;
     api.loadOrderVersion = VERSION;
     return api;
   }
@@ -276,6 +309,7 @@
     normalizeEditableLoad,
     prepareLoadForEdit,
     openEditor,
+    revealLoadEditor,
     parseInlineEditKey,
     wrapEditFunction,
     wrapApi,
