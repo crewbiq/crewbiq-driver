@@ -1,4 +1,4 @@
-/** CrewBIQ Core loader v0.3.11 */
+/** CrewBIQ Core loader v0.3.12 */
 (function () {
   'use strict';
   function load(src) {
