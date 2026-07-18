@@ -1,4 +1,4 @@
-/** CrewBIQ Core loader v0.3.12 */
+/** CrewBIQ Core loader v0.3.13 */
 (function () {
   'use strict';
   function load(src) {
@@ -9,7 +9,7 @@
   load('restore-hotfix.js?v=20260715-disputes-sync-v1');
   load('settings-hotfix.js?v=20260712-settings-reconcile-v2');
   load('owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2');
-  load('load-order-hotfix.js?v=20260718-load-pencil-v3');
+  load('load-order-hotfix.js?v=20260718-load-pencil-v4');
   load('deduction-policy-hotfix.js?v=20260713-deduction-policy-v1');
   load('deduction-period-hotfix.js?v=20260717-deduction-period-v1');
   load('settlement-week-hotfix.js?v=20260717-settlement-week-v1');
