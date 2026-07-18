@@ -1,5 +1,5 @@
 /**
- * CrewBIQ load chronology and restored-edit hotfix v0.2.0
+ * CrewBIQ load chronology and restored-edit hotfix v0.3.0
  *
  * Chronology:
  * - pickup remains the canonical load date;
@@ -11,18 +11,20 @@
  * - loads.js historically called `.toFixed()` directly on those values, so the
  *   pencil button aborted before opening the form;
  * - this adapter normalizes the selected in-memory record immediately before
- *   edit and assigns an ID to an id-less legacy record for safe replacement.
- *
- * This file loads before loads.js and intercepts both CrewBIQLoads and the
- * backwards-compatible global editLoad assignment.
+ *   edit and assigns an ID to an id-less legacy record for safe replacement;
+ * - a capture-phase delegated handler now invokes the guarded editor directly,
+ *   so a stale or overwritten global inline handler cannot make the pencil tap
+ *   silently do nothing.
  */
 (function (global) {
   'use strict';
 
-  const VERSION = '0.2.0';
+  const VERSION = '0.3.0';
   const state = {
     getLoads: () => [],
     setLoads: () => {},
+    originalEdit: null,
+    delegatedInstalled: false,
   };
 
   function text(value) {
@@ -124,7 +126,7 @@
   function prepareLoadForEdit(key) {
     const loads = Array.isArray(state.getLoads()) ? state.getLoads() : [];
     const index = loads.findIndex(load => isLoadMatch(load, key));
-    if (index < 0) return text(key);
+    if (index < 0) return { key: text(key), found: false };
 
     const current = loads[index];
     const normalized = normalizeEditableLoad(current);
@@ -134,22 +136,44 @@
       next[index] = normalized;
       state.setLoads(sortLoadsByDate(next));
     }
-    return normalized.id || text(key);
+    return { key: normalized.id || text(key), found: true };
+  }
+
+  function showEditError(message) {
+    console.error('[CrewBIQ Loads] ' + message);
+    if (typeof global.toast === 'function') global.toast(message, 'err');
+  }
+
+  function openEditor(key, context) {
+    const prepared = prepareLoadForEdit(key);
+    if (!prepared.found) {
+      showEditError('Load not found. Refresh and try again.');
+      return false;
+    }
+    if (typeof state.originalEdit !== 'function') {
+      showEditError('Load editor is not ready. Refresh and try again.');
+      return false;
+    }
+    try {
+      return state.originalEdit.call(context || global, prepared.key);
+    } catch (error) {
+      console.error('[CrewBIQ Loads] Could not open restored load for edit:', error);
+      if (typeof global.toast === 'function') {
+        global.toast('Could not open this load for editing. Refresh and try again.', 'err');
+      }
+      return false;
+    }
   }
 
   function wrapEditFunction(original) {
-    if (typeof original !== 'function' || original.__crewbiqRestoredEditWrapped) return original;
+    if (typeof original !== 'function') return original;
+    if (original.__crewbiqRestoredEditWrapped) {
+      if (!state.originalEdit && original.__crewbiqOriginal) state.originalEdit = original.__crewbiqOriginal;
+      return original;
+    }
+    state.originalEdit = original;
     const wrapped = function (key) {
-      const preparedKey = prepareLoadForEdit(key);
-      try {
-        return original.call(this, preparedKey);
-      } catch (error) {
-        console.error('[CrewBIQ Loads] Could not open restored load for edit:', error);
-        if (typeof global.toast === 'function') {
-          global.toast('Could not open this load for editing. Refresh and try again.', 'err');
-        }
-        return false;
-      }
+      return openEditor(key, this);
     };
     wrapped.__crewbiqRestoredEditWrapped = true;
     wrapped.__crewbiqOriginal = original;
@@ -157,36 +181,37 @@
   }
 
   function wrapApi(api) {
-    if (!api || typeof api.init !== 'function' || api.init.__crewbiqLoadOrderWrapped) return api;
+    if (!api || typeof api.init !== 'function') return api;
 
-    const originalInit = api.init;
-    const wrappedInit = function (options = {}) {
-      const rawGetLoads = typeof options.getLoads === 'function'
-        ? options.getLoads
-        : () => [];
-      const rawSetLoads = typeof options.setLoads === 'function'
-        ? options.setLoads
-        : () => {};
+    if (!api.init.__crewbiqLoadOrderWrapped) {
+      const originalInit = api.init;
+      const wrappedInit = function (options = {}) {
+        const rawGetLoads = typeof options.getLoads === 'function'
+          ? options.getLoads
+          : () => [];
+        const rawSetLoads = typeof options.setLoads === 'function'
+          ? options.setLoads
+          : () => {};
 
-      state.getLoads = rawGetLoads;
-      state.setLoads = rawSetLoads;
+        state.getLoads = rawGetLoads;
+        state.setLoads = rawSetLoads;
 
-      return originalInit.call(this, {
-        ...options,
-        // Sorting on read repairs display order immediately after restore/import
-        // without rewriting the user's stored records merely by opening a page.
-        getLoads: () => sortLoadsByDate(rawGetLoads()),
-        // Sorting on write preserves the same deterministic order for new edits.
-        setLoads: value => rawSetLoads(sortLoadsByDate(value)),
-      });
-    };
-    wrappedInit.__crewbiqLoadOrderWrapped = true;
-    api.init = wrappedInit;
+        return originalInit.call(this, {
+          ...options,
+          getLoads: () => sortLoadsByDate(rawGetLoads()),
+          setLoads: value => rawSetLoads(sortLoadsByDate(value)),
+        });
+      };
+      wrappedInit.__crewbiqLoadOrderWrapped = true;
+      api.init = wrappedInit;
+    }
+
     if (typeof api.editLoad === 'function') api.editLoad = wrapEditFunction(api.editLoad);
     api.loadDateKey = loadDateKey;
     api.sortLoadsByDate = sortLoadsByDate;
     api.normalizeEditableLoad = normalizeEditableLoad;
     api.prepareLoadForEdit = prepareLoadForEdit;
+    api.openEditor = openEditor;
     api.loadOrderVersion = VERSION;
     return api;
   }
@@ -208,6 +233,38 @@
     if (current) current = wrapper(current);
   }
 
+  function parseInlineEditKey(source) {
+    const match = text(source).match(/^editLoad\((.*)\)$/s);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[1]);
+    } catch (error) {
+      return match[1].replace(/^['"]|['"]$/g, '');
+    }
+  }
+
+  function installDelegatedPencilGuard() {
+    if (state.delegatedInstalled || !global.document) return;
+    state.delegatedInstalled = true;
+    global.document.addEventListener('click', event => {
+      const target = event.target && event.target.closest
+        ? event.target.closest('button[onclick^="editLoad("]')
+        : null;
+      if (!target || typeof state.originalEdit !== 'function') return;
+      const key = parseInlineEditKey(target.getAttribute('onclick'));
+      if (key == null) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openEditor(key, target);
+    }, true);
+  }
+
+  function installRuntimeGuard() {
+    if (global.CrewBIQLoads) wrapApi(global.CrewBIQLoads);
+    if (typeof global.editLoad === 'function') global.editLoad = wrapEditFunction(global.editLoad);
+    installDelegatedPencilGuard();
+  }
+
   installIntercept('CrewBIQLoads', wrapApi);
   installIntercept('editLoad', wrapEditFunction);
 
@@ -218,9 +275,21 @@
     sortLoadsByDate,
     normalizeEditableLoad,
     prepareLoadForEdit,
+    openEditor,
+    parseInlineEditKey,
     wrapEditFunction,
     wrapApi,
+    installRuntimeGuard,
   };
+
+  if (global.document) {
+    if (global.document.readyState === 'loading') {
+      global.document.addEventListener('DOMContentLoaded', installRuntimeGuard, { once: true });
+    } else {
+      installRuntimeGuard();
+    }
+    setTimeout(installRuntimeGuard, 0);
+  }
 
   console.info('[CrewBIQ Loads] chronology/restored-edit hotfix v' + VERSION + ' loaded');
 })(window);
