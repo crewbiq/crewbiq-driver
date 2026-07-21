@@ -106,8 +106,24 @@
     .hdr{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#0a0e1a,#111827);border-bottom:1px solid var(--bd);padding:14px 16px}
     .hdr-row{display:flex;justify-content:space-between;align-items:center}
     .logo{font-size:20px;font-weight:900;color:var(--acc)}.logo span{color:#f1f5f9}.logo small{font-size:10px;color:var(--mu);margin-left:5px}
-    .driver-badge{background:var(--s2);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--mu)}
+    .driver-badge{background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--mu);cursor:pointer;font-family:inherit}
     .driver-badge strong{color:var(--tx)}
+    .domain-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px}
+    .domain-action{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;text-align:left;color:var(--tx);cursor:pointer;font-family:inherit;min-height:92px}
+    .domain-action:active{background:var(--s2)}
+    .domain-action-icon{display:block;font-size:22px;margin-bottom:8px}
+    .domain-action-title{display:block;font-size:14px;font-weight:800}
+    .domain-action-sub{display:block;font-size:11px;color:var(--mu);margin-top:4px;line-height:1.35}
+    .quick-add-overlay{position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:90;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+    .quick-add-overlay.open{opacity:1;pointer-events:auto}
+    .quick-add-sheet{width:100%;max-width:640px;background:var(--s1);border:1px solid var(--bd);border-radius:22px 22px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .22s}
+    .quick-add-overlay.open .quick-add-sheet{transform:translateY(0)}
+    .quick-add-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .quick-add-title{font-size:18px;font-weight:900;color:var(--tx)}
+    .quick-add-close{background:var(--s2);border:1px solid var(--bd);border-radius:999px;color:var(--tx);width:38px;height:38px;cursor:pointer;font-size:20px}
+    .quick-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .quick-add-item{display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--bd);border-radius:13px;color:var(--tx);padding:13px;text-align:left;cursor:pointer;font-family:inherit;font-weight:700}
+    .quick-add-item span:first-child{font-size:20px}
     /* ── BOTTOM APP NAV (mobile-first, familiar app pattern) ── */
     body{padding-bottom:82px}
     @supports(padding:max(0px)){body{padding-bottom:max(82px,calc(82px + env(safe-area-inset-bottom)))}}
@@ -127,7 +143,7 @@
     .navbtn.nav-add .icon{font-size:28px}.navbtn.nav-add .nav-label{font-size:9px;color:#020617}.navbtn.nav-add.active{background:var(--acc);color:#020617}
     .nav-toggle,.nav-sep{display:none!important}
     .page{display:none;padding-bottom:16px;padding-left:0}.page.active{display:block}
-    @media(min-width:700px){body{max-width:1100px;padding-bottom:86px}.hdr,.nav{max-width:1100px}.page{max-width:980px;margin:0 auto}.modal{max-width:720px}.stat-grid{grid-template-columns:repeat(4,1fr)}#mktModuleGrid{grid-template-columns:repeat(3,1fr)!important}}
+    @media(min-width:700px){body{max-width:1100px;padding-bottom:86px}.hdr,.nav{max-width:1100px}.page{max-width:980px;margin:0 auto}.modal{max-width:720px}.stat-grid{grid-template-columns:repeat(4,1fr)}.domain-grid{grid-template-columns:repeat(3,1fr)}#mktModuleGrid{grid-template-columns:repeat(3,1fr)!important}}
     .card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin:12px 16px}
     .section-title{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin:16px 16px 8px}
     .label{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--mu);margin-bottom:5px}
@@ -161,6 +177,27 @@
     .menu-item .mi-icon{font-size:22px;line-height:1}
     .menu-item.soon{opacity:.5;cursor:default}
     .soon-tag{font-size:9px;color:var(--mu);font-weight:500}
+    .function-group{margin-bottom:18px}
+    .function-group:last-child{margin-bottom:0}
+    .function-group-title{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mu);margin:0 0 8px}
+    .settings-header{margin-top:16px}
+    .settings-hub{margin:0 16px 18px}
+    .settings-group-list{display:grid;grid-template-columns:1fr;gap:10px}
+    .settings-group-card{width:100%;display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:12px;text-align:left;background:var(--s1);border:1px solid var(--bd);border-radius:14px;color:var(--tx);padding:14px;cursor:pointer}
+    .settings-group-card:hover{border-color:var(--acc)}
+    .settings-group-icon{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--s2);font-size:20px}
+    .settings-group-title{font-size:14px;font-weight:800;margin-bottom:3px}
+    .settings-group-desc{font-size:11px;color:var(--mu);line-height:1.35}
+    .settings-group-arrow{color:var(--mu);font-size:20px}
+    .settings-panel{display:none}
+    .settings-panel.active{display:block}
+    .settings-panel-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
+    .settings-panel-back{width:36px;height:36px;border-radius:10px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);cursor:pointer;flex-shrink:0}
+    .settings-panel-title{font-size:16px;font-weight:900;color:var(--tx)}
+    .settings-panel-desc{font-size:11px;color:var(--mu);margin-top:2px;line-height:1.35}
+    .settings-section-title{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mu);margin:18px 0 10px}
+    .settings-role-note{font-size:11px;color:var(--mu);line-height:1.45;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--s2);margin-bottom:14px}
+    @media(min-width:700px){.settings-group-list{grid-template-columns:1fr 1fr}}
     .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gr);color:#000;padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200;white-space:nowrap}
     .toast.show{opacity:1}.toast.err{background:var(--rd);color:#fff}.toast.warn{background:var(--acc);color:#000}
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px}
@@ -204,6 +241,7 @@
     .lm-cat-group-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--mu);margin:14px 0 6px;display:flex;align-items:center;gap:6px}
     .lm-cat-group-title::after{content:'';flex:1;height:1px;background:var(--bd)}
 	
+
 	/* --- LINKS MANAGER MODAL DIALOG --- */
     .lm-modal-backdrop {
       display:none; position:fixed; z-index:2000; left:0; top:0;
@@ -398,9 +436,9 @@
     <div class="crewbiq-line"></div>
     <div class="hdr-row">
       <div class="logo">CREW<span>BIQ</span><small>Driver</small></div>
-      <div class="driver-badge">
+      <button class="driver-badge" id="accountButton" onclick="showPage('settings')" aria-label="Open account and settings">
         <strong id="hdrDriverName">—</strong> · <span id="hdrUnitNum">—</span>
-      </div>
+      </button>
     </div>
     <div id="hdrCompanyRow" style="margin-top:4px;font-size:11px;color:var(--mu);display:none">
       <span id="hdrCompany"></span> · <span id="hdrTruck"></span> · <span id="hdrPlate"></span>
@@ -428,20 +466,6 @@
       <div class="sync-dot" id="syncDot"></div>
       <span class="muted" id="syncStatus" style="font-size:12px">Not synced</span>
       <button onclick="doSync()" style="margin-left:auto;background:var(--s2);border:none;border-radius:8px;color:var(--tx);padding:6px 12px;font-size:12px;cursor:pointer">↕️ Sync Now</button>
-    </div>
-
-    <div class="card" style="margin-top:8px">
-      <div class="label" style="margin-bottom:10px">Quick Access</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-        <button class="btn ghost" onclick="showPage('report')" style="padding:10px;font-size:13px">📄 Reports</button>
-        <button class="btn ghost" onclick="showPage('settings')" style="padding:10px;font-size:13px">⚙️ Settings</button>
-        <button class="btn ghost" onclick="showPage('pti')" style="padding:10px;font-size:13px">🔍 PTI</button>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
-        <button class="btn ghost" onclick="showPage('load')" style="padding:10px;font-size:13px">📦 Loads</button>
-        <button class="btn ghost" onclick="showPage('disputes')" style="padding:10px;font-size:13px">⚖️ Disputes</button>
-        <button class="btn ghost" onclick="showPage('expenses')" style="padding:10px;font-size:13px">💸 Expenses</button>
-      </div>
     </div>
 
     <div id="homeRealNet" style="display:none"></div>
@@ -564,7 +588,18 @@
 
   <!-- SETTINGS -->
   <div id="page-settings" class="page">
-    <div class="card" style="margin-top:16px">
+    <div class="card settings-header">
+      <div style="font-size:18px;font-weight:900;color:var(--tx)">Settings</div>
+      <div id="settingsBreadcrumb" class="muted" style="font-size:12px;margin-top:4px">Choose a category. Each setting has one clear home.</div>
+    </div>
+    <div id="settingsHub" class="settings-hub"><div id="settingsGroupList" class="settings-group-list"></div></div>
+    <section id="settingsPanel-account" class="card settings-panel" data-settings-section="account"></section>
+    <section id="settingsPanel-work" class="card settings-panel" data-settings-section="work"></section>
+    <section id="settingsPanel-organization" class="card settings-panel" data-settings-section="organization"></section>
+    <section id="settingsPanel-fleet" class="card settings-panel" data-settings-section="fleet"></section>
+    <section id="settingsPanel-operations" class="card settings-panel" data-settings-section="operations"></section>
+    <section id="settingsPanel-app-data" class="card settings-panel" data-settings-section="app-data"></section>
+    <div class="card" id="settingsLegacyCard" style="margin-top:16px">
       <div style="font-size:16px;font-weight:800;margin-bottom:6px;color:var(--acc)">⚙️ Settings</div>
       <div class="muted" style="font-size:12px;margin-bottom:10px">After changing settings, tap Save to apply them.</div>
       <button class="btn primary" onclick="saveSettings()" style="padding:12px;margin-bottom:16px">Save Settings</button>
@@ -731,7 +766,7 @@
       </div>
       <div id="trucksList"></div>
     </div>
-    <div class="card" style="border-color:var(--rd);background:rgba(239,68,68,.06)">
+    <div class="card" id="settingsDangerCard" style="border-color:var(--rd);background:rgba(239,68,68,.06)">
       <div style="font-size:14px;font-weight:900;margin-bottom:8px;color:var(--rd)">🧨 Dangerous Settings</div>
       <div class="muted" style="margin-bottom:12px;font-size:12px">Protected area for reset and destructive actions.</div>
       <button class="btn ghost" onclick="logoutDevice()">🚪 Log out from this device</button>
@@ -1094,14 +1129,55 @@
     <div id="scanReviewCard"></div>
   </div>
 
+  <!-- WORK DOMAIN -->
+  <div id="page-work" class="page">
+    <div class="section-title" style="margin-top:18px">Work</div>
+    <div class="domain-grid">
+      <button class="domain-action" onclick="showPage('load')"><span class="domain-action-icon">📦</span><span class="domain-action-title">Loads</span><span class="domain-action-sub">Active, upcoming and completed work</span></button>
+      <button class="domain-action" onclick="showPage('disputes')"><span class="domain-action-icon">⚖️</span><span class="domain-action-title">Exceptions</span><span class="domain-action-sub">Disputes, adjustments and cancelled loads</span></button>
+      <button class="domain-action" onclick="showPage('scan')"><span class="domain-action-icon">📄</span><span class="domain-action-title">Documents</span><span class="domain-action-sub">Scan BOL, receipts and assignments</span></button>
+    </div>
+  </div>
+
+  <!-- TRUCK DOMAIN -->
+  <div id="page-truck" class="page">
+    <div class="section-title" style="margin-top:18px">Truck</div>
+    <div class="domain-grid">
+      <button class="domain-action" onclick="showPage('pti')"><span class="domain-action-icon">🔍</span><span class="domain-action-title">Inspections</span><span class="domain-action-sub">PTI history, defects and odometer</span></button>
+      <button class="domain-action" data-min-role="owner_op" onclick="showPage('fuel')"><span class="domain-action-icon">⛽</span><span class="domain-action-title">Fuel</span><span class="domain-action-sub">Fuel stops, DEF and mileage</span></button>
+      <button class="domain-action" data-min-role="owner_op" onclick="showPage('service')"><span class="domain-action-icon">🔧</span><span class="domain-action-title">Maintenance</span><span class="domain-action-sub">Repairs, service and maintenance history</span></button>
+    </div>
+  </div>
+
+  <!-- MONEY DOMAIN -->
+  <div id="page-money" class="page">
+    <div class="section-title" style="margin-top:18px">Money</div>
+    <div class="domain-grid">
+      <button class="domain-action" onclick="showPage('expenses')"><span class="domain-action-icon">💳</span><span class="domain-action-title">Expenses</span><span class="domain-action-sub">Costs, receipts and reimbursements</span></button>
+      <button class="domain-action" onclick="showPage('report')"><span class="domain-action-icon">📄</span><span class="domain-action-title">Reports</span><span class="domain-action-sub">Settlement, PDF and CSV exports</span></button>
+      <button class="domain-action" onclick="showPage('stats')"><span class="domain-action-icon">📈</span><span class="domain-action-title">Performance</span><span class="domain-action-sub">Pay, gross, miles and trends</span></button>
+      <button class="domain-action" data-min-role="owner_op" onclick="showPage('deductions')"><span class="domain-action-icon">💰</span><span class="domain-action-title">Deductions</span><span class="domain-action-sub">Weekly deductions and templates</span></button>
+    </div>
+  </div>
+
+  <!-- TEAM DOMAIN -->
+  <div id="page-team" class="page">
+    <div class="section-title" style="margin-top:18px">Team</div>
+    <div class="domain-grid">
+      <button class="domain-action" onclick="showPage('fleet')"><span class="domain-action-icon">🚚</span><span class="domain-action-title">Fleet overview</span><span class="domain-action-sub">Vehicles, costs and fleet performance</span></button>
+      <button class="domain-action" onclick="showPage('drivers')"><span class="domain-action-icon">👥</span><span class="domain-action-title">Drivers</span><span class="domain-action-sub">Drivers, assignments and status</span></button>
+      <button class="domain-action" onclick="showPage('settings')"><span class="domain-action-icon">🏢</span><span class="domain-action-title">Company</span><span class="domain-action-sub">Company and fleet configuration</span></button>
+    </div>
+  </div>
+
   <!-- MENU / MODULES -->
   <div id="page-menu" class="page">
     <div class="card" style="margin-top:16px">
       <div style="display:flex;align-items:center;margin-bottom:14px">
-        <span style="font-size:17px;font-weight:900;color:var(--acc)">☰ Menu</span>
+        <span style="font-size:17px;font-weight:900;color:var(--acc)">☰ Functions</span>
         <span id="menuRoleBadge" class="role-badge"></span>
       </div>
-      <div class="menu-grid" id="menuGrid"></div>
+      <div id="menuGrid"></div>
     </div>
     <div class="card" style="margin-top:0">
       <div class="slabel" style="margin-bottom:8px">My Role</div>
@@ -1116,12 +1192,31 @@
 
   <!-- ══════════════ BOTTOM NAV ══════════════ -->
   <nav class="nav" id="mainNav" aria-label="Main navigation">
-    <button class="navbtn active" data-page="home" onclick="showPage('home',this)"><span class="icon">🏠</span><span class="nav-label">Home</span></button>
-    <button class="navbtn" data-page="community" onclick="showPage('community',this)"><span class="icon">🔗</span><span class="nav-label">Links</span></button>
-    <button class="navbtn nav-add" data-page="load" onclick="showPage('load',this)"><span class="icon">＋</span><span class="nav-label">Load</span></button>
-    <button class="navbtn" data-page="expenses" onclick="showPage('expenses',this)"><span class="icon">💳</span><span class="nav-label">Expenses</span></button>
-    <button class="navbtn" data-page="menu" onclick="showPage('menu',this)"><span class="icon">☰</span><span class="nav-label">Menu</span></button>
+    <button class="navbtn active" data-page="home" onclick="showPage('home',this)"><span class="icon">🏠</span><span class="nav-label">Today</span></button>
+    <button class="navbtn" data-page="work" onclick="showPage('work',this)"><span class="icon">🛣️</span><span class="nav-label">Work</span></button>
+    <button class="navbtn nav-add" id="globalAddButton" onclick="openQuickAdd()" aria-label="Add"><span class="icon">＋</span><span class="nav-label">Add</span></button>
+    <button class="navbtn" data-page="truck" data-role-nav="truck" onclick="showPage('truck',this)"><span class="icon">🚛</span><span class="nav-label">Truck</span></button>
+    <button class="navbtn" data-page="team" data-role-nav="team" onclick="showPage('team',this)" style="display:none"><span class="icon">👥</span><span class="nav-label">Team</span></button>
+    <button class="navbtn" data-page="money" onclick="showPage('money',this)"><span class="icon">💳</span><span class="nav-label">Money</span></button>
   </nav>
+</div>
+
+<div id="quickAddOverlay" class="quick-add-overlay" onclick="if(event.target===this)closeQuickAdd()" aria-hidden="true">
+  <div class="quick-add-sheet" role="dialog" aria-modal="true" aria-labelledby="quickAddTitle">
+    <div class="quick-add-head">
+      <div class="quick-add-title" id="quickAddTitle">Add</div>
+      <button class="quick-add-close" onclick="closeQuickAdd()" aria-label="Close">×</button>
+    </div>
+    <div class="quick-add-grid">
+      <button class="quick-add-item" onclick="quickAddPage('load')"><span>📦</span><span>Load</span></button>
+      <button class="quick-add-item" onclick="quickAddPage('expenses')"><span>💳</span><span>Expense</span></button>
+      <button class="quick-add-item" onclick="quickAddPage('scan')"><span>📷</span><span>Scan document</span></button>
+      <button class="quick-add-item" onclick="quickAddPTI()"><span>🔍</span><span>Start PTI</span></button>
+      <button class="quick-add-item" data-min-role="owner_op" onclick="quickAddPage('fuel')"><span>⛽</span><span>Fuel stop</span></button>
+      <button class="quick-add-item" data-min-role="owner_op" onclick="quickAddPage('service')"><span>🔧</span><span>Repair / service</span></button>
+      <button class="quick-add-item" onclick="quickAddPage('disputes')"><span>⚖️</span><span>Exception</span></button>
+    </div>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -1194,6 +1289,35 @@ const ROLE_CONFIG = {
   }
 });
 
+// One source of truth for the grouped information architecture.
+// `Add` is intentionally not a group: it starts a new record from any domain.
+const FUNCTION_GROUPS = [
+  {label:'Work', items:[
+    {page:'load', icon:'📦', label:'Loads'},
+    {page:'disputes', icon:'⚖️', label:'Exceptions'},
+    {page:'scan', icon:'📄', label:'Documents'},
+  ]},
+  {label:'Truck', items:[
+    {page:'pti', icon:'🔍', label:'Inspections'},
+    {page:'fuel', icon:'⛽', label:'Fuel', minRole:'owner_op'},
+    {page:'service', icon:'🔧', label:'Maintenance', minRole:'owner_op'},
+  ]},
+  {label:'Money', items:[
+    {page:'expenses', icon:'💳', label:'Expenses'},
+    {page:'report', icon:'📄', label:'Reports'},
+    {page:'stats', icon:'📈', label:'Performance'},
+    {page:'deductions', icon:'💰', label:'Deductions', minRole:'owner_op'},
+  ]},
+  {label:'Team', roles:['fleet'], items:[
+    {page:'fleet', icon:'🚚', label:'Fleet overview'},
+    {page:'drivers', icon:'👥', label:'Drivers'},
+  ]},
+  {label:'Resources & account', items:[
+    {page:'community', icon:'🔗', label:'Links'},
+    {page:'settings', icon:'⚙️', label:'Settings'},
+  ]},
+];
+
 function getUserRole(){ return localStorage.getItem(K+'userRole') || 'driver'; }
 function setUserRole(role){
   if (!ROLE_CONFIG[role]) return;
@@ -1241,6 +1365,7 @@ function changeRole(role, btn){
 function applyRoleUI(){
   const role = getUserRole();
   const cfg  = ROLE_CONFIG[role] || ROLE_CONFIG.driver;
+  const roleRank = {driver:0, owner_op:1, fleet:2};
 
   // Sync setup role buttons if visible
   ['driver','owner_op','fleet'].forEach(r => {
@@ -1257,26 +1382,37 @@ function applyRoleUI(){
   const badge = document.getElementById('menuRoleBadge');
   if (badge) badge.textContent = cfg.icon + ' ' + cfg.label;
 
-  // Render menu grid
+  // Render the same grouped information architecture used by the domain hubs.
   const grid = document.getElementById('menuGrid');
   if (grid) {
-    grid.innerHTML = cfg.menu.map(item => {
-      if (item.soon) {
-        return `<div class="menu-item soon" title="Coming soon">
-          <span class="mi-icon">${item.icon}</span>
-          <span>${item.label}</span>
-          <span class="soon-tag">soon</span>
-        </div>`;
-      }
-      return `<button class="menu-item" onclick="showPage('${item.page}')">
-        <span class="mi-icon">${item.icon}</span>
-        <span>${item.label}</span>
-      </button>`;
-    }).join('');
+    grid.innerHTML = FUNCTION_GROUPS
+      .filter(group => !group.roles || group.roles.includes(role))
+      .map(group => {
+        const items = group.items.filter(item => !item.minRole || roleRank[role] >= roleRank[item.minRole]);
+        if (!items.length) return '';
+        return `<section class="function-group" data-function-group="${group.label}">
+          <div class="function-group-title">${group.label}</div>
+          <div class="menu-grid">${items.map(item => `<button class="menu-item" onclick="showPage('${item.page}')">
+            <span class="mi-icon">${item.icon}</span>
+            <span>${item.label}</span>
+          </button>`).join('')}</div>
+        </section>`;
+      }).join('');
   }
+
+  // Primary navigation adapts to the current authorized workspace role.
+  const truckNav = document.querySelector('[data-role-nav="truck"]');
+  const teamNav = document.querySelector('[data-role-nav="team"]');
+  if (truckNav) truckNav.style.display = role === 'fleet' ? 'none' : '';
+  if (teamNav) teamNav.style.display = role === 'fleet' ? '' : 'none';
+
+  document.querySelectorAll('[data-min-role]').forEach(el => {
+    el.style.display = roleRank[role] >= roleRank[el.dataset.minRole] ? '' : 'none';
+  });
 
   const fleetReportActions = document.getElementById('fleetReportActions');
   if (fleetReportActions) fleetReportActions.style.display = role === 'driver' ? 'none' : '';
+  if(settingsInformationArchitectureReady) renderSettingsNavigation(false);
 }
 
 const LAUNCH_CLEAN_RESET_VERSION = '2026-05-29-clean-launch-v1';
@@ -1384,7 +1520,7 @@ function hasActiveFleetForm(){
 }
 
 function generateFleetEntityId(kind){
-  var prefix = kind === 'driverProfile' ? 'drv' : 'truck';
+  var prefix = kind === 'driverProfile' ? 'drv' : (kind === 'company' ? 'company' : 'truck');
   return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
@@ -1443,6 +1579,7 @@ function saveDriverScopedData(){
 }
 function loadAll(){
   driver = load('driver', null);
+  ensureAccountId();
   ptiCustom = load('ptiCustom', []);
   loadDriverScopedData(!!driver);
   getStoredOrchestratorUrl();
@@ -1684,6 +1821,15 @@ function currentAssignmentLabel(){
   return parts.join(' / ') || 'No current assignment';
 }
 function applyAuthRestoreData(data, syncUrl){
+  // Captured before `driver` is reassigned below — this is the only reliable way to tell
+  // whether this call is a profile refresh of the same account or a genuine account switch.
+  // Raw fields, not a collapsed getDriverIdentityKey() string — see identityTransitionKind().
+  var previousIdentity = {crewId:(driver&&driver.crewId)||'', email:(driver&&driver.email)||''};
+  // Backfill: register the CURRENT driver's accountId against its own identity now, in case it
+  // was never registered before (e.g. minted by loadAll()'s ensureAccountId() on first boot,
+  // long before this function's first call) — otherwise this account's id could never be found
+  // again once we switch away from it, and a later switch back would mint a fresh one for it.
+  if(driver && driver.accountId) registerAccountId(previousIdentity, driver.accountId);
   data=unwrapAuthResponse(data);
   const profile=data.profile || {};
   const profileDriver=profile.driver || {};
@@ -1691,6 +1837,27 @@ function applyAuthRestoreData(data, syncUrl){
   const email=data.email || profile.email || profileDriver.email || '';
   const crewId=data.crewId || profile.crewId || profileDriver.crewId || data.driverId || profile.driverId || '';
   const nickname=data.nickname || profile.nickname || profileDriver.nickname || '';
+  // Classified BEFORE the driver object is built (from the prospective new crewId/email, not
+  // yet-reassigned `driver`) so the merge below can decide, up front, whether it is safe to
+  // carry the current device's local fields forward. On a genuine account switch none of the
+  // previous person's data — not local edits via the object spread, not the inline name/syncUrl
+  // fallbacks a few lines down — may leak into the new person's driver object (Step 3: forbid
+  // implicit data copying between different users of the same device).
+  const transition = identityTransitionKind(previousIdentity, {crewId, email});
+  const carryLocalFields = transition !== 'switch';
+  const previousDriverForFallback = carryLocalFields ? driver : null;
+  // Archive the OUTGOING account's pay settings into ITS OWN scope before `driver` (and
+  // therefore dataKey()/scopedLoad/scopedSave) flips to the new identity below — this is the
+  // last point in the function where the pay-settings layer still resolves to the old account.
+  // Must run before `base`/`driver` are built, not after. Reconciled by savedAt against
+  // whatever that account's scope already holds — never blindly overwritten. The legacy key is
+  // only cleared once importLegacyPaySettingsIntoScope() confirms whatever was in it is now
+  // safely accounted for — folded into scope, quarantined, or genuinely empty — never just
+  // because a switch is happening (invalid JSON that couldn't even be quarantined stays put).
+  if(transition === 'switch'){
+    var outgoingImport = importLegacyPaySettingsIntoScope();
+    if(outgoingImport.legacyCleared) localStorage.removeItem(K+'paySettings');
+  }
   const base={
     name:'Driver', email:'', nickname:'', crewId:'', driverId:'', ownerKey:'',
     company:'', truckName:'', unitNumber:'', plate:'',
@@ -1699,15 +1866,19 @@ function applyAuthRestoreData(data, syncUrl){
   };
   driver={
     ...base,
-    ...(driver||{}),
+    ...(carryLocalFields ? (driver||{}) : {}),
     ...profileDriver,
     email,
     nickname,
     crewId,
     driverId:data.driverId || profile.driverId || profileDriver.driverId || crewId,
     ownerKey:data.ownerKey || profile.ownerKey || profileDriver.ownerKey || '',
-    name:profileDriver.name || nickname || (email ? email.split('@')[0] : '') || (driver&&driver.name) || 'Driver',
-    syncUrl:syncUrl || (driver&&driver.syncUrl) || getAuthSyncUrl() || DEFAULT_SYNC_URL,
+    name:profileDriver.name || nickname || (email ? email.split('@')[0] : '') || (previousDriverForFallback&&previousDriverForFallback.name) || 'Driver',
+    // syncUrl is device/environment config (which Orchestrator this device talks to), not
+    // personal user data — getAuthSyncUrl() legitimately falls back to whatever driver.syncUrl
+    // currently holds regardless of switch/refresh, and other call sites (login screen prefill)
+    // rely on that same behavior. Left ungated on purpose; only personal fields are guarded.
+    syncUrl:syncUrl || getAuthSyncUrl() || DEFAULT_SYNC_URL,
     assignments:data.assignments || profile.assignments || [],
     currentAssignment:assignment,
     currentAssignmentId:(assignment&&assignment.assignmentId) || profile.currentAssignmentId || profileDriver.currentAssignmentId || ''
@@ -1718,26 +1889,70 @@ function applyAuthRestoreData(data, syncUrl){
     driver.truckName = assignment.truckName || driver.truckName || '';
     driver.plate = assignment.plate || driver.plate || '';
   }
+  // An account switch must never inherit the previous local accountId — two different people
+  // on the same device must never share one local id. But it must NOT mint a fresh id blindly
+  // either: if this device has seen THIS identity before, reuse its already-registered id, or
+  // A -> B -> A gives A a new accountId every time (see ACCOUNT REGISTRY above).
+  if(transition === 'switch'){
+    driver.accountId = resolveAccountId({crewId, email}, '');
+  }
+  ensureAccountId();
+  // Keep the registry in sync for every call, not just switches — covers 'initial' (first-ever
+  // login on this device) and backfills any pre-registry account encountered on a plain refresh.
+  registerAccountId({crewId: driver.crewId, email: driver.email}, driver.accountId);
   if(typeof data.pointsBalance === 'number') driver.points = data.pointsBalance;
-  if(Array.isArray(data.loads)) loads = sortLoadsNewest(data.loads);
-  if(Array.isArray(data.ptiLog)) ptiLog = data.ptiLog;
+  // On a switch, `loads`/`ptiLog` still hold whatever the PREVIOUS account had in memory — if
+  // the server response is thin (no loads/ptiLog arrays), saveAll() below would otherwise
+  // persist the old account's records under the new account's scoped key (dataKey() already
+  // reads the reassigned `driver` by this point). Read the new identity's own scoped storage
+  // instead of leaving the stale in-memory arrays in place. Same-account refreshes are
+  // unaffected — their in-memory arrays are already correctly this account's data.
+  if(Array.isArray(data.loads)){
+    loads = sortLoadsNewest(data.loads);
+  } else if(transition === 'switch'){
+    loads = sortLoadsNewest(scopedLoad('loads', []) || []);
+  }
+  if(Array.isArray(data.ptiLog)){
+    ptiLog = data.ptiLog;
+  } else if(transition === 'switch'){
+    ptiLog = scopedLoad('ptiLog', []) || [];
+  }
   if(Array.isArray(data.disputes) && typeof setDriverDisputed === 'function') {
     setDriverDisputed(data.disputes);
   }
   if(data.ownerData && typeof applyOwnerSyncData === 'function') {
     applyOwnerSyncData(data.ownerData);
   }
-  // Re-apply user's locally saved pay settings — they take priority over
-  // the Apps Script profile which may not have been synced yet.
-  try {
-    var _pay = JSON.parse(localStorage.getItem(K+'paySettings') || 'null');
-    if(_pay && _pay.payType){
-      driver.payType     = _pay.payType;
-      driver.cpmRate     = Number(_pay.cpmRate     || 0);
-      driver.grossPercent= Number(_pay.grossPercent|| 0);
-      driver.cpmBase     = _pay.cpmBase || 'loaded';
+  if(transition === 'switch'){
+    // `driver` is now the incoming account — loadAccountPaySettings() resolves to ITS OWN
+    // archived record (saved by a previous switch away from this same account, if any exist).
+    // No record yet (first time this account is used on this device) is not an error: leave
+    // driver's compensation fields as whatever base/server data already set. Re-save through
+    // the layer so the legacy mirror reflects the now-active account, not whatever the outgoing
+    // account's archive step just cleared it to.
+    var incomingPay = loadAccountPaySettings();
+    if(incomingPay){
+      driver.payType      = incomingPay.payType;
+      driver.cpmRate      = incomingPay.cpmRate;
+      driver.grossPercent = incomingPay.grossPercent;
+      driver.cpmBase      = incomingPay.cpmBase;
+      saveAccountPaySettings(incomingPay);
     }
-  } catch(e){}
+  } else {
+    // Same account: import+reconcile whatever is in the legacy key (may be a fresh server
+    // pay_config just written by core-runtime.js's persistPayConfig(), or an untouched local
+    // edit) against this account's own scope, then apply and re-mirror the reconciled result —
+    // local edits still take priority over a stale Apps Script profile, exactly as before,
+    // but now savedAt decides instead of the legacy key unconditionally winning.
+    var sameAccountImport = importLegacyPaySettingsIntoScope();
+    if(sameAccountImport.reconciled){
+      driver.payType      = sameAccountImport.reconciled.payType;
+      driver.cpmRate      = sameAccountImport.reconciled.cpmRate;
+      driver.grossPercent = sameAccountImport.reconciled.grossPercent;
+      driver.cpmBase      = sameAccountImport.reconciled.cpmBase;
+      saveAccountPaySettings(sameAccountImport.reconciled);
+    }
+  }
 
   save('authProfile', profile);
   save('assignments', driver.assignments || []);
@@ -1778,17 +1993,21 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
       if(restored.changed){
         console.info('[CrewBIQ Fleet] restored owner config from Orchestrator', restored.counts);
       }
-      // Restore pay settings if not already set locally
+      // Server pay_config fills an absence but never overwrites a newer (or undated, i.e.
+      // presumptively-active) local record — same reconciliation rule as an account switch.
       if(data.pay_config && data.pay_config.payType){
-        var existing = localStorage.getItem(K+'paySettings');
-        if(!existing){
-          localStorage.setItem(K+'paySettings', JSON.stringify(data.pay_config));
-          // Apply to live driver object too
+        var existingScopedPay = loadAccountPaySettings();
+        var reconciledFromServer = reconcilePaySettings(existingScopedPay, data.pay_config);
+        if(reconciledFromServer){
+          saveAccountPaySettings(reconciledFromServer);
           if(typeof driver !== 'undefined' && driver){
-            driver.payType      = data.pay_config.payType      || driver.payType;
-            driver.cpmRate      = Number(data.pay_config.cpmRate      || driver.cpmRate || 0);
-            driver.grossPercent = Number(data.pay_config.grossPercent || driver.grossPercent || 0);
-            driver.cpmBase      = data.pay_config.cpmBase      || driver.cpmBase;
+            // Direct assignment, not `|| driver.cpmRate` — reconciledFromServer.cpmRate/
+            // grossPercent are always numbers (normalizePaySettings defaults them), and a
+            // legitimate 0 must apply, not fall through to whatever driver already had.
+            driver.payType      = reconciledFromServer.payType;
+            driver.cpmRate      = reconciledFromServer.cpmRate;
+            driver.grossPercent = reconciledFromServer.grossPercent;
+            driver.cpmBase      = reconciledFromServer.cpmBase;
             saveAll();
             renderAll();
           }
@@ -2000,18 +2219,27 @@ function showApp(){
     setTimeout(()=>pullFromCloud({silent:true}), 1000);
   }
 }
+function primaryDestinationForPage(name){
+  if(['load','disputes','work'].includes(name)) return 'work';
+  if(['pti','fuel','service','truck'].includes(name)) return getUserRole()==='fleet' ? 'team' : 'truck';
+  if(['expenses','deductions','report','stats','money'].includes(name)) return 'money';
+  if(['fleet','drivers','team'].includes(name)) return 'team';
+  if(name === 'home') return 'home';
+  return '';
+}
 function showPage(name, btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   let pageEl = document.getElementById('page-'+name);
   if(!pageEl){ name='menu'; pageEl=document.getElementById('page-menu'); }
   pageEl.classList.add('active');
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  else { var _nb=document.querySelector(`.navbtn[data-page="${name}"]`); if(_nb) _nb.classList.add('active'); };
+  var primaryPage = primaryDestinationForPage(name);
+  if(btn && btn.dataset.page) btn.classList.add('active');
+  else if(primaryPage){ var _nb=document.querySelector(`.navbtn[data-page="${primaryPage}"]`); if(_nb && _nb.style.display !== 'none') _nb.classList.add('active'); };
   if(name==='home') renderHome();
   if(name==='pti') renderPTIPage();
   if(name==='stats'){ renderStats(); renderFleetStats(); }
-  if(name==='settings') renderSettingsPage();
+  if(name==='settings') renderSettingsPage(true);
   if(name==='load') renderLoadPage();
   if(name==='disputes')   renderDriverDisputedPage();
   if(name==='fuel')       renderFuelPage();
@@ -2097,12 +2325,13 @@ function ownerFinanceForTruck(truck, period){
 
   var driverProfiles = loadDriverProfiles();
   var truckId = truck ? truck.id : '';
+  var carrierAssignment = truckCarrierAssignment(truck);
   var gross = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
   // Use fleet owner's configured driver rates when available, fall back to load.driverPay
   var driverPay = tLoads.reduce(function(s,l){ return s + calcFleetDriverPay(l, driverProfiles, truckId); },0);
   var miles = tLoads.reduce(function(s,l){ return s+(Number(l.totalMiles||0) || (Number(l.loadedMiles||0)+Number(l.deadMiles||0))); },0);
   var dispatchFee = tLoads.reduce(function(s,l){
-    var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : (truck && truck.dispatchPercent) || 0);
+    var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : carrierAssignment.dispatchPercent || 0);
     return s + Number(l.dispatchFee != null ? l.dispatchFee : (Number(l.gross||0) * rate / 100));
   },0);
   var fuelCost = fuels.reduce(function(s,x){ return s+Number(x.fuelCost||0)+Number(x.defCost||0); },0);
@@ -2399,6 +2628,7 @@ function renderFleetStats() {
   if (perTruckEl) {
     if (role === 'fleet' && trucks.length > 0 && _fleetStatsTruck === '__all__') {
       perTruckEl.innerHTML = trucks.map(function(tr){
+        var assignment = truckCarrierAssignment(tr);
         var f = (typeof ownerFinanceForTruck === 'function')
           ? ownerFinanceForTruck(tr, period)
           : {gross:0,dispatchFee:0,truckNet:0,driverPay:0,ownerNet:0,fuelCost:0,serviceCost:0,deductionTotal:0,realNet:0,miles:0,loads:[]};
@@ -2407,7 +2637,7 @@ function renderFleetStats() {
         return '<div class="card" style="margin-top:0;border-left:3px solid var(--acc)">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
             '<div><div style="font-weight:900;color:var(--acc)">🚚 Unit '+escHtml(tr.unitNumber)+(tr.make?' · '+escHtml(tr.make):'')+'</div>'+
-            (tr.company?'<div class="muted" style="font-size:11px">'+escHtml(tr.company)+(tr.mc?' · '+escHtml(tr.mc):'')+'</div>':'')+
+            (assignment.company?'<div class="muted" style="font-size:11px">'+escHtml(assignment.company)+(assignment.mc?' · '+escHtml(assignment.mc):'')+'</div>':'')+
             '</div>'+
             '<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+color+'">'+fmt(f.realNet)+'</div><div class="muted" style="font-size:10px">REAL NET</div></div>'+
           '</div>'+
@@ -2485,13 +2715,14 @@ function fleetReportRows(){
     : [{truck:null, finance:ownerFinanceForTruck(null, period)}];
   return rows.map(function(row){
     var t = row.truck || {};
+    var assignment = truckCarrierAssignment(t);
     var f = row.finance;
     var invest = Number(t.purchaseCost || 0);
     var cpm = f.miles ? (f.realNet / f.miles) : 0;
     var roi = invest ? (f.realNet / invest * 100) : 0;
     return {
       unit: t.unitNumber || 'Unassigned',
-      company: t.company || '',
+      company: assignment.company || '',
       truck: t,
       finance: f,
       investment: invest,
@@ -2874,12 +3105,91 @@ function renderDeductionsPage(){
 
 // ── SERVICE FUND MODULE ───────────────────────────────────────────────────────
 
-var SVC_RATE_KEY = K+'svcRate'; // $/mile maintenance reserve rate
+var SVC_RATE_KEY = K+'svcRate'; // legacy device-global $/mile maintenance reserve rate (DATA_REGISTRY_AUDIT.md #1)
+var SVC_RATE_LEGACY_CONSUMED_KEY = K+'svcRateLegacyConsumed'; // global marker: the legacy key has been retired
 
 function loadServiceLogs(){ return scopedLoad('serviceLogs', []); }
 function saveServiceLogs(v){ scopedSave('serviceLogs', v || []); queueFleetConfigSync(); }
-function getSvcRate(){ return parseFloat(localStorage.getItem(SVC_RATE_KEY)||'0.20'); }
-function setSvcRate(r){ localStorage.setItem(SVC_RATE_KEY, String(r)); }
+
+// The canonical maintenance rate for a truck is always truck.maintenanceRate. This account-
+// scoped default only exists for the no-truck-selected case — it replaces the old device-global
+// fiqD_svcRate, which leaked one rate across every account on the device. Number.isFinite()
+// guards against a corrupted scoped value (e.g. non-numeric tampering) surfacing as NaN.
+function loadAccountSvcRateDefault(){
+  var v = scopedLoad('svcRateDefault', null);
+  if(v == null) return null;
+  var n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function saveAccountSvcRateDefault(rate){
+  scopedSave('svcRateDefault', Number(rate));
+}
+// Preserves a legacy svcRate value that failed to parse, mirroring quarantineLegacyPaySettings()
+// — never silently discarded, findable later by whoever needs to investigate it.
+function quarantineLegacySvcRate(rawValue){
+  var accountId = (driver && driver.accountId) || 'unknown';
+  var key = 'svcRate_quarantine_' + accountId + '_' + Date.now();
+  try{
+    localStorage.setItem(K+key, rawValue);
+    return key;
+  }catch(e){
+    return null;
+  }
+}
+// One-time-EVER import of the legacy device-global value — not one-time-per-account. Gap found
+// in review: leaving the legacy key alive after account A imports it means account B, having no
+// scoped default of its own, silently re-imports the SAME stale value on first use — a real
+// leak from A to B, not just a hypothetical one. Once any account successfully imports it (or a
+// corrupt value is quarantined), the legacy key is retired for every account from then on: a
+// global consumed marker is checked before ever looking at SVC_RATE_KEY again. The scoped write
+// is re-read and verified before the legacy key is retired, so a failed/partial write never
+// causes the value to be lost — it stays available for a later attempt instead.
+function importLegacySvcRateIntoScope(){
+  var existing = loadAccountSvcRateDefault();
+  if(existing != null) return existing;
+  if(localStorage.getItem(SVC_RATE_LEGACY_CONSUMED_KEY)) return null;
+  var legacyRaw = localStorage.getItem(SVC_RATE_KEY);
+  if(legacyRaw == null) return null;
+  // Number(), not parseFloat() — parseFloat("0.28-corrupt") silently reads "0.28" off the front
+  // of a partially-corrupted string; Number() rejects the whole string as NaN instead.
+  var legacyRate = Number(String(legacyRaw).trim());
+  if(!Number.isFinite(legacyRate) || legacyRate < 0){
+    var quarantineKey = quarantineLegacySvcRate(legacyRaw);
+    if(quarantineKey){
+      localStorage.removeItem(SVC_RATE_KEY);
+      localStorage.setItem(SVC_RATE_LEGACY_CONSUMED_KEY, '1');
+    }
+    return null;
+  }
+  saveAccountSvcRateDefault(legacyRate);
+  var verified = loadAccountSvcRateDefault();
+  if(verified !== legacyRate) return null; // write didn't verifiably land — legacy key stays live for a retry
+  localStorage.removeItem(SVC_RATE_KEY);
+  localStorage.setItem(SVC_RATE_LEGACY_CONSUMED_KEY, '1');
+  return legacyRate;
+}
+function getSvcRate(){
+  var imported = importLegacySvcRateIntoScope();
+  return imported != null ? imported : 0.20;
+}
+function setSvcRate(r){
+  saveAccountSvcRateDefault(r);
+}
+// Routes a Service-page rate edit to its real canonical owner: the selected truck's own
+// maintenanceRate if one is selected, or the account-scoped default otherwise. Never the old
+// `|| 0.20` pattern — an explicit 0 is a valid rate, not missing input.
+function applySvcRateFromInput(value, truckId){
+  var v = parseFloat(value);
+  if(isNaN(v)) v = 0;
+  if(truckId){
+    var list = loadTrucks();
+    var idx = list.findIndex(function(t){ return t.id===truckId; });
+    if(idx >= 0){ list[idx].maintenanceRate = v; saveTrucks(list); }
+  } else {
+    setSvcRate(v);
+  }
+  renderServicePage();
+}
 
 function resetServiceForm(){
   document.getElementById('svcEditId').value  = '';
@@ -2949,7 +3259,8 @@ function renderServicePage(){
   if(dateEl && !dateEl.value) dateEl.value = today();
 
   var logs   = loadServiceLogs().filter(function(x){ return recordMatchesTruck(x, selectedTruck); }).slice().sort(function(a,b){ return (b.date||'')>(a.date||'')?1:-1; });
-  var rate   = selectedTruck && selectedTruck.maintenanceRate != null ? Number(selectedTruck.maintenanceRate || 0.20) : getSvcRate();
+  // Not `|| 0.20` — a deliberately-saved 0 rate must apply, not fall through to the default.
+  var rate   = selectedTruck && selectedTruck.maintenanceRate != null ? Number(selectedTruck.maintenanceRate) : getSvcRate();
 
   // Total miles from loads for fund calculation
   var totalMiles = (typeof loads !== 'undefined' ? loads : [])
@@ -2968,7 +3279,7 @@ function renderServicePage(){
     '<div class="stat-card"><div class="label">Accumulated</div><div class="stat-val">'+fmt(accumulated)+'</div></div>'+
     '<div class="stat-card"><div class="label">Spent</div><div class="stat-val red">'+fmt(spent)+'</div></div>'+
     '<div class="stat-card"><div class="label">Miles</div><div class="stat-val">'+totalMiles.toLocaleString()+'</div></div></div>'+
-    '<div style="margin-top:10px;display:flex;align-items:center;gap:8px"><span class="muted" style="font-size:12px">Rate $/mi:</span><input type="number" step="0.01" value="'+rate+'" style="width:80px;padding:6px;font-size:13px" onchange="setSvcRate(parseFloat(this.value)||0.20);renderServicePage()"><span class="muted" style="font-size:11px">(adjust to match your plan)</span></div></div>';
+    '<div style="margin-top:10px;display:flex;align-items:center;gap:8px"><span class="muted" style="font-size:12px">Rate $/mi:</span><input type="number" step="0.01" value="'+rate+'" style="width:80px;padding:6px;font-size:13px" onchange="applySvcRateFromInput(this.value, \''+(selectedTruck?selectedTruck.id:'')+'\')"><span class="muted" style="font-size:11px">(adjust to match your plan)</span></div></div>';
 
   var listEl = document.getElementById('serviceList');
   if(!listEl) return;
@@ -2983,6 +3294,391 @@ function escHtml(s){ return String(s||'').replace(/[&<>"']/g,function(m){return(
 
 function loadTrucks(){ return scopedLoad('trucks', []); }
 function saveTrucks(v){ scopedSave('trucks', v || []); queueFleetConfigSync(); }
+function truckCarrierAssignment(truck){
+  truck = truck || {};
+  var assignment = truck.carrierAssignment || {};
+  var company = assignment.company != null ? assignment.company : (truck.company || '');
+  var mc = assignment.mc != null ? assignment.mc : (truck.mc || '');
+  var dispatchPercent = assignment.dispatchPercent != null ? Number(assignment.dispatchPercent || 0) : Number(truck.dispatchPercent || 0);
+  return {
+    // Legacy shadow fields — existing readers (fleet dashboards, reports, CSV export) keep working unchanged.
+    company: company,
+    mc: mc,
+    dispatchPercent: dispatchPercent,
+    // Preferred fields: Carrier Assignment references a Company by id and keeps a point-in-time
+    // snapshot of its name/MC so past reports never change when the Company record is edited later.
+    companyRef: assignment.companyRef || '',
+    companyNameSnapshot: assignment.companyNameSnapshot != null ? assignment.companyNameSnapshot : company,
+    mcNumberSnapshot: assignment.mcNumberSnapshot != null ? assignment.mcNumberSnapshot : mc
+  };
+}
+
+// ── COMPANY MODULE ───────────────────────────────────────────────────────────
+// Company: the legal/business entity a user owns or manages — separate from Carrier
+// Assignment (who a truck currently operates under) and from driver.company (the
+// legacy "current workplace" shadow field for company-driver role, see below).
+// Company: { id, name, legalName, mcNumber, dotNumber, phone, email,
+//            address:{line1,line2,city,state,postalCode,country}, logo, active, createdAt, updatedAt }
+function loadCompanies(){ return scopedLoad('companies', []); }
+function saveCompanies(v){ scopedSave('companies', v || []); }
+function normalizeCompany(raw){
+  raw = raw || {};
+  var address = raw.address || {};
+  var now = new Date().toISOString();
+  return {
+    id: raw.id || generateFleetEntityId('company'),
+    name: raw.name || '',
+    legalName: raw.legalName || '',
+    mcNumber: raw.mcNumber || '',
+    dotNumber: raw.dotNumber || '',
+    phone: raw.phone || '',
+    email: raw.email || '',
+    address: {
+      line1: address.line1 || '', line2: address.line2 || '', city: address.city || '',
+      state: address.state || '', postalCode: address.postalCode || '', country: address.country || ''
+    },
+    logo: raw.logo || '',
+    active: raw.active !== false,
+    createdAt: raw.createdAt || now,
+    updatedAt: raw.updatedAt || now
+  };
+}
+// The company/business entity this user owns or manages (owner_op/fleet only).
+// No multi-company switching yet: the first active record, or the first record if none are active.
+function currentOwnedOrganization(){
+  var companies = loadCompanies();
+  if(!companies.length) return null;
+  return companies.find(function(c){ return c.active !== false; }) || companies[0];
+}
+// The company/carrier this user is currently working under, independent of who they own.
+// Reads the default truck's Carrier Assignment snapshot first; falls back to the legacy
+// driver.company shadow field only when no assignment data exists yet.
+function currentCarrierCompany(){
+  var truck = typeof getDefaultTruck === 'function' ? getDefaultTruck() : null;
+  var assignment = truck ? truckCarrierAssignment(truck) : null;
+  if(assignment && (assignment.companyNameSnapshot || assignment.mcNumberSnapshot)){
+    return { name: assignment.companyNameSnapshot || '', mcNumber: assignment.mcNumberSnapshot || '', source: 'carrierAssignment' };
+  }
+  return { name: (driver && driver.company) || '', mcNumber: '', source: 'legacy' };
+}
+
+// ── DRIVER PROJECTIONS (Phase 1: mostly read-only helpers, no new storage) ──────────────
+// These are computed views over the existing global `driver` object and `driverProfiles[]`
+// roster — nothing here is persisted in a new shape, and no existing storage/read/write path
+// changes. See the Driver audit (FUNCTIONAL_ENTITY_ROLE_MODEL) for the target entity split
+// this is projecting toward: Account Identity, Person Profile, Compensation Terms, Assignment.
+// The one exception is ensureAccountId() below — a deliberate, one-time addressable write to
+// backfill a stable local id onto the existing `driver` object (see identity-scope Step 1).
+
+// A stable local account id, independent of email/crewId (which remain editable profile
+// fields today). 'acct_local_' makes clear this is a client-local id, not a server principal —
+// crypto.randomUUID() is preferred; the stableHash fallback only covers environments/contexts
+// where it's unavailable (e.g. non-HTTPS contexts in some browsers).
+function generateAccountId(){
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return 'acct_local_' + crypto.randomUUID();
+  }
+  return 'acct_local_' + stableHash([Date.now(), Math.random().toString(36).slice(2), Math.random().toString(36).slice(2)].join('|'));
+}
+// Idempotent backfill: an existing non-empty accountId is never regenerated or overwritten.
+// Runs for every driver object, including anonymous/local-only setups — a device with no
+// server relationship still needs a stable local owner for its data. Deliberately NOT wired
+// into dataKey()/scopedLoad/scopedSave here — this id is additive only until a separate,
+// explicit step defines how it reconciles with a server-authenticated principal (see Step 4
+// note: a same-device account switch must not silently carry the old local id into the new
+// driver — auth restore logic is intentionally left unchanged in this patch).
+function ensureAccountId(){
+  if(!driver) return '';
+  if(driver.accountId) return driver.accountId;
+  driver.accountId = generateAccountId();
+  save('driver', driver);
+  return driver.accountId;
+}
+
+// ── ACCOUNT REGISTRY (stable local accountId across repeated switches) ──────────────────
+// Architectural gap found in Step 4 review: applyAuthRestoreData() used to clear and mint a
+// FRESH accountId on every 'switch', including switching back to an account already seen on
+// this device — so A -> B -> A gave A a new local id every time, defeating the point of a
+// stable id. This is a device-global (unscoped, deliberately not per-account) map from an
+// identity key to the ONE local accountId that identity should always resolve to.
+//
+// crewId (CrewBIQ's own crewbiq_id) IS this system's server-assigned canonical account
+// identifier already — see core-runtime.js legacyProfile(), which derives crewId/driverId
+// directly from user.crewbiq_id; there is no separate server "user id" field to prefer over
+// it. crewId therefore wins when present; email is only a fallback for identities the server
+// hasn't assigned a crewId to yet (matches identityTransitionKind()'s own precedence).
+function accountRegistryKey(identity){
+  identity = identity || {};
+  var crew = identitySlug(identity.crewId||'');
+  var email = identitySlug(identity.email||'');
+  if(crew) return 'crew:'+crew;
+  if(email) return 'email:'+email;
+  return '';
+}
+function loadAccountRegistry(){ return load('accountRegistry', {}); }
+function saveAccountRegistry(reg){ save('accountRegistry', reg || {}); }
+// Records (or confirms) that this identity's stable local id is accountId. Idempotent no-op if
+// already correct — never overwrites a DIFFERENT existing mapping, so a stray call can't
+// reassign an identity to some other id after the fact.
+function registerAccountId(identity, accountId){
+  var key = accountRegistryKey(identity);
+  if(!key || !accountId) return;
+  var registry = loadAccountRegistry();
+  if(registry[key]) return;
+  registry[key] = accountId;
+  saveAccountRegistry(registry);
+}
+// Looks up the stable local id for an identity; mints (and registers) one via
+// fallbackAccountId/generateAccountId() only if this identity has never been seen before.
+function resolveAccountId(identity, fallbackAccountId){
+  var key = accountRegistryKey(identity);
+  var registry = loadAccountRegistry();
+  if(key && registry[key]) return registry[key];
+  var id = fallbackAccountId || generateAccountId();
+  if(key){
+    registry[key] = id;
+    saveAccountRegistry(registry);
+  }
+  return id;
+}
+
+// Step 2/3 — identity-scope: distinguishes a "profile change" (editing fields on the account
+// already active on this device — name, email, crewId, whatever; accountId/local data must
+// never move) from an "account switch" (a login/signup/session-restore that resolves to a
+// different crewId/email identity). Pure classifier: it decides nothing on its own, callers
+// act on the result. 'initial' covers a device that had no prior identity to compare against.
+//
+// Takes raw {crewId, email} records rather than pre-collapsed getDriverIdentityKey() strings.
+// Collapsing to one string first is what caused false-positive switches: crewId wins over
+// email in getDriverIdentityKey(), so 'email:E' (no crewId yet) vs 'crew:C' (same account,
+// crewId just got assigned, email still E) compared as different strings even though E is
+// identical on both sides. Comparing the raw fields lets a value missing on one side stay
+// silently non-decisive instead of forcing a mismatch.
+function identityTransitionKind(previous, next){
+  previous = previous || {};
+  next = next || {};
+  var prevCrew = identitySlug(previous.crewId||'');
+  var nextCrew = identitySlug(next.crewId||'');
+  var prevEmail = identitySlug(previous.email||'');
+  var nextEmail = identitySlug(next.email||'');
+  if(!prevCrew && !prevEmail) return 'initial';
+  // crewId is authoritative when both sides have one — matches getDriverIdentityKey()'s own
+  // crewId-first precedence, and correctly flags a switch even if email happens to match too
+  // (e.g. two different crewIds sharing one email is treated as different accounts, not same).
+  if(prevCrew && nextCrew) return prevCrew === nextCrew ? 'unchanged' : 'switch';
+  if(prevEmail && nextEmail) return prevEmail === nextEmail ? 'unchanged' : 'switch';
+  // Neither identifier is comparable on both sides (e.g. crewId-only vs email-only with no
+  // overlap) — nothing proves same, nothing proves different. Fail safe toward 'switch' rather
+  // than risk silently merging two different people's local data.
+  return 'switch';
+}
+
+// ── ACCOUNT PAY SETTINGS (single scoped source of truth) ─────────────────────────────────
+// Step 4 finding: naive switch archiving destroyed data — fiqD_paySettings is deliberately
+// preserved across logout/reset by FLEET_DIRECT_KEYS, so it needs real migration, not deletion.
+// This layer is the one place that reads/writes an account's pay settings; the legacy global
+// key becomes a write-through compatibility MIRROR only (sync.js payload, persistPayConfig()
+// in core-runtime.js, and restoreFleetConfigFromOrchestrator()'s own legacy check still read it
+// directly during this transitional period) — never a second independent source of truth.
+// Canonical shape: {payType, cpmRate, grossPercent, cpmBase, savedAt}.
+function normalizePaySettings(raw){
+  if(!raw || typeof raw !== 'object' || !raw.payType) return null;
+  return {
+    payType: raw.payType,
+    cpmRate: Number(raw.cpmRate || 0),
+    grossPercent: Number(raw.grossPercent || 0),
+    cpmBase: raw.cpmBase || 'loaded',
+    savedAt: raw.savedAt || null
+  };
+}
+// Newer savedAt wins. If EITHER side has no savedAt, the existing local record is kept as-is —
+// missing proof of recency must never read as proof of staleness, and the caller's already-
+// active local record is what "silently deleted" would mean losing.
+function reconcilePaySettings(local, incoming){
+  var localNorm = normalizePaySettings(local);
+  var incomingNorm = normalizePaySettings(incoming);
+  if(!incomingNorm) return localNorm;
+  if(!localNorm) return incomingNorm;
+  if(!incomingNorm.savedAt || !localNorm.savedAt) return localNorm;
+  return incomingNorm.savedAt > localNorm.savedAt ? incomingNorm : localNorm;
+}
+function loadAccountPaySettings(){
+  return scopedLoad('paySettings', null);
+}
+// Explicit save (Settings form, or a reconciled value being committed) is authoritative for
+// THIS account — stamps a fresh savedAt when the caller didn't supply one, then mirrors to the
+// legacy key so not-yet-migrated readers keep seeing the current account's real values.
+function saveAccountPaySettings(value){
+  var normalized = normalizePaySettings(value);
+  if(!normalized) return null;
+  if(!normalized.savedAt) normalized.savedAt = new Date().toISOString();
+  scopedSave('paySettings', normalized);
+  try{ localStorage.setItem(K+'paySettings', JSON.stringify(normalized)); }catch(e){}
+  return normalized;
+}
+// Preserves a legacy paySettings value that failed to parse as JSON, so the archive step can
+// still safely clear the original key (letting the incoming account's own mirror write there
+// without the corrupt string vanishing with zero trace — the exact gap found in review: B's
+// restore silently overwrote A's still-in-place corrupt legacy value with no record anywhere).
+// Named per-account-at-the-time and timestamped; a permanent forensic record, not something
+// any code path is expected to read back automatically.
+function quarantineLegacyPaySettings(rawValue){
+  var accountId = (driver && driver.accountId) || 'unknown';
+  var key = 'paySettings_quarantine_' + accountId + '_' + Date.now();
+  try{
+    localStorage.setItem(K+key, rawValue);
+    return key;
+  }catch(e){
+    return null;
+  }
+}
+// One-time import: folds whatever is currently in the legacy global key into the CURRENT
+// account's own scope (whichever account `driver` presently resolves to), reconciled against
+// that account's existing scoped record so an older legacy value can never clobber a newer one.
+// Returns {reconciled, legacyCleared, outcome, quarantineKey?}:
+//   - outcome 'empty'          — nothing was there to import. legacyCleared: false (nothing to clear).
+//   - outcome 'no_usable_data' — valid JSON but no payType (e.g. {}): a deliberate CLEANUP of a
+//     semantically empty value, not a successful migration — nothing usable existed to lose.
+//   - outcome 'imported'       — real settings folded into scope (possibly reconciled away by a
+//     newer existing record — check `reconciled` against the input to see which one won).
+//   - outcome 'quarantined'    — invalid JSON; the raw string was preserved at `quarantineKey`
+//     before the legacy key was allowed to be cleared.
+//   - outcome 'quarantine_failed' — invalid JSON AND quarantining it also failed (e.g. storage
+//     full): legacyCleared stays false, the corrupt value is left in place rather than lost.
+function importLegacyPaySettingsIntoScope(){
+  var legacyRaw = localStorage.getItem(K+'paySettings');
+  if(!legacyRaw) return {reconciled: loadAccountPaySettings(), legacyCleared: false, outcome: 'empty'};
+  var legacyParsed;
+  try{ legacyParsed = JSON.parse(legacyRaw); }
+  catch(e){
+    var quarantineKey = quarantineLegacyPaySettings(legacyRaw);
+    if(!quarantineKey){
+      console.warn('[CrewBIQ] fiqD_paySettings is not valid JSON and could not be quarantined — left in place', e);
+      return {reconciled: loadAccountPaySettings(), legacyCleared: false, outcome: 'quarantine_failed'};
+    }
+    console.warn('[CrewBIQ] fiqD_paySettings was not valid JSON — preserved at '+quarantineKey, e);
+    return {reconciled: loadAccountPaySettings(), legacyCleared: true, outcome: 'quarantined', quarantineKey: quarantineKey};
+  }
+  var existing = loadAccountPaySettings();
+  if(!normalizePaySettings(legacyParsed)){
+    // Valid JSON but semantically empty — nothing usable to fold in. Deliberate cleanup, not a
+    // migration: the existing scoped record (if any) is returned untouched.
+    return {reconciled: existing, legacyCleared: true, outcome: 'no_usable_data'};
+  }
+  var reconciled = reconcilePaySettings(existing, legacyParsed);
+  if(reconciled) scopedSave('paySettings', reconciled);
+  return {reconciled: reconciled, legacyCleared: true, outcome: 'imported'};
+}
+
+// Account Identity: who is authenticated. Deliberately excludes name/company/truck/pay —
+// those belong to Person Profile / Assignment / Compensation, not to login identity.
+function currentAccountIdentity(){
+  return {
+    accountId: (driver && driver.accountId) || '',
+    crewId: (driver && driver.crewId) || '',
+    driverId: (driver && driver.driverId) || '',
+    email: (driver && driver.email) || '',
+    ownerKey: (driver && driver.ownerKey) || '',
+    identityKey: getDriverIdentityKey(driver)
+  };
+}
+
+// Person Profile for the signed-in user. Excludes company/truck/compensation/PTI/sync on
+// purpose (rule: those stay legacy shadow fields on `driver` until their own migration step).
+function currentPersonProfile(){
+  var identity = currentAccountIdentity();
+  return {
+    id: identity.driverId || identity.crewId || '',
+    name: (driver && driver.name) || '',
+    email: identity.email,
+    active: true
+  };
+}
+
+// Person Profile projection for one fleet roster entry. Roster entries never collect a contact
+// email today, so it defaults empty rather than borrowing the signed-in account's email — a
+// roster record is never auto-linked to the current user, per the audit's explicit rule.
+function normalizeDriverProfile(profile){
+  profile = profile || {};
+  return {
+    id: profile.id || '',
+    name: profile.name || '',
+    email: profile.email || '',
+    active: profile.active !== false
+  };
+}
+
+// Compensation Terms for the signed-in user. Reads the global driver's split cpmRate/
+// grossPercent fields directly (no unification) — no effective-date is stored anywhere today;
+// rate history is a one-time load recalculation (see driver:pay_settings_changed), not a
+// versioned field, so effectiveFrom/effectiveTo stay null rather than inventing a value.
+function currentCompensationTerms(){
+  return {
+    payType: (driver && driver.payType) || 'cpm',
+    cpmRate: Number((driver && driver.cpmRate) || 0),
+    grossPercent: Number((driver && driver.grossPercent) || 0),
+    cpmBase: (driver && driver.cpmBase) || 'loaded',
+    effectiveFrom: null,
+    effectiveTo: null,
+    active: true
+  };
+}
+
+// Compensation Terms projection for one fleet roster entry. driverProfiles store a single
+// unified `rate` field selected by payType; profile.cpmRate/profile.grossPercent are legacy
+// write-only leftovers (see audit — saveDriverForm sets them but nothing ever reads them), kept
+// here only as a fallback ahead of `rate` in case they were ever populated by another path.
+function compensationTermsFromProfile(profile){
+  profile = profile || {};
+  var payType = profile.payType === 'gross_percent' ? 'gross_percent' : 'cpm';
+  return {
+    payType: payType,
+    cpmRate: payType === 'cpm' ? Number(profile.cpmRate || profile.rate || 0) : 0,
+    grossPercent: payType === 'gross_percent' ? Number(profile.grossPercent || profile.rate || 0) : 0,
+    cpmBase: profile.cpmBase || 'loaded',
+    effectiveFrom: null,
+    effectiveTo: null,
+    active: profile.active !== false
+  };
+}
+
+// Driver Assignment for the signed-in user — stitches together the default truck (found by
+// unit-number match, the only mechanism that exists for "my own" truck) and its Carrier
+// Assignment snapshot. teamId is always empty: teamDriver is legacy metadata, not migrated
+// (rule 5) — driver.teamDriver (a string) must never be reinterpreted as a team relation id.
+function currentDriverAssignment(){
+  var identity = currentAccountIdentity();
+  var truck = typeof getDefaultTruck === 'function' ? getDefaultTruck() : null;
+  var carrier = truck ? truckCarrierAssignment(truck) : null;
+  return {
+    driverRef: identity.driverId || identity.crewId || '',
+    truckRef: (truck && truck.id) || '',
+    companyRef: (carrier && carrier.companyRef) || '',
+    companySnapshot: { name: (carrier && carrier.companyNameSnapshot) || '', mcNumber: (carrier && carrier.mcNumberSnapshot) || '' },
+    currentAssignmentId: (driver && driver.currentAssignmentId) || '',
+    teamId: '',
+    active: true
+  };
+}
+
+// Driver Assignment projection for one fleet roster entry. truckRef comes from the explicit
+// profile.truckId link (unlike the signed-in-user projection above, which has to infer the
+// truck via unit-number matching — a different mechanism, not unified here). legacyTeamDriver
+// carries the roster's boolean flag as compatibility metadata only, never as teamId.
+function driverAssignmentFromProfile(profile){
+  profile = profile || {};
+  var truck = profile.truckId ? loadTrucks().find(function(t){ return t.id === profile.truckId; }) : null;
+  var carrier = truck ? truckCarrierAssignment(truck) : null;
+  return {
+    driverRef: profile.id || '',
+    truckRef: profile.truckId || '',
+    companyRef: (carrier && carrier.companyRef) || '',
+    companySnapshot: { name: (carrier && carrier.companyNameSnapshot) || '', mcNumber: (carrier && carrier.mcNumberSnapshot) || '' },
+    teamId: '',
+    active: profile.active !== false,
+    legacyTeamDriver: !!profile.teamDriver
+  };
+}
 
 function ensureDefaultTruckFromDriver(){
   if(!_fleetRestoreSettled) return;
@@ -2997,6 +3693,7 @@ function ensureDefaultTruckFromDriver(){
     company: driver.company || '',
     mc: '',
     dispatchPercent: 0,
+    carrierAssignment: {company:driver.company || '', mc:'', dispatchPercent:0},
     maintenanceRate: 0.20,
     active: true,
   }]);
@@ -3053,13 +3750,16 @@ function openTruckForm(id){
   var t = id ? loadTrucks().find(function(x){ return x.id===id; }) : null;
   if(id && !t){ toast('Truck edit conflict: this truck is no longer available. Pull latest data and try again.','err'); return; }
   beginFleetForm('truck', t ? 'edit' : 'create', t ? t.id : '');
+  var assignment = truckCarrierAssignment(t);
   var html =
     '<div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:90;display:flex;align-items:flex-end;justify-content:center" id="truckModal">'+
     '<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">'+
-    '<div style="font-size:17px;font-weight:800;color:var(--acc);margin-bottom:14px">'+(t?'Edit Truck':'Add Truck')+'</div>'+
+    '<div style="font-size:17px;font-weight:800;color:var(--acc);margin-bottom:4px">'+(t?'Edit Truck':'Add Truck')+'</div>'+
+    '<div class="muted" style="font-size:11px;margin-bottom:16px">Vehicle identity and carrier terms are managed separately.</div>'+
     '<input type="hidden" id="tfId" value="'+(t?t.id:'')+'">'+
     '<input type="hidden" id="tfMode" value="'+(t?'edit':'create')+'">'+
     '<div id="tfConflict" class="muted" style="display:none;color:var(--rd);font-size:12px;margin-bottom:10px"></div>'+
+    '<div class="settings-section-title" style="margin-top:0">Physical Truck</div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Unit Number *</div><input id="tfUnit" placeholder="e.g. 10" value="'+(t&&t.unitNumber?escHtml(t.unitNumber):'')+'"></div>'+
       '<div class="fg"><div class="slabel">Year</div><input type="number" id="tfYear" placeholder="2021" value="'+(t&&t.year?t.year:'')+'"></div>'+
@@ -3070,11 +3770,8 @@ function openTruckForm(id){
     '</div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Plate</div><input id="tfPlate" placeholder="ABC-1234" value="'+(t&&t.plate?escHtml(t.plate):'')+'"></div>'+
-      '<div class="fg"><div class="slabel">Dispatch %</div><input type="number" step="0.1" id="tfDispatch" placeholder="13" value="'+(t&&t.dispatchPercent!=null?t.dispatchPercent:'')+'"></div>'+
+      '<div class="fg"><div class="slabel">VIN</div><input id="tfVin" placeholder="17-character VIN" value="'+(t&&t.vin?escHtml(t.vin):'')+'" maxlength="17" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'+
     '</div>'+
-    '<div class="sfield"><div class="slabel">Company / Carrier</div><input id="tfCompany" placeholder="e.g. Basaev LLC" value="'+(t&&t.company?escHtml(t.company):'')+'"></div>'+
-    '<div class="sfield"><div class="slabel">MC Number</div><input id="tfMC" placeholder="MC-123456 (changes when you get your own)" value="'+(t&&t.mc?escHtml(t.mc):'')+'"></div>'+
-    '<div class="sfield"><div class="slabel">VIN</div><input id="tfVin" placeholder="17-character VIN, stays the same if the unit number ever changes" value="'+(t&&t.vin?escHtml(t.vin):'')+'" maxlength="17" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Maint. Rate $/mi</div><input type="number" step="0.01" id="tfMaintRate" placeholder="0.20" value="'+(t&&t.maintenanceRate!=null?t.maintenanceRate:'0.20')+'"></div>'+
       '<div class="fg"><div class="slabel">Purchase Cost</div><input type="number" step="100" id="tfPurchaseCost" placeholder="85000" value="'+(t&&t.purchaseCost!=null?t.purchaseCost:'')+'"></div>'+
@@ -3082,6 +3779,15 @@ function openTruckForm(id){
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Active</div>'+
         '<select id="tfActive"><option value="1" '+((!t||t.active!==false)?'selected':'')+'">Yes</option><option value="0" '+(t&&t.active===false?'selected':'')+'>No</option></select>'+
+      '</div>'+
+    '</div>'+
+    '<div style="border:1px solid var(--bd);border-radius:14px;padding:14px;background:var(--s2);margin:16px 0">'+
+      '<div class="settings-section-title" style="margin-top:0">Current Carrier Assignment</div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.4;margin-bottom:12px">Commercial terms can change without changing the physical truck.</div>'+
+      '<div class="sfield"><div class="slabel">Company / Carrier</div><input id="tfCompany" placeholder="e.g. Basaev LLC" value="'+escHtml(assignment.company)+'"></div>'+
+      '<div class="frow">'+
+        '<div class="fg"><div class="slabel">MC Number</div><input id="tfMC" placeholder="MC-123456" value="'+escHtml(assignment.mc)+'"></div>'+
+        '<div class="fg"><div class="slabel">Dispatch %</div><input type="number" step="0.1" id="tfDispatch" placeholder="13" value="'+(assignment.dispatchPercent||'')+'"></div>'+
       '</div>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:4px">'+
@@ -3116,6 +3822,25 @@ function saveTruckForm(){
     showFleetFormConflict('truck', 'Truck edit conflict: this truck changed or disappeared during restore. Reload/pull latest data and try again.');
     return;
   }
+  var carrierAssignment = {
+    company:         (document.getElementById('tfCompany').value||'').trim(),
+    mc:              (document.getElementById('tfMC').value||'').trim(),
+    dispatchPercent: parseFloat(document.getElementById('tfDispatch').value)||0,
+  };
+  // No company registry/lookup yet, so companyRef can only ever be carried forward, never
+  // looked up. Editing a truck without touching company/MC must not drop an existing ref;
+  // changing either value means the ref no longer describes who this truck operates under.
+  var existingAssignment = (mode === 'edit' && idx >= 0) ? truckCarrierAssignment(list[idx]) : null;
+  var carrierUnchanged = !!existingAssignment
+    && existingAssignment.companyNameSnapshot === carrierAssignment.company
+    && existingAssignment.mcNumberSnapshot === carrierAssignment.mc;
+  carrierAssignment.companyRef = carrierUnchanged ? (existingAssignment.companyRef || '') : '';
+  carrierAssignment.companyNameSnapshot = carrierAssignment.company;
+  carrierAssignment.mcNumberSnapshot = carrierAssignment.mc;
+  // Not `|| 0.20` — a deliberately-entered 0 must save as 0. Only a genuinely empty/invalid
+  // field falls back to the placeholder default.
+  var maintRateInput = parseFloat(document.getElementById('tfMaintRate').value);
+  var maintRate = isNaN(maintRateInput) ? 0.20 : maintRateInput;
   var entry = {
     id:              id,
     unitNumber:      unit,
@@ -3123,11 +3848,13 @@ function saveTruckForm(){
     make:            (document.getElementById('tfMake').value||'').trim(),
     model:           (document.getElementById('tfModel').value||'').trim(),
     plate:           (document.getElementById('tfPlate').value||'').trim(),
-    dispatchPercent: parseFloat(document.getElementById('tfDispatch').value)||0,
-    company:         (document.getElementById('tfCompany').value||'').trim(),
-    mc:              (document.getElementById('tfMC').value||'').trim(),
+    carrierAssignment: carrierAssignment,
+    // Compatibility shadow for reports and older sync clients. New UI reads carrierAssignment first.
+    dispatchPercent: carrierAssignment.dispatchPercent,
+    company:         carrierAssignment.company,
+    mc:              carrierAssignment.mc,
     vin:             (document.getElementById('tfVin').value||'').trim(),
-    maintenanceRate: parseFloat(document.getElementById('tfMaintRate').value)||0.20,
+    maintenanceRate: maintRate,
     purchaseCost:    parseFloat((document.getElementById('tfPurchaseCost')||{}).value)||0,
     active:          document.getElementById('tfActive').value === '1',
   };
@@ -3185,6 +3912,7 @@ function renderTrucksList(){
   var inactive = trucks.filter(function(t){ return t.active === false; });
   var sorted   = active.concat(inactive);
   el.innerHTML = sorted.map(function(t){
+    var assignment = truckCarrierAssignment(t);
     var isActive = t.active !== false;
     var statusBadge = isActive
       ? ''
@@ -3192,7 +3920,7 @@ function renderTrucksList(){
     return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);'+(isActive?'':'opacity:.65')+'">'+
       '<div><div style="font-weight:700">Unit '+escHtml(t.unitNumber)+(t.make?' · '+escHtml(t.make)+(t.model?' '+escHtml(t.model):''):'')+statusBadge+'</div>'+
       '<div class="muted" style="font-size:11px">'+
-        (t.company?escHtml(t.company):'')+(t.mc?' · '+escHtml(t.mc):'')+(t.dispatchPercent?' · Dispatch: '+t.dispatchPercent+'%':'')+
+        (assignment.company?escHtml(assignment.company):'')+(assignment.mc?' · '+escHtml(assignment.mc):'')+(assignment.dispatchPercent?' · Dispatch: '+assignment.dispatchPercent+'%':'')+
       '</div></div>'+
       '<button onclick="openTruckForm(\''+t.id+'\')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:6px 12px;cursor:pointer;font-size:12px">Edit</button>'+
     '</div>';
@@ -3417,6 +4145,7 @@ function renderFleetPage(){
   var fleetGross=0, fleetDriverPay=0, fleetMiles=0, fleetNet=0, fleetFuel=0, fleetService=0, fleetDeductions=0;
 
   cardsEl.innerHTML = trucks.map(function(t){
+    var assignment = truckCarrierAssignment(t);
     var f = ownerFinanceForTruck(t, (document.getElementById('fleetPeriod')||{}).value || 'week');
     var tLoads = f.loads;
     var gross      = f.gross;
@@ -3431,13 +4160,13 @@ function renderFleetPage(){
     return '<div class="card">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
         '<div><div style="font-weight:900;font-size:15px;color:var(--acc)">🚚 Unit '+escHtml(t.unitNumber)+(t.make?' · '+escHtml(t.make):'')+'</div>'+
-        (t.company?'<div class="muted" style="font-size:11px">'+escHtml(t.company)+(t.mc?' · '+escHtml(t.mc):'')+'</div>':'')+
+        (assignment.company?'<div class="muted" style="font-size:11px">'+escHtml(assignment.company)+(assignment.mc?' · '+escHtml(assignment.mc):'')+'</div>':'')+
         (truckDrivers.length?'<div class="muted" style="font-size:11px;margin-top:2px">👤 '+truckDrivers.map(function(d){return escHtml(d.name);}).join(' + ')+'</div>':'')+'</div>'+
         '<div style="text-align:right"><div style="font-size:22px;font-weight:900;color:'+color+'">'+fmt(realNet)+'</div><div class="muted" style="font-size:10px">REAL NET</div></div>'+
       '</div>'+
       '<div class="stat-grid" style="margin:0">'+
         '<div class="stat-card"><div class="label">Gross</div><div class="stat-val">'+fmt(gross)+'</div></div>'+
-        '<div class="stat-card"><div class="label">Dispatch '+t.dispatchPercent+'%</div><div class="stat-val red">-'+fmt(dispFee)+'</div></div>'+
+        '<div class="stat-card"><div class="label">Dispatch '+assignment.dispatchPercent+'%</div><div class="stat-val red">-'+fmt(dispFee)+'</div></div>'+
         '<div class="stat-card"><div class="label">Driver Pay</div><div class="stat-val amber">'+fmt(driverPay)+'</div></div>'+
         '<div class="stat-card"><div class="label">Real CPM</div><div class="stat-val '+(parseFloat(cpm)>=1.5?'green':parseFloat(cpm)>=1?'amber':'red')+'">$'+cpm+'</div></div>'+
       '</div>'+
@@ -3818,6 +4547,34 @@ function applyScanToLoad(){
 
 // ── BOTTOM NAV ──
 function toggleNav(){ showPage('menu'); }
+function openQuickAdd(){
+  applyRoleUI();
+  var overlay = document.getElementById('quickAddOverlay');
+  if(!overlay) return;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  var first = overlay.querySelector('.quick-add-item:not([style*="display: none"])');
+  if(first) setTimeout(function(){ first.focus(); }, 0);
+}
+function closeQuickAdd(){
+  var overlay = document.getElementById('quickAddOverlay');
+  if(!overlay) return;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+  var trigger = document.getElementById('globalAddButton');
+  if(trigger) trigger.focus();
+}
+function quickAddPage(page){
+  closeQuickAdd();
+  showPage(page);
+}
+function quickAddPTI(){
+  closeQuickAdd();
+  forcePTI();
+}
+document.addEventListener('keydown', function(event){
+  if(event.key === 'Escape') closeQuickAdd();
+});
 
 // ── MARKETPLACE ──
 const MKT_MODULES = [
@@ -4377,7 +5134,193 @@ function renderOrchestratorSettingsStatus(){
     'Last copy: ' + escHtml(orchestratorLastCopyLabel());
 }
 
-function renderSettingsPage(){
+const SETTINGS_GROUPS = [
+  {key:'account', icon:'👤', label:'Account', description:'Sign-in and personal identity'},
+  {key:'work', icon:'🛣️', label:'My Work', description:'Assignment, driver terms and pay'},
+  {key:'organization', icon:'🏢', label:'Organization', description:'Company identity and carrier context', roles:['owner_op','fleet']},
+  {key:'fleet', icon:'🚚', label:'Truck & Fleet', description:'Physical vehicles and fleet records', roles:['owner_op','fleet']},
+  {key:'operations', icon:'✅', label:'Operations', description:'PTI workflow and inspection checklist'},
+  {key:'app-data', icon:'⚙️', label:'App & Data', description:'Appearance, calendar, sync and device data'}
+];
+let activeSettingsSection = 'hub';
+let settingsInformationArchitectureReady = false;
+
+function settingsPanelHeader(title, description){
+  return '<div class="settings-panel-head">'+
+    '<button class="settings-panel-back" onclick="openSettingsSection(\'hub\')" aria-label="Back to settings">‹</button>'+
+    '<div><div class="settings-panel-title">'+title+'</div><div class="settings-panel-desc">'+description+'</div></div></div>';
+}
+function appendSettingsField(fieldId, target){
+  var field = document.getElementById(fieldId);
+  var block = field && field.closest('.sfield');
+  if(block && target && block.parentElement !== target) target.appendChild(block);
+}
+function appendSettingsAction(label, handler, target, className){
+  if(!target) return null;
+  var button = document.createElement('button');
+  button.className = 'btn ' + (className || 'primary');
+  button.style.padding = '12px';
+  button.style.marginTop = '8px';
+  button.textContent = label;
+  button.onclick = handler;
+  target.appendChild(button);
+  return button;
+}
+function prepareSettingsInformationArchitecture(){
+  if(settingsInformationArchitectureReady) return;
+  var legacy = document.getElementById('settingsLegacyCard');
+  var account = document.getElementById('settingsPanel-account');
+  var work = document.getElementById('settingsPanel-work');
+  var organization = document.getElementById('settingsPanel-organization');
+  var fleet = document.getElementById('settingsPanel-fleet');
+  var operations = document.getElementById('settingsPanel-operations');
+  var appData = document.getElementById('settingsPanel-app-data');
+  if(!legacy || !account || !work || !organization || !fleet || !operations || !appData) return;
+
+  account.innerHTML = settingsPanelHeader('Account','Sign-in identity and personal profile.');
+  work.innerHTML = settingsPanelHeader('My Work','Current assignment, driver terms and pay.');
+  organization.innerHTML = settingsPanelHeader('Organization','Company identity. Carrier assignments remain a separate relationship.');
+  fleet.innerHTML = settingsPanelHeader('Truck & Fleet','Physical truck details and fleet records.');
+  operations.innerHTML = settingsPanelHeader('Operations','Inspection workflow and operational checklist.');
+  appData.innerHTML = settingsPanelHeader('App & Data','Appearance, calendar, sync and device data.');
+
+  ['settingsCrewId','setEmail','setCrewId','setName'].forEach(function(id){ appendSettingsField(id, account); });
+  appendSettingsAction('Save Account', saveSettings, account, 'primary');
+  appendSettingsAction('Logout / Clear Session', logoutDevice, account, 'ghost');
+
+  ['settingsAssignment','legacyClaimUnit','setTeamDriver','setPayType','setCpmRate','setGrossPct','setTeamRate','setCpmBase','setRateEffectiveDate']
+    .forEach(function(id){ appendSettingsField(id, work); });
+
+  var companyFields = document.createElement('div');
+  companyFields.id = 'settingsCompanyFields';
+  companyFields.innerHTML = '<div class="settings-section-title">Company / carrier</div><div class="settings-role-note">Company identity is separate from the physical truck and from assignment terms.</div>';
+  appendSettingsField('logoUpload', companyFields);
+  appendSettingsField('setCompany', companyFields);
+  organization.appendChild(companyFields);
+
+  var truckFields = document.createElement('div');
+  truckFields.id = 'settingsTruckFields';
+  truckFields.innerHTML = '<div class="settings-section-title">Physical truck</div><div class="settings-role-note">Unit, plate and vehicle identity stay separate from company, MC and dispatch terms.</div>';
+  appendSettingsField('setTruckName', truckFields);
+  appendSettingsField('setUnit', truckFields);
+  fleet.appendChild(truckFields);
+
+  ['setPtiEnabled','setPtiSchedule'].forEach(function(id){ appendSettingsField(id, operations); });
+  var customItems = document.getElementById('ptiCustomItems');
+  var customCard = customItems && customItems.closest('.card');
+  if(customCard){ customCard.classList.remove('card'); operations.appendChild(customCard); }
+  appendSettingsAction('Save Operations', saveSettings, operations, 'primary');
+
+  ['setTheme','accentSwatches','setWeekStart'].forEach(function(id){ appendSettingsField(id, appData); });
+  var advancedButton = document.getElementById('advSettingsBtn');
+  var advancedPanel = document.getElementById('settingsAdvancedSync');
+  if(advancedButton) appData.appendChild(advancedButton);
+  if(advancedPanel) appData.appendChild(advancedPanel);
+  var appActions = document.createElement('div');
+  appActions.style.display = 'grid'; appActions.style.gridTemplateColumns = '1fr 1fr'; appActions.style.gap = '8px'; appActions.style.marginTop = '10px';
+  appendSettingsAction('Save', saveSettings, appActions, 'primary');
+  appendSettingsAction('Sync', doSync, appActions, 'ghost');
+  appData.appendChild(appActions);
+  var danger = document.getElementById('settingsDangerCard');
+  if(danger){ danger.classList.remove('card'); danger.style.marginTop='18px'; appData.appendChild(danger); }
+
+  var trucksCard = document.getElementById('trucksSettingsCard');
+  if(trucksCard){ trucksCard.classList.remove('card'); trucksCard.style.borderTop='1px solid var(--bd)'; trucksCard.style.paddingTop='16px'; trucksCard.style.marginTop='16px'; fleet.appendChild(trucksCard); }
+  appendSettingsAction('Save Truck Settings', saveSettings, fleet, 'primary');
+  var workSave = appendSettingsAction('Save Work Settings', saveSettings, work, 'primary');
+  if(workSave) workSave.id = 'settingsWorkSave';
+
+  legacy.style.display = 'none';
+  settingsInformationArchitectureReady = true;
+}
+function visibleSettingsGroups(){
+  var role = getUserRole();
+  return SETTINGS_GROUPS.filter(function(group){ return !group.roles || group.roles.includes(role); });
+}
+function applySettingsRoleUI(){
+  if(!settingsInformationArchitectureReady) return;
+  var role = getUserRole();
+  var companyFields = document.getElementById('settingsCompanyFields');
+  var truckFields = document.getElementById('settingsTruckFields');
+  var work = document.getElementById('settingsPanel-work');
+  var organization = document.getElementById('settingsPanel-organization');
+  var fleet = document.getElementById('settingsPanel-fleet');
+  var trucksCard = document.getElementById('trucksSettingsCard');
+  if(trucksCard) trucksCard.style.display = role === 'fleet' ? '' : 'none';
+  if(role === 'driver'){
+    if(companyFields && companyFields.parentElement !== work) work.appendChild(companyFields);
+    if(truckFields && truckFields.parentElement !== work) work.appendChild(truckFields);
+  }else{
+    if(companyFields && companyFields.parentElement !== organization) organization.appendChild(companyFields);
+    if(truckFields && truckFields.parentElement !== fleet) fleet.insertBefore(truckFields, fleet.querySelector('#trucksSettingsCard'));
+  }
+  var workSave = document.getElementById('settingsWorkSave');
+  if(workSave && workSave.parentElement === work) work.appendChild(workSave);
+  var fleetTitle = fleet && fleet.querySelector('.settings-panel-title');
+  if(fleetTitle) fleetTitle.textContent = role === 'fleet' ? 'Fleet & Trucks' : 'My Truck';
+}
+function openSettingsSection(key){
+  prepareSettingsInformationArchitecture();
+  applySettingsRoleUI();
+  var visible = visibleSettingsGroups().map(function(group){ return group.key; });
+  if(key !== 'hub' && !visible.includes(key)) key = 'hub';
+  activeSettingsSection = key || 'hub';
+  var hub = document.getElementById('settingsHub');
+  if(hub) hub.style.display = activeSettingsSection === 'hub' ? '' : 'none';
+  document.querySelectorAll('[data-settings-section]').forEach(function(panel){ panel.classList.toggle('active', panel.dataset.settingsSection === activeSettingsSection); });
+  var breadcrumb = document.getElementById('settingsBreadcrumb');
+  var group = SETTINGS_GROUPS.find(function(item){ return item.key === activeSettingsSection; });
+  if(breadcrumb) breadcrumb.textContent = group ? group.description : 'Choose a category. Each setting has one clear home.';
+  var page = document.getElementById('page-settings');
+  if(page && page.classList.contains('active')) window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderSettingsNavigation(resetNavigation){
+  prepareSettingsInformationArchitecture();
+  applySettingsRoleUI();
+  var list = document.getElementById('settingsGroupList');
+  if(list) list.innerHTML = visibleSettingsGroups().map(function(group){
+    var label = group.key === 'fleet' ? (getUserRole() === 'fleet' ? 'Fleet & Trucks' : 'My Truck') : group.label;
+    return '<button class="settings-group-card" data-settings-group="'+group.key+'" onclick="openSettingsSection(\''+group.key+'\')">'+
+      '<span class="settings-group-icon">'+group.icon+'</span><span><span class="settings-group-title">'+label+'</span><span class="settings-group-desc">'+group.description+'</span></span><span class="settings-group-arrow">›</span></button>';
+  }).join('');
+  openSettingsSection(resetNavigation ? 'hub' : activeSettingsSection);
+}
+
+// The Settings "Company" field means different things by role: for owner_op/fleet
+// it is their owned Organization (Company model); for a plain company driver it stays
+// the legacy driver.company shadow ("who I currently work for"). Never cross-write —
+// setting one must not silently overwrite the other (see FUNCTIONAL_ENTITY_ROLE_MODEL rule 3).
+function currentSettingsCompanyName(){
+  var role = getUserRole();
+  if(role === 'owner_op' || role === 'fleet'){
+    var org = currentOwnedOrganization();
+    return (org && org.name) || '';
+  }
+  return (driver && driver.company) || '';
+}
+function applySettingsCompanyName(value){
+  var role = getUserRole();
+  value = (value||'').trim();
+  if(role === 'owner_op' || role === 'fleet'){
+    var companies = loadCompanies();
+    var org = companies.find(function(c){ return c.active !== false; });
+    if(!org){
+      if(!value) return;
+      org = normalizeCompany({name: value});
+      companies.push(org);
+    } else if(org.name !== value){
+      org.name = value;
+      org.updatedAt = new Date().toISOString();
+    } else {
+      return;
+    }
+    saveCompanies(companies);
+    migrateLegacyLogoIntoOwnedOrganization(localStorage.getItem('fiqD_logo') || '');
+  } else {
+    driver.company = value;
+  }
+}
+function renderSettingsPage(resetNavigation){
   if(!driver) return;
   let t = localStorage.getItem('fiqD_theme')||'dark';
   let sel = document.getElementById('setTheme');
@@ -4388,7 +5331,7 @@ function renderSettingsPage(){
   if(crewBox) crewBox.textContent = driver.crewId || 'Not signed in';
   const assignBox=document.getElementById('settingsAssignment');
   if(assignBox) assignBox.textContent = currentAssignmentLabel();
-  document.getElementById('setCompany').value = driver.company||'';
+  document.getElementById('setCompany').value = currentSettingsCompanyName();
   document.getElementById('setTruckName').value = driver.truckName||'';
   document.getElementById('setUnit').value = driver.unitNumber||'';
   document.getElementById('setPlate').value = driver.plate||'';
@@ -4414,6 +5357,7 @@ function renderSettingsPage(){
       <span>${escHtml(x.name)}</span>
       <button onclick="removeCustomPtiItem(${i})" style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:18px">×</button>
     </div>`).join('')||'<div class="muted" style="font-size:12px;padding:4px 0">No custom items</div>';
+  renderSettingsNavigation(!!resetNavigation);
 }
 function toggleSetRateFields(){
   let pt=document.getElementById('setPayType').value;
@@ -4424,7 +5368,7 @@ function toggleSetRateFields(){
 }
 function saveSettings(){
   const oldIdentityKey = getDriverIdentityKey(driver);
-  driver.company = document.getElementById('setCompany').value.trim();
+  applySettingsCompanyName(document.getElementById('setCompany').value);
   driver.truckName = document.getElementById('setTruckName').value.trim();
   driver.email = (document.getElementById('setEmail')||{}).value?.trim() || driver.email || '';
   driver.crewId = (document.getElementById('setCrewId')||{}).value?.trim() || driver.crewId || '';
@@ -4437,17 +5381,23 @@ function saveSettings(){
   driver.cpmRate = parseFloat(document.getElementById('setCpmRate').value)||0;
   driver.grossPercent = parseFloat(document.getElementById('setGrossPct').value)||0;
   driver.cpmBase = document.getElementById('setCpmBase').value;
-  // Persist pay settings separately so they survive applyAuthRestoreData()
-  // which overwrites driver with Apps Script profile (which may be stale).
-  localStorage.setItem(K+'paySettings', JSON.stringify({
+  // Persist pay settings through the scoped layer so they survive applyAuthRestoreData()
+  // (which overwrites driver with a possibly-stale Apps Script profile) AND so a later account
+  // switch archives THIS account's own settings, not whatever the legacy key held before.
+  saveAccountPaySettings({
     payType: driver.payType, cpmRate: driver.cpmRate,
-    grossPercent: driver.grossPercent, cpmBase: driver.cpmBase,
-    savedAt: new Date().toISOString()
-  }));
+    grossPercent: driver.grossPercent, cpmBase: driver.cpmBase
+  });
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
   saveAdvancedSyncSettings(false);
   driver.syncUrl = document.getElementById('setSyncUrl').value.trim() || DEFAULT_SYNC_URL;
   const newIdentityKey = getDriverIdentityKey(driver);
+  // This is always a PROFILE CHANGE (the signed-in account editing its own crewId/email),
+  // never an account switch — accountId is intentionally left untouched here, unlike the
+  // account-switch handling in applyAuthRestoreData(). The scoped-data-space swap below is a
+  // compatibility shim for today's crewId/email-keyed dataKey() and is expected to become
+  // unnecessary once accountId becomes the storage-scoping key (identity-scope Step 4) — not
+  // something to remove or alter now, since scoping is still crewId/email-derived.
   if(oldIdentityKey && newIdentityKey && oldIdentityKey !== newIdentityKey){
     saveDriverScopedData();
     loadDriverScopedData(false);
@@ -4553,7 +5503,11 @@ function handleLogoUpload(input){
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img,0,0,w,h);
         let data = canvas.toDataURL('image/jpeg', .82);
+        // fiqD_logo stays a compatibility write for older sync clients/devices, but the
+        // owned Organization's logo is the record of truth from here on for owner_op/fleet
+        // — an explicit upload must always win over whatever Company.logo held before.
         localStorage.setItem('fiqD_logo', data);
+        saveCurrentOrganizationLogo(data);
         renderLogoPreview();
         toast('Logo saved');
       }catch(err){
@@ -4566,12 +5520,50 @@ function handleLogoUpload(input){
   reader.readAsDataURL(file);
 }
 function removeLogo(){
+  var role = getUserRole();
+  if(role === 'owner_op' || role === 'fleet'){
+    var companies = loadCompanies();
+    var org = companies.find(function(c){ return c.active !== false; }) || companies[0];
+    if(org && org.logo){
+      org.logo = '';
+      org.updatedAt = new Date().toISOString();
+      saveCompanies(companies);
+    }
+  }
   localStorage.removeItem('fiqD_logo');
   renderLogoPreview();
   toast('Logo removed');
 }
+// Explicit upload: always overwrites Company.logo for owner_op/fleet regardless of any
+// prior value. No-ops if there is no owned Organization yet — fiqD_logo alone still stores
+// the upload so it isn't lost, and a later-created Organization can pick it up (see below).
+function saveCurrentOrganizationLogo(data){
+  var role = getUserRole();
+  if(role !== 'owner_op' && role !== 'fleet') return;
+  var companies = loadCompanies();
+  var org = companies.find(function(c){ return c.active !== false; }) || companies[0];
+  if(!org) return;
+  org.logo = data || '';
+  org.updatedAt = new Date().toISOString();
+  saveCompanies(companies);
+}
+// One-time catch-up only: fills Company.logo from a pre-existing fiqD_logo value when the
+// Organization has never had a logo of its own. Never overwrites an existing Company.logo —
+// that path is saveCurrentOrganizationLogo(), triggered only by an explicit new upload.
+function migrateLegacyLogoIntoOwnedOrganization(logoData){
+  var role = getUserRole();
+  if(role !== 'owner_op' && role !== 'fleet') return;
+  if(!logoData) return;
+  var companies = loadCompanies();
+  var org = companies.find(function(c){ return c.active !== false; }) || companies[0];
+  if(!org || org.logo) return;
+  org.logo = logoData;
+  org.updatedAt = new Date().toISOString();
+  saveCompanies(companies);
+}
 function renderLogoPreview(){
-  let data = localStorage.getItem('fiqD_logo')||'';
+  let org = currentOwnedOrganization();
+  let data = (org && org.logo) || localStorage.getItem('fiqD_logo')||'';
   let prev = document.getElementById('logoPreview');
   let remRow = document.getElementById('logoRemoveRow');
   if(!prev) return;
