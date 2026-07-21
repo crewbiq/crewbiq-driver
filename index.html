@@ -2029,6 +2029,161 @@ async function restoreFleetConfigFromOrchestrator(crewbiqId){
     return {ok:false, reason:e.message};
   }
 }
+
+// ── ORCHESTRATOR ACCOUNT (read-only, Settings → Account) ──────────────────
+// A per-local-identity login to the driver's OWN orchestrator account
+// (/v1/auth/register, /v1/auth/login, /v1/me) — unrelated to both the
+// device's existing Apps-Script login and the admin-only shared
+// orchestratorUrl/orchestratorSecret used by restoreFleetConfigFromOrchestrator()
+// above. Entirely optional and read-only: no write ever reaches orchestrator
+// except register/login/logout themselves, and every function here degrades
+// to a toast on failure — nothing about the rest of the app depends on it.
+function orchestratorAuthBaseUrl(){
+  // getStoredOrchestratorUrl() (index.html), not sync.js's getOrchestratorSyncUrl() — the
+  // latter is private inside sync.js's IIFE and was never exposed on window, so calling it
+  // here (or in restoreFleetConfigFromOrchestrator() above) always silently resolves to ''.
+  var orchUrl = (typeof getStoredOrchestratorUrl === 'function') ? getStoredOrchestratorUrl() : '';
+  return orchUrl ? orchUrl.replace(/\/v1\/sync\/?$/, '') : '';
+}
+async function orchestratorAuthLogin(email, password){
+  var base = orchestratorAuthBaseUrl();
+  if(!base) return {ok:false, reason:'missing_orchestrator_url'};
+  try{
+    var resp = await fetch(base+'/v1/auth/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email:email, password:password})
+    });
+    var data = await resp.json().catch(function(){ return {}; });
+    if(!resp.ok) return {ok:false, reason: data.detail || ('http_'+resp.status)};
+    return {ok:true, sessionToken: data.session_token};
+  }catch(e){
+    return {ok:false, reason: e.message};
+  }
+}
+async function orchestratorAuthRegister(email, password, nickname){
+  var base = orchestratorAuthBaseUrl();
+  if(!base) return {ok:false, reason:'missing_orchestrator_url'};
+  try{
+    var resp = await fetch(base+'/v1/auth/register', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email:email, password:password, nickname: nickname || ''})
+    });
+    var data = await resp.json().catch(function(){ return {}; });
+    if(!resp.ok) return {ok:false, reason: data.detail || ('http_'+resp.status)};
+    return {ok:true, sessionToken: data.session_token};
+  }catch(e){
+    return {ok:false, reason: e.message};
+  }
+}
+async function orchestratorFetchMe(sessionToken){
+  var base = orchestratorAuthBaseUrl();
+  if(!base || !sessionToken) return {ok:false, reason:'missing_orchestrator_url_or_token'};
+  try{
+    var resp = await fetch(base+'/v1/me', {
+      headers:{'Authorization':'Bearer '+sessionToken}
+    });
+    var data = await resp.json().catch(function(){ return {}; });
+    if(!resp.ok) return {ok:false, reason: data.detail || ('http_'+resp.status)};
+    return {ok:true, me: data.user};
+  }catch(e){
+    return {ok:false, reason: e.message};
+  }
+}
+async function orchestratorAuthLogout(sessionToken){
+  var base = orchestratorAuthBaseUrl();
+  if(!base || !sessionToken) return;
+  try{
+    await fetch(base+'/v1/auth/logout', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+sessionToken}
+    });
+  }catch(e){
+    // Best-effort only — local state is cleared by the caller regardless.
+  }
+}
+function loadOrchestratorSession(){ return scopedLoad('orchestratorSession', null); }
+function saveOrchestratorSession(session){ scopedSave('orchestratorSession', session); }
+function clearOrchestratorSession(){ scopedSave('orchestratorSession', null); }
+
+function renderOrchestratorAccountSection(){
+  var el = document.getElementById('settingsOrchAccount');
+  if(!el) return;
+  var session = loadOrchestratorSession();
+  if(!session || !session.sessionToken || !session.me){
+    el.innerHTML =
+      '<div class="settings-section-title">Orchestrator account</div>'+
+      '<div class="settings-role-note">Optional. Sign in to your own CrewBIQ Orchestrator account to see your workspace and role — read-only, nothing here is required for the app to work.</div>'+
+      '<div class="sfield"><div class="slabel">Email</div><input id="orchEmail" type="email" placeholder="you@example.com"></div>'+
+      '<div class="sfield"><div class="slabel">Password</div><input id="orchPassword" type="password" placeholder="At least 10 characters"></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">'+
+        '<button class="btn primary" id="orchLoginBtn" onclick="onOrchLoginClick()">Log In</button>'+
+        '<button class="btn ghost" id="orchRegisterBtn" onclick="onOrchRegisterClick()">Create Account</button>'+
+      '</div>';
+    return;
+  }
+  var me = session.me;
+  var memberships = Array.isArray(me.memberships) ? me.memberships : [];
+  var activeId = session.activeWorkspaceIdOverride || me.active_workspace_id || '';
+  var options = memberships.map(function(m){
+    var ws = m.workspace || {};
+    var selected = ws.id === activeId ? ' selected' : '';
+    return '<option value="'+escHtml(ws.id||'')+'"'+selected+'>'+escHtml(ws.name||ws.id||'')+' ('+escHtml((m.roles||[]).join(', '))+')</option>';
+  }).join('');
+  el.innerHTML =
+    '<div class="settings-section-title">Orchestrator account</div>'+
+    '<div class="settings-role-note">Signed in as <strong>'+escHtml(me.email||'')+'</strong>'+((me.person && me.person.display_name) ? ' ('+escHtml(me.person.display_name)+')' : '')+'.</div>'+
+    (memberships.length
+      ? '<div class="sfield"><div class="slabel">Active workspace</div><select id="orchWorkspaceSelect" onchange="onOrchWorkspaceChange()">'+options+'</select></div>'
+      : '<div class="settings-role-note">No workspace memberships yet.</div>')+
+    '<button class="btn ghost" id="orchDisconnectBtn" onclick="onOrchDisconnectClick()" style="margin-top:8px">Disconnect</button>';
+}
+async function onOrchLoginClick(){
+  var emailEl = document.getElementById('orchEmail');
+  var passEl  = document.getElementById('orchPassword');
+  var email = emailEl ? emailEl.value.trim() : '';
+  var password = passEl ? passEl.value : '';
+  if(!email || !password) return toast('Email and password required', 'err');
+  var result = await orchestratorAuthLogin(email, password);
+  if(!result.ok) return toast('Orchestrator login failed: '+result.reason, 'err');
+  await orchestratorFinishLogin(result.sessionToken);
+}
+async function onOrchRegisterClick(){
+  var emailEl = document.getElementById('orchEmail');
+  var passEl  = document.getElementById('orchPassword');
+  var email = emailEl ? emailEl.value.trim() : '';
+  var password = passEl ? passEl.value : '';
+  if(!email || !password) return toast('Email and password required', 'err');
+  var result = await orchestratorAuthRegister(email, password, (driver && driver.name) || '');
+  if(!result.ok) return toast('Orchestrator account creation failed: '+result.reason, 'err');
+  await orchestratorFinishLogin(result.sessionToken);
+}
+async function orchestratorFinishLogin(sessionToken){
+  var meResult = await orchestratorFetchMe(sessionToken);
+  if(!meResult.ok){
+    return toast('Signed in, but could not load account details: '+meResult.reason, 'err');
+  }
+  saveOrchestratorSession({sessionToken: sessionToken, me: meResult.me, activeWorkspaceIdOverride: ''});
+  renderOrchestratorAccountSection();
+  toast('Orchestrator account connected');
+}
+function onOrchWorkspaceChange(){
+  var select = document.getElementById('orchWorkspaceSelect');
+  var session = loadOrchestratorSession();
+  if(!select || !session) return;
+  session.activeWorkspaceIdOverride = select.value;
+  saveOrchestratorSession(session);
+  renderOrchestratorAccountSection();
+}
+async function onOrchDisconnectClick(){
+  var session = loadOrchestratorSession();
+  if(session && session.sessionToken) await orchestratorAuthLogout(session.sessionToken);
+  clearOrchestratorSession();
+  renderOrchestratorAccountSection();
+  toast('Orchestrator account disconnected');
+}
+
 async function restoreSession(options={}){
   setFleetRestoreSettled(false);
   const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
@@ -5219,6 +5374,14 @@ function prepareSettingsInformationArchitecture(){
   ['settingsCrewId','setEmail','setCrewId','setName'].forEach(function(id){ appendSettingsField(id, account); });
   appendSettingsAction('Save Account', saveSettings, account, 'primary');
   appendSettingsAction('Logout / Clear Session', logoutDevice, account, 'ghost');
+
+  var orchAccount = document.createElement('div');
+  orchAccount.id = 'settingsOrchAccount';
+  orchAccount.style.marginTop = '18px';
+  orchAccount.style.borderTop = '1px solid var(--bd)';
+  orchAccount.style.paddingTop = '16px';
+  account.appendChild(orchAccount);
+  renderOrchestratorAccountSection();
 
   ['settingsAssignment','legacyClaimUnit','setTeamDriver','setPayType','setCpmRate','setGrossPct','setTeamRate','setCpmBase','setRateEffectiveDate']
     .forEach(function(id){ appendSettingsField(id, work); });
