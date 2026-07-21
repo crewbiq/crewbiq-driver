@@ -183,6 +183,14 @@ test('Step 4b: restoreFleetConfigFromOrchestrator reconciles server pay_config i
   assert.doesNotMatch(html, /Restore pay settings if not already set locally/);
 });
 
+test('restoreFleetConfigFromOrchestrator resolves the orchestrator URL via getStoredOrchestratorUrl, not sync.js-private getOrchestratorSyncUrl', () => {
+  // getOrchestratorSyncUrl() is declared inside sync.js's IIFE and never exposed on window, so
+  // `typeof getOrchestratorSyncUrl === 'function'` is always false in the browser — the old code
+  // silently no-op'd every fleet-config restore. getStoredOrchestratorUrl() (index.html) is the
+  // globally reachable function that actually resolves a real default URL.
+  assert.match(html, /async function restoreFleetConfigFromOrchestrator\(crewbiqId\)\{\s*var orchUrl = \(typeof getStoredOrchestratorUrl === 'function'\) \? getStoredOrchestratorUrl\(\) : '';/);
+});
+
 test('Step 3: an account switch never inherits the previous person\'s local driver fields', () => {
   // The generic spread of the previous `driver` object is gated by carryLocalFields, which is
   // false exactly when transition === 'switch' — so a switch starts from `base` + server data
