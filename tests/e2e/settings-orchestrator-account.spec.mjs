@@ -35,6 +35,33 @@ const ME_RESPONSE = {
   },
 };
 
+const CANONICAL_CAPABILITY = 'canonical.company_truck.reconcile';
+const OWNER_ME_RESPONSE = {
+  ok: true,
+  user: {
+    ...ME_RESPONSE.user,
+    email: 'owner@example.test',
+    roles: ['owner_op'],
+    memberships: [{
+      ...ME_RESPONSE.user.memberships[0],
+      id: 'membership-owner',
+      roles: ['owner_op'],
+      capabilities: [CANONICAL_CAPABILITY],
+      workspace: { id: 'workspace-fleet', key: 'company:road-test', type: 'fleet', name: 'Road Test Fleet' },
+    }],
+    active_workspace_id: 'workspace-fleet',
+  },
+};
+
+const CANONICAL_RESPONSE = {
+  workspace_id: 'workspace-fleet',
+  capability: CANONICAL_CAPABILITY,
+  companies: [{ id: 'company-verified-1', legal_name: 'Verified Carrier LLC' }],
+  company_candidates: [{ id: 'company-candidate-1', entered_name: 'Candidate Carrier' }],
+  trucks: [{ id: 'truck-verified-1', vin: '1M1AN4GY5KM002234' }],
+  truck_candidates: [{ id: 'truck-candidate-1', unit_number_hint: 'UNIT-77' }],
+};
+
 test.beforeEach(async ({ page }) => {
   await page.goto(appUrl);
   await page.evaluate(() => {
@@ -184,4 +211,95 @@ test('a network failure never throws uncaught and leaves the rest of the Setting
   await expect(page.locator('#setEmail')).toBeVisible();
   await page.getByRole('button', { name: 'Back to settings' }).click();
   await expect(page.locator('[data-settings-group="account"]')).toBeVisible();
+});
+
+test('owner capability loads the server-active canonical read model without mutating local Company or Truck records', async ({ page }) => {
+  await page.evaluate(() => {
+    saveCompanies([{ id: 'local-company', name: 'Local Carrier', logo: '' }]);
+    saveTrucks([{ id: 'local-truck', unitNumber: 'LOCAL-01', vin: 'LOCALVIN', active: true }]);
+  });
+  const before = await page.evaluate(() => ({ companies: JSON.stringify(loadCompanies()), trucks: JSON.stringify(loadTrucks()) }));
+  let canonicalUrl = '';
+  await page.route(`${ORCH_BASE}/v1/auth/login`, route => fulfillJson(route, 200, { ok: true, session_token: 'token-owner' }));
+  await page.route(`${ORCH_BASE}/v1/me`, route => fulfillJson(route, 200, OWNER_ME_RESPONSE));
+  await page.route(`${ORCH_BASE}/v1/canonical/company-truck`, route => {
+    canonicalUrl = route.request().url();
+    return fulfillJson(route, 200, CANONICAL_RESPONSE);
+  });
+
+  await page.fill('#orchEmail', 'owner@example.test');
+  await page.fill('#orchPassword', 'a-strong-password');
+  await page.click('#orchLoginBtn');
+
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Companies: 1 verified/canonical, 1 candidates');
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Trucks: 1 canonical, 1 candidates');
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Candidate Carrier');
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('UNIT-77');
+  expect(new URL(canonicalUrl).search).toBe('');
+  const after = await page.evaluate(() => ({
+    companies: JSON.stringify(loadCompanies()),
+    trucks: JSON.stringify(loadTrucks()),
+    cache: loadOrchestratorCanonicalRead(),
+  }));
+  expect(after.companies).toBe(before.companies);
+  expect(after.trucks).toBe(before.trucks);
+  expect(after.cache.workspaceId).toBe('workspace-fleet');
+  expect(after.cache.status).toBe('ready');
+});
+
+test('driver membership without capability never calls the canonical endpoint and keeps local fallback active', async ({ page }) => {
+  let canonicalCalls = 0;
+  await page.route(`${ORCH_BASE}/v1/auth/login`, route => fulfillJson(route, 200, { ok: true, session_token: 'token-driver' }));
+  await page.route(`${ORCH_BASE}/v1/me`, route => fulfillJson(route, 200, ME_RESPONSE));
+  await page.route(`${ORCH_BASE}/v1/canonical/company-truck`, route => {
+    canonicalCalls++;
+    return fulfillJson(route, 403, { detail: 'capability required' });
+  });
+
+  await page.fill('#orchEmail', 'driver@example.test');
+  await page.fill('#orchPassword', 'a-strong-password');
+  await page.click('#orchLoginBtn');
+
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('not available for this workspace role');
+  await expect(page.locator('#orchCanonicalRead')).toContainText('Local fallback');
+  expect(canonicalCalls).toBe(0);
+});
+
+test('canonical service failure leaves Settings usable and never replaces local data', async ({ page }) => {
+  await page.evaluate(() => saveTrucks([{ id: 'local-truck', unitNumber: 'SAFE-01', active: true }]));
+  const before = await page.evaluate(() => JSON.stringify(loadTrucks()));
+  await page.route(`${ORCH_BASE}/v1/auth/login`, route => fulfillJson(route, 200, { ok: true, session_token: 'token-owner' }));
+  await page.route(`${ORCH_BASE}/v1/me`, route => fulfillJson(route, 200, OWNER_ME_RESPONSE));
+  await page.route(`${ORCH_BASE}/v1/canonical/company-truck`, route => fulfillJson(route, 503, { detail: 'canonical registry unavailable' }));
+
+  await page.fill('#orchEmail', 'owner@example.test');
+  await page.fill('#orchPassword', 'a-strong-password');
+  await page.click('#orchLoginBtn');
+
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Canonical registry unavailable');
+  await expect(page.locator('#setEmail')).toBeVisible();
+  expect(await page.evaluate(() => JSON.stringify(loadTrucks()))).toBe(before);
+});
+
+test('failed refresh preserves and labels the last matching workspace cache as stale', async ({ page }) => {
+  let canonicalCalls = 0;
+  await page.route(`${ORCH_BASE}/v1/auth/login`, route => fulfillJson(route, 200, { ok: true, session_token: 'token-owner' }));
+  await page.route(`${ORCH_BASE}/v1/me`, route => fulfillJson(route, 200, OWNER_ME_RESPONSE));
+  await page.route(`${ORCH_BASE}/v1/canonical/company-truck`, route => {
+    canonicalCalls++;
+    if(canonicalCalls === 1) return fulfillJson(route, 200, CANONICAL_RESPONSE);
+    return fulfillJson(route, 503, { detail: 'temporary outage' });
+  });
+
+  await page.fill('#orchEmail', 'owner@example.test');
+  await page.fill('#orchPassword', 'a-strong-password');
+  await page.click('#orchLoginBtn');
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Candidate Carrier');
+
+  await page.click('#orchRefreshReadBtn');
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Candidate Carrier');
+  await expect(page.locator('#orchCanonicalStatus')).toContainText('Cached copy; last refresh failed: temporary outage');
+  const cache = await page.evaluate(() => loadOrchestratorCanonicalRead());
+  expect(cache.stale).toBe(true);
+  expect(cache.workspaceId).toBe('workspace-fleet');
 });

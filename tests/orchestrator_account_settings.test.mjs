@@ -21,13 +21,13 @@ test('orchestrator auth functions use getStoredOrchestratorUrl, not sync.js-priv
   const body = bodyMatch[0];
   assert.match(body, /var orchUrl = \(typeof getStoredOrchestratorUrl === 'function'\) \? getStoredOrchestratorUrl\(\) : '';/);
   assert.doesNotMatch(body, /typeof getOrchestratorSyncUrl/);
-  for (const fn of ['orchestratorAuthLogin', 'orchestratorAuthRegister', 'orchestratorFetchMe', 'orchestratorAuthLogout']) {
+  for (const fn of ['orchestratorAuthLogin', 'orchestratorAuthRegister', 'orchestratorFetchMe', 'orchestratorFetchCanonicalCompanyTruck', 'orchestratorAuthLogout']) {
     assert.match(html, new RegExp(`function ${fn}\\(`), `${fn} must exist`);
   }
 });
 
 test('every orchestrator network call is wrapped in try/catch and never throws uncaught', () => {
-  for (const fn of ['orchestratorAuthLogin', 'orchestratorAuthRegister', 'orchestratorFetchMe', 'orchestratorAuthLogout']) {
+  for (const fn of ['orchestratorAuthLogin', 'orchestratorAuthRegister', 'orchestratorFetchMe', 'orchestratorFetchCanonicalCompanyTruck', 'orchestratorAuthLogout']) {
     const body = html.match(new RegExp(`async function ${fn}\\([^)]*\\)\\{[\\s\\S]{0,900}?\\n\\}`));
     assert.ok(body, `${fn} body must be found`);
     assert.match(body[0], /try\{/, `${fn} must wrap its fetch in try/catch`);
@@ -42,6 +42,28 @@ test('orchestrator session is stored per local identity (scopedSave/scopedLoad),
   // No legacy device-global mirror — nothing else in the codebase reads this key today.
   assert.doesNotMatch(html, /K\+'orchestratorSession'/);
   assert.doesNotMatch(html, /K \+ 'orchestratorSession'/);
+});
+
+test('canonical Company/Truck reads use a separate scoped cache and never accept a client workspace id', () => {
+  assert.match(html, /function loadOrchestratorCanonicalRead\(\)\{ return scopedLoad\('orchestratorCanonicalRead', null\); \}/);
+  assert.match(html, /function saveOrchestratorCanonicalRead\(readModel\)\{ scopedSave\('orchestratorCanonicalRead', readModel\); \}/);
+  const fetchBody = html.match(/async function orchestratorFetchCanonicalCompanyTruck\(sessionToken\)\{[\s\S]{0,900}?\n\}/);
+  assert.ok(fetchBody, 'canonical read function must be found');
+  assert.match(fetchBody[0], /base\+'\/v1\/canonical\/company-truck'/);
+  assert.doesNotMatch(fetchBody[0], /workspace(_id|Id)|activeWorkspaceIdOverride|URLSearchParams|\?workspace/);
+  assert.match(fetchBody[0], /'Authorization':'Bearer '\+sessionToken/);
+});
+
+test('canonical reads are capability-gated and local Company/Truck records remain fallback-only', () => {
+  const refresh = html.match(/async function refreshOrchestratorCanonicalRead\(sessionToken, me\)\{[\s\S]{0,1600}?\n\}/);
+  assert.ok(refresh, 'canonical refresh function must be found');
+  assert.match(refresh[0], /if\(!orchestratorCanReadCanonicalRegistry\(me\)\)/);
+  assert.match(refresh[0], /orchestratorFetchCanonicalCompanyTruck\(sessionToken\)/);
+  const fallback = html.match(/function orchestratorLocalFallbackSummary\(\)\{[\s\S]{0,500}?\n\}/);
+  assert.ok(fallback, 'local fallback summary must be found');
+  assert.match(fallback[0], /loadCompanies\(\)/);
+  assert.match(fallback[0], /loadTrucks\(\)/);
+  assert.doesNotMatch(fallback[0], /(saveCompanies|saveTrucks|saveAll)\(/);
 });
 
 test('login and register both funnel through orchestratorFinishLogin, which fetches /v1/me before saving the session', () => {
@@ -64,6 +86,7 @@ test('disconnect clears the scoped session and never touches other device-global
   const body = html.match(/async function onOrchDisconnectClick\(\)\{[\s\S]{0,400}?\n\}/)[0];
   assert.match(body, /orchestratorAuthLogout\(session\.sessionToken\)/);
   assert.match(body, /clearOrchestratorSession\(\)/);
+  assert.match(body, /clearOrchestratorCanonicalRead\(\)/);
   assert.doesNotMatch(body, /(saveTrucks|saveCompanies|saveDriverProfiles|saveAccountPaySettings|localStorage\.removeItem)\(/);
 });
 
