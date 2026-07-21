@@ -110,7 +110,12 @@ test('applyAuthRestoreData captures the pre-restore identity as raw fields and n
   // On a genuine switch, accountId resolves through the registry (reuse if this identity has
   // been seen before, mint+register otherwise) rather than inheriting whatever the object-spread
   // merge happened to carry over, and rather than always minting a fresh one (see registry test).
-  assert.match(html, /if\(transition === 'switch'\)\{\s*driver\.accountId = resolveAccountId\(\{crewId, email\}, ''\);\s*\}\s*ensureAccountId\(\);/);
+  // 'initial' (with a known crewId/email) resolves through the registry too — real logout via
+  // logoutDevice() clears `driver` and reloads before the next login, so previousIdentity is
+  // always empty and every real logout->login cycle classifies as 'initial', not 'switch'.
+  // Without this, a returning account could never find the accountId logoutDevice() registered
+  // for it, and would mint a fresh one on every login.
+  assert.match(html, /if\(transition === 'switch' \|\| \(transition === 'initial' && \(crewId \|\| email\)\)\)\{\s*driver\.accountId = resolveAccountId\(\{crewId, email\}, ''\);\s*\}\s*ensureAccountId\(\);/);
   assert.match(html, /registerAccountId\(\{crewId: driver\.crewId, email: driver\.email\}, driver\.accountId\);/);
 });
 

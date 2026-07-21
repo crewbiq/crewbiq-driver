@@ -1893,7 +1893,14 @@ function applyAuthRestoreData(data, syncUrl){
   // on the same device must never share one local id. But it must NOT mint a fresh id blindly
   // either: if this device has seen THIS identity before, reuse its already-registered id, or
   // A -> B -> A gives A a new accountId every time (see ACCOUNT REGISTRY above).
-  if(transition === 'switch'){
+  // 'initial' is included here, not just 'switch': logoutDevice() clears `driver` and reloads
+  // before the next login, so previousIdentity is always empty and this transition classifies
+  // as 'initial' on every real logout->login cycle — 'switch' is only reachable from an
+  // in-memory call chain the shipped UI never triggers. Consulting the registry for 'initial'
+  // too (instead of minting blind) is what lets a returning account — one logoutDevice()
+  // registered before clearing `driver` — get its own accountId back, rather than a fresh one
+  // that can never find the paySettings logoutDevice() archived under the old id.
+  if(transition === 'switch' || (transition === 'initial' && (crewId || email))){
     driver.accountId = resolveAccountId({crewId, email}, '');
   }
   ensureAccountId();
@@ -2153,6 +2160,31 @@ async function confirmLegacyClaim(){
 }
 async function logoutDevice(){
   if(!confirm('Log out from this device? Cloud data will remain.')) return;
+  // Real gap found in review: this function clears `driver` and reloads BEFORE the next login
+  // runs, so applyAuthRestoreData() always sees an empty previousIdentity next time and
+  // classifies the following login as 'initial', never 'switch' — 'switch' only ever fires in
+  // an in-memory call chain that never happens in the shipped UI. Two things must happen here,
+  // while `driver` (the outgoing account) is still the active identity, or they can never
+  // happen correctly afterward:
+  //   1. register this device's stable local accountId for the outgoing account, so a later
+  //      'initial' login that resolves to the SAME identity reuses it instead of minting a new
+  //      one (see resolveAccountId() call in applyAuthRestoreData());
+  //   2. archive whatever's in the legacy global paySettings mirror into the OUTGOING account's
+  //      own scope, and only then clear the mirror — otherwise the next person to log in on
+  //      this device inherits this account's pay settings via the 'initial'-transition legacy
+  //      import path.
+  if(driver && driver.accountId){
+    registerAccountId({crewId: driver.crewId, email: driver.email}, driver.accountId);
+  }
+  var outgoingPayArchive = importLegacyPaySettingsIntoScope();
+  if(outgoingPayArchive.outcome === 'quarantine_failed'){
+    // Archiving failed AND quarantining the corrupt value also failed (e.g. storage full) — the
+    // legacy key still holds this account's data un-cleared. Completing the logout now would
+    // hand it to whoever logs in next. Cancel instead of losing or leaking it.
+    alert('Could not safely archive local pay settings before logout (device storage may be full). Logout cancelled to avoid leaking data to the next account on this device.');
+    return;
+  }
+  if(outgoingPayArchive.legacyCleared) localStorage.removeItem(K+'paySettings');
   const sessionToken=getSavedSessionToken();
   const syncUrl=(driver&&driver.syncUrl)||localStorage.getItem(K+'_savedSyncUrl')||'';
   if(sessionToken && syncUrl){

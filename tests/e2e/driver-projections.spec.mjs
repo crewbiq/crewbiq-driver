@@ -555,3 +555,140 @@ test('Step 3 regression: genuinely different crewId and email still classify as 
   );
   expect(kind).toBe('switch');
 });
+
+// ── REAL logout->login regressions (Step 4e) ──────────────────────────────────────────────
+// Every switch test above calls applyAuthRestoreData() twice in the same in-memory page
+// session — that correctly exercises the 'switch' transition, but it is NOT what the shipped
+// UI actually does. The only real way to log in as someone else is: tap "Log out from this
+// device" (logoutDevice(), which clears `driver` and calls location.reload()), THEN log in on
+// the resulting empty setup screen. previousIdentity is therefore always empty at that point,
+// and identityTransitionKind() always classifies the next login as 'initial', never 'switch' —
+// a gap the in-memory tests above cannot see because they never reload the page. These three
+// tests exercise the real reload path instead.
+test('Real logout->login cycle never leaks account A\'s pay rate to account B', async ({ page }) => {
+  page.on('dialog', d => d.accept());
+  await page.evaluate(() => {
+    saveAccountPaySettings({ payType: 'gross_percent', cpmRate: 0, grossPercent: 42, cpmBase: 'loaded' });
+  });
+  const beforeLogout = await page.evaluate(() => ({
+    legacyPaySettings: JSON.parse(localStorage.getItem('fiqD_paySettings')),
+    accountId: driver.accountId,
+  }));
+  expect(beforeLogout.legacyPaySettings.grossPercent).toBe(42);
+
+  // Real logout: confirm() is auto-accepted above, and the page genuinely reloads — this is
+  // exactly the path that bypassed 'switch' detection before the fix.
+  // logoutDevice() calls location.reload() itself, which destroys the execution context mid-
+  // call — evaluate() legitimately never gets to resolve/serialize a return value for it, so
+  // race it against the navigation instead of awaiting it first.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'load' }),
+    page.evaluate(() => { logoutDevice(); }).catch(() => {}),
+  ]);
+
+  // Account B logs in on the same device — a genuinely different identity, never seen before.
+  await page.evaluate(() => {
+    applyAuthRestoreData({ crewId: 'CREW-B-REAL-LOGOUT', email: 'b-real-logout@example.test' }, '');
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('splashScreen').style.display = 'none';
+    applyRoleUI();
+  });
+  const afterBLogin = await page.evaluate(() => ({
+    payType: driver.payType,
+    grossPercent: driver.grossPercent,
+    accountId: driver.accountId,
+    legacyPaySettingsAfter: localStorage.getItem('fiqD_paySettings'),
+  }));
+  expect(afterBLogin.payType).toBe('cpm');       // B's clean base default, not A's gross_percent
+  expect(afterBLogin.grossPercent).toBe(0);       // not A's 42
+  expect(afterBLogin.accountId).not.toBe(beforeLogout.accountId);
+  // A's rate was archived into A's own scope before B ever logged in, not left in the legacy
+  // mirror for B's own applyAuthRestoreData() call to pick up.
+  expect(afterBLogin.legacyPaySettingsAfter).toBeNull();
+});
+
+test('Real A->logout/reload->B->logout/reload->A restores both A\'s accountId and A\'s pay rate', async ({ page }) => {
+  page.on('dialog', d => d.accept());
+  const aFirst = await page.evaluate(() => {
+    saveAccountPaySettings({ payType: 'gross_percent', cpmRate: 0, grossPercent: 42, cpmBase: 'loaded' });
+    return driver.accountId;
+  });
+
+  // A -> logout/reload -> B
+  // logoutDevice() calls location.reload() itself, which destroys the execution context mid-
+  // call — evaluate() legitimately never gets to resolve/serialize a return value for it, so
+  // race it against the navigation instead of awaiting it first.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'load' }),
+    page.evaluate(() => { logoutDevice(); }).catch(() => {}),
+  ]);
+  const bFirst = await page.evaluate(() => {
+    applyAuthRestoreData({ crewId: 'CREW-B-ROUNDTRIP', email: 'b-roundtrip@example.test' }, '');
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('splashScreen').style.display = 'none';
+    applyRoleUI();
+    saveAccountPaySettings({ payType: 'cpm', cpmRate: 0.9, grossPercent: 0, cpmBase: 'total' });
+    return driver.accountId;
+  });
+
+  // B -> logout/reload -> A
+  // logoutDevice() calls location.reload() itself, which destroys the execution context mid-
+  // call — evaluate() legitimately never gets to resolve/serialize a return value for it, so
+  // race it against the navigation instead of awaiting it first.
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'load' }),
+    page.evaluate(() => { logoutDevice(); }).catch(() => {}),
+  ]);
+  const aSecond = await page.evaluate(() => {
+    applyAuthRestoreData({ crewId: 'CREW-PROJECTION-TEST', email: 'projection@example.test' }, '');
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('splashScreen').style.display = 'none';
+    applyRoleUI();
+    return { accountId: driver.accountId, payType: driver.payType, grossPercent: driver.grossPercent };
+  });
+
+  expect(bFirst).not.toBe(aFirst);
+  expect(aSecond.accountId).toBe(aFirst); // A's registry-backed id survived a real logout cycle
+  expect(aSecond.payType).toBe('gross_percent'); // A's own rate restored, not B's or the clean default
+  expect(aSecond.grossPercent).toBe(42);
+});
+
+test('Real logout is cancelled, not completed, when the outgoing pay settings cannot be safely archived', async ({ page }) => {
+  const alerts = [];
+  page.on('dialog', d => { alerts.push(d.message()); d.accept(); });
+  const before = await page.evaluate(() => {
+    // Corrupt legacy value that will need quarantining, then force quarantining itself to fail
+    // (e.g. storage full) — the exact 'quarantine_failed' outcome importLegacyPaySettingsIntoScope()
+    // can return, this time reached through logoutDevice() rather than called directly.
+    localStorage.setItem('fiqD_paySettings', '{not valid json');
+    window.__realSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(key, value) {
+      if (key.indexOf('fiqD_paySettings_quarantine_') === 0) throw new Error('quota exceeded (simulated)');
+      return window.__realSetItem(key, value);
+    };
+    return { accountId: driver.accountId, driverStillSet: !!localStorage.getItem('fiqD_driver') };
+  });
+  expect(before.driverStillSet).toBe(true);
+
+  await page.evaluate(() => { logoutDevice(); });
+  // Give any (incorrect) reload a moment to happen; none should.
+  await page.waitForTimeout(200);
+
+  const after = await page.evaluate(() => {
+    localStorage.setItem = window.__realSetItem;
+    return {
+      accountId: (typeof driver !== 'undefined' && driver) ? driver.accountId : null,
+      driverStillSet: !!localStorage.getItem('fiqD_driver'),
+      legacyPaySettingsUntouched: localStorage.getItem('fiqD_paySettings'),
+    };
+  });
+  // Logout must NOT have completed: the session is still active, `driver` was never cleared,
+  // and the corrupt value that couldn't be quarantined is still exactly where it was.
+  expect(after.driverStillSet).toBe(true);
+  expect(after.accountId).toBe(before.accountId);
+  expect(after.legacyPaySettingsUntouched).toBe('{not valid json');
+  expect(alerts.some(m => /Logout cancelled/i.test(m))).toBe(true);
+});
