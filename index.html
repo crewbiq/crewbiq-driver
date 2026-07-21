@@ -2091,6 +2091,49 @@ async function orchestratorFetchMe(sessionToken){
     return {ok:false, reason: e.message};
   }
 }
+var ORCHESTRATOR_CANONICAL_READ_CAPABILITY = 'canonical.company_truck.reconcile';
+function orchestratorActiveMembership(me){
+  if(!me) return null;
+  var activeId = String(me.active_workspace_id || '');
+  var memberships = Array.isArray(me.memberships) ? me.memberships : [];
+  return memberships.find(function(m){
+    return String(((m || {}).workspace || {}).id || '') === activeId;
+  }) || null;
+}
+function orchestratorCanReadCanonicalRegistry(me){
+  var membership = orchestratorActiveMembership(me);
+  return !!(membership && Array.isArray(membership.capabilities) &&
+    membership.capabilities.indexOf(ORCHESTRATOR_CANONICAL_READ_CAPABILITY) !== -1);
+}
+function normalizeOrchestratorCanonicalRead(data){
+  data = data && typeof data === 'object' ? data : {};
+  return {
+    status: 'ready',
+    workspaceId: String(data.workspace_id || ''),
+    capability: String(data.capability || ''),
+    companies: Array.isArray(data.companies) ? data.companies : [],
+    companyCandidates: Array.isArray(data.company_candidates) ? data.company_candidates : [],
+    trucks: Array.isArray(data.trucks) ? data.trucks : [],
+    truckCandidates: Array.isArray(data.truck_candidates) ? data.truck_candidates : [],
+    stale: false,
+    reason: '',
+    fetchedAt: new Date().toISOString()
+  };
+}
+async function orchestratorFetchCanonicalCompanyTruck(sessionToken){
+  var base = orchestratorAuthBaseUrl();
+  if(!base || !sessionToken) return {ok:false, reason:'missing_orchestrator_url_or_token'};
+  try{
+    var resp = await fetch(base+'/v1/canonical/company-truck', {
+      headers:{'Authorization':'Bearer '+sessionToken}
+    });
+    var data = await resp.json().catch(function(){ return {}; });
+    if(!resp.ok) return {ok:false, reason: data.detail || ('http_'+resp.status), status:resp.status};
+    return {ok:true, readModel:normalizeOrchestratorCanonicalRead(data)};
+  }catch(e){
+    return {ok:false, reason:e.message};
+  }
+}
 async function orchestratorAuthLogout(sessionToken){
   var base = orchestratorAuthBaseUrl();
   if(!base || !sessionToken) return;
@@ -2106,6 +2149,55 @@ async function orchestratorAuthLogout(sessionToken){
 function loadOrchestratorSession(){ return scopedLoad('orchestratorSession', null); }
 function saveOrchestratorSession(session){ scopedSave('orchestratorSession', session); }
 function clearOrchestratorSession(){ scopedSave('orchestratorSession', null); }
+function loadOrchestratorCanonicalRead(){ return scopedLoad('orchestratorCanonicalRead', null); }
+function saveOrchestratorCanonicalRead(readModel){ scopedSave('orchestratorCanonicalRead', readModel); }
+function clearOrchestratorCanonicalRead(){ scopedSave('orchestratorCanonicalRead', null); }
+
+function orchestratorLocalFallbackSummary(){
+  var companies = (typeof loadCompanies === 'function') ? loadCompanies() : [];
+  var trucks = (typeof loadTrucks === 'function') ? loadTrucks() : [];
+  return {companies:Array.isArray(companies)?companies.length:0, trucks:Array.isArray(trucks)?trucks.length:0};
+}
+function orchestratorCanonicalPreview(readModel){
+  if(!readModel || readModel.status !== 'ready') return '';
+  var companyNames = readModel.companyCandidates.slice(0, 3).map(function(item){
+    return escHtml(item.entered_name || item.id || 'Unnamed company candidate');
+  });
+  var truckNames = readModel.truckCandidates.slice(0, 3).map(function(item){
+    return escHtml(item.unit_number_hint || item.vin_hint || item.plate_hint || item.id || 'Unnamed truck candidate');
+  });
+  var rows = [];
+  if(companyNames.length) rows.push('<div style="font-size:11px;color:var(--mu);margin-top:6px">Company candidates: '+companyNames.join(', ')+'</div>');
+  if(truckNames.length) rows.push('<div style="font-size:11px;color:var(--mu);margin-top:4px">Truck candidates: '+truckNames.join(', ')+'</div>');
+  return rows.join('');
+}
+function renderOrchestratorCanonicalRead(me){
+  var activeMembership = orchestratorActiveMembership(me);
+  var workspace = (activeMembership || {}).workspace || {};
+  var local = orchestratorLocalFallbackSummary();
+  var cached = loadOrchestratorCanonicalRead();
+  var canRead = orchestratorCanReadCanonicalRegistry(me);
+  var matchesActiveWorkspace = !!(cached && cached.status === 'ready' && cached.workspaceId && cached.workspaceId === String(workspace.id || ''));
+  var body;
+  if(canRead && matchesActiveWorkspace){
+    body = '<div style="font-size:12px;line-height:1.6">'+
+      '<strong>Canonical registry (read-only)</strong><br>'+
+      'Companies: '+cached.companies.length+' verified/canonical, '+cached.companyCandidates.length+' candidates<br>'+
+      'Trucks: '+cached.trucks.length+' canonical, '+cached.truckCandidates.length+' candidates'+
+      orchestratorCanonicalPreview(cached)+
+      (cached.stale ? '<div style="font-size:11px;color:var(--warn);margin-top:6px">Cached copy; last refresh failed'+(cached.reason ? ': '+escHtml(cached.reason) : '')+'.</div>' : '')+
+      '</div>';
+  }else if(canRead){
+    var reason = cached && cached.reason ? ': '+escHtml(cached.reason) : '';
+    body = '<div class="settings-role-note"><strong>Canonical registry unavailable'+reason+'.</strong> Local data remains active and unchanged.</div>';
+  }else{
+    body = '<div class="settings-role-note">Canonical Company/Truck reconciliation is not available for this workspace role. Local data remains active.</div>';
+  }
+  return '<div class="sfield" id="orchCanonicalRead" style="margin-top:10px"><div id="orchCanonicalStatus">'+body+'</div>'+
+    '<div style="font-size:11px;color:var(--mu);margin-top:8px">Local fallback: '+local.companies+' companies, '+local.trucks+' trucks. No records are linked or overwritten.</div>'+
+    '<button class="btn ghost" id="orchRefreshReadBtn" onclick="onOrchRefreshReadClick()" style="margin-top:8px;padding:9px">Refresh read-only data</button>'+
+    '</div>';
+}
 
 function renderOrchestratorAccountSection(){
   var el = document.getElementById('settingsOrchAccount');
@@ -2126,6 +2218,9 @@ function renderOrchestratorAccountSection(){
   var me = session.me;
   var memberships = Array.isArray(me.memberships) ? me.memberships : [];
   var activeId = session.activeWorkspaceIdOverride || me.active_workspace_id || '';
+  var serverActiveMembership = orchestratorActiveMembership(me);
+  var serverRoles = serverActiveMembership && Array.isArray(serverActiveMembership.roles) ? serverActiveMembership.roles : [];
+  var serverCapabilities = serverActiveMembership && Array.isArray(serverActiveMembership.capabilities) ? serverActiveMembership.capabilities : [];
   var options = memberships.map(function(m){
     var ws = m.workspace || {};
     var selected = ws.id === activeId ? ' selected' : '';
@@ -2137,6 +2232,10 @@ function renderOrchestratorAccountSection(){
     (memberships.length
       ? '<div class="sfield"><div class="slabel">Active workspace</div><select id="orchWorkspaceSelect" onchange="onOrchWorkspaceChange()">'+options+'</select></div>'
       : '<div class="settings-role-note">No workspace memberships yet.</div>')+
+    (serverActiveMembership
+      ? '<div class="settings-role-note">Server-active role: <strong>'+escHtml(serverRoles.join(', ')||'none')+'</strong>. Capabilities: '+escHtml(serverCapabilities.join(', ')||'none')+'.</div>'
+      : '')+
+    renderOrchestratorCanonicalRead(me)+
     '<button class="btn ghost" id="orchDisconnectBtn" onclick="onOrchDisconnectClick()" style="margin-top:8px">Disconnect</button>';
 }
 async function onOrchLoginClick(){
@@ -2165,8 +2264,45 @@ async function orchestratorFinishLogin(sessionToken){
     return toast('Signed in, but could not load account details: '+meResult.reason, 'err');
   }
   saveOrchestratorSession({sessionToken: sessionToken, me: meResult.me, activeWorkspaceIdOverride: ''});
+  await refreshOrchestratorCanonicalRead(sessionToken, meResult.me);
   renderOrchestratorAccountSection();
   toast('Orchestrator account connected');
+}
+async function refreshOrchestratorCanonicalRead(sessionToken, me){
+  var activeMembership = orchestratorActiveMembership(me);
+  var workspaceId = String((((activeMembership || {}).workspace || {}).id) || '');
+  if(!orchestratorCanReadCanonicalRegistry(me)){
+    saveOrchestratorCanonicalRead({status:'unavailable', reason:'capability_required', workspaceId:workspaceId, fetchedAt:new Date().toISOString()});
+    return {ok:false, reason:'capability_required'};
+  }
+  var result = await orchestratorFetchCanonicalCompanyTruck(sessionToken);
+  if(result.ok){
+    saveOrchestratorCanonicalRead(result.readModel);
+    return result;
+  }
+  var previous = loadOrchestratorCanonicalRead();
+  if(previous && previous.status === 'ready' && previous.workspaceId === workspaceId){
+    previous.stale = true;
+    previous.reason = result.reason || 'unavailable';
+    saveOrchestratorCanonicalRead(previous);
+  }else{
+    saveOrchestratorCanonicalRead({status:'unavailable', reason:result.reason || 'unavailable', workspaceId:workspaceId, fetchedAt:new Date().toISOString()});
+  }
+  return result;
+}
+async function onOrchRefreshReadClick(){
+  var session = loadOrchestratorSession();
+  if(!session || !session.sessionToken) return toast('Connect your Orchestrator account first', 'err');
+  var meResult = await orchestratorFetchMe(session.sessionToken);
+  if(!meResult.ok) return toast('Could not refresh account details: '+meResult.reason, 'err');
+  session.me = meResult.me;
+  session.activeWorkspaceIdOverride = '';
+  saveOrchestratorSession(session);
+  var registryResult = await refreshOrchestratorCanonicalRead(session.sessionToken, session.me);
+  renderOrchestratorAccountSection();
+  if(registryResult.ok) toast('Read-only Orchestrator data refreshed');
+  else if(registryResult.reason === 'capability_required') toast('Workspace role has no canonical registry access');
+  else toast('Canonical registry unavailable; local data was not changed', 'err');
 }
 function onOrchWorkspaceChange(){
   var select = document.getElementById('orchWorkspaceSelect');
@@ -2180,6 +2316,7 @@ async function onOrchDisconnectClick(){
   var session = loadOrchestratorSession();
   if(session && session.sessionToken) await orchestratorAuthLogout(session.sessionToken);
   clearOrchestratorSession();
+  clearOrchestratorCanonicalRead();
   renderOrchestratorAccountSection();
   toast('Orchestrator account disconnected');
 }
