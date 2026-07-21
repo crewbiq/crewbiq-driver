@@ -1969,7 +1969,7 @@ function applyAuthRestoreData(data, syncUrl){
 }
 
 async function restoreFleetConfigFromOrchestrator(crewbiqId){
-  var orchUrl = (typeof getOrchestratorSyncUrl === 'function') ? getOrchestratorSyncUrl() : '';
+  var orchUrl = (typeof getStoredOrchestratorUrl === 'function') ? getStoredOrchestratorUrl() : '';
   if(!orchUrl || !crewbiqId) return {ok:false, reason:'missing_orchestrator_url_or_crew'};
   var baseUrl = orchUrl.replace(/\/v1\/sync\/?$/, '');
   var secret  = (typeof localStorage !== 'undefined') ? getStoredOrchestratorSecret() : '';

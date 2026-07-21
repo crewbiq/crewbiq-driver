@@ -692,3 +692,27 @@ test('Real logout is cancelled, not completed, when the outgoing pay settings ca
   expect(after.legacyPaySettingsUntouched).toBe('{not valid json');
   expect(alerts.some(m => /Logout cancelled/i.test(m))).toBe(true);
 });
+
+test('fleet config restore uses the globally reachable stored Orchestrator URL and reaches the read endpoint', async ({ page }) => {
+  const base = 'https://orchestrator.example.test';
+  const expectedUrl = `${base}/v1/fleet/config/pwa?crewbiq_id=CREW-PROJECTION-TEST`;
+  const observed = await page.evaluate(async orchestratorBase => {
+    localStorage.setItem('fiqD_orchestratorUrl', `${orchestratorBase}/v1/sync`);
+    localStorage.removeItem('fiqD_orchestratorSecret');
+    localStorage.removeItem('fiqD_orchestratorSecretBackup');
+    let requestedUrl = '';
+    window.fetch = async url => {
+      requestedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, trucks: [], driver_profiles: [] }),
+      };
+    };
+    const result = await restoreFleetConfigFromOrchestrator('CREW-PROJECTION-TEST');
+    return { result, requestedUrl };
+  }, base);
+
+  expect(observed.result.ok).toBe(true);
+  expect(observed.requestedUrl).toBe(expectedUrl);
+});
