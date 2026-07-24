@@ -10,6 +10,12 @@ test('orchestrator account section is created once and appended into the Account
   assert.match(html, /account\.appendChild\(orchAccount\);\s*renderOrchestratorAccountSection\(\);/);
 });
 
+test('the user-facing account copy explains the platform account without exposing implementation jargon', () => {
+  assert.equal((html.match(/<div class="settings-section-title">Platform account<\/div>/g) || []).length, 2);
+  assert.match(html, /separate from your local driver profile/);
+  assert.doesNotMatch(html, /<div class="settings-section-title">Orchestrator account<\/div>/);
+});
+
 test('orchestrator auth functions use getStoredOrchestratorUrl, not sync.js-private getOrchestratorSyncUrl', () => {
   // getOrchestratorSyncUrl() is declared inside sync.js's IIFE and never exposed on window —
   // calling it from index.html scope always silently resolves to '' (confirmed live: typeof

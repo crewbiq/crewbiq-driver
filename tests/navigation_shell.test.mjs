@@ -49,3 +49,12 @@ test('account and quick add remain keyboard reachable', () => {
   assert.match(html, /quickAddPage\('scan'\)/);
   assert.match(html, /quickAddPTI\(\)/);
 });
+
+test('secondary pages expose one prominent in-app back control without changing primary navigation', () => {
+  assert.match(html, /id="appBackNav"[^>]*aria-hidden="true"/);
+  assert.match(html, /id="appBackButton"[^>]*onclick="goBackPage\(\)"/);
+  assert.match(html, /const PRIMARY_NAV_PAGES = \['home','work','truck','team','money'\]/);
+  assert.match(html, /function goBackPage\(\)/);
+  assert.match(html, /pageNavigationHistory\.push\(previousPage\)/);
+  assert.match(html, /updatePageBackNavigation\(name\)/);
+});

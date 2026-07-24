@@ -166,6 +166,55 @@ const gapSettlement = api.resolveSettlements([gapLoad], truck, templates, []);
 assert.equal(gapSettlement.settlements[0].gap, true);
 assert.equal(gapSettlement.automaticTotal, 0);
 
+// Carrier recurring deductions have no truckId of their own. They follow the
+// Carrier Assignment effective on each settlement date, while unverified
+// candidates and legacy unassigned templates remain manual-only.
+const carrierTruck = {
+  ...truck,
+  carrierAssignment: {
+    companyRef: 'company_beta',
+    companyNameSnapshot: 'Beta Carrier',
+    effectiveFrom: '2026-07-10',
+    effectiveTo: '',
+  },
+  carrierAssignmentHistory: [{
+    companyRef: 'company_alpha',
+    companyNameSnapshot: 'Alpha Carrier',
+    effectiveFrom: '2026-01-01',
+    effectiveTo: '2026-07-10',
+  }],
+};
+context.carrierAssignmentForDate = (targetTruck, value) => {
+  const date = String(value || '').slice(0, 10);
+  return date < '2026-07-10'
+    ? targetTruck.carrierAssignmentHistory[0]
+    : targetTruck.carrierAssignment;
+};
+const carrierTemplates = [
+  { id: 'alpha_ins', carrierCompanyRef: 'company_alpha', name: 'Alpha insurance', amount: 80, category: 'insurance' },
+  { id: 'beta_eld', carrierCompanyRef: 'company_beta', name: 'Beta ELD', amount: 120, category: 'equipment' },
+  { id: 'candidate_fee', carrierCompanyRef: '', name: 'Unverified candidate fee', amount: 999, category: 'admin' },
+  { id: 'legacy_fee', name: 'Legacy manual template', amount: 777, category: 'other' },
+];
+const oldCarrierPolicies = api.templatesForTruckAtDate(carrierTemplates, carrierTruck, '2026-07-09');
+assert.equal(Array.from(oldCarrierPolicies, (item) => item.id).join(','), 'alpha_ins');
+assert.equal(oldCarrierPolicies[0].truckId, carrierTruck.id);
+assert.equal(oldCarrierPolicies[0].companyNameSnapshot, 'Alpha Carrier');
+const newCarrierPolicies = api.templatesForTruckAtDate(carrierTemplates, carrierTruck, '2026-07-16');
+assert.equal(Array.from(newCarrierPolicies, (item) => item.id).join(','), 'beta_eld');
+assert.equal(newCarrierPolicies[0].companyNameSnapshot, 'Beta Carrier');
+
+const carrierResolved = api.resolveSettlements([
+  { id: 'load_alpha', truckId: carrierTruck.id, pickup: '2026-07-09' },
+  { id: 'load_beta', truckId: carrierTruck.id, pickup: '2026-07-16' },
+], carrierTruck, carrierTemplates, []);
+assert.equal(carrierResolved.settlements.length, 2);
+assert.equal(Array.from(carrierResolved.settlements, (item) => item.total).join(','), '80,120');
+assert.equal(carrierResolved.automaticTotal, 200);
+assert.equal(carrierResolved.settlements[0].items[0].carrierCompanyRef, 'company_alpha');
+assert.equal(carrierResolved.settlements[1].items[0].carrierCompanyRef, 'company_beta');
+delete context.carrierAssignmentForDate;
+
 // Fleet finance uses the truck's Friday-Thursday period and subtracts one
 // unsnapshotted weekly amount from REAL NET.
 context.loads = loads;

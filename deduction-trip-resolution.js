@@ -116,6 +116,67 @@
     return fallbackEffectivePolicies(templates, truckId, targetDate);
   }
 
+  // Carrier-level recurring deductions are stored once on the Company record,
+  // without a truckId. Materialize only the policies belonging to the Carrier
+  // Assignment effective on the accounting date, then let the existing
+  // effective-policy engine resolve versions exactly as it does for truck
+  // policies. A read-only registry candidate has no companyRef and therefore
+  // cannot silently acquire financial terms.
+  function templatesForTruckAtDate(templates, truck, targetDate) {
+    const truckId = text(truck && truck.id);
+    const assignment = typeof global.carrierAssignmentForDate === 'function'
+      ? global.carrierAssignmentForDate(truck, targetDate)
+      : (typeof global.truckCarrierAssignment === 'function' ? global.truckCarrierAssignment(truck) : (truck || {}));
+    const carrierRef = text(assignment && assignment.companyRef);
+    const company = text(assignment && (
+      assignment.companyNameSnapshot || assignment.company
+    ));
+
+    return (Array.isArray(templates) ? templates : []).reduce(function (result, policy) {
+      if (!policy) return result;
+      const policyTruckId = text(policy.truckId);
+      const policyCarrierRef = text(policy.carrierCompanyRef || policy.carrier_company_ref);
+      if (policyTruckId) {
+        if (policyTruckId === truckId) result.push(policy);
+        return result;
+      }
+      // Legacy unassigned templates remain manual. Only an explicit saved
+      // Carrier reference is safe to apply automatically.
+      if (!policyCarrierRef || !carrierRef || policyCarrierRef !== carrierRef) return result;
+
+      const materialized = Object.assign({}, policy, {
+        truckId,
+        unitNumber: text((truck && truck.unitNumber) || policy.unitNumber),
+        company: company || text(policy.companyNameSnapshot || policy.company),
+        carrierCompanyRef: carrierRef,
+        companyNameSnapshot: company || text(policy.companyNameSnapshot),
+        assignmentEffectiveFrom: text(assignment && assignment.effectiveFrom),
+        assignmentEffectiveTo: text(assignment && assignment.effectiveTo),
+      });
+      if (!policyId(materialized)) {
+        materialized.policyId = [
+          'carrier',
+          carrierRef,
+          policyVersionId(policy) || text(policy.name).toLowerCase(),
+          text(policy.category).toLowerCase(),
+        ].join('|');
+      }
+      if (!text(materialized.effectiveFrom) && text(assignment && assignment.effectiveFrom)) {
+        materialized.effectiveFrom = text(assignment.effectiveFrom);
+      }
+      if (!text(materialized.effectiveTo) && text(assignment && assignment.effectiveTo)) {
+        materialized.effectiveTo = text(assignment.effectiveTo);
+      }
+      result.push(materialized);
+      return result;
+    }, []);
+  }
+
+  function effectivePoliciesForTruck(templates, truck, targetDate) {
+    const truckId = text(truck && truck.id);
+    return effectivePolicies(templatesForTruckAtDate(templates, truck, targetDate), truckId, targetDate);
+  }
+
   function snapshotItem(policy, truck) {
     return {
       policyId: policyId(policy),
@@ -127,6 +188,10 @@
       truckId: text(truck && truck.id),
       unitNumber: text(truck && truck.unitNumber),
       company: text((policy && policy.company) || (truck && truck.company)),
+      carrierCompanyRef: text(policy && (policy.carrierCompanyRef || policy.carrier_company_ref)),
+      companyNameSnapshot: text(policy && policy.companyNameSnapshot),
+      assignmentEffectiveFrom: text(policy && policy.assignmentEffectiveFrom),
+      assignmentEffectiveTo: text(policy && policy.assignmentEffectiveTo),
       effectiveFrom: policyStart(policy),
       effectiveTo: policyEnd(policy),
     };
@@ -140,7 +205,7 @@
     const date = tripDate(load);
     const truckId = text(truck && truck.id) || text(load && load.truckId);
     const period = settlementPeriod(date, truck);
-    const policies = date && truckId ? effectivePolicies(templates, truckId, date) : [];
+    const policies = date && truckId ? effectivePoliciesForTruck(templates, truck, date) : [];
     const items = policies.map(function (policy) { return snapshotItem(policy, truck); });
     return {
       loadId: loadIdentity(load, index || 0),
@@ -252,7 +317,7 @@
       // One weekly amount: resolve every policy lineage once on the configured
       // settlement date. A version change inside the week therefore selects only
       // the version active on the accounting boundary day.
-      const policies = effectivePolicies(templates, truckId, period.end);
+      const policies = effectivePoliciesForTruck(templates, truck, period.end);
       const items = policies.map(function (policy) { return snapshotItem(policy, truck); });
       return {
         id: 'auto_wd_' + truckId + '_' + currentWeek,
@@ -321,7 +386,12 @@
 
   function calculateFinance(truck, period) {
     const bounds = boundsForTruck(truck, period || 'week');
-    const allLoads = Array.isArray(global.loads) ? global.loads : [];
+    // index.html keeps application state in a top-level `let loads`, which is not
+    // exposed as window.loads. Use its explicit bridge or Fleet Overview silently
+    // calculates every load-based metric from an empty array.
+    const allLoads = typeof global.currentFleetLoads === 'function'
+      ? global.currentFleetLoads()
+      : (Array.isArray(global.loads) ? global.loads : []);
     const truckLoads = allLoads.filter(function (load) { return recordMatchesTruck(load, truck); });
     const tLoads = truckLoads.filter(function (load) { return recordInBounds(load, 'pickup', bounds); });
     const fuels = (typeof global.loadFuelLogs === 'function' ? global.loadFuelLogs() : [])
@@ -345,7 +415,10 @@
       return sum + (Number(load.totalMiles || 0) || (Number(load.loadedMiles || 0) + Number(load.deadMiles || 0)));
     }, 0);
     const dispatchFee = tLoads.reduce(function (sum, load) {
-      const rate = Number(load.dispatchPercent != null ? load.dispatchPercent : (truck && truck.dispatchPercent) || 0);
+      const assignment = typeof global.carrierAssignmentForLoad === 'function'
+        ? global.carrierAssignmentForLoad(truck, load)
+        : (typeof global.truckCarrierAssignment === 'function' ? global.truckCarrierAssignment(truck) : (truck || {}));
+      const rate = Number(load.dispatchPercent != null ? load.dispatchPercent : assignment.dispatchPercent || 0);
       return sum + Number(load.dispatchFee != null ? load.dispatchFee : (Number(load.gross || 0) * rate / 100));
     }, 0);
     const fuelCost = fuels.reduce(function (sum, item) {
@@ -413,6 +486,7 @@
     tripDate,
     weekKey,
     settlementPeriod,
+    templatesForTruckAtDate,
     resolveLoad,
     resolveSettlements,
     calculateFinance,
