@@ -107,6 +107,11 @@
     .hdr-row{display:flex;justify-content:space-between;align-items:center}
     .logo{font-size:20px;font-weight:900;color:var(--acc)}.logo span{color:#f1f5f9}.logo small{font-size:10px;color:var(--mu);margin-left:5px}
     .driver-badge{background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--mu);cursor:pointer;font-family:inherit}
+    .app-back-nav{display:none;align-items:center;gap:10px;padding:10px 16px 0}
+    .app-back-nav.show{display:flex}
+    .app-back-button{display:flex;align-items:center;gap:9px;min-height:44px;padding:10px 15px;border:1px solid var(--bd);border-radius:12px;background:var(--s1);color:var(--tx);font:800 14px/1 inherit;cursor:pointer}
+    .app-back-button:active{background:var(--s2)}
+    .app-back-context{color:var(--mu);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .driver-badge strong{color:var(--tx)}
     .domain-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px}
     .domain-action{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;text-align:left;color:var(--tx);cursor:pointer;font-family:inherit;min-height:92px}
@@ -448,6 +453,13 @@
     </div>
   </div>
 
+  <div class="app-back-nav" id="appBackNav" aria-hidden="true">
+    <button type="button" class="app-back-button" id="appBackButton" onclick="goBackPage()" aria-label="Go back">
+      <span aria-hidden="true">←</span><span>Back</span>
+    </button>
+    <span class="app-back-context" id="appBackContext"></span>
+  </div>
+
   <!-- HOME -->
   <div id="page-home" class="page active">
     <div class="card" style="margin-top:16px">
@@ -641,6 +653,30 @@
         </div>
       </div>
       <div class="sfield"><div class="slabel">Company Name</div><input id="setCompany"></div>
+      <div id="setOrganizationDetails">
+        <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><div class="slabel">Business Type</div><select id="setCompanyBusinessType"><option value="">Select</option><option value="sole_proprietorship">Sole Proprietorship</option><option value="llc">LLC</option><option value="s_corp">S Corporation</option><option value="c_corp">C Corporation</option><option value="partnership">Partnership</option><option value="other">Other</option></select></div>
+          <div><div class="slabel">DBA / Trade Name</div><input id="setCompanyDbaName"></div>
+        </div>
+        <div class="sfield"><div class="slabel">Legal Business Name</div><input id="setCompanyLegalName" placeholder="LLC, Inc., Corp., DBA"></div>
+        <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><div class="slabel">MC Number</div><input id="setCompanyMC" placeholder="MC-123456"></div>
+          <div><div class="slabel">USDOT Number</div><input id="setCompanyDOT" placeholder="1234567"></div>
+        </div>
+        <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><div class="slabel">Business Phone</div><input id="setCompanyPhone" type="tel"></div>
+          <div><div class="slabel">Business Email</div><input id="setCompanyEmail" type="email"></div>
+        </div>
+        <div class="sfield"><div class="slabel">Website</div><input id="setCompanyWebsite" type="url" placeholder="https://"></div>
+        <div class="sfield"><div class="slabel">Street Address</div><input id="setCompanyAddress1"></div>
+        <div class="sfield"><div class="slabel">Address Line 2</div><input id="setCompanyAddress2"></div>
+        <div class="sfield" style="display:grid;grid-template-columns:1.4fr .7fr .9fr;gap:10px;margin-bottom:12px">
+          <div><div class="slabel">City</div><input id="setCompanyCity"></div>
+          <div><div class="slabel">State</div><input id="setCompanyState"></div>
+          <div><div class="slabel">ZIP</div><input id="setCompanyPostalCode"></div>
+        </div>
+        <div class="sfield"><div class="slabel">Country</div><input id="setCompanyCountry" placeholder="US"></div>
+      </div>
       <div class="sfield"><div class="slabel">Truck Name / Make</div><input id="setTruckName"></div>
       <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div><div class="slabel">Unit Number</div><input id="setUnit"></div>
@@ -1486,6 +1522,11 @@ let loads = [];
 let ptiLog = [];
 let autoSyncTimer = null;
 
+// External finance modules cannot read a top-level `let loads` through
+// `window.loads`. Keep one explicit read-only bridge so every Fleet calculation
+// uses the same in-memory collection that restore and the Loads UI update.
+function currentFleetLoads(){ return Array.isArray(loads) ? loads : []; }
+
 // ── STORAGE ──
 function save(k,v){ localStorage.setItem(K+k, JSON.stringify(v)); }
 function load(k,def){ try{ let v=localStorage.getItem(K+k); return v?JSON.parse(v):def; }catch(e){ return def; } }
@@ -2205,8 +2246,8 @@ function renderOrchestratorAccountSection(){
   var session = loadOrchestratorSession();
   if(!session || !session.sessionToken || !session.me){
     el.innerHTML =
-      '<div class="settings-section-title">Orchestrator account</div>'+
-      '<div class="settings-role-note">Optional. Sign in to your own CrewBIQ Orchestrator account to see your workspace and role — read-only, nothing here is required for the app to work.</div>'+
+      '<div class="settings-section-title">Platform account</div>'+
+      '<div class="settings-role-note">Optional CrewBIQ server account for workspace membership and verified Company/Truck records. It is separate from your local driver profile; the app continues to work without it.</div>'+
       '<div class="sfield"><div class="slabel">Email</div><input id="orchEmail" type="email" placeholder="you@example.com"></div>'+
       '<div class="sfield"><div class="slabel">Password</div><input id="orchPassword" type="password" placeholder="At least 10 characters"></div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">'+
@@ -2227,7 +2268,7 @@ function renderOrchestratorAccountSection(){
     return '<option value="'+escHtml(ws.id||'')+'"'+selected+'>'+escHtml(ws.name||ws.id||'')+' ('+escHtml((m.roles||[]).join(', '))+')</option>';
   }).join('');
   el.innerHTML =
-    '<div class="settings-section-title">Orchestrator account</div>'+
+    '<div class="settings-section-title">Platform account</div>'+
     '<div class="settings-role-note">Signed in as <strong>'+escHtml(me.email||'')+'</strong>'+((me.person && me.person.display_name) ? ' ('+escHtml(me.person.display_name)+')' : '')+'.</div>'+
     (memberships.length
       ? '<div class="sfield"><div class="slabel">Active workspace</div><select id="orchWorkspaceSelect" onchange="onOrchWorkspaceChange()">'+options+'</select></div>'
@@ -2551,10 +2592,53 @@ function primaryDestinationForPage(name){
   if(name === 'home') return 'home';
   return '';
 }
-function showPage(name, btn){
+const PRIMARY_NAV_PAGES = ['home','work','truck','team','money'];
+let pageNavigationHistory = [];
+let currentPageName = 'home';
+function pageNavigationLabel(name){
+  const labels = {home:'Today',work:'Work',truck:'Truck',team:'Team',money:'Money',menu:'Functions',settings:'Account'};
+  return labels[name] || name.charAt(0).toUpperCase() + name.slice(1);
+}
+function activePageName(){
+  const active = document.querySelector('.page.active');
+  return active && active.id.startsWith('page-') ? active.id.slice(5) : currentPageName;
+}
+function fallbackBackPage(name){
+  return primaryDestinationForPage(name) || 'home';
+}
+function updatePageBackNavigation(name){
+  const nav = document.getElementById('appBackNav');
+  const context = document.getElementById('appBackContext');
+  if(!nav) return;
+  const isPrimary = PRIMARY_NAV_PAGES.includes(name);
+  nav.classList.toggle('show', !isPrimary);
+  nav.setAttribute('aria-hidden', isPrimary ? 'true' : 'false');
+  if(context){
+    const target = pageNavigationHistory.length ? pageNavigationHistory[pageNavigationHistory.length-1] : fallbackBackPage(name);
+    context.textContent = target ? 'Back to ' + pageNavigationLabel(target) : '';
+  }
+}
+function goBackPage(){
+  const from = activePageName();
+  let target = '';
+  while(pageNavigationHistory.length && !target){
+    const candidate = pageNavigationHistory.pop();
+    if(candidate !== from && document.getElementById('page-'+candidate)) target = candidate;
+  }
+  if(!target) target = fallbackBackPage(from);
+  showPage(target, null, {historyMode:'back'});
+}
+function showPage(name, btn, options){
+  options = options || {};
+  const previousPage = activePageName();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   let pageEl = document.getElementById('page-'+name);
   if(!pageEl){ name='menu'; pageEl=document.getElementById('page-menu'); }
+  if(options.historyMode !== 'back' && previousPage && previousPage !== name){
+    if(PRIMARY_NAV_PAGES.includes(name)) pageNavigationHistory = [];
+    else if(pageNavigationHistory[pageNavigationHistory.length-1] !== previousPage) pageNavigationHistory.push(previousPage);
+  }
+  currentPageName = name;
   pageEl.classList.add('active');
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
   var primaryPage = primaryDestinationForPage(name);
@@ -2577,6 +2661,7 @@ function showPage(name, btn){
   if(name==='scan') renderScanReview();
   if(name==='report'){}
   if(name==='menu'){ applyRoleUI(); }
+  updatePageBackNavigation(name);
 }
 
 function financePeriodBounds(period){
@@ -2649,13 +2734,13 @@ function ownerFinanceForTruck(truck, period){
 
   var driverProfiles = loadDriverProfiles();
   var truckId = truck ? truck.id : '';
-  var carrierAssignment = truckCarrierAssignment(truck);
   var gross = tLoads.reduce(function(s,l){ return s+Number(l.gross||0); },0);
   // Use fleet owner's configured driver rates when available, fall back to load.driverPay
   var driverPay = tLoads.reduce(function(s,l){ return s + calcFleetDriverPay(l, driverProfiles, truckId); },0);
   var miles = tLoads.reduce(function(s,l){ return s+(Number(l.totalMiles||0) || (Number(l.loadedMiles||0)+Number(l.deadMiles||0))); },0);
   var dispatchFee = tLoads.reduce(function(s,l){
-    var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : carrierAssignment.dispatchPercent || 0);
+    var assignmentForLoad = carrierAssignmentForLoad(truck, l);
+    var rate = Number(l.dispatchPercent != null ? l.dispatchPercent : assignmentForLoad.dispatchPercent || 0);
     return s + Number(l.dispatchFee != null ? l.dispatchFee : (Number(l.gross||0) * rate / 100));
   },0);
   var fuelCost = fuels.reduce(function(s,x){ return s+Number(x.fuelCost||0)+Number(x.defCost||0); },0);
@@ -3297,6 +3382,17 @@ function saveDedTemplates(v){ scopedSave('dedTemplates', v || []); queueFleetCon
 function loadWeeklyDeds(){ return scopedLoad('weeklyDeds', []); }
 function saveWeeklyDeds(v){ scopedSave('weeklyDeds', v || []); queueFleetConfigSync(); }
 
+// Recurring deduction policies belong to a Carrier relationship, not to the physical truck
+// or the user's owned business. Legacy templates have no carrierCompanyRef and remain generic.
+function deductionTemplatesForTruck(truck){
+  var assignment = truck ? truckCarrierAssignment(truck) : null;
+  var carrierRef = assignment ? (assignment.companyRef || '') : '';
+  return loadDedTemplates().filter(function(template){
+    var templateRef = template.carrierCompanyRef || '';
+    return !templateRef || (!!carrierRef && templateRef === carrierRef);
+  });
+}
+
 function getDedWeekKey(){
   // Monday-based week key
   var d = new Date(); var day = d.getDay(); var diff = (day===0?-6:1-day);
@@ -3317,10 +3413,11 @@ function getCurrentWeekDed(){
 }
 
 function applyDedTemplate(){
-  var templates = loadDedTemplates();
+  var truckId = selectedTruckId('dedTruckSelect');
+  var truck = findTruckByIdOrUnit(truckId);
+  var templates = deductionTemplatesForTruck(truck);
   if(!templates.length){ toast('No templates yet. Add templates first.','warn'); return; }
   var wk = getDedWeekKey();
-  var truckId = selectedTruckId('dedTruckSelect');
   var list = loadWeeklyDeds();
   var idx = list.findIndex(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
   var entry = {id:'wd_'+Date.now(), weekKey:wk, truckId:truckId, items:[], total:0};
@@ -3369,7 +3466,13 @@ function saveDedModal(){
   if(!name){ toast('Name required','err'); return; }
   if(_dedModalMode === 'template'){
     var tmpl = loadDedTemplates();
-    tmpl.push({id:'dt_'+Date.now(), name:name, amount:amount, category:cat});
+    var selectedTruck = findTruckByIdOrUnit(selectedTruckId('dedTruckSelect'));
+    var assignment = selectedTruck ? truckCarrierAssignment(selectedTruck) : null;
+    tmpl.push({
+      id:'dt_'+Date.now(), name:name, amount:amount, category:cat,
+      carrierCompanyRef:(assignment && assignment.companyRef) || '',
+      companyNameSnapshot:(assignment && assignment.companyNameSnapshot) || ''
+    });
     saveDedTemplates(tmpl);
   } else {
     var wk   = getDedWeekKey();
@@ -3410,7 +3513,9 @@ function renderDeductionsPage(){
   var truck = findTruckByIdOrUnit(truckId);
   var wk  = getDedWeekKey();
   var lbl = document.getElementById('dedWeekLabel');
-  if(lbl) lbl.textContent = (truck ? truckDisplay(truck) + ' / ' : '') + 'Week of ' + wk;
+  var assignment = truck ? truckCarrierAssignment(truck) : null;
+  if(lbl) lbl.textContent = (truck ? truckDisplay(truck) + ' / ' : '') +
+    (assignment && assignment.companyNameSnapshot ? assignment.companyNameSnapshot + ' / ' : '') + 'Week of ' + wk;
   var wd  = getCurrentWeekDed();
   var cur = document.getElementById('dedCurrentList');
   if(cur){
@@ -3420,7 +3525,7 @@ function renderDeductionsPage(){
   }
   var tmplList = document.getElementById('dedTemplateList');
   if(tmplList){
-    var tmpl = loadDedTemplates();
+    var tmpl = deductionTemplatesForTruck(truck);
     tmplList.innerHTML = tmpl.length ? tmpl.map(function(t){
       return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span>'+escHtml(t.name)+'</span><span style="display:flex;gap:8px;align-items:center"><strong>'+fmt(t.amount)+'</strong><button onclick="deleteDedTemplate(\''+t.id+'\')" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button></span></div>';
     }).join('') : '<div class="empty" style="padding:16px 0">No templates yet</div>';
@@ -3632,35 +3737,129 @@ function truckCarrierAssignment(truck){
     // Preferred fields: Carrier Assignment references a Company by id and keeps a point-in-time
     // snapshot of its name/MC so past reports never change when the Company record is edited later.
     companyRef: assignment.companyRef || '',
+    // A Platform registry id is only a read-only directory reference. It is deliberately
+    // separate from the local companyRef and does not imply a claim, membership, or ownership link.
+    canonicalCompanyRef: assignment.canonicalCompanyRef || assignment.canonical_company_ref || '',
     companyNameSnapshot: assignment.companyNameSnapshot != null ? assignment.companyNameSnapshot : company,
-    mcNumberSnapshot: assignment.mcNumberSnapshot != null ? assignment.mcNumberSnapshot : mc
+    mcNumberSnapshot: assignment.mcNumberSnapshot != null ? assignment.mcNumberSnapshot : mc,
+    // Effective dates use a half-open interval: effectiveFrom is inclusive and
+    // effectiveTo is exclusive. The current assignment always has an empty end date.
+    effectiveFrom: assignment.effectiveFrom || '',
+    effectiveTo: assignment.effectiveTo || ''
   };
+}
+function truckCarrierAssignmentHistory(truck){
+  return (truck && Array.isArray(truck.carrierAssignmentHistory) ? truck.carrierAssignmentHistory : [])
+    .map(function(assignment){ return truckCarrierAssignment({ carrierAssignment: assignment }); });
+}
+function carrierAssignmentDate(value){
+  if(value == null) return '';
+  var raw = String(value).trim();
+  var match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if(match) return match[1];
+  var parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0,10);
+}
+function carrierAssignmentForDate(truck, value){
+  var current = truckCarrierAssignment(truck);
+  var date = carrierAssignmentDate(value);
+  if(!date) return current;
+  var candidates = truckCarrierAssignmentHistory(truck)
+    .map(function(assignment){ return { assignment: assignment, current: false }; });
+  candidates.push({ assignment: current, current: true });
+  candidates = candidates.filter(function(candidate){
+    var assignment = candidate.assignment;
+    return (!assignment.effectiveFrom || date >= assignment.effectiveFrom) &&
+      (!assignment.effectiveTo || date < assignment.effectiveTo);
+  });
+  if(!candidates.length) return current;
+  candidates.sort(function(a,b){
+    var byStart = String(b.assignment.effectiveFrom || '').localeCompare(String(a.assignment.effectiveFrom || ''));
+    return byStart || Number(b.current) - Number(a.current);
+  });
+  return candidates[0].assignment;
+}
+function carrierAssignmentForLoad(truck, load){
+  load = load || {};
+  return carrierAssignmentForDate(truck,
+    load.pickup || load.pickupDate || load.pickup_date || load.date ||
+    load.delivery || load.deliveryDate || load.delivery_date || load.completedAt || load.createdAt || '');
+}
+function carrierAssignmentHasTerms(assignment){
+  assignment = assignment || {};
+  return !!(assignment.companyRef || assignment.canonicalCompanyRef || assignment.companyNameSnapshot || assignment.company ||
+    assignment.mcNumberSnapshot || assignment.mc || Number(assignment.dispatchPercent || 0));
+}
+function carrierAssignmentTermsChanged(previous, next){
+  if(!previous) return false;
+  previous = previous || {};
+  next = next || {};
+  return (previous.companyRef || '') !== (next.companyRef || '') ||
+    (previous.canonicalCompanyRef || '') !== (next.canonicalCompanyRef || '') ||
+    (previous.companyNameSnapshot || previous.company || '') !== (next.companyNameSnapshot || next.company || '') ||
+    (previous.mcNumberSnapshot || previous.mc || '') !== (next.mcNumberSnapshot || next.mc || '') ||
+    Number(previous.dispatchPercent || 0) !== Number(next.dispatchPercent || 0);
+}
+function carrierAssignmentHistoryHtml(truck){
+  var history = truckCarrierAssignmentHistory(truck);
+  if(!history.length) return '';
+  return '<div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:12px">'+
+    '<div class="slabel" style="margin-bottom:8px">Previous Carrier Terms</div>'+
+    history.slice().reverse().map(function(a){
+      var company = a.companyNameSnapshot || a.company || 'Carrier';
+      var dates = (a.effectiveFrom || 'Unknown start') + ' – ' + (a.effectiveTo || 'Current');
+      return '<div class="muted" style="font-size:11px;line-height:1.45;margin-top:6px">'+
+        '<strong style="color:var(--tx)">'+escHtml(company)+'</strong>'+
+        (a.mcNumberSnapshot || a.mc ? ' · '+escHtml(a.mcNumberSnapshot || a.mc) : '')+
+        ' · '+Number(a.dispatchPercent || 0).toFixed(1)+'%<br>'+escHtml(dates)+'</div>';
+    }).join('')+'</div>';
 }
 
 // ── COMPANY MODULE ───────────────────────────────────────────────────────────
 // Company: the legal/business entity a user owns or manages — separate from Carrier
 // Assignment (who a truck currently operates under) and from driver.company (the
 // legacy "current workplace" shadow field for company-driver role, see below).
-// Company: { id, name, legalName, mcNumber, dotNumber, phone, email,
-//            address:{line1,line2,city,state,postalCode,country}, logo, active, createdAt, updatedAt }
+// Company: { id, name, legalName, dbaName, businessType, relationshipType,
+//            verificationStatus, canonicalCompanyId, mcNumber, dotNumber, phone, email, website,
+//            address:{line1,line2,city,state,postalCode,country}, defaultCarrierFeePercent,
+//            logo, active, createdAt, updatedAt }
 function loadCompanies(){ return scopedLoad('companies', []); }
 function saveCompanies(v){ scopedSave('companies', v || []); }
+function isOwnedCompany(company){
+  return !!company && company.active !== false && (company.relationshipType || company.relationship_type || 'owned') !== 'carrier';
+}
 function normalizeCompany(raw){
   raw = raw || {};
   var address = raw.address || {};
   var now = new Date().toISOString();
+  var defaultCarrierFeePercent = Number(raw.defaultCarrierFeePercent != null ? raw.defaultCarrierFeePercent : (raw.default_carrier_fee_percent || 0));
+  if(!Number.isFinite(defaultCarrierFeePercent) || defaultCarrierFeePercent < 0) defaultCarrierFeePercent = 0;
   return {
     id: raw.id || generateFleetEntityId('company'),
     name: raw.name || '',
     legalName: raw.legalName || '',
+    dbaName: raw.dbaName || raw.dba_name || '',
+    businessType: raw.businessType || raw.business_type || '',
+    // `owned` is the user's own LLC/corporation. `carrier` is a directory record for a
+    // company whose authority a truck operates under. Existing records predate this split
+    // and therefore remain owned records by default.
+    relationshipType: raw.relationshipType || raw.relationship_type || 'owned',
+    // Local records remain private candidates until an explicit, audited Platform claim/link
+    // flow exists. Merely copying a verified directory result never promotes a local record.
+    verificationStatus: raw.verificationStatus || raw.verification_status || 'candidate',
+    canonicalCompanyId: raw.canonicalCompanyId || raw.canonical_company_id || '',
     mcNumber: raw.mcNumber || '',
     dotNumber: raw.dotNumber || '',
     phone: raw.phone || '',
     email: raw.email || '',
+    website: raw.website || '',
+    contactName: raw.contactName || raw.contact_name || '',
+    notes: raw.notes || '',
     address: {
       line1: address.line1 || '', line2: address.line2 || '', city: address.city || '',
       state: address.state || '', postalCode: address.postalCode || '', country: address.country || ''
     },
+    defaultCarrierFeePercent: defaultCarrierFeePercent,
     logo: raw.logo || '',
     active: raw.active !== false,
     createdAt: raw.createdAt || now,
@@ -3672,7 +3871,7 @@ function normalizeCompany(raw){
 function currentOwnedOrganization(){
   var companies = loadCompanies();
   if(!companies.length) return null;
-  return companies.find(function(c){ return c.active !== false; }) || companies[0];
+  return companies.find(isOwnedCompany) || null;
 }
 // The company/carrier this user is currently working under, independent of who they own.
 // Reads the default truck's Carrier Assignment snapshot first; falls back to the legacy
@@ -4025,9 +4224,277 @@ function ensureDefaultTruckFromDriver(){
 
 function activeTrucks(){ return loadTrucks().filter(function(t){ return t && t.active!==false; }); }
 function findTruckByIdOrUnit(value){
-  var key = String(value||'').trim();
+  var key = normalizeFleetLookupValue(value);
   if(!key) return null;
-  return activeTrucks().find(function(t){ return String(t.id||'')===key || String(t.unitNumber||'')===key; }) || null;
+  return activeTrucks().find(function(t){
+    return normalizeFleetLookupValue(t.id)===key || normalizeFleetLookupValue(t.unitNumber)===key;
+  }) || null;
+}
+
+// Read-only carrier directory assembled from the account's local Company records and the
+// last capability-gated Platform registry read. Selecting an entry only fills the local
+// Carrier Assignment snapshot; it never creates a claim, membership, or ownership link.
+function carrierDirectoryEntries(){
+  var entries = [];
+  loadCompanies().map(normalizeCompany).forEach(function(company){
+    entries.push({
+      ref: company.id || '',
+      localCompanyId: company.id || '',
+      refKind: 'local',
+      name: company.name || company.legalName || 'Unnamed local company',
+      mc: company.mcNumber || '',
+      dispatchPercent: Number(company.defaultCarrierFeePercent || 0),
+      source: company.relationshipType === 'carrier' ? 'Local private carrier candidate' : 'My business',
+      selectable: true
+    });
+  });
+  var registry = loadOrchestratorCanonicalRead();
+  if(registry && registry.status === 'ready'){
+    (registry.companies || []).forEach(function(company){
+      var authorities = Array.isArray(company.authorities) ? company.authorities : [];
+      var mcAuthority = authorities.find(function(authority){ return String(authority.type || '').toUpperCase() === 'MC'; });
+      entries.push({
+        ref: company.id || '',
+        localCompanyId: '',
+        refKind: 'canonical',
+        name: company.display_name || company.legal_name || 'Unnamed verified company',
+        mc: mcAuthority ? String(mcAuthority.value || '') : '',
+        dispatchPercent: 0,
+        source: company.verification_status === 'verified' ? 'Verified Platform company' : 'Platform company',
+        selectable: true
+      });
+    });
+    (registry.companyCandidates || []).forEach(function(company){
+      entries.push({
+        ref: '',
+        localCompanyId: '',
+        refKind: 'candidate',
+        name: company.entered_name || 'Unnamed company candidate',
+        mc: String(company.authority_type_hint || '').toUpperCase() === 'MC' ? String(company.authority_value_hint || '') : '',
+        dispatchPercent: 0,
+        source: 'Platform candidate — not yet verified',
+        selectable: true
+      });
+    });
+  }
+  var seen = {};
+  return entries.filter(function(entry){
+    var key = normalizeFleetLookupValue(entry.ref || (entry.name+'|'+entry.mc));
+    if(!key || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+}
+function renderCarrierDirectoryPicker(query){
+  var host = document.getElementById('carrierDirectoryResults');
+  if(!host) return;
+  var needle = normalizeFleetLookupValue(query || '');
+  var entries = carrierDirectoryEntries();
+  var matches = entries.map(function(entry, index){ return {entry:entry,index:index}; }).filter(function(item){
+    return !needle || normalizeFleetLookupValue(item.entry.name+' '+item.entry.mc+' '+item.entry.source).indexOf(needle) !== -1;
+  });
+  if(!entries.length){
+    host.innerHTML = '<div class="settings-role-note">No carrier directory data is available yet. Enter the carrier manually, or sign in under Platform account and refresh the read-only Company registry.</div>';
+    return;
+  }
+  host.innerHTML = matches.map(function(item){
+    var entry = item.entry;
+    return '<button type="button" onclick="selectCarrierDirectoryEntry('+item.index+')" style="display:block;width:100%;text-align:left;background:var(--s1);border:1px solid var(--bd);border-radius:10px;color:var(--tx);padding:10px;margin-top:7px;cursor:pointer">'+
+      '<strong>'+escHtml(entry.name)+'</strong>'+(entry.mc?' <span class="muted">· '+escHtml(entry.mc)+'</span>':'')+
+      '<div class="muted" style="font-size:10px;margin-top:3px">'+escHtml(entry.source)+'</div></button>';
+  }).join('') || '<div class="muted" style="font-size:11px;padding:10px 0">No companies match this search.</div>';
+}
+function toggleCarrierDirectoryPicker(){
+  var picker = document.getElementById('carrierDirectoryPicker');
+  if(!picker) return;
+  var opening = picker.style.display === 'none';
+  picker.style.display = opening ? '' : 'none';
+  if(opening){
+    var search = document.getElementById('carrierDirectorySearch');
+    renderCarrierDirectoryPicker(search ? search.value : '');
+    if(search) search.focus();
+  }
+}
+function selectCarrierDirectoryEntry(index){
+  var entry = carrierDirectoryEntries()[Number(index)];
+  if(!entry) return;
+  var company = document.getElementById('tfCompany');
+  var mc = document.getElementById('tfMC');
+  var ref = document.getElementById('tfCompanyRef');
+  var canonicalRef = document.getElementById('tfCanonicalCompanyRef');
+  var fee = document.getElementById('tfDispatch');
+  if(company) company.value = entry.name || '';
+  if(mc) mc.value = entry.mc || '';
+  if(ref) ref.value = entry.refKind === 'local' ? (entry.ref || '') : '';
+  if(canonicalRef) canonicalRef.value = entry.refKind === 'canonical' ? (entry.ref || '') : '';
+  if(fee && entry.dispatchPercent != null && Number(entry.dispatchPercent) > 0) fee.value = Number(entry.dispatchPercent);
+  var editButton = document.getElementById('editSelectedCarrierBtn');
+  if(editButton) editButton.style.display = entry.localCompanyId ? '' : 'none';
+  var status = document.getElementById('selectedCarrierDirectoryStatus');
+  if(status){
+    status.textContent = entry.refKind === 'canonical'
+      ? 'Verified Platform company selected read-only. Assignment linking remains local until the audited claim/link flow is available.'
+      : entry.refKind === 'candidate'
+        ? 'Unverified Platform candidate copied as a local assignment snapshot. It is not automatically linked.'
+        : entry.source+'.';
+  }
+  toggleCarrierDirectoryPicker();
+  toast(entry.ref ? 'Carrier selected from directory' : 'Carrier candidate copied as an unverified snapshot');
+}
+function clearCarrierDirectoryRef(){
+  var ref = document.getElementById('tfCompanyRef');
+  var canonicalRef = document.getElementById('tfCanonicalCompanyRef');
+  if(ref) ref.value = '';
+  if(canonicalRef) canonicalRef.value = '';
+  var editButton = document.getElementById('editSelectedCarrierBtn');
+  if(editButton) editButton.style.display = 'none';
+  var status = document.getElementById('selectedCarrierDirectoryStatus');
+  if(status) status.textContent = 'Manual entry is saved as an unverified local snapshot.';
+}
+var _carrierDeductionDrafts = [];
+var _carrierCompanyEditId = '';
+function renderCarrierDeductionDrafts(){
+  var host = document.getElementById('cfDeductionDraftList');
+  if(!host) return;
+  host.innerHTML = _carrierDeductionDrafts.map(function(item,index){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">'+
+      '<span><strong>'+escHtml(item.name)+'</strong><span class="muted" style="display:block;font-size:10px">'+escHtml(item.category)+'</span></span>'+
+      '<span style="display:flex;align-items:center;gap:8px"><strong>'+fmt(item.amount)+'</strong><button type="button" onclick="removeCarrierDeductionDraft('+index+')" style="background:none;border:none;color:var(--rd);cursor:pointer">×</button></span></div>';
+  }).join('') || '<div class="muted" style="font-size:10px;padding:4px 0">No recurring deductions added.</div>';
+}
+function addCarrierDeductionDraft(){
+  function value(id){ var el=document.getElementById(id); return el ? String(el.value||'').trim() : ''; }
+  var name=value('cfDedName'), amount=Number(value('cfDedAmount') || 0), category=value('cfDedCategory') || 'other';
+  if(!name){ toast('Deduction name required','err'); return; }
+  if(!Number.isFinite(amount) || amount < 0){ toast('Deduction amount must be zero or greater','err'); return; }
+  _carrierDeductionDrafts.push({name:name,amount:amount,category:category});
+  document.getElementById('cfDedName').value='';
+  document.getElementById('cfDedAmount').value='';
+  renderCarrierDeductionDrafts();
+}
+function removeCarrierDeductionDraft(index){
+  _carrierDeductionDrafts.splice(Number(index),1);
+  renderCarrierDeductionDrafts();
+}
+function openSelectedCarrierCompanyForm(){
+  var ref = ((document.getElementById('tfCompanyRef')||{}).value||'').trim();
+  if(!ref){ toast('Select a saved Carrier first','warn'); return; }
+  var local = loadCompanies().find(function(company){ return company.id === ref && !isOwnedCompany(company); });
+  if(!local){
+    toast('Verified Platform companies are read-only here. Create a local Carrier profile only for your private terms.','warn');
+    return;
+  }
+  openCarrierCompanyForm(ref);
+}
+function openCarrierCompanyForm(companyId){
+  if(document.getElementById('carrierCompanyModalWrap')) return;
+  var existing = companyId ? loadCompanies().find(function(company){ return company.id === companyId && !isOwnedCompany(company); }) : null;
+  _carrierCompanyEditId = existing ? existing.id : '';
+  _carrierDeductionDrafts = existing ? loadDedTemplates().filter(function(template){
+    return (template.carrierCompanyRef || '') === existing.id;
+  }).map(function(template){
+    return {id:template.id,name:template.name,amount:Number(template.amount)||0,category:template.category||'other'};
+  }) : [];
+  var address = existing && existing.address ? existing.address : {};
+  function inputValue(value){ return escHtml(value == null ? '' : value); }
+  var html =
+    '<div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:flex-end;justify-content:center" id="carrierCompanyModal">'+
+    '<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto">'+
+      '<div style="font-size:17px;font-weight:800;color:var(--acc);margin-bottom:4px">'+(existing?'Edit Carrier Company':'Add Carrier Company')+'</div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.4;margin-bottom:16px">Save the company whose MC authority this truck operates under. This does not change your owned LLC or corporation.</div>'+
+      '<div class="settings-role-note" style="margin-bottom:12px"><strong>Local private candidate.</strong> Saving this form does not verify, claim, or create ownership of a Platform Company.</div>'+
+      '<div class="sfield"><div class="slabel">Carrier / DBA Name *</div><input id="cfName" placeholder="Carrier name" value="'+inputValue(existing && existing.name)+'"></div>'+
+      '<div class="frow"><div class="fg"><div class="slabel">Business Type</div><select id="cfBusinessType"><option value="">Select</option><option value="sole_proprietorship">Sole Proprietorship</option><option value="llc">LLC</option><option value="s_corp">S Corporation</option><option value="c_corp">C Corporation</option><option value="partnership">Partnership</option><option value="other">Other</option></select></div><div class="fg"><div class="slabel">DBA / Trade Name</div><input id="cfDbaName" value="'+inputValue(existing && existing.dbaName)+'"></div></div>'+
+      '<div class="sfield"><div class="slabel">Legal Business Name</div><input id="cfLegalName" placeholder="LLC, Inc., Corp." value="'+inputValue(existing && existing.legalName)+'"></div>'+
+      '<div class="frow"><div class="fg"><div class="slabel">MC Number</div><input id="cfMC" placeholder="MC-123456" value="'+inputValue(existing && existing.mcNumber)+'"></div><div class="fg"><div class="slabel">USDOT Number</div><input id="cfDOT" placeholder="1234567" value="'+inputValue(existing && existing.dotNumber)+'"></div></div>'+
+      '<div class="frow"><div class="fg"><div class="slabel">Phone</div><input id="cfPhone" type="tel" value="'+inputValue(existing && existing.phone)+'"></div><div class="fg"><div class="slabel">Email</div><input id="cfEmail" type="email" value="'+inputValue(existing && existing.email)+'"></div></div>'+
+      '<div class="frow"><div class="fg"><div class="slabel">Contact Person</div><input id="cfContactName" value="'+inputValue(existing && existing.contactName)+'"></div><div class="fg"><div class="slabel">Website</div><input id="cfWebsite" type="url" placeholder="https://" value="'+inputValue(existing && existing.website)+'"></div></div>'+
+      '<div class="sfield"><div class="slabel">Street Address</div><input id="cfAddress1" value="'+inputValue(address.line1)+'"></div>'+
+      '<div class="sfield"><div class="slabel">Address Line 2</div><input id="cfAddress2" value="'+inputValue(address.line2)+'"></div>'+
+      '<div class="frow"><div class="fg"><div class="slabel">City</div><input id="cfCity" value="'+inputValue(address.city)+'"></div><div class="fg"><div class="slabel">State</div><input id="cfState" maxlength="2" style="text-transform:uppercase" value="'+inputValue(address.state)+'"></div><div class="fg"><div class="slabel">ZIP</div><input id="cfZip" value="'+inputValue(address.postalCode)+'"></div></div>'+
+      '<div class="sfield"><div class="slabel">Country</div><input id="cfCountry" placeholder="US" value="'+inputValue(address.country || 'US')+'"></div>'+
+      '<div class="sfield"><div class="slabel">Private Notes</div><textarea id="cfNotes" rows="2" placeholder="Contract or relationship notes">'+inputValue(existing && existing.notes)+'</textarea></div>'+
+      '<div class="sfield"><div class="slabel">Default Carrier Fee % (Deduction)</div><input id="cfDispatch" type="number" min="0" step="0.1" placeholder="13" value="'+inputValue(existing && existing.defaultCarrierFeePercent)+'"><div class="muted" style="font-size:10px;margin-top:4px">Used as the default when this carrier is selected. It is included with recurring deductions in Team Overview.</div></div>'+
+      '<div class="card" style="margin:14px 0 0;padding:12px">'+
+        '<div style="font-size:13px;font-weight:800;margin-bottom:3px">Recurring Carrier Deductions</div>'+
+        '<div class="muted" style="font-size:10px;line-height:1.4;margin-bottom:9px">Optional recurring terms such as cargo insurance, ELD, trailer rent, escrow, or administration fees. They stay linked to this Carrier and can be applied on the Deductions page.</div>'+
+        '<div id="cfDeductionDraftList"><div class="muted" style="font-size:10px;padding:4px 0">No recurring deductions added.</div></div>'+
+        '<div class="sfield" style="margin-top:9px"><div class="slabel">Deduction Name</div><input id="cfDedName" placeholder="Cargo Insurance"></div>'+
+        '<div class="frow"><div class="fg"><div class="slabel">Amount $</div><input id="cfDedAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
+        '<div class="fg"><div class="slabel">Category</div><select id="cfDedCategory"><option value="insurance">Insurance</option><option value="tax">Tax/IFTA</option><option value="admin">Admin</option><option value="equipment">Equipment/ELD</option><option value="fuel">Fuel/Tolls</option><option value="other">Other</option></select></div></div>'+
+        '<button type="button" class="btn ghost" onclick="addCarrierDeductionDraft()" style="width:100%">+ Add Recurring Deduction</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn primary" onclick="saveCarrierCompanyForm()" style="flex:1">'+(existing?'Update & Select':'Save & Select')+'</button><button class="btn ghost" onclick="closeCarrierCompanyForm()" style="flex:1">Cancel</button></div>'+
+    '</div></div>';
+  var wrap = document.createElement('div');
+  wrap.id = 'carrierCompanyModalWrap';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+  var businessType = document.getElementById('cfBusinessType');
+  if(businessType) businessType.value = (existing && existing.businessType) || '';
+  renderCarrierDeductionDrafts();
+}
+function closeCarrierCompanyForm(){
+  var wrap = document.getElementById('carrierCompanyModalWrap');
+  if(wrap) wrap.remove();
+  _carrierCompanyEditId = '';
+  _carrierDeductionDrafts = [];
+}
+function saveCarrierCompanyForm(){
+  function value(id){ var el=document.getElementById(id); return el ? String(el.value||'').trim() : ''; }
+  var name = value('cfName');
+  if(!name){ toast('Carrier name required','err'); return; }
+  var fee = Number(value('cfDispatch') || 0);
+  if(!Number.isFinite(fee) || fee < 0){ toast('Carrier fee must be zero or greater','err'); return; }
+  var companies = loadCompanies();
+  var existingIndex = _carrierCompanyEditId ? companies.findIndex(function(item){ return item.id === _carrierCompanyEditId; }) : -1;
+  var existing = existingIndex >= 0 ? companies[existingIndex] : null;
+  var company = normalizeCompany(Object.assign({}, existing || {}, {
+    id:(existing && existing.id) || undefined,
+    updatedAt:new Date().toISOString(),
+    relationshipType:'carrier', verificationStatus:'candidate',
+    name:name, legalName:value('cfLegalName'), dbaName:value('cfDbaName'),
+    businessType:value('cfBusinessType'), mcNumber:value('cfMC'),
+    dotNumber:value('cfDOT'), phone:value('cfPhone'), email:value('cfEmail'),
+    contactName:value('cfContactName'), website:value('cfWebsite'), notes:value('cfNotes'),
+    defaultCarrierFeePercent:fee,
+    address:{line1:value('cfAddress1'),line2:value('cfAddress2'),city:value('cfCity'),
+      state:value('cfState').toUpperCase(),postalCode:value('cfZip'),country:value('cfCountry') || 'US'}
+  }));
+  if(existingIndex >= 0) companies[existingIndex] = company;
+  else companies.push(company);
+  saveCompanies(companies);
+  var templates = loadDedTemplates().filter(function(template){
+    return (template.carrierCompanyRef || '') !== company.id;
+  });
+  var stamp = Date.now();
+  _carrierDeductionDrafts.forEach(function(item,index){
+      templates.push({
+        id:item.id || ('dt_'+stamp+'_'+index),
+        name:item.name,
+        amount:item.amount,
+        category:item.category,
+        carrierCompanyRef:company.id,
+        companyNameSnapshot:company.name
+      });
+  });
+  saveDedTemplates(templates);
+  _carrierDeductionDrafts = [];
+  var companyInput=document.getElementById('tfCompany'), mcInput=document.getElementById('tfMC');
+  var refInput=document.getElementById('tfCompanyRef'), canonicalRefInput=document.getElementById('tfCanonicalCompanyRef'), feeInput=document.getElementById('tfDispatch');
+  if(companyInput) companyInput.value=company.name;
+  if(mcInput) mcInput.value=company.mcNumber;
+  if(refInput) refInput.value=company.id;
+  if(canonicalRefInput) canonicalRefInput.value='';
+  if(feeInput) feeInput.value=company.defaultCarrierFeePercent || '';
+  var editButton=document.getElementById('editSelectedCarrierBtn');
+  if(editButton) editButton.style.display='';
+  closeCarrierCompanyForm();
+  renderCarrierDirectoryPicker('');
+  toast(existing ? 'Carrier terms updated and selected' : 'Carrier saved to directory and selected');
+}
+function normalizeFleetLookupValue(value){
+  return String(value == null ? '' : value).trim().toLowerCase();
 }
 function getDefaultTruck(){
   return findTruckByIdOrUnit(driver && driver.unitNumber) || activeTrucks()[0] || null;
@@ -4061,13 +4528,27 @@ function selectedTruckId(selectId){
 }
 function recordTruckId(record){
   if(!record) return '';
-  if(record.truckId) return record.truckId;
-  var t = findTruckByIdOrUnit(record.unitNumber);
-  return t ? t.id : '';
+  var payload = record.rawPayload || record.raw_payload || record.payload || {};
+  var directId = record.truckId || record.truck_id || payload.truckId || payload.truck_id || '';
+  var unitNumber = record.unitNumber || record.unit_number || record.truckUnit || record.truck_unit || payload.unitNumber || payload.unit_number || '';
+  var resolved = findTruckByIdOrUnit(directId) || findTruckByIdOrUnit(unitNumber);
+  if(resolved) return resolved.id;
+  // A legacy/load restore may not contain any truck reference. Assigning it is safe only
+  // when this account has exactly one active truck; never guess between several units.
+  var trucks = activeTrucks();
+  if(!directId && !unitNumber && trucks.length===1) return trucks[0].id;
+  return directId;
 }
 function recordMatchesTruck(record, truck){
   if(!truck) return true;
-  return recordTruckId(record) === truck.id || String(record.unitNumber||'') === String(truck.unitNumber||'');
+  var payload = record && (record.rawPayload || record.raw_payload || record.payload) || {};
+  var directId = record && (record.truckId || record.truck_id) || payload.truckId || payload.truck_id || '';
+  var unitNumber = record && (record.unitNumber || record.unit_number || record.truckUnit || record.truck_unit) || payload.unitNumber || payload.unit_number || '';
+  var truckId = normalizeFleetLookupValue(truck.id);
+  var truckUnit = normalizeFleetLookupValue(truck.unitNumber);
+  return normalizeFleetLookupValue(directId) === truckId ||
+    (!!truckUnit && normalizeFleetLookupValue(unitNumber) === truckUnit) ||
+    normalizeFleetLookupValue(recordTruckId(record)) === truckId;
 }
 
 function openTruckForm(id){
@@ -4075,6 +4556,10 @@ function openTruckForm(id){
   if(id && !t){ toast('Truck edit conflict: this truck is no longer available. Pull latest data and try again.','err'); return; }
   beginFleetForm('truck', t ? 'edit' : 'create', t ? t.id : '');
   var assignment = truckCarrierAssignment(t);
+  var assignmentLocalCarrier = assignment.companyRef
+    ? loadCompanies().find(function(company){ return company.id === assignment.companyRef && !isOwnedCompany(company); })
+    : null;
+  var assignmentStart = assignment.effectiveFrom || new Date().toISOString().slice(0,10);
   var html =
     '<div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:90;display:flex;align-items:flex-end;justify-content:center" id="truckModal">'+
     '<div style="background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">'+
@@ -4082,6 +4567,8 @@ function openTruckForm(id){
     '<div class="muted" style="font-size:11px;margin-bottom:16px">Vehicle identity and carrier terms are managed separately.</div>'+
     '<input type="hidden" id="tfId" value="'+(t?t.id:'')+'">'+
     '<input type="hidden" id="tfMode" value="'+(t?'edit':'create')+'">'+
+    '<input type="hidden" id="tfCompanyRef" value="'+escHtml(assignment.companyRef || '')+'">'+
+    '<input type="hidden" id="tfCanonicalCompanyRef" value="'+escHtml(assignment.canonicalCompanyRef || '')+'">'+
     '<div id="tfConflict" class="muted" style="display:none;color:var(--rd);font-size:12px;margin-bottom:10px"></div>'+
     '<div class="settings-section-title" style="margin-top:0">Physical Truck</div>'+
     '<div class="frow">'+
@@ -4107,12 +4594,27 @@ function openTruckForm(id){
     '</div>'+
     '<div style="border:1px solid var(--bd);border-radius:14px;padding:14px;background:var(--s2);margin:16px 0">'+
       '<div class="settings-section-title" style="margin-top:0">Current Carrier Assignment</div>'+
-      '<div class="muted" style="font-size:11px;line-height:1.4;margin-bottom:12px">Commercial terms can change without changing the physical truck.</div>'+
-      '<div class="sfield"><div class="slabel">Company / Carrier</div><input id="tfCompany" placeholder="e.g. Basaev LLC" value="'+escHtml(assignment.company)+'"></div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.4;margin-bottom:12px">The carrier whose MC this truck currently operates under. Commercial terms can change without changing the physical truck.</div>'+
+      '<button type="button" class="btn ghost" id="carrierDirectoryBtn" onclick="toggleCarrierDirectoryPicker()" style="width:100%;margin-bottom:10px;padding:9px">Choose from Company Directory</button>'+
+      '<div id="carrierDirectoryPicker" style="display:none;margin-bottom:10px"><input id="carrierDirectorySearch" placeholder="Search name or MC number" oninput="renderCarrierDirectoryPicker(this.value)"><div id="carrierDirectoryResults" style="max-height:210px;overflow-y:auto"></div></div>'+
+      '<div class="sfield"><div class="slabel">Company / Carrier</div><input id="tfCompany" placeholder="e.g. Basaev LLC" value="'+escHtml(assignment.company)+'" oninput="clearCarrierDirectoryRef()"></div>'+
       '<div class="frow">'+
-        '<div class="fg"><div class="slabel">MC Number</div><input id="tfMC" placeholder="MC-123456" value="'+escHtml(assignment.mc)+'"></div>'+
-        '<div class="fg"><div class="slabel">Dispatch %</div><input type="number" step="0.1" id="tfDispatch" placeholder="13" value="'+(assignment.dispatchPercent||'')+'"></div>'+
+        '<div class="fg"><div class="slabel">MC Number</div><input id="tfMC" placeholder="MC-123456" value="'+escHtml(assignment.mc)+'" oninput="clearCarrierDirectoryRef()"></div>'+
+        '<div class="fg"><div class="slabel">Carrier Fee % (Deduction)</div><input type="number" step="0.1" id="tfDispatch" placeholder="13" value="'+(assignment.dispatchPercent||'')+'"></div>'+
       '</div>'+
+      '<div class="sfield"><div class="slabel">Terms Effective From</div><input type="date" id="tfCarrierEffectiveFrom" value="'+escHtml(assignmentStart)+'"></div>'+
+      '<div id="selectedCarrierDirectoryStatus" class="muted" style="font-size:10px;line-height:1.4;margin-top:6px">'+
+        (assignment.companyRef
+          ? 'Local private carrier candidate.'
+          : assignment.canonicalCompanyRef
+            ? 'Verified Platform reference selected read-only; no ownership or claim is implied.'
+          : 'Manual entry is saved as an unverified local snapshot.')+
+      '</div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.4;margin-top:6px">Changing the carrier, MC number, or fee archives the previous terms instead of overwriting them.</div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.4;margin-top:8px">This percentage is included in Team Overview Deductions together with weekly and fixed deductions.</div>'+
+      '<button type="button" class="btn ghost" id="editSelectedCarrierBtn" onclick="openSelectedCarrierCompanyForm()" style="width:100%;margin-top:9px;padding:8px;display:'+(assignmentLocalCarrier?'':'none')+'">Edit selected carrier &amp; recurring deductions</button>'+
+      '<button type="button" class="btn ghost" onclick="openCarrierCompanyForm()" style="width:100%;margin-top:9px;padding:8px">Carrier not found? Add company & terms</button>'+
+      carrierAssignmentHistoryHtml(t)+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:4px">'+
       '<button class="btn primary" onclick="saveTruckForm()" style="flex:1">Save</button>'+
@@ -4151,21 +4653,35 @@ function saveTruckForm(){
     mc:              (document.getElementById('tfMC').value||'').trim(),
     dispatchPercent: parseFloat(document.getElementById('tfDispatch').value)||0,
   };
-  // No company registry/lookup yet, so companyRef can only ever be carried forward, never
-  // looked up. Editing a truck without touching company/MC must not drop an existing ref;
-  // changing either value means the ref no longer describes who this truck operates under.
+  var selectedCompanyRef = ((document.getElementById('tfCompanyRef')||{}).value||'').trim();
+  var selectedCanonicalCompanyRef = ((document.getElementById('tfCanonicalCompanyRef')||{}).value||'').trim();
+  // A read-only directory selection may provide a stable Company reference. Manual changes
+  // clear that reference; unchanged legacy assignments continue to carry their existing ref.
   var existingAssignment = (mode === 'edit' && idx >= 0) ? truckCarrierAssignment(list[idx]) : null;
   var carrierUnchanged = !!existingAssignment
     && existingAssignment.companyNameSnapshot === carrierAssignment.company
     && existingAssignment.mcNumberSnapshot === carrierAssignment.mc;
-  carrierAssignment.companyRef = carrierUnchanged ? (existingAssignment.companyRef || '') : '';
+  carrierAssignment.companyRef = selectedCompanyRef || (carrierUnchanged ? (existingAssignment.companyRef || '') : '');
+  carrierAssignment.canonicalCompanyRef = selectedCanonicalCompanyRef ||
+    (carrierUnchanged ? (existingAssignment.canonicalCompanyRef || '') : '');
   carrierAssignment.companyNameSnapshot = carrierAssignment.company;
   carrierAssignment.mcNumberSnapshot = carrierAssignment.mc;
+  var requestedEffectiveFrom = ((document.getElementById('tfCarrierEffectiveFrom')||{}).value || '').trim() || new Date().toISOString().slice(0,10);
+  var existingTruck = (mode === 'edit' && idx >= 0) ? list[idx] : null;
+  var carrierAssignmentHistory = truckCarrierAssignmentHistory(existingTruck);
+  var assignmentChanged = carrierAssignmentTermsChanged(existingAssignment, carrierAssignment);
+  if(assignmentChanged && carrierAssignmentHasTerms(existingAssignment)){
+    carrierAssignmentHistory.push(Object.assign({}, existingAssignment, { effectiveTo: requestedEffectiveFrom }));
+  }
+  // The date field is editable independently from the commercial terms. Honour a
+  // corrected start date without inventing a second history row.
+  carrierAssignment.effectiveFrom = requestedEffectiveFrom;
+  carrierAssignment.effectiveTo = '';
   // Not `|| 0.20` — a deliberately-entered 0 must save as 0. Only a genuinely empty/invalid
   // field falls back to the placeholder default.
   var maintRateInput = parseFloat(document.getElementById('tfMaintRate').value);
   var maintRate = isNaN(maintRateInput) ? 0.20 : maintRateInput;
-  var entry = {
+  var entry = Object.assign({}, existingTruck || {}, {
     id:              id,
     unitNumber:      unit,
     year:            parseInt(document.getElementById('tfYear').value)||0,
@@ -4173,6 +4689,7 @@ function saveTruckForm(){
     model:           (document.getElementById('tfModel').value||'').trim(),
     plate:           (document.getElementById('tfPlate').value||'').trim(),
     carrierAssignment: carrierAssignment,
+    carrierAssignmentHistory: carrierAssignmentHistory,
     // Compatibility shadow for reports and older sync clients. New UI reads carrierAssignment first.
     dispatchPercent: carrierAssignment.dispatchPercent,
     company:         carrierAssignment.company,
@@ -4181,7 +4698,7 @@ function saveTruckForm(){
     maintenanceRate: maintRate,
     purchaseCost:    parseFloat((document.getElementById('tfPurchaseCost')||{}).value)||0,
     active:          document.getElementById('tfActive').value === '1',
-  };
+  });
   if(mode === 'edit') list[idx]=entry; else list.push(entry);
   saveTrucks(list);
   closeTruckModal();
@@ -4244,7 +4761,7 @@ function renderTrucksList(){
     return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);'+(isActive?'':'opacity:.65')+'">'+
       '<div><div style="font-weight:700">Unit '+escHtml(t.unitNumber)+(t.make?' · '+escHtml(t.make)+(t.model?' '+escHtml(t.model):''):'')+statusBadge+'</div>'+
       '<div class="muted" style="font-size:11px">'+
-        (assignment.company?escHtml(assignment.company):'')+(assignment.mc?' · '+escHtml(assignment.mc):'')+(assignment.dispatchPercent?' · Dispatch: '+assignment.dispatchPercent+'%':'')+
+        (assignment.company?escHtml(assignment.company):'')+(assignment.mc?' · '+escHtml(assignment.mc):'')+(assignment.dispatchPercent?' · Carrier fee: '+assignment.dispatchPercent+'%':'')+
       '</div></div>'+
       '<button onclick="openTruckForm(\''+t.id+'\')" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:6px 12px;cursor:pointer;font-size:12px">Edit</button>'+
     '</div>';
@@ -4253,14 +4770,98 @@ function renderTrucksList(){
 
 // ── DRIVERS MODULE ────────────────────────────────────────────────────────────
 
-function loadDriverProfiles(){ return scopedLoad('driverProfiles', []); }
-function saveDriverProfiles(v){ scopedSave('driverProfiles', v || []); queueFleetConfigSync(); }
+function driverProfileValue(profile, camelKey, snakeKey){
+  if(!profile) return undefined;
+  if(profile[camelKey] !== undefined && profile[camelKey] !== null) return profile[camelKey];
+  return profile[snakeKey];
+}
+function normalizeDriverProfileRecord(profile){
+  profile = profile && typeof profile === 'object' ? profile : {};
+  var payType = String(driverProfileValue(profile, 'payType', 'pay_type') || 'cpm');
+  if(payType !== 'gross_percent') payType = 'cpm';
+  var explicitRate = driverProfileValue(profile, 'rate', 'rate');
+  var rateSource = explicitRate;
+  if(rateSource === undefined || rateSource === null || rateSource === ''){
+    rateSource = payType === 'gross_percent'
+      ? driverProfileValue(profile, 'grossPercent', 'gross_percent')
+      : driverProfileValue(profile, 'cpmRate', 'cpm_rate');
+  }
+  var rate = Number(rateSource);
+  if(!Number.isFinite(rate)) rate = 0;
+  var activeValue = driverProfileValue(profile, 'active', 'is_active');
+  if(activeValue === undefined) activeValue = profile.isActive;
+  var teamValue = driverProfileValue(profile, 'teamDriver', 'team_driver');
+  var teamMateDriverId = String(driverProfileValue(profile, 'teamMateDriverId', 'team_mate_driver_id') || '');
+  var teamMateNameSnapshot = String(driverProfileValue(profile, 'teamMateNameSnapshot', 'team_mate_name_snapshot') || '');
+  var teamMateEmailSnapshot = String(driverProfileValue(profile, 'teamMateEmailSnapshot', 'team_mate_email_snapshot') || '');
+  var teamMatePhoneSnapshot = String(driverProfileValue(profile, 'teamMatePhoneSnapshot', 'team_mate_phone_snapshot') || '');
+  var cdlNumber = String(driverProfileValue(profile, 'cdlNumber', 'cdl_number') || '');
+  var cdlState = String(driverProfileValue(profile, 'cdlState', 'cdl_state') || '').toUpperCase();
+  var cdlExpiresOn = String(driverProfileValue(profile, 'cdlExpiresOn', 'cdl_expires_on') || '');
+  var homeTerminal = String(driverProfileValue(profile, 'homeTerminal', 'home_terminal') || '');
+  var profileNotes = String(driverProfileValue(profile, 'profileNotes', 'profile_notes') || '');
+  return {
+    ...profile,
+    id: String(driverProfileValue(profile, 'id', 'driver_profile_id') || ''),
+    name: String(driverProfileValue(profile, 'name', 'driver_name') || ''),
+    payType: payType,
+    rate: rate,
+    cpmRate: payType === 'cpm' ? rate : 0,
+    grossPercent: payType === 'gross_percent' ? rate : 0,
+    cpmBase: String(driverProfileValue(profile, 'cpmBase', 'cpm_base') || 'loaded'),
+    truckId: String(driverProfileValue(profile, 'truckId', 'truck_id') || ''),
+    teamDriver: teamValue === true || teamValue === 1 || teamValue === '1' || teamValue === 'true',
+    email: String(driverProfileValue(profile, 'email', 'email') || ''),
+    phone: String(driverProfileValue(profile, 'phone', 'phone') || ''),
+    cdlNumber: cdlNumber,
+    cdlState: cdlState,
+    cdlExpiresOn: cdlExpiresOn,
+    homeTerminal: homeTerminal,
+    profileNotes: profileNotes,
+    teamMateDriverId: teamMateDriverId,
+    teamMateNameSnapshot: teamMateNameSnapshot,
+    teamMateEmailSnapshot: teamMateEmailSnapshot,
+    teamMatePhoneSnapshot: teamMatePhoneSnapshot,
+    active: activeValue !== false && activeValue !== 0 && activeValue !== '0' && activeValue !== 'false',
+    terminatedAt: driverProfileValue(profile, 'terminatedAt', 'terminated_at') || null,
+    // Keep transport aliases synchronized. Otherwise a save changes only the
+    // camelCase fields while stale server aliases can revive the old pay type.
+    pay_type: payType,
+    cpm_rate: payType === 'cpm' ? rate : 0,
+    gross_percent: payType === 'gross_percent' ? rate : 0,
+    cpm_base: String(driverProfileValue(profile, 'cpmBase', 'cpm_base') || 'loaded'),
+    truck_id: String(driverProfileValue(profile, 'truckId', 'truck_id') || ''),
+    team_driver: teamValue === true || teamValue === 1 || teamValue === '1' || teamValue === 'true',
+    team_mate_driver_id: teamMateDriverId,
+    team_mate_name_snapshot: teamMateNameSnapshot,
+    team_mate_email_snapshot: teamMateEmailSnapshot,
+    team_mate_phone_snapshot: teamMatePhoneSnapshot,
+    cdl_number: cdlNumber,
+    cdl_state: cdlState,
+    cdl_expires_on: cdlExpiresOn,
+    home_terminal: homeTerminal,
+    profile_notes: profileNotes,
+    is_active: activeValue !== false && activeValue !== 0 && activeValue !== '0' && activeValue !== 'false',
+    terminated_at: driverProfileValue(profile, 'terminatedAt', 'terminated_at') || null,
+  };
+}
+function loadDriverProfiles(){
+  var profiles = scopedLoad('driverProfiles', []);
+  return Array.isArray(profiles) ? profiles.map(normalizeDriverProfileRecord) : [];
+}
+function saveDriverProfiles(v){
+  scopedSave('driverProfiles', Array.isArray(v) ? v.map(normalizeDriverProfileRecord) : []);
+  queueFleetConfigSync();
+}
 
 function openDriverForm(id){
   var d = id ? loadDriverProfiles().find(function(x){ return x.id===id; }) : null;
   if(id && !d){ toast('Driver edit conflict: this driver is no longer available. Pull latest data and try again.','err'); return; }
   beginFleetForm('driverProfile', d ? 'edit' : 'create', d ? d.id : '');
   var trucks = loadTrucks();
+  var driverDirectory = loadDriverProfiles().filter(function(profile){
+    return profile.active !== false && (!d || profile.id !== d.id);
+  });
   var truckOptions = trucks.map(function(t){
     var sel = (d && d.truckId===t.id) ? 'selected' : '';
     return '<option value="'+t.id+'" '+sel+'>Unit '+escHtml(t.unitNumber)+(t.make?' - '+escHtml(t.make):'')+'</option>';
@@ -4274,10 +4875,27 @@ function openDriverForm(id){
     '<div id="dfConflict" class="muted" style="display:none;color:var(--rd);font-size:12px;margin-bottom:10px"></div>'+
     '<div class="sfield"><div class="slabel">Driver Name *</div><input id="dfName" placeholder="Full name" value="'+(d?escHtml(d.name):'')+'"></div>'+
     '<div class="frow">'+
+      '<div class="fg"><div class="slabel">Email (optional)</div><input type="email" id="dfEmail" placeholder="driver@example.com" value="'+(d?escHtml(d.email||''):'')+'"></div>'+
+      '<div class="fg"><div class="slabel">Phone (optional)</div><input type="tel" id="dfPhone" placeholder="+1 555 000 0000" value="'+(d?escHtml(d.phone||''):'')+'"></div>'+
+    '</div>'+
+    '<details id="dfProfessionalDetails" style="border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:14px;background:var(--s2)">'+
+      '<summary style="cursor:pointer;font-weight:700;color:var(--tx)">Professional details (optional)</summary>'+
+      '<div class="frow" style="margin-top:12px">'+
+        '<div class="fg"><div class="slabel">CDL Number</div><input id="dfCdlNumber" autocomplete="off" value="'+(d?escHtml(d.cdlNumber||''):'')+'"></div>'+
+        '<div class="fg"><div class="slabel">CDL State</div><input id="dfCdlState" maxlength="2" placeholder="IL" value="'+(d?escHtml(d.cdlState||''):'')+'"></div>'+
+      '</div>'+
+      '<div class="frow">'+
+        '<div class="fg"><div class="slabel">CDL Expires</div><input type="date" id="dfCdlExpiresOn" value="'+(d?escHtml(d.cdlExpiresOn||''):'')+'"></div>'+
+        '<div class="fg"><div class="slabel">Home Terminal</div><input id="dfHomeTerminal" placeholder="City, State" value="'+(d?escHtml(d.homeTerminal||''):'')+'"></div>'+
+      '</div>'+
+      '<div class="sfield"><div class="slabel">Private Notes</div><textarea id="dfProfileNotes" rows="2" placeholder="Internal workspace notes">'+(d?escHtml(d.profileNotes||''):'')+'</textarea></div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.45">These details remain private to this driver record. Public platform visibility will require a separate consent-based profile flow.</div>'+
+    '</details>'+
+    '<div class="frow">'+
       '<div class="fg"><div class="slabel">Pay Type</div>'+
         '<select id="dfPayType" onchange="toggleDriverPayFields()">'+
-          '<option value="cpm" '+((!d||d.payType==='cpm')?'selected':'')+'">CPM ($/mile)</option>'+
-          '<option value="gross_percent" '+(d&&d.payType==='gross_percent'?'selected':'')+'">% of Gross</option>'+
+          '<option value="cpm" '+((!d||d.payType==='cpm')?'selected':'')+'>CPM ($/mile)</option>'+
+          '<option value="gross_percent" '+(d&&d.payType==='gross_percent'?'selected':'')+'>% of Gross</option>'+
         '</select>'+
       '</div>'+
       '<div class="fg"><div class="slabel" id="dfRateLabel">Rate $/mile</div><input type="number" step="0.01" id="dfRate" placeholder="0.45" value="'+(d&&d.rate?d.rate:'')+'"></div>'+
@@ -4285,12 +4903,26 @@ function openDriverForm(id){
     '<div class="fg" id="dfCpmBaseRow" style="margin-bottom:12px">'+
       '<div class="slabel">CPM Base</div>'+
       '<select id="dfCpmBase">'+
-        '<option value="loaded" '+((!d||d.cpmBase!=='total')?'selected':'')+'">Loaded miles only</option>'+
-        '<option value="total" '+(d&&d.cpmBase==='total'?'selected':'')+'">Total miles (loaded+empty)</option>'+
+        '<option value="loaded" '+((!d||d.cpmBase!=='total')?'selected':'')+'>Loaded miles only</option>'+
+        '<option value="total" '+(d&&d.cpmBase==='total'?'selected':'')+'>Total miles (loaded+empty)</option>'+
       '</select>'+
     '</div>'+
     (trucks.length?'<div class="sfield"><div class="slabel">Assigned Truck</div><select id="dfTruck"><option value="">— No specific truck —</option>'+truckOptions+'</select></div>':'')+''+
-    '<label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px"><input type="checkbox" id="dfTeam" '+(d&&d.teamDriver?'checked':'')+'> <span>Team driver (shares cab with another driver)</span></label>'+
+    '<label style="display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px"><input type="checkbox" id="dfTeam" onchange="toggleDriverTeamFields()" '+(d&&d.teamDriver?'checked':'')+'> <span>Team driver (shares cab with another driver)</span></label>'+
+    '<div id="dfTeamFields" style="display:none;border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:14px;background:var(--s2)">'+
+      '<div class="slabel" style="margin-bottom:7px">Second driver</div><input id="dfTeamMateSearch" type="search" placeholder="Search saved drivers by name, email or phone" oninput="filterDriverTeamMateOptions()" style="margin-bottom:7px">'+
+      '<div id="dfTeamMateSearchStatus" class="muted" style="font-size:11px;margin-bottom:7px"></div><select id="dfTeamMateId" onchange="syncDriverTeamMateFields()" style="margin-bottom:10px"><option value="">Not in driver list — enter details below</option>'+driverDirectory.map(function(profile){
+          var searchText = [profile.name, profile.email, profile.phone].filter(Boolean).join(' ').toLowerCase();
+          return '<option value="'+escHtml(profile.id)+'" data-search="'+escHtml(searchText)+'" '+(d&&d.teamMateDriverId===profile.id?'selected':'')+'>'+escHtml(profile.name)+(profile.email?' · '+escHtml(profile.email):'')+'</option>';
+        }).join('')+
+      '</select>'+
+      '<div class="sfield"><div class="slabel">Name *</div><input id="dfTeamMateName" placeholder="Second driver name" value="'+(d?escHtml(d.teamMateNameSnapshot||''):'')+'"></div>'+
+      '<div class="frow">'+
+        '<div class="fg"><div class="slabel">Email</div><input type="email" id="dfTeamMateEmail" placeholder="driver@example.com" value="'+(d?escHtml(d.teamMateEmailSnapshot||''):'')+'"></div>'+
+        '<div class="fg"><div class="slabel">Phone</div><input type="tel" id="dfTeamMatePhone" placeholder="+1 555 000 0000" value="'+(d?escHtml(d.teamMatePhoneSnapshot||''):'')+'"></div>'+
+      '</div>'+
+      '<div class="muted" style="font-size:11px;line-height:1.45;margin-top:8px">Choose an existing driver to link both records. If the driver is not listed, these details are saved as a private candidate until platform invitations are available.</div>'+
+    '</div>'+
     '<div class="frow">'+
       '<div class="fg"><div class="slabel">Status</div><select id="dfActive">'+
         '<option value="1" '+((!d||d.active!==false)?'selected':'')+'">✅ Active</option>'+
@@ -4309,6 +4941,9 @@ function openDriverForm(id){
   el.innerHTML = html;
   document.body.appendChild(el);
   toggleDriverPayFields();
+  toggleDriverTeamFields();
+  filterDriverTeamMateOptions();
+  setDriverTeamMateFieldMode(!!(d && d.teamMateDriverId));
 }
 
 function toggleDriverPayFields(){
@@ -4345,6 +4980,23 @@ async function saveDriverForm(){
   var truckEl = document.getElementById('dfTruck');
   var payType = document.getElementById('dfPayType').value || 'cpm';
   var rate = parseFloat(document.getElementById('dfRate').value)||0;
+  var teamDriver = !!(document.getElementById('dfTeam')||{}).checked;
+  var teamMateId = teamDriver ? String((document.getElementById('dfTeamMateId')||{}).value || '') : '';
+  var teamMateName = teamDriver ? String((document.getElementById('dfTeamMateName')||{}).value || '').trim() : '';
+  var teamMateEmail = teamDriver ? String((document.getElementById('dfTeamMateEmail')||{}).value || '').trim() : '';
+  var teamMatePhone = teamDriver ? String((document.getElementById('dfTeamMatePhone')||{}).value || '').trim() : '';
+  if(teamDriver && (!teamMateName || teamMateId === id)){
+    toast(teamMateId === id ? 'A driver cannot be their own team partner' : 'Second driver name required','err');
+    return;
+  }
+  var selectedMateIndex = teamMateId ? list.findIndex(function(profile){ return profile.id === teamMateId; }) : -1;
+  if(teamMateId && selectedMateIndex < 0){ toast('Selected team driver is no longer available','err'); return; }
+  if(selectedMateIndex >= 0 && list[selectedMateIndex].teamMateDriverId && list[selectedMateIndex].teamMateDriverId !== id){
+    toast('Selected driver is already linked to another team partner','err');
+    return;
+  }
+  var previousEntry = idx >= 0 ? list[idx] : null;
+  var previousMateId = previousEntry ? String(previousEntry.teamMateDriverId || '') : '';
   var entry = {
     id:         id,
     name:       name,
@@ -4354,14 +5006,48 @@ async function saveDriverForm(){
     grossPercent: payType === 'gross_percent' ? rate : 0,
     cpmBase:    (document.getElementById('dfCpmBase')||{}).value || 'loaded',
     truckId:    truckEl ? truckEl.value : '',
-    teamDriver: !!(document.getElementById('dfTeam')||{}).checked,
+    email:      String((document.getElementById('dfEmail')||{}).value || '').trim(),
+    phone:      String((document.getElementById('dfPhone')||{}).value || '').trim(),
+    cdlNumber:  String((document.getElementById('dfCdlNumber')||{}).value || '').trim(),
+    cdlState:   String((document.getElementById('dfCdlState')||{}).value || '').trim().toUpperCase(),
+    cdlExpiresOn: String((document.getElementById('dfCdlExpiresOn')||{}).value || '').trim(),
+    homeTerminal: String((document.getElementById('dfHomeTerminal')||{}).value || '').trim(),
+    profileNotes: String((document.getElementById('dfProfileNotes')||{}).value || '').trim(),
+    teamDriver: teamDriver,
+    teamMateDriverId: teamMateId,
+    teamMateNameSnapshot: teamMateName,
+    teamMateEmailSnapshot: teamMateEmail,
+    teamMatePhoneSnapshot: teamMatePhone,
     active:     document.getElementById('dfActive').value === '1',
     terminatedAt: document.getElementById('dfActive').value === '0'
       ? ((document.getElementById('dfTermDate')||{}).value || new Date().toISOString().slice(0,10))
       : null,
     updatedAt: new Date().toISOString(),
   };
-  if(mode === 'edit') list[idx]=entry; else list.push(entry);
+  // Preserve server linkage and future optional profile fields while updating the editable
+  // compensation fields. Replacing the whole object made later restores revive stale values.
+  if(mode === 'edit') list[idx]=normalizeDriverProfileRecord({...list[idx], ...entry}); else list.push(normalizeDriverProfileRecord(entry));
+  if(previousMateId && previousMateId !== teamMateId){
+    var previousMateIndex = list.findIndex(function(profile){ return profile.id === previousMateId; });
+    if(previousMateIndex >= 0 && list[previousMateIndex].teamMateDriverId === id){
+      list[previousMateIndex] = normalizeDriverProfileRecord({
+        ...list[previousMateIndex], teamDriver:false, teamMateDriverId:'',
+        teamMateNameSnapshot:'', teamMateEmailSnapshot:'', teamMatePhoneSnapshot:'',
+        updatedAt:new Date().toISOString(),
+      });
+    }
+  }
+  if(selectedMateIndex >= 0){
+    var currentEntry = list.find(function(profile){ return profile.id === id; });
+    var mateIndexAfterSave = list.findIndex(function(profile){ return profile.id === teamMateId; });
+    list[mateIndexAfterSave] = normalizeDriverProfileRecord({
+      ...list[mateIndexAfterSave], teamDriver:true, teamMateDriverId:id,
+      teamMateNameSnapshot:currentEntry.name,
+      teamMateEmailSnapshot:currentEntry.email || '',
+      teamMatePhoneSnapshot:currentEntry.phone || '',
+      updatedAt:new Date().toISOString(),
+    });
+  }
   saveDriverProfiles(list);
   closeDriverModal();
   renderDriversPage();
@@ -4451,6 +5137,46 @@ function getFleetPeriodFilter(){
   };
 }
 
+function fleetDeductionBreakdownHtml(finance, total, label){
+  finance = finance || {};
+  var carrierFees = Number(finance.dispatchFee || 0);
+  var automatic = Number(finance.automaticDeductionTotal || 0);
+  var confirmed = finance.confirmedDeductionTotal != null
+    ? Number(finance.confirmedDeductionTotal || 0)
+    : Math.max(0, Number(finance.deductionTotal || 0) - automatic);
+  function row(name, amount, strong){
+    return '<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;'+(strong?'border-top:1px solid var(--bd);margin-top:3px;font-weight:800':'')+'">'+
+      '<span>'+escHtml(name)+'</span><span>-'+fmt(amount)+'</span></div>';
+  }
+  var settlementDetails = (Array.isArray(finance.deductionSettlements) ? finance.deductionSettlements : [])
+    .filter(function(settlement){ return Array.isArray(settlement.items) && settlement.items.length; })
+    .map(function(settlement){
+      var sourceLabel = settlement.source === 'immutable_weekly_snapshot' ? 'Confirmed' : 'Automatic';
+      var dateLabel = settlement.settlementDate || settlement.weekKey || '';
+      var items = settlement.items.map(function(item){
+        var carrier = item.companyNameSnapshot || item.company || '';
+        return '<div style="display:flex;justify-content:space-between;gap:12px;padding:3px 0 3px 10px">'+
+          '<span>'+escHtml(item.name || item.category || 'Deduction')+
+            (carrier?' <span style="color:var(--mu)">· '+escHtml(carrier)+'</span>':'')+
+          '</span><span>-'+fmt(Number(item.amount||0))+'</span></div>';
+      }).join('');
+      return '<div class="fleet-deduction-settlement" style="border-top:1px dashed var(--bd);margin-top:4px;padding-top:5px">'+
+        '<div style="display:flex;justify-content:space-between;gap:12px;font-size:10px;font-weight:700;color:var(--mu)">'+
+          '<span>'+escHtml(sourceLabel)+' settlement</span><span>'+escHtml(dateLabel)+'</span></div>'+
+        items+
+      '</div>';
+    }).join('');
+  return '<details class="fleet-deduction-breakdown" style="margin-top:8px;font-size:11px;color:var(--mu)">'+
+    '<summary style="cursor:pointer;color:var(--acc);font-weight:700">'+escHtml(label || 'Deductions breakdown')+'</summary>'+
+    '<div style="padding:6px 8px 2px">'+
+      row('Carrier fees', carrierFees, false)+
+      row('Confirmed weekly deductions', confirmed, false)+
+      row('Automatic recurring deductions', automatic, false)+
+      settlementDetails+
+      row('Total deductions', Number(total || 0), true)+
+    '</div></details>';
+}
+
 function renderFleetPage(){
   var trucks  = loadTrucks().filter(function(t){ return t.active!==false; });
   var drivers = loadDriverProfiles();
@@ -4467,6 +5193,7 @@ function renderFleetPage(){
   }
 
   var fleetGross=0, fleetDriverPay=0, fleetMiles=0, fleetNet=0, fleetFuel=0, fleetService=0, fleetDeductions=0;
+  var fleetCarrierFees=0, fleetConfirmedDeductions=0, fleetAutomaticDeductions=0, fleetDeductionSettlements=[];
 
   cardsEl.innerHTML = trucks.map(function(t){
     var assignment = truckCarrierAssignment(t);
@@ -4476,10 +5203,17 @@ function renderFleetPage(){
     var driverPay  = f.driverPay;
     var miles      = f.miles;
     var dispFee    = f.dispatchFee;
+    var allDeductions = Number(dispFee||0) + Number(f.deductionTotal||0);
+    var automaticDeductions = Number(f.automaticDeductionTotal||0);
+    var confirmedDeductions = f.confirmedDeductionTotal != null
+      ? Number(f.confirmedDeductionTotal||0)
+      : Math.max(0, Number(f.deductionTotal||0) - automaticDeductions);
     var realNet    = f.realNet;
     var cpm        = miles ? (realNet/miles).toFixed(2) : '0.00';
     var color      = realNet>=0?'var(--gr)':'var(--rd)';
-    fleetGross+=gross; fleetDriverPay+=driverPay; fleetMiles+=miles; fleetNet+=realNet; fleetFuel+=f.fuelCost; fleetService+=f.serviceCost; fleetDeductions+=f.deductionTotal;
+    fleetGross+=gross; fleetDriverPay+=driverPay; fleetMiles+=miles; fleetNet+=realNet; fleetFuel+=f.fuelCost; fleetService+=f.serviceCost; fleetDeductions+=allDeductions;
+    fleetCarrierFees+=Number(dispFee||0); fleetConfirmedDeductions+=confirmedDeductions; fleetAutomaticDeductions+=automaticDeductions;
+    if(Array.isArray(f.deductionSettlements)) fleetDeductionSettlements = fleetDeductionSettlements.concat(f.deductionSettlements);
     var truckDrivers = drivers.filter(function(d){ return d.truckId===t.id && d.active!==false; });
     return '<div class="card">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
@@ -4490,11 +5224,12 @@ function renderFleetPage(){
       '</div>'+
       '<div class="stat-grid" style="margin:0">'+
         '<div class="stat-card"><div class="label">Gross</div><div class="stat-val">'+fmt(gross)+'</div></div>'+
-        '<div class="stat-card"><div class="label">Dispatch '+assignment.dispatchPercent+'%</div><div class="stat-val red">-'+fmt(dispFee)+'</div></div>'+
+        '<div class="stat-card"><div class="label">Deductions</div><div class="stat-val red">-'+fmt(allDeductions)+'</div></div>'+
         '<div class="stat-card"><div class="label">Driver Pay</div><div class="stat-val amber">'+fmt(driverPay)+'</div></div>'+
         '<div class="stat-card"><div class="label">Real CPM</div><div class="stat-val '+(parseFloat(cpm)>=1.5?'green':parseFloat(cpm)>=1?'amber':'red')+'">$'+cpm+'</div></div>'+
       '</div>'+
-      '<div class="muted" style="margin-top:8px;font-size:11px">'+tLoads.length+' loads · '+miles.toLocaleString()+' mi · Fuel/DEF '+fmt(f.fuelCost)+' · Service '+fmt(f.serviceCost)+' · Deductions '+fmt(f.deductionTotal)+'</div>'+
+      '<div class="muted" style="margin-top:8px;font-size:11px">'+tLoads.length+' loads · '+miles.toLocaleString()+' mi · Fuel/DEF '+fmt(f.fuelCost)+' · Service '+fmt(f.serviceCost)+' · Deductions '+fmt(allDeductions)+'</div>'+
+      fleetDeductionBreakdownHtml(f, allDeductions, 'Show deductions breakdown')+
     '</div>';
   }).join('');
 
@@ -4505,7 +5240,12 @@ function renderFleetPage(){
       '<div><div class="muted">Gross</div><div style="font-weight:700">'+fmt(fleetGross)+'</div></div>'+
       '<div><div class="muted">Driver Pay</div><div style="font-weight:700;color:var(--acc)">'+fmt(fleetDriverPay)+'</div></div>'+
       '<div><div class="muted">Miles</div><div style="font-weight:700">'+fleetMiles.toLocaleString()+'</div></div>'+
-    '</div><div class="muted" style="margin-top:10px;font-size:11px">Fuel/DEF '+fmt(fleetFuel)+' · Service '+fmt(fleetService)+' · Deductions '+fmt(fleetDeductions)+'</div></div>';
+    '</div><div class="muted" style="margin-top:10px;font-size:11px">Fuel/DEF '+fmt(fleetFuel)+' · Service '+fmt(fleetService)+' · Deductions '+fmt(fleetDeductions)+'</div>'+fleetDeductionBreakdownHtml({
+      dispatchFee:fleetCarrierFees,
+      confirmedDeductionTotal:fleetConfirmedDeductions,
+      automaticDeductionTotal:fleetAutomaticDeductions,
+      deductionSettlements:fleetDeductionSettlements
+    }, fleetDeductions, 'Show fleet deductions breakdown')+'</div>';
 }
 
 // ── EXPENSES MODULE ──
@@ -5461,7 +6201,7 @@ function renderOrchestratorSettingsStatus(){
 const SETTINGS_GROUPS = [
   {key:'account', icon:'👤', label:'Account', description:'Sign-in and personal identity'},
   {key:'work', icon:'🛣️', label:'My Work', description:'Assignment, driver terms and pay'},
-  {key:'organization', icon:'🏢', label:'Organization', description:'Company identity and carrier context', roles:['owner_op','fleet']},
+  {key:'organization', icon:'🏢', label:'My Business', description:'Your LLC or company identity — not the current carrier', roles:['owner_op','fleet']},
   {key:'fleet', icon:'🚚', label:'Truck & Fleet', description:'Physical vehicles and fleet records', roles:['owner_op','fleet']},
   {key:'operations', icon:'✅', label:'Operations', description:'PTI workflow and inspection checklist'},
   {key:'app-data', icon:'⚙️', label:'App & Data', description:'Appearance, calendar, sync and device data'}
@@ -5503,12 +6243,12 @@ function prepareSettingsInformationArchitecture(){
 
   account.innerHTML = settingsPanelHeader('Account','Sign-in identity and personal profile.');
   work.innerHTML = settingsPanelHeader('My Work','Current assignment, driver terms and pay.');
-  organization.innerHTML = settingsPanelHeader('Organization','Company identity. Carrier assignments remain a separate relationship.');
+  organization.innerHTML = settingsPanelHeader('My Business (Organization)','Your LLC, corporation or business identity. The carrier whose MC you operate under is assigned separately to the truck.');
   fleet.innerHTML = settingsPanelHeader('Truck & Fleet','Physical truck details and fleet records.');
   operations.innerHTML = settingsPanelHeader('Operations','Inspection workflow and operational checklist.');
   appData.innerHTML = settingsPanelHeader('App & Data','Appearance, calendar, sync and device data.');
 
-  ['settingsCrewId','setEmail','setCrewId','setName'].forEach(function(id){ appendSettingsField(id, account); });
+  ['setEmail','setCrewId','setName'].forEach(function(id){ appendSettingsField(id, account); });
   appendSettingsAction('Save Account', saveSettings, account, 'primary');
   appendSettingsAction('Logout / Clear Session', logoutDevice, account, 'ghost');
 
@@ -5525,10 +6265,14 @@ function prepareSettingsInformationArchitecture(){
 
   var companyFields = document.createElement('div');
   companyFields.id = 'settingsCompanyFields';
-  companyFields.innerHTML = '<div class="settings-section-title">Company / carrier</div><div class="settings-role-note">Company identity is separate from the physical truck and from assignment terms.</div>';
+  companyFields.innerHTML = '<div class="settings-section-title">Owned business</div><div class="settings-role-note">Enter the business you own or manage. Do not enter the current carrier here unless it is also your business.</div>';
   appendSettingsField('logoUpload', companyFields);
   appendSettingsField('setCompany', companyFields);
+  var organizationDetails = document.getElementById('setOrganizationDetails');
+  if(organizationDetails) companyFields.appendChild(organizationDetails);
   organization.appendChild(companyFields);
+  var organizationSave = appendSettingsAction('Save Organization Settings', saveSettings, organization, 'primary');
+  if(organizationSave) organizationSave.id = 'settingsOrganizationSave';
 
   var truckFields = document.createElement('div');
   truckFields.id = 'settingsTruckFields';
@@ -5578,13 +6322,22 @@ function applySettingsRoleUI(){
   var organization = document.getElementById('settingsPanel-organization');
   var fleet = document.getElementById('settingsPanel-fleet');
   var trucksCard = document.getElementById('trucksSettingsCard');
+  var organizationDetails = document.getElementById('setOrganizationDetails');
+  var companyTitle = companyFields && companyFields.querySelector('.settings-section-title');
+  var companyNote = companyFields && companyFields.querySelector('.settings-role-note');
   if(trucksCard) trucksCard.style.display = role === 'fleet' ? '' : 'none';
   if(role === 'driver'){
     if(companyFields && companyFields.parentElement !== work) work.appendChild(companyFields);
     if(truckFields && truckFields.parentElement !== work) work.appendChild(truckFields);
+    if(organizationDetails) organizationDetails.style.display = 'none';
+    if(companyTitle) companyTitle.textContent = 'Current company / carrier';
+    if(companyNote) companyNote.textContent = 'Who you currently work for. This does not create or change an owned business record.';
   }else{
-    if(companyFields && companyFields.parentElement !== organization) organization.appendChild(companyFields);
+    if(companyFields && companyFields.parentElement !== organization) organization.insertBefore(companyFields, document.getElementById('settingsOrganizationSave'));
     if(truckFields && truckFields.parentElement !== fleet) fleet.insertBefore(truckFields, fleet.querySelector('#trucksSettingsCard'));
+    if(organizationDetails) organizationDetails.style.display = '';
+    if(companyTitle) companyTitle.textContent = 'Owned business';
+    if(companyNote) companyNote.textContent = 'Enter the business you own or manage. Do not enter the current carrier here unless it is also your business.';
   }
   var workSave = document.getElementById('settingsWorkSave');
   if(workSave && workSave.parentElement === work) work.appendChild(workSave);
@@ -5635,10 +6388,10 @@ function applySettingsCompanyName(value){
   value = (value||'').trim();
   if(role === 'owner_op' || role === 'fleet'){
     var companies = loadCompanies();
-    var org = companies.find(function(c){ return c.active !== false; });
+    var org = companies.find(isOwnedCompany);
     if(!org){
       if(!value) return;
-      org = normalizeCompany({name: value});
+      org = normalizeCompany({name: value, relationshipType:'owned'});
       companies.push(org);
     } else if(org.name !== value){
       org.name = value;
@@ -5652,6 +6405,113 @@ function applySettingsCompanyName(value){
     driver.company = value;
   }
 }
+
+function toggleDriverTeamFields(){
+  var checked = !!(document.getElementById('dfTeam')||{}).checked;
+  var fields = document.getElementById('dfTeamFields');
+  if(fields) fields.style.display = checked ? '' : 'none';
+}
+
+function filterDriverTeamMateOptions(){
+  var input = document.getElementById('dfTeamMateSearch');
+  var select = document.getElementById('dfTeamMateId');
+  var status = document.getElementById('dfTeamMateSearchStatus');
+  if(!select) return;
+  var query = String((input && input.value) || '').trim().toLowerCase();
+  var options = Array.from(select.options || []).slice(1);
+  var matches = 0;
+  options.forEach(function(option){
+    var isSelected = option.value === select.value;
+    var searchable = String(option.dataset.search || option.textContent || '').toLowerCase();
+    var match = !query || searchable.indexOf(query) >= 0 || isSelected;
+    option.hidden = !match;
+    option.disabled = !match;
+    if(match) matches += 1;
+  });
+  if(status){
+    if(!options.length) status.textContent = 'No other saved drivers in this workspace.';
+    else if(query) status.textContent = matches ? matches+' saved driver'+(matches===1?'':'s')+' found.' : 'No saved driver matches. Enter a private candidate below.';
+    else status.textContent = options.length+' saved driver'+(options.length===1?'':'s')+' available.';
+  }
+}
+
+function setDriverTeamMateFieldMode(linked){
+  ['dfTeamMateName','dfTeamMateEmail','dfTeamMatePhone'].forEach(function(id){
+    var field = document.getElementById(id);
+    if(field) field.readOnly = !!linked;
+  });
+}
+
+function syncDriverTeamMateFields(){
+  var select = document.getElementById('dfTeamMateId');
+  if(!select) return;
+  if(!select.value){
+    setDriverTeamMateFieldMode(false);
+    return;
+  }
+  var mate = loadDriverProfiles().find(function(profile){ return profile.id === select.value; });
+  if(!mate) return;
+  var name = document.getElementById('dfTeamMateName');
+  var email = document.getElementById('dfTeamMateEmail');
+  var phone = document.getElementById('dfTeamMatePhone');
+  if(name) name.value = mate.name || '';
+  if(email) email.value = mate.email || '';
+  if(phone) phone.value = mate.phone || '';
+  setDriverTeamMateFieldMode(true);
+  filterDriverTeamMateOptions();
+}
+function currentSettingsOrganizationDetails(){
+  var org = currentOwnedOrganization();
+  var address = (org && org.address) || {};
+  return {
+    businessType: (org && org.businessType) || '', dbaName: (org && org.dbaName) || '',
+    legalName: (org && org.legalName) || '', mcNumber: (org && org.mcNumber) || '',
+    dotNumber: (org && org.dotNumber) || '', phone: (org && org.phone) || '',
+    email: (org && org.email) || '', website: (org && org.website) || '',
+    line1: address.line1 || '', line2: address.line2 || '',
+    city: address.city || '', state: address.state || '', postalCode: address.postalCode || '',
+    country: address.country || ''
+  };
+}
+function applySettingsOrganizationDetails(details){
+  var role = getUserRole();
+  if(role !== 'owner_op' && role !== 'fleet') return;
+  details = details || {};
+  var companies = loadCompanies();
+  var org = companies.find(isOwnedCompany);
+  var hasDetails = Object.keys(details).some(function(key){ return String(details[key] || '').trim(); });
+  if(!org && !hasDetails) return;
+  if(!org){
+    org = normalizeCompany({name: String(details.legalName || '').trim(), legalName: String(details.legalName || '').trim(), relationshipType:'owned'});
+    companies.push(org);
+  }
+  org.businessType = String(details.businessType || '').trim();
+  org.dbaName = String(details.dbaName || '').trim();
+  org.legalName = String(details.legalName || '').trim();
+  org.mcNumber = String(details.mcNumber || '').trim();
+  org.dotNumber = String(details.dotNumber || '').trim();
+  org.phone = String(details.phone || '').trim();
+  org.email = String(details.email || '').trim();
+  org.website = String(details.website || '').trim();
+  org.address = {
+    line1: String(details.line1 || '').trim(), line2: String(details.line2 || '').trim(),
+    city: String(details.city || '').trim(), state: String(details.state || '').trim(),
+    postalCode: String(details.postalCode || '').trim(), country: String(details.country || '').trim()
+  };
+  org.updatedAt = new Date().toISOString();
+  saveCompanies(companies);
+}
+function settingsOrganizationDetailsFromForm(){
+  function value(id){ var el = document.getElementById(id); return el ? el.value : ''; }
+  return {
+    businessType:value('setCompanyBusinessType'), dbaName:value('setCompanyDbaName'),
+    legalName:value('setCompanyLegalName'), mcNumber:value('setCompanyMC'), dotNumber:value('setCompanyDOT'),
+    phone:value('setCompanyPhone'), email:value('setCompanyEmail'), line1:value('setCompanyAddress1'),
+    website:value('setCompanyWebsite'),
+    line2:value('setCompanyAddress2'), city:value('setCompanyCity'), state:value('setCompanyState'),
+    postalCode:value('setCompanyPostalCode'), country:value('setCompanyCountry')
+  };
+}
 function renderSettingsPage(resetNavigation){
   if(!driver) return;
   let t = localStorage.getItem('fiqD_theme')||'dark';
@@ -5664,6 +6524,20 @@ function renderSettingsPage(resetNavigation){
   const assignBox=document.getElementById('settingsAssignment');
   if(assignBox) assignBox.textContent = currentAssignmentLabel();
   document.getElementById('setCompany').value = currentSettingsCompanyName();
+  var organizationDetails = currentSettingsOrganizationDetails();
+  var organizationFieldValues = {
+    setCompanyBusinessType:organizationDetails.businessType, setCompanyDbaName:organizationDetails.dbaName,
+    setCompanyLegalName:organizationDetails.legalName, setCompanyMC:organizationDetails.mcNumber,
+    setCompanyDOT:organizationDetails.dotNumber, setCompanyPhone:organizationDetails.phone,
+    setCompanyEmail:organizationDetails.email, setCompanyWebsite:organizationDetails.website,
+    setCompanyAddress1:organizationDetails.line1,
+    setCompanyAddress2:organizationDetails.line2, setCompanyCity:organizationDetails.city,
+    setCompanyState:organizationDetails.state, setCompanyPostalCode:organizationDetails.postalCode,
+    setCompanyCountry:organizationDetails.country
+  };
+  Object.keys(organizationFieldValues).forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = organizationFieldValues[id];
+  });
   document.getElementById('setTruckName').value = driver.truckName||'';
   document.getElementById('setUnit').value = driver.unitNumber||'';
   document.getElementById('setPlate').value = driver.plate||'';
@@ -5701,6 +6575,7 @@ function toggleSetRateFields(){
 function saveSettings(){
   const oldIdentityKey = getDriverIdentityKey(driver);
   applySettingsCompanyName(document.getElementById('setCompany').value);
+  applySettingsOrganizationDetails(settingsOrganizationDetailsFromForm());
   driver.truckName = document.getElementById('setTruckName').value.trim();
   driver.email = (document.getElementById('setEmail')||{}).value?.trim() || driver.email || '';
   driver.crewId = (document.getElementById('setCrewId')||{}).value?.trim() || driver.crewId || '';
@@ -5855,7 +6730,7 @@ function removeLogo(){
   var role = getUserRole();
   if(role === 'owner_op' || role === 'fleet'){
     var companies = loadCompanies();
-    var org = companies.find(function(c){ return c.active !== false; }) || companies[0];
+    var org = companies.find(isOwnedCompany);
     if(org && org.logo){
       org.logo = '';
       org.updatedAt = new Date().toISOString();
@@ -5873,7 +6748,7 @@ function saveCurrentOrganizationLogo(data){
   var role = getUserRole();
   if(role !== 'owner_op' && role !== 'fleet') return;
   var companies = loadCompanies();
-  var org = companies.find(function(c){ return c.active !== false; }) || companies[0];
+  var org = companies.find(isOwnedCompany);
   if(!org) return;
   org.logo = data || '';
   org.updatedAt = new Date().toISOString();
@@ -5887,7 +6762,7 @@ function migrateLegacyLogoIntoOwnedOrganization(logoData){
   if(role !== 'owner_op' && role !== 'fleet') return;
   if(!logoData) return;
   var companies = loadCompanies();
-  var org = companies.find(function(c){ return c.active !== false; }) || companies[0];
+  var org = companies.find(isOwnedCompany);
   if(!org || org.logo) return;
   org.logo = logoData;
   org.updatedAt = new Date().toISOString();

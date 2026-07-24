@@ -57,9 +57,28 @@ test('truck form separates vehicle identity from carrier assignment', () => {
 });
 
 test('fleet views read commercial terms through carrier assignment', () => {
-  assert.match(html, /function ownerFinanceForTruck[\s\S]*?var carrierAssignment = truckCarrierAssignment\(truck\)/);
+  assert.match(html, /function carrierAssignmentForLoad\(truck, load\)/);
+  assert.match(html, /function ownerFinanceForTruck[\s\S]*?carrierAssignmentForLoad\(truck, l\)/);
   assert.match(html, /perTruckEl\.innerHTML = trucks\.map\(function\(tr\)\{[\s\S]*?var assignment = truckCarrierAssignment\(tr\)/);
   assert.match(html, /function fleetReportRows[\s\S]*?var assignment = truckCarrierAssignment\(t\)/);
   assert.match(html, /function renderTrucksList[\s\S]*?var assignment = truckCarrierAssignment\(t\)/);
   assert.doesNotMatch(html, /\b(?:tr|t)\.(?:company|mc|dispatchPercent)\b/);
+});
+
+test('carrier assignment labels the carrier fee as one component of combined deductions', () => {
+  assert.match(html, /Carrier Fee % \(Deduction\)/);
+  assert.match(html, /included in Team Overview Deductions together with weekly and fixed deductions/);
+  assert.match(html, /Carrier fee: /);
+});
+
+test('carrier directory is read-only and stores only a local assignment reference and snapshot', () => {
+  assert.match(html, /function carrierDirectoryEntries\(\)/);
+  assert.match(html, /loadOrchestratorCanonicalRead\(\)/);
+  assert.match(html, /Platform candidate — not yet verified/);
+  assert.match(html, /Selecting an entry only fills the local/);
+  assert.match(html, /id="tfCompanyRef"/);
+  assert.match(html, /selectedCompanyRef/);
+  const selectBody = html.match(/function selectCarrierDirectoryEntry\(index\)\{([\s\S]*?)\n\}\nfunction clearCarrierDirectoryRef/);
+  assert.ok(selectBody, 'carrier directory selection function must exist');
+  assert.doesNotMatch(selectBody[0], /fetch\(/);
 });

@@ -8,10 +8,44 @@ test('Company module exposes the MVP schema and storage helpers', () => {
   assert.match(html, /function loadCompanies\(\)\{ return scopedLoad\('companies', \[\]\); \}/);
   assert.match(html, /function saveCompanies\(v\)\{ scopedSave\('companies', v \|\| \[\]\); \}/);
   assert.match(html, /function normalizeCompany\(raw\)/);
-  for (const field of ['id', 'name', 'legalName', 'mcNumber', 'dotNumber', 'phone', 'email', 'address', 'logo', 'active', 'createdAt', 'updatedAt']) {
-    assert.match(html, new RegExp(`normalizeCompany[\\s\\S]{0,900}${field}:`), `normalizeCompany must set ${field}`);
+  for (const field of ['id', 'name', 'legalName', 'dbaName', 'businessType', 'relationshipType', 'verificationStatus', 'canonicalCompanyId', 'mcNumber', 'dotNumber', 'phone', 'email', 'website', 'contactName', 'notes', 'address', 'defaultCarrierFeePercent', 'logo', 'active', 'createdAt', 'updatedAt']) {
+    assert.match(html, new RegExp(`normalizeCompany[\\s\\S]{0,2800}${field}:`), `normalizeCompany must set ${field}`);
   }
   assert.match(html, /address: \{\s*line1:[\s\S]*?postalCode:[\s\S]*?country:/);
+  assert.match(html, /if\(!Number\.isFinite\(defaultCarrierFeePercent\) \|\| defaultCarrierFeePercent < 0\) defaultCarrierFeePercent = 0;/);
+});
+
+test('owned business and carrier directory records are explicitly separated', () => {
+  assert.match(html, /function isOwnedCompany\(company\)/);
+  assert.match(html, /\(company\.relationshipType \|\| company\.relationship_type \|\| 'owned'\) !== 'carrier'/);
+  assert.match(html, /function currentOwnedOrganization\(\)\{[\s\S]{0,300}companies\.find\(isOwnedCompany\) \|\| null;/);
+  assert.match(html, /function saveCarrierCompanyForm\(\)/);
+  assert.match(html, /relationshipType:'carrier', verificationStatus:'candidate'/);
+  assert.match(html, /name:name, legalName:value\('cfLegalName'\), dbaName:value\('cfDbaName'\)/);
+  assert.match(html, /businessType:value\('cfBusinessType'\), mcNumber:value\('cfMC'\)/);
+  assert.match(html, /defaultCarrierFeePercent:fee/);
+  assert.match(html, /Carrier not found\? Add company &amp; terms|Carrier not found\? Add company & terms/);
+});
+
+test('carrier recurring deductions are separate templates scoped by companyRef', () => {
+  assert.match(html, /function deductionTemplatesForTruck\(truck\)/);
+  assert.match(html, /var carrierRef = assignment \? \(assignment\.companyRef \|\| ''\) : '';/);
+  assert.match(html, /return !templateRef \|\| \(!!carrierRef && templateRef === carrierRef\);/);
+  assert.match(html, /carrierCompanyRef:company\.id/);
+  assert.match(html, /companyNameSnapshot:company\.name/);
+  assert.match(html, /id="cfDeductionDraftList"/);
+  assert.match(html, /function addCarrierDeductionDraft\(\)/);
+  assert.match(html, /function openSelectedCarrierCompanyForm\(\)/);
+  assert.match(html, /id="editSelectedCarrierBtn"/);
+  assert.match(html, /var existingIndex = _carrierCompanyEditId \? companies\.findIndex/);
+  assert.match(html, /if\(existingIndex >= 0\) companies\[existingIndex\] = company;/);
+  assert.match(html, /loadDedTemplates\(\)\.filter\(function\(template\)\{\s*return \(template\.carrierCompanyRef \|\| ''\) !== company\.id;/);
+});
+
+test('new deduction templates inherit the selected truck Carrier Assignment', () => {
+  assert.match(html, /var selectedTruck = findTruckByIdOrUnit\(selectedTruckId\('dedTruckSelect'\)\);/);
+  assert.match(html, /carrierCompanyRef:\(assignment && assignment\.companyRef\) \|\| ''/);
+  assert.match(html, /companyNameSnapshot:\(assignment && assignment\.companyNameSnapshot\) \|\| ''/);
 });
 
 test('ownedOrganization and currentCarrierCompany are distinct, non-syncing readers', () => {
@@ -33,10 +67,26 @@ test('Carrier Assignment gains a company reference and point-in-time snapshot wi
   assert.match(html, /carrierAssignment\.mcNumberSnapshot = carrierAssignment\.mc;/);
 });
 
-test('saveTruckForm preserves companyRef only when company and MC are unchanged on edit', () => {
+test('saveTruckForm accepts an explicit directory ref and otherwise preserves it only when company and MC are unchanged', () => {
+  assert.match(html, /var selectedCompanyRef = \(\(document\.getElementById\('tfCompanyRef'\)\|\|\{\}\)\.value\|\|''\)\.trim\(\);/);
   assert.match(html, /var existingAssignment = \(mode === 'edit' && idx >= 0\) \? truckCarrierAssignment\(list\[idx\]\) : null;/);
   assert.match(html, /var carrierUnchanged = !!existingAssignment\s*&& existingAssignment\.companyNameSnapshot === carrierAssignment\.company\s*&& existingAssignment\.mcNumberSnapshot === carrierAssignment\.mc;/);
-  assert.match(html, /carrierAssignment\.companyRef = carrierUnchanged \? \(existingAssignment\.companyRef \|\| ''\) : '';/);
+  assert.match(html, /carrierAssignment\.companyRef = selectedCompanyRef \|\| \(carrierUnchanged \? \(existingAssignment\.companyRef \|\| ''\) : ''\);/);
+  assert.match(html, /id="tfCompany"[^>]*oninput="clearCarrierDirectoryRef\(\)"/);
+  assert.match(html, /id="tfMC"[^>]*oninput="clearCarrierDirectoryRef\(\)"/);
+});
+
+test('Carrier Assignment terms are effective-dated and previous terms are preserved as history', () => {
+  assert.match(html, /effectiveFrom: assignment\.effectiveFrom \|\| ''/);
+  assert.match(html, /effectiveTo: assignment\.effectiveTo \|\| ''/);
+  assert.match(html, /function truckCarrierAssignmentHistory\(truck\)/);
+  assert.match(html, /function carrierAssignmentTermsChanged\(previous, next\)/);
+  assert.match(html, /id="tfCarrierEffectiveFrom"/);
+  assert.match(html, /carrierAssignmentHistory\.push\(Object\.assign\(\{\}, existingAssignment, \{ effectiveTo: requestedEffectiveFrom \}\)\);/);
+  assert.match(html, /carrierAssignment\.effectiveFrom = requestedEffectiveFrom/);
+  assert.match(html, /carrierAssignmentHistory: carrierAssignmentHistory/);
+  assert.match(html, /Object\.assign\(\{\}, existingTruck \|\| \{\}, \{/);
+  assert.match(html, /Previous Carrier Terms/);
 });
 
 test('Settings Company field routes by role instead of always writing driver.company', () => {
@@ -48,6 +98,32 @@ test('Settings Company field routes by role instead of always writing driver.com
   assert.match(html, /applySettingsCompanyName[\s\S]{0,700}saveCompanies\(companies\);[\s\S]{0,160}\} else \{\s*driver\.company = value;/);
   // The old direct assignment this replaces must be gone.
   assert.doesNotMatch(html, /driver\.company = document\.getElementById\('setCompany'\)\.value\.trim\(\);/);
+});
+
+test('owned business details reuse the Company model and never write the driver carrier shadow', () => {
+  for (const id of ['setCompanyBusinessType', 'setCompanyDbaName', 'setCompanyLegalName', 'setCompanyMC', 'setCompanyDOT', 'setCompanyPhone', 'setCompanyEmail', 'setCompanyWebsite', 'setCompanyAddress1', 'setCompanyCity', 'setCompanyState', 'setCompanyPostalCode', 'setCompanyCountry']) {
+    assert.match(html, new RegExp(`id="${id}"`), `${id} must exist once in the owned-business form`);
+  }
+  assert.match(html, /function applySettingsOrganizationDetails\(details\)/);
+  assert.match(html, /if\(role !== 'owner_op' && role !== 'fleet'\) return;/);
+  assert.match(html, /org\.legalName = String\(details\.legalName \|\| ''\)\.trim\(\);/);
+  assert.match(html, /org\.businessType = String\(details\.businessType \|\| ''\)\.trim\(\);/);
+  assert.match(html, /org\.dbaName = String\(details\.dbaName \|\| ''\)\.trim\(\);/);
+  assert.match(html, /org\.website = String\(details\.website \|\| ''\)\.trim\(\);/);
+  assert.match(html, /org\.address = \{/);
+  const detailsBody = html.match(/function applySettingsOrganizationDetails\(details\)\{[\s\S]{0,1800}?\n\}/);
+  assert.ok(detailsBody, 'owned-business save helper must be found');
+  assert.doesNotMatch(detailsBody[0], /driver\.company\s*=/);
+  assert.match(html, /applySettingsOrganizationDetails\(settingsOrganizationDetailsFromForm\(\)\);/);
+});
+
+test('Platform carrier selection stays a read-only canonical reference, separate from local Company links', () => {
+  assert.match(html, /canonicalCompanyRef: assignment\.canonicalCompanyRef \|\| assignment\.canonical_company_ref \|\| ''/);
+  assert.match(html, /id="tfCanonicalCompanyRef"/);
+  assert.match(html, /if\(ref\) ref\.value = entry\.refKind === 'local' \? \(entry\.ref \|\| ''\) : '';/);
+  assert.match(html, /if\(canonicalRef\) canonicalRef\.value = entry\.refKind === 'canonical' \? \(entry\.ref \|\| ''\) : '';/);
+  assert.match(html, /if\(editButton\) editButton\.style\.display = entry\.localCompanyId \? '' : 'none';/);
+  assert.match(html, /Verified Platform companies are read-only here/);
 });
 
 test('an explicit logo upload always overwrites Company.logo for owner_op/fleet', () => {

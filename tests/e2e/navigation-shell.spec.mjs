@@ -75,3 +75,39 @@ test('all-functions view is grouped by domain and adapts to role', async ({ page
   await expect(page.locator('[data-function-group="Team"]')).toBeVisible();
   await expect(page.locator('[data-function-group="Truck"]')).toContainText('Fuel');
 });
+
+test('secondary pages have a visible back button that returns to their previous domain', async ({ page }) => {
+  const backNav = page.locator('#appBackNav');
+  await expect(backNav).toBeHidden();
+
+  await page.getByRole('button', { name: 'Work' }).click();
+  await expect(page.locator('#page-work')).toHaveClass(/active/);
+  await expect(backNav).toBeHidden();
+
+  await page.locator('#page-work .domain-action[onclick="showPage(\'load\')"]').click();
+  await expect(page.locator('#page-load')).toHaveClass(/active/);
+  await expect(backNav).toBeVisible();
+  await expect(page.locator('#appBackContext')).toHaveText('Back to Work');
+
+  await page.getByRole('button', { name: 'Go back' }).click();
+  await expect(page.locator('#page-work')).toHaveClass(/active/);
+  await expect(backNav).toBeHidden();
+});
+
+test('direct secondary navigation falls back to the role-aware owning domain', async ({ page }) => {
+  await page.evaluate(() => {
+    setUserRole('fleet');
+    applyRoleUI();
+    pageNavigationHistory = [];
+    currentPageName = 'fuel';
+    document.querySelectorAll('.page').forEach((element) => element.classList.remove('active'));
+    document.getElementById('page-fuel').classList.add('active');
+    updatePageBackNavigation('fuel');
+  });
+
+  await expect(page.locator('#appBackNav')).toBeVisible();
+  await expect(page.locator('#appBackContext')).toHaveText('Back to Team');
+  await page.getByRole('button', { name: 'Go back' }).click();
+  await expect(page.locator('#page-team')).toHaveClass(/active/);
+  await expect(page.locator('#appBackNav')).toBeHidden();
+});
