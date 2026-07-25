@@ -78,7 +78,7 @@ test('carrier directory is read-only and stores only a local assignment referenc
   assert.match(html, /Selecting an entry only fills the local/);
   assert.match(html, /id="tfCompanyRef"/);
   assert.match(html, /selectedCompanyRef/);
-  const selectBody = html.match(/function selectCarrierDirectoryEntry\(index\)\{([\s\S]*?)\n\}\nfunction clearCarrierDirectoryRef/);
+  const selectBody = html.match(/function selectCarrierDirectoryEntry\(index\)\{([\s\S]*?)\r?\n\}\r?\nfunction clearCarrierDirectoryRef/);
   assert.ok(selectBody, 'carrier directory selection function must exist');
   assert.doesNotMatch(selectBody[0], /fetch\(/);
 });
