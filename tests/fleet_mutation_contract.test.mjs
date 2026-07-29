@@ -211,4 +211,99 @@ test('saveTruckForm significant expression excludes physical-identity fields', (
   assert.ok(!expr.includes('vin'), 'sensitiveChanged must not contain vin');
 });
 
+function extractDriverFormBody() {
+  const funcStart = indexSource.indexOf('function saveDriverForm()');
+  assert.ok(funcStart >= 0);
+  const bodyStart = indexSource.indexOf('{', funcStart);
+  assert.ok(bodyStart >= 0);
+  let depth = 0, pos = bodyStart;
+  for (; pos < indexSource.length; pos++) {
+    if (indexSource[pos] === '{') depth++;
+    if (indexSource[pos] === '}') depth--;
+    if (depth === 0) break;
+  }
+  assert.ok(depth === 0);
+  return indexSource.slice(bodyStart + 1, pos);
+}
+
+test('saveDriverForm ordering: entry before gate before save before all later effects', () => {
+  const body = extractDriverFormBody();
+  const stmts = [
+    'var entry = {',
+    'var previousNormalized',
+    'var candidateTeamMateChanged',
+    'var consequentialDriverChanged',
+    'confirm(',
+    "if(mode === 'edit') list[idx]=normalizeDriverProfileRecord",
+    'list[previousMateIndex] =',
+    'list[mateIndexAfterSave] =',
+    'saveDriverProfiles(list)',
+    'closeDriverModal()',
+    'renderDriversPage()',
+    'renderFleetPage()',
+    'renderFleetStats()',
+    'syncFleetConfigMutation',
+    "toast('Driver saved"
+  ];
+  let prevPos = -1;
+  for (const stmt of stmts) {
+    const pos = body.indexOf(stmt);
+    assert.ok(pos >= 0, `statement not found: ${stmt}`);
+    assert.ok(pos > prevPos, `out of order: ${stmt} at ${pos} <= ${prevPos}`);
+    prevPos = pos;
+  }
+});
+
+test('saveDriverForm edit-only one-confirm exact-message immediate-cancel contract', () => {
+  const body = extractDriverFormBody();
+  assert.ok(body.includes("if(mode === 'edit' && previousEntry)"), 'outer condition missing');
+  const confirmMatches = body.match(/confirm\(/g);
+  assert.equal(confirmMatches.length, 1, 'exactly one confirm call expected');
+  const confirmPos = body.indexOf('confirm(');
+  const confirmEnd = body.indexOf(')', confirmPos);
+  const confirmMsg = body.slice(confirmPos, confirmEnd + 1);
+  assert.equal(
+    confirmMsg,
+    "confirm('Compensation, employment status, truck assignment, or team assignment will change. No changes have been saved yet. Continue?')",
+    'exact confirm message required'
+  );
+  // Allow the real conjunct pattern: if(consequentialDriverChanged && !confirm(...)){ return; }
+  assert.match(
+    body,
+    /if\(consequentialDriverChanged && !confirm\('[^']*'\)\)\s*\{\s*return;\s*\}/,
+    'must have immediate return on cancel via consequentialDriverChanged check'
+  );
+});
+
+test('saveDriverForm confirm gate occurs before save and all later effects', () => {
+  const body = extractDriverFormBody();
+  const gateStart = body.indexOf("if(mode === 'edit' && previousEntry)");
+  assert.ok(gateStart >= 0);
+  let gateDepth = 0, gateEnd = -1;
+  for (let i = gateStart; i < body.length; i++) {
+    if (body[i] === '{') gateDepth++;
+    if (body[i] === '}') {
+      gateDepth--;
+      if (gateDepth === 0) { gateEnd = i; break; }
+    }
+  }
+  assert.ok(gateEnd > 0);
+  const afterGate = body.slice(gateEnd + 1);
+  const effectStmts = [
+    "if(mode === 'edit') list[idx]=normalizeDriverProfileRecord",
+    'list[previousMateIndex] =',
+    'list[mateIndexAfterSave] =',
+    'saveDriverProfiles(',
+    'closeDriverModal(',
+    'renderDriversPage(',
+    'renderFleetPage(',
+    'renderFleetStats(',
+    'syncFleetConfigMutation(',
+    "toast('Driver saved"
+  ];
+  for (const stmt of effectStmts) {
+    assert.ok(afterGate.includes(stmt), `effect "${stmt}" not found after confirm gate`);
+  }
+});
+
 console.log('Fleet mutation contract: ok');
