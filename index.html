@@ -3517,6 +3517,59 @@ function deleteDedTemplate(id){
   renderDeductionsPage();
 }
 
+function saveCompanySettlementForm(){
+  var list = loadTrucks();
+  var truckId = selectedTruckId('dedTruckSelect');
+  var truck = list.find(function(t){ return t.id===truckId; });
+  if(!truck) return;
+  var assignment = truckCarrierAssignment(truck);
+  var csCompany = document.getElementById('csCompany');
+  var csMC = document.getElementById('csMC');
+  var csDispatchPercent = document.getElementById('csDispatchPercent');
+  var csMaintenanceRate = document.getElementById('csMaintenanceRate');
+  var csWeekEndDay = document.getElementById('csWeekEndDay');
+  var candidateAssignment = {
+    company: csCompany.value.trim(),
+    mc: csMC.value.trim(),
+    dispatchPercent: parseFloat(csDispatchPercent.value)||0,
+    companyNameSnapshot: csCompany.value.trim(),
+    mcNumberSnapshot: csMC.value.trim(),
+    companyRef: (csCompany.value.trim() === assignment.companyNameSnapshot && csMC.value.trim() === assignment.mcNumberSnapshot) ? (assignment.companyRef||'') : '',
+    canonicalCompanyRef: (csCompany.value.trim() === assignment.companyNameSnapshot && csMC.value.trim() === assignment.mcNumberSnapshot) ? (assignment.canonicalCompanyRef||'') : '',
+    effectiveFrom: '',
+    effectiveTo: ''
+  };
+  var today = new Date().toISOString().slice(0,10);
+  var assignmentChanged = carrierAssignmentTermsChanged(assignment, candidateAssignment);
+  candidateAssignment.effectiveFrom = assignmentChanged ? today : (assignment.effectiveFrom || today);
+  candidateAssignment.effectiveTo = '';
+  var maintRateInput = parseFloat(csMaintenanceRate.value);
+  var maintenanceRate = isNaN(maintRateInput) ? (truck.maintenanceRate != null ? Number(truck.maintenanceRate) : 0.20) : maintRateInput;
+  var weekEndDayInput = parseInt(csWeekEndDay.value,10);
+  var weekEndDay = isNaN(weekEndDayInput) ? (truck.weekEndDay != null ? Number(truck.weekEndDay) : 0) : weekEndDayInput;
+  if(!assignmentChanged && maintenanceRate === (truck.maintenanceRate != null ? Number(truck.maintenanceRate) : 0.20) && weekEndDay === (truck.weekEndDay != null ? Number(truck.weekEndDay) : 0)){
+    return;
+  }
+  var confirmMsg = 'Company & Settlement changes will be saved. Continue?';
+  if(!confirm(confirmMsg)) return;
+  if(assignmentChanged && carrierAssignmentHasTerms(assignment)){
+    var history = truckCarrierAssignmentHistory(truck);
+    history.push(Object.assign({}, assignment, { effectiveTo: today }));
+    truck.carrierAssignmentHistory = history;
+  }
+  truck.carrierAssignment = candidateAssignment;
+  truck.company = candidateAssignment.company;
+  truck.mc = candidateAssignment.mc;
+  truck.dispatchPercent = candidateAssignment.dispatchPercent;
+  truck.maintenanceRate = maintenanceRate;
+  truck.weekEndDay = weekEndDay;
+  var idx = list.findIndex(function(t){ return t.id===truckId; });
+  list[idx] = truck;
+  saveTrucks(list);
+  queueFleetConfigSync();
+  renderDeductionsPage();
+}
+
 function renderDeductionsPage(){
   var truckId = renderTruckSelect('dedTruckSelect', 'dedTruckRow');
   var truck = findTruckByIdOrUnit(truckId);

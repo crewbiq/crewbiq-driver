@@ -82,3 +82,15 @@ test('carrier directory is read-only and stores only a local assignment referenc
   assert.ok(selectBody, 'carrier directory selection function must exist');
   assert.doesNotMatch(selectBody[0], /fetch\(/);
 });
+
+test('Company & Settlement card appears above Deductions with expected controls', () => {
+  assert.match(html, /id="companySettlementCard"/);
+  assert.match(html, /id="csCompany"/);
+  assert.match(html, /id="csMC"/);
+  assert.match(html, /id="csDispatchPercent"/);
+  assert.match(html, /id="csMaintenanceRate"/);
+  assert.match(html, /id="csWeekEndDay"/);
+  assert.match(html, /onclick="saveCompanySettlementForm\(\)"/);
+  assert.match(html, /function saveCompanySettlementForm\(\)/);
+  assert.match(html, /Company & Settlement/);
+});
