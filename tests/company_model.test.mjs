@@ -154,3 +154,122 @@ test('logo preview reads Company.logo first with a legacy fallback', () => {
 });
 
 console.log('Company model contract: ok');
+
+test('Company & Settlement save behavior is effective-dated and lossless', () => {
+  var functionStart = html.indexOf('function saveCompanySettlementForm(){');
+  var functionEnd = html.indexOf('\nfunction renderDeductionsPage(){', functionStart);
+  var functionSource = html.slice(functionStart, functionEnd);
+  var helperStart = html.indexOf('function truckCarrierAssignment(truck){');
+  var helperEnd = html.indexOf('\nfunction carrierAssignmentHistoryHtml(truck){', helperStart);
+  var helperSource = html.slice(helperStart, helperEnd);
+  var helperFactory = new Function(helperSource + '\nreturn [truckCarrierAssignment, truckCarrierAssignmentHistory, carrierAssignmentHasTerms, carrierAssignmentTermsChanged];');
+  var helpers = helperFactory();
+  var truckCarrierAssignment = helpers[0];
+  var truckCarrierAssignmentHistory = helpers[1];
+  var carrierAssignmentHasTerms = helpers[2];
+  var carrierAssignmentTermsChanged = helpers[3];
+  function runScenario(formOverrides, confirmResult) {
+    var truck1 = {
+      id: 'truck-1',
+      company: 'Alpha',
+      mc: 'MC-1',
+      dispatchPercent: 10,
+      maintenanceRate: 0.15,
+      weekEndDay: 5,
+      carrierAssignment: {
+        company: 'Alpha',
+        mc: 'MC-1',
+        dispatchPercent: 10,
+        companyRef: 'ref-1',
+        canonicalCompanyRef: 'canon-1',
+        companyNameSnapshot: 'Alpha',
+        mcNumberSnapshot: 'MC-1',
+        effectiveFrom: '2023-01-01',
+        effectiveTo: ''
+      },
+      carrierAssignmentHistory: []
+    };
+    var truck2 = {
+      id: 'truck-2',
+      company: 'Beta',
+      mc: 'MC-2',
+      dispatchPercent: 20,
+      maintenanceRate: 0.10,
+      weekEndDay: 0,
+      carrierAssignment: {
+        company: 'Beta',
+        mc: 'MC-2',
+        dispatchPercent: 20,
+        companyRef: '',
+        canonicalCompanyRef: '',
+        companyNameSnapshot: 'Beta',
+        mcNumberSnapshot: 'MC-2',
+        effectiveFrom: '',
+        effectiveTo: ''
+      },
+      carrierAssignmentHistory: []
+    };
+    var trucks = [truck1, truck2];
+    var originalTrucks = JSON.parse(JSON.stringify(trucks));
+    var unrelatedTruck = JSON.parse(JSON.stringify(truck2));
+    var fieldValues = {csCompany: 'Alpha', csMC: 'MC-1', csDispatchPercent: '10', csMaintenanceRate: '0.15', csWeekEndDay: '5'};
+    Object.assign(fieldValues, formOverrides || {});
+    var confirmations = 0;
+    var saves = 0;
+    var syncs = 0;
+    var renders = 0;
+    var capturedSaved = null;
+    var loadTrucks = function() { return trucks; };
+    var selectedTruckId = function() { return 'truck-1'; };
+    var document = {
+      getElementById: function(id) {
+        return { value: fieldValues[id] !== undefined ? fieldValues[id] : '' };
+      }
+    };
+    var confirm = function(msg) { confirmations++; return confirmResult; };
+    var saveTrucks = function(list) { saves++; capturedSaved = JSON.parse(JSON.stringify(list)); };
+    var queueFleetConfigSync = function() { syncs++; };
+    var renderDeductionsPage = function() { renders++; };
+    var dependencyNames = ['loadTrucks', 'selectedTruckId', 'document', 'truckCarrierAssignment', 'truckCarrierAssignmentHistory', 'carrierAssignmentHasTerms', 'carrierAssignmentTermsChanged', 'confirm', 'saveTrucks', 'queueFleetConfigSync', 'renderDeductionsPage'];
+    var dependencyValues = [loadTrucks, selectedTruckId, document, truckCarrierAssignment, truckCarrierAssignmentHistory, carrierAssignmentHasTerms, carrierAssignmentTermsChanged, confirm, saveTrucks, queueFleetConfigSync, renderDeductionsPage];
+    var factory = new Function(...dependencyNames, functionSource + '\nreturn saveCompanySettlementForm;');
+    var saveCompanySettlementForm = factory(...dependencyValues);
+    saveCompanySettlementForm();
+    return { trucks: trucks, originalTrucks: originalTrucks, unrelatedTruck: unrelatedTruck, confirmations: confirmations, saves: saves, syncs: syncs, renders: renders, saved: capturedSaved };
+  }
+  var unchanged = runScenario({}, true);
+  var cancelled = runScenario({csDispatchPercent: '12'}, false);
+  var dispatch = runScenario({csDispatchPercent: '12'}, true);
+  var zero = runScenario({csMaintenanceRate: '0'}, true);
+  var savedTruck0 = dispatch.saved[0];
+  assert.equal(unchanged.confirmations, 0);
+  assert.equal(cancelled.confirmations, 1);
+  assert.equal(dispatch.saved.length, 2);
+  assert.deepEqual(dispatch.saved[1], dispatch.unrelatedTruck);
+  assert.equal(savedTruck0.carrierAssignment.canonicalCompanyRef, 'canon-1');
+  assert.equal(savedTruck0.carrierAssignmentHistory.length, 1);
+  assert.equal(savedTruck0.carrierAssignmentHistory[0].effectiveTo, new Date().toISOString().slice(0,10));
+  assert.equal(zero.saved[0].maintenanceRate, 0);
+  assert.equal(unchanged.saves, 0);
+  assert.equal(unchanged.syncs, 0);
+  assert.equal(unchanged.renders, 0);
+  assert.equal(cancelled.saves, 0);
+  assert.equal(cancelled.syncs, 0);
+  assert.equal(cancelled.renders, 0);
+  assert.deepEqual(cancelled.trucks, cancelled.originalTrucks);
+  assert.equal(dispatch.confirmations, 1);
+  assert.equal(dispatch.saves, 1);
+  assert.equal(dispatch.syncs, 1);
+  assert.equal(dispatch.renders, 1);
+  assert.equal(dispatch.saved[0].dispatchPercent, 12);
+  assert.equal(dispatch.saved[0].carrierAssignment.dispatchPercent, 12);
+  assert.equal(dispatch.saved[0].carrierAssignment.companyRef, 'ref-1');
+  assert.equal(dispatch.saved[0].carrierAssignment.canonicalCompanyRef, 'canon-1');
+  assert.equal(dispatch.saved[0].carrierAssignmentHistory[0].dispatchPercent, 10);
+  assert.equal(dispatch.saved[0].carrierAssignmentHistory[0].effectiveFrom, '2023-01-01');
+  assert.equal(dispatch.saved[0].carrierAssignmentHistory[0].effectiveTo, new Date().toISOString().slice(0,10));
+  assert.equal(dispatch.saved[0].carrierAssignment.effectiveFrom, new Date().toISOString().slice(0,10));
+  assert.equal(dispatch.saved[0].carrierAssignment.effectiveTo, '');
+  assert.equal(zero.confirmations, 1);
+  assert.equal(zero.saves, 1);
+});
