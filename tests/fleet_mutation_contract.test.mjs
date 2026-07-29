@@ -211,4 +211,145 @@ test('saveTruckForm significant expression excludes physical-identity fields', (
   assert.ok(!expr.includes('vin'), 'sensitiveChanged must not contain vin');
 });
 
+function extractDriverFormBody() {
+  const funcStart = indexSource.indexOf('function saveDriverForm()');
+  assert.ok(funcStart >= 0);
+  const bodyStart = indexSource.indexOf('{', funcStart);
+  assert.ok(bodyStart >= 0);
+  let depth = 0, pos = bodyStart;
+  for (; pos < indexSource.length; pos++) {
+    if (indexSource[pos] === '{') depth++;
+    if (indexSource[pos] === '}') depth--;
+    if (depth === 0) break;
+  }
+  assert.ok(depth === 0);
+  return indexSource.slice(bodyStart + 1, pos);
+}
+
+test('saveDriverForm ordering: entry before gate before save before all later effects', () => {
+  const body = extractDriverFormBody();
+  const stmts = [
+    'var entry = {',
+    'var previousNormalized',
+    'var candidateTeamMateChanged',
+    'var consequentialDriverChanged',
+    'confirm(',
+    "if(mode === 'edit') list[idx]=normalizeDriverProfileRecord",
+    'list[previousMateIndex] =',
+    'list[mateIndexAfterSave] =',
+    'saveDriverProfiles(list)',
+    'closeDriverModal()',
+    'renderDriversPage()',
+    'renderFleetPage()',
+    'renderFleetStats()',
+    'syncFleetConfigMutation',
+    "toast('Driver saved"
+  ];
+  let prevPos = -1;
+  for (const stmt of stmts) {
+    const pos = body.indexOf(stmt);
+    assert.ok(pos >= 0, `statement not found: ${stmt}`);
+    assert.ok(pos > prevPos, `out of order: ${stmt} at ${pos} <= ${prevPos}`);
+    prevPos = pos;
+  }
+});
+
+test('saveDriverForm edit-only one-confirm exact-message immediate-cancel contract', () => {
+  const body = extractDriverFormBody();
+  assert.ok(body.includes("if(mode === 'edit' && previousEntry)"), 'outer condition missing');
+  const confirmMatches = body.match(/confirm\(/g);
+  assert.equal(confirmMatches.length, 1, 'exactly one confirm call expected');
+  const confirmPos = body.indexOf('confirm(');
+  const confirmEnd = body.indexOf(')', confirmPos);
+  const confirmMsg = body.slice(confirmPos, confirmEnd + 1);
+  assert.equal(
+    confirmMsg,
+    "confirm('Compensation, employment status, truck assignment, or team assignment will change. No changes have been saved yet. Continue?')",
+    'exact confirm message required'
+  );
+  // Allow the real conjunct pattern: if(consequentialDriverChanged && !confirm(...)){ return; }
+  assert.match(
+    body,
+    /if\(consequentialDriverChanged && !confirm\('[^']*'\)\)\s*\{\s*return;\s*\}/,
+    'must have immediate return on cancel via consequentialDriverChanged check'
+  );
+});
+
+test('saveDriverForm confirm gate occurs before save and all later effects', () => {
+  const body = extractDriverFormBody();
+  const gateStart = body.indexOf("if(mode === 'edit' && previousEntry)");
+  assert.ok(gateStart >= 0);
+  let gateDepth = 0, gateEnd = -1;
+  for (let i = gateStart; i < body.length; i++) {
+    if (body[i] === '{') gateDepth++;
+    if (body[i] === '}') {
+      gateDepth--;
+      if (gateDepth === 0) { gateEnd = i; break; }
+    }
+  }
+  assert.ok(gateEnd > 0);
+  const afterGate = body.slice(gateEnd + 1);
+  const effectStmts = [
+    "if(mode === 'edit') list[idx]=normalizeDriverProfileRecord",
+    'list[previousMateIndex] =',
+    'list[mateIndexAfterSave] =',
+    'saveDriverProfiles(',
+    'closeDriverModal(',
+    'renderDriversPage(',
+    'renderFleetPage(',
+    'renderFleetStats(',
+    'syncFleetConfigMutation(',
+    "toast('Driver saved"
+  ];
+  for (const stmt of effectStmts) {
+    assert.ok(afterGate.includes(stmt), `effect "${stmt}" not found after confirm gate`);
+  }
+});
+
+test('candidateTeamMateChanged includes correct comparisons and excludes previousNormalized.teamDriver', () => {
+  const body = extractDriverFormBody();
+  const candidatePattern = /var\s+candidateTeamMateChanged\s*=\s*([^;]+);/;
+  const match = body.match(candidatePattern);
+  assert.ok(match, 'candidateTeamMateChanged expression not found');
+  const expr = match[1];
+  assert.ok(expr.includes('proposedNormalized.teamDriver'), 'missing proposedNormalized.teamDriver');
+  assert.ok(expr.includes('!proposedNormalized.teamMateDriverId'), 'missing !proposedNormalized.teamMateDriverId');
+  assert.ok(expr.includes('proposedNormalized.teamMateNameSnapshot !== previousNormalized.teamMateNameSnapshot'), 'missing teamMateNameSnapshot comparison');
+  assert.ok(expr.includes('proposedNormalized.teamMateEmailSnapshot !== previousNormalized.teamMateEmailSnapshot'), 'missing teamMateEmailSnapshot comparison');
+  assert.ok(expr.includes('proposedNormalized.teamMatePhoneSnapshot !== previousNormalized.teamMatePhoneSnapshot'), 'missing teamMatePhoneSnapshot comparison');
+  assert.ok(!expr.includes('previousNormalized.teamDriver'), 'must not contain previousNormalized.teamDriver');
+});
+
+test('consequentialDriverChanged includes all approved comparisons and excludes routine fields', () => {
+  const body = extractDriverFormBody();
+  const consequentialPattern = /var\s+consequentialDriverChanged\s*=\s*([^;]+);/;
+  const match = body.match(consequentialPattern);
+  assert.ok(match, 'consequentialDriverChanged expression not found');
+  const expr = match[1];
+  // Direct proposedNormalized-versus-previousNormalized comparisons for active, terminatedAt, payType, Number(rate), cpmBase, truckId, teamDriver, teamMateDriverId
+  assert.ok(expr.includes('proposedNormalized.active !== previousNormalized.active'), 'missing active comparison');
+  assert.ok(expr.includes('proposedNormalized.terminatedAt !== previousNormalized.terminatedAt'), 'missing terminatedAt comparison');
+  assert.ok(expr.includes('proposedNormalized.payType !== previousNormalized.payType'), 'missing payType comparison');
+  assert.ok(expr.includes('Number(proposedNormalized.rate) !== Number(previousNormalized.rate)'), 'missing Number(rate) comparison');
+  assert.ok(expr.includes('proposedNormalized.cpmBase !== previousNormalized.cpmBase'), 'missing cpmBase comparison');
+  assert.ok(expr.includes('proposedNormalized.truckId !== previousNormalized.truckId'), 'missing truckId comparison');
+  assert.ok(expr.includes('proposedNormalized.teamDriver !== previousNormalized.teamDriver'), 'missing teamDriver comparison');
+  assert.ok(expr.includes('proposedNormalized.teamMateDriverId !== previousNormalized.teamMateDriverId'), 'missing teamMateDriverId comparison');
+  // Strict check for candidateTeamMateChanged inclusion (must be last part, but presence is enough)
+  assert.ok(expr.includes('candidateTeamMateChanged'), 'missing candidateTeamMateChanged');
+});
+
+test('consequentialDriverChanged excludes routine proposedNormalized properties', () => {
+  const body = extractDriverFormBody();
+  const consequentialPattern = /var\s+consequentialDriverChanged\s*=\s*([^;]+);/;
+  const match = body.match(consequentialPattern);
+  assert.ok(match, 'consequentialDriverChanged expression not found');
+  const expr = match[1];
+  const routineProperties = ['name', 'email', 'phone', 'cdlNumber', 'cdlState', 'cdlExpiresOn', 'homeTerminal', 'profileNotes'];
+  for (const prop of routineProperties) {
+    const exactPattern = `proposedNormalized.${prop}`;
+    assert.ok(!expr.includes(exactPattern), `consequential expression must not contain ${exactPattern}`);
+  }
+});
+
 console.log('Fleet mutation contract: ok');

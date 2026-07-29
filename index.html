@@ -5053,6 +5053,15 @@ async function saveDriverForm(){
       : null,
     updatedAt: new Date().toISOString(),
   };
+  if(mode === 'edit' && previousEntry){
+    var previousNormalized = normalizeDriverProfileRecord(previousEntry);
+    var proposedNormalized = normalizeDriverProfileRecord(entry);
+    var candidateTeamMateChanged = proposedNormalized.teamDriver && !proposedNormalized.teamMateDriverId && (proposedNormalized.teamMateNameSnapshot !== previousNormalized.teamMateNameSnapshot || proposedNormalized.teamMateEmailSnapshot !== previousNormalized.teamMateEmailSnapshot || proposedNormalized.teamMatePhoneSnapshot !== previousNormalized.teamMatePhoneSnapshot);
+    var consequentialDriverChanged = proposedNormalized.active !== previousNormalized.active || proposedNormalized.terminatedAt !== previousNormalized.terminatedAt || proposedNormalized.payType !== previousNormalized.payType || Number(proposedNormalized.rate) !== Number(previousNormalized.rate) || proposedNormalized.cpmBase !== previousNormalized.cpmBase || proposedNormalized.truckId !== previousNormalized.truckId || proposedNormalized.teamDriver !== previousNormalized.teamDriver || proposedNormalized.teamMateDriverId !== previousNormalized.teamMateDriverId || candidateTeamMateChanged;
+    if(consequentialDriverChanged && !confirm('Compensation, employment status, truck assignment, or team assignment will change. No changes have been saved yet. Continue?')){
+      return;
+    }
+  }
   // Preserve server linkage and future optional profile fields while updating the editable
   // compensation fields. Replacing the whole object made later restores revive stale values.
   if(mode === 'edit') list[idx]=normalizeDriverProfileRecord({...list[idx], ...entry}); else list.push(normalizeDriverProfileRecord(entry));
