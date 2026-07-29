@@ -4670,6 +4670,35 @@ function saveTruckForm(){
   var existingTruck = (mode === 'edit' && idx >= 0) ? list[idx] : null;
   var carrierAssignmentHistory = truckCarrierAssignmentHistory(existingTruck);
   var assignmentChanged = carrierAssignmentTermsChanged(existingAssignment, carrierAssignment);
+
+  // ── Edit-only sensitive-change confirmation gate ───────────────────────
+  if (mode === 'edit' && existingTruck) {
+    var normalizedActiveNew = document.getElementById('tfActive').value === '1';
+    var normalizedActiveOld = existingTruck.active !== false;
+    var effectiveFromNew = requestedEffectiveFrom;
+    var effectiveFromOld = (existingAssignment && existingAssignment.effectiveFrom) || '';
+    var maintRateInput = parseFloat(document.getElementById('tfMaintRate').value);
+    var maintRateNew = isNaN(maintRateInput) ? 0.20 : maintRateInput;
+    var maintRateOld = existingTruck.maintenanceRate != null ? Number(existingTruck.maintenanceRate) : 0.20;
+    var purchaseCostNew = parseFloat((document.getElementById('tfPurchaseCost')||{}).value)||0;
+    var purchaseCostOld = Number(existingTruck.purchaseCost || 0);
+
+    var sensitiveChanged =
+      (normalizedActiveNew !== normalizedActiveOld) ||
+      carrierAssignmentTermsChanged(existingAssignment, carrierAssignment) ||
+      (effectiveFromNew !== effectiveFromOld) ||
+      (maintRateNew !== maintRateOld) ||
+      (purchaseCostNew !== purchaseCostOld);
+
+    if (sensitiveChanged) {
+      var confirmMsg = 'Status, accounting, or carrier-history values will change. Prior carrier terms remain in history. Continue?';
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+    }
+  }
+  // ── End gate ───────────────────────────────────────────────────────────
+
   if(assignmentChanged && carrierAssignmentHasTerms(existingAssignment)){
     carrierAssignmentHistory.push(Object.assign({}, existingAssignment, { effectiveTo: requestedEffectiveFrom }));
   }
