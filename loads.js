@@ -1192,10 +1192,65 @@
   }
 
   // ── PUBLIC API ─────────────────────────────────────────────────────────────
+  // ── ASSIGN UNRESOLVED LOAD ──────────────────────────────────────────────────────
+
+  function assignUnresolvedLoad(loadKey, explicitTruckId) {
+    if (!_ready) return false;
+    if (typeof global.getUserRole !== 'function') return false;
+    if (global.getUserRole() === 'driver') return false;
+    var loads = _get.loads();
+    var found = null;
+    for (var i = 0; i < loads.length; i++) {
+      if (isLoadMatch(loads[i], loadKey)) {
+        found = loads[i];
+        break;
+      }
+    }
+    if (!found) return false;
+    var trucks = global.loadTrucks ? (global.loadTrucks() || []).filter(function(t){ return t && t.active !== false; }) : [];
+    var driverProfiles = typeof global.loadDriverProfiles === 'function' ? global.loadDriverProfiles() : [];
+    if (!Array.isArray(driverProfiles)) driverProfiles = [];
+    if (typeof global.CrewBIQFleetLoadResolution !== 'object' || typeof global.CrewBIQFleetLoadResolution.resolveLoadToTruck !== 'function') return false;
+    var resolvedTruck = global.CrewBIQFleetLoadResolution.resolveLoadToTruck(found, trucks, driverProfiles);
+    if (resolvedTruck) return false;
+    if (!explicitTruckId) return false;
+    var matchedTruck = null;
+    for (var j = 0; j < trucks.length; j++) {
+      if (String(trucks[j].id) === String(explicitTruckId)) {
+        matchedTruck = trucks[j];
+        break;
+      }
+    }
+    if (!matchedTruck) return false;
+    var newLoad = {};
+    for (var key in found) {
+      if (found.hasOwnProperty(key)) {
+        newLoad[key] = found[key];
+      }
+    }
+    newLoad.truckId = matchedTruck.id;
+    newLoad.unitNumber = matchedTruck.unitNumber;
+    newLoad.synced = false;
+    var updatedLoads = loads.slice();
+    for (var k = 0; k < updatedLoads.length; k++) {
+      if (isLoadMatch(updatedLoads[k], loadKey)) {
+        updatedLoads[k] = newLoad;
+        break;
+      }
+    }
+    _set.loads(updatedLoads);
+    _saveAll();
+    _renderAll();
+    _doSync();
+    Core.events.emit('load:updated', loadEventPayload(newLoad));
+    return true;
+  }
+
 
   const CrewBIQLoads = {
     version: '0.4.0',
     init,
+    assignUnresolvedLoad,
     calcDriverPay, calcDriverPayWith, recalcLoadsFrom,
     maskGross, calcPreview, getWeekLoads,
     saveLoad, editLoad, deleteLoad, resetLoadForm, setLoadStatus,
