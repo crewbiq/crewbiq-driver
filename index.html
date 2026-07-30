@@ -13,6 +13,7 @@
   <script src="sync.js?v=20260715-disputes-sync-v1"></script>
   <script src="pti.js?v=20260617-pg-pwa"></script>
   <script src="loads.js?v=20260715-bol-load-fields-v1"></script>
+  <script src="fleet-load-resolution.js?v=20260730-issue20-v1"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--tx);max-width:480px;margin:0 auto;min-height:100vh}
@@ -583,6 +584,7 @@
     <div id="fleetStatsSection" style="display:none">
       <!-- Truck tabs (Fleet only) -->
       <div id="fleetStatsTabs" style="display:flex;gap:8px;padding:0 16px;overflow-x:auto;margin-top:8px"></div>
+      <div id="fleetUnassignedLoads" class="muted" style="padding:0 16px;margin-top:8px">Unassigned loads: 0</div>
 
       <!-- REAL NET Chain -->
       <div class="card" style="margin-top:8px" id="fleetRealNetChain"></div>
@@ -2914,6 +2916,17 @@ function renderFleetStats() {
     return true;
   }
 
+  var driverProfiles = loadDriverProfiles();
+  var resolutionApi = window.CrewBIQFleetLoadResolution;
+  var periodLoads = allLoads.filter(function(l){ return inPeriod(l.pickup || l.date || ''); });
+  var unassignedLoads = (resolutionApi && typeof resolutionApi.unassignedFleetLoads === 'function')
+    ? resolutionApi.unassignedFleetLoads(periodLoads, trucks, driverProfiles)
+    : periodLoads.slice();
+  var unassignedEl = document.getElementById('fleetUnassignedLoads');
+  if (unassignedEl) {
+    unassignedEl.textContent = 'Unassigned loads: '+unassignedLoads.length;
+  }
+
   // ── TRUCK TABS (Fleet only) ───────────────────────────────────────────────
   var tabsEl = document.getElementById('fleetStatsTabs');
   if (tabsEl) {
@@ -2933,16 +2946,17 @@ function renderFleetStats() {
 
   // ── FILTER LOADS by selected truck ────────────────────────────────────────
   function truckForLoad(load) {
-    if (!trucks.length) return null;
-    return trucks.find(function(t){ return t.unitNumber && t.unitNumber === load.unitNumber; }) || trucks[0];
+    if (resolutionApi && typeof resolutionApi.resolveLoadToTruck === 'function') {
+      return resolutionApi.resolveLoadToTruck(load, trucks, driverProfiles);
+    }
+    return null;
   }
 
   var filteredTrucks = (_fleetStatsTruck === '__all__' || role !== 'fleet')
     ? trucks
     : trucks.filter(function(t){ return t.id === _fleetStatsTruck; });
 
-  var filteredLoads = allLoads.filter(function(l){
-    if (!inPeriod(l.pickup || l.date || '')) return false;
+  var filteredLoads = periodLoads.filter(function(l){
     if (_fleetStatsTruck !== '__all__' && role === 'fleet') {
       var tr = truckForLoad(l);
       return tr && tr.id === _fleetStatsTruck;
@@ -4528,27 +4542,16 @@ function selectedTruckId(selectId){
 }
 function recordTruckId(record){
   if(!record) return '';
-  var payload = record.rawPayload || record.raw_payload || record.payload || {};
-  var directId = record.truckId || record.truck_id || payload.truckId || payload.truck_id || '';
-  var unitNumber = record.unitNumber || record.unit_number || record.truckUnit || record.truck_unit || payload.unitNumber || payload.unit_number || '';
-  var resolved = findTruckByIdOrUnit(directId) || findTruckByIdOrUnit(unitNumber);
-  if(resolved) return resolved.id;
-  // A legacy/load restore may not contain any truck reference. Assigning it is safe only
-  // when this account has exactly one active truck; never guess between several units.
+  var api = window.CrewBIQFleetLoadResolution;
+  if(!api || typeof api.resolveLoadToTruck !== 'function') return '';
   var trucks = activeTrucks();
-  if(!directId && !unitNumber && trucks.length===1) return trucks[0].id;
-  return directId;
+  var driverProfiles = loadDriverProfiles();
+  var resolved = api.resolveLoadToTruck(record, trucks, driverProfiles);
+  return resolved ? resolved.id : '';
 }
 function recordMatchesTruck(record, truck){
-  if(!truck) return true;
-  var payload = record && (record.rawPayload || record.raw_payload || record.payload) || {};
-  var directId = record && (record.truckId || record.truck_id) || payload.truckId || payload.truck_id || '';
-  var unitNumber = record && (record.unitNumber || record.unit_number || record.truckUnit || record.truck_unit) || payload.unitNumber || payload.unit_number || '';
-  var truckId = normalizeFleetLookupValue(truck.id);
-  var truckUnit = normalizeFleetLookupValue(truck.unitNumber);
-  return normalizeFleetLookupValue(directId) === truckId ||
-    (!!truckUnit && normalizeFleetLookupValue(unitNumber) === truckUnit) ||
-    normalizeFleetLookupValue(recordTruckId(record)) === truckId;
+  if(!truck) return false;
+  return recordTruckId(record) === truck.id;
 }
 
 function openTruckForm(id){

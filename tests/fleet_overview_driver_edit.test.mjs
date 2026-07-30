@@ -6,10 +6,11 @@ const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const deductionTripResolution = readFileSync(new URL('../deduction-trip-resolution.js', import.meta.url), 'utf8');
 
 test('fleet records resolve truck references across restored payload shapes without guessing between units', () => {
-  assert.match(html, /function normalizeFleetLookupValue\(value\)/);
-  assert.match(html, /record\.truckId \|\| record\.truck_id/);
-  assert.match(html, /record\.unitNumber \|\| record\.unit_number \|\| record\.truckUnit \|\| record\.truck_unit/);
-  assert.match(html, /if\(!directId && !unitNumber && trucks\.length===1\) return trucks\[0\]\.id/);
+  assert.match(html, /<script src="fleet-load-resolution\.js\?v=20260730-issue20-v1"><\/script>/);
+  assert.match(html, /window\.CrewBIQFleetLoadResolution/);
+  assert.match(html, /api\.resolveLoadToTruck\(record, trucks, driverProfiles\)/);
+  assert.match(html, /function recordMatchesTruck\(record, truck\){[^}]*return recordTruckId\(record\) === truck\.id;[^}]*}/);
+  assert.doesNotMatch(html, /trucks\.length===1/);
 });
 
 test('driver profiles normalize transport aliases and edits preserve non-form linkage fields', () => {
