@@ -584,6 +584,7 @@
     <div id="fleetStatsSection" style="display:none">
       <!-- Truck tabs (Fleet only) -->
       <div id="fleetStatsTabs" style="display:flex;gap:8px;padding:0 16px;overflow-x:auto;margin-top:8px"></div>
+      <div id="fleetUnassignedLoads" class="muted" style="padding:0 16px;margin-top:8px">Unassigned loads: 0</div>
 
       <!-- REAL NET Chain -->
       <div class="card" style="margin-top:8px" id="fleetRealNetChain"></div>
@@ -2915,6 +2916,17 @@ function renderFleetStats() {
     return true;
   }
 
+  var driverProfiles = loadDriverProfiles();
+  var resolutionApi = window.CrewBIQFleetLoadResolution;
+  var periodLoads = allLoads.filter(function(l){ return inPeriod(l.pickup || l.date || ''); });
+  var unassignedLoads = (resolutionApi && typeof resolutionApi.unassignedFleetLoads === 'function')
+    ? resolutionApi.unassignedFleetLoads(periodLoads, trucks, driverProfiles)
+    : periodLoads.slice();
+  var unassignedEl = document.getElementById('fleetUnassignedLoads');
+  if (unassignedEl) {
+    unassignedEl.textContent = 'Unassigned loads: '+unassignedLoads.length;
+  }
+
   // ── TRUCK TABS (Fleet only) ───────────────────────────────────────────────
   var tabsEl = document.getElementById('fleetStatsTabs');
   if (tabsEl) {
@@ -2934,16 +2946,17 @@ function renderFleetStats() {
 
   // ── FILTER LOADS by selected truck ────────────────────────────────────────
   function truckForLoad(load) {
-    if (!trucks.length) return null;
-    return trucks.find(function(t){ return t.unitNumber && t.unitNumber === load.unitNumber; }) || trucks[0];
+    if (resolutionApi && typeof resolutionApi.resolveLoadToTruck === 'function') {
+      return resolutionApi.resolveLoadToTruck(load, trucks, driverProfiles);
+    }
+    return null;
   }
 
   var filteredTrucks = (_fleetStatsTruck === '__all__' || role !== 'fleet')
     ? trucks
     : trucks.filter(function(t){ return t.id === _fleetStatsTruck; });
 
-  var filteredLoads = allLoads.filter(function(l){
-    if (!inPeriod(l.pickup || l.date || '')) return false;
+  var filteredLoads = periodLoads.filter(function(l){
     if (_fleetStatsTruck !== '__all__' && role === 'fleet') {
       var tr = truckForLoad(l);
       return tr && tr.id === _fleetStatsTruck;
