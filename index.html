@@ -586,6 +586,12 @@
       <div id="fleetStatsTabs" style="display:flex;gap:8px;padding:0 16px;overflow-x:auto;margin-top:8px"></div>
       <div id="fleetUnassignedLoads" class="muted" style="padding:0 16px;margin-top:8px">Unassigned loads: 0</div>
 
+      <!-- UNRESOLVED LOADS REVIEW (owner_op / fleet only) -->
+      <div id="fleetUnresolvedReview" style="display:none;padding:0 16px;margin-top:8px">
+        <div class="label" style="margin-bottom:6px">Unresolved Loads</div>
+        <div id="fleetUnresolvedLoadList"></div>
+      </div>
+
       <!-- REAL NET Chain -->
       <div class="card" style="margin-top:8px" id="fleetRealNetChain"></div>
 
@@ -2927,6 +2933,42 @@ function renderFleetStats() {
     unassignedEl.textContent = 'Unassigned loads: '+unassignedLoads.length;
   }
 
+  // ── UNRESOLVED LOADS REVIEW ──────────────────────────────────────────────
+  var unresolvedReviewEl = document.getElementById('fleetUnresolvedReview');
+  var unresolvedListEl = document.getElementById('fleetUnresolvedLoadList');
+  if (unresolvedReviewEl && unresolvedListEl) {
+    if (role === 'owner_op' || role === 'fleet') {
+      unresolvedReviewEl.style.display = '';
+      var html = '';
+      for (var i = 0; i < unassignedLoads.length; i++) {
+        var load = unassignedLoads[i];
+        var loadKey = load.id || load.loadId || 'load_' + i;
+        var selectId = 'fleetUnresolvedSelect_' + loadKey;
+        html += '<div style="border:1px solid var(--bd);border-radius:8px;padding:8px;margin-bottom:6px;font-size:12px">';
+        html += '<div><strong>Load ID:</strong> ' + escHtml(load.loadId || load.id || '') + '</div>';
+        html += '<div><strong>Pickup:</strong> ' + escHtml(load.pickup || load.date || '') + '</div>';
+        html += '<div><strong>Gross:</strong> ' + fmt(load.gross || 0) + '</div>';
+        html += '<div><strong>Loaded Miles:</strong> ' + escHtml(load.loadedMiles || 0) + '</div>';
+        html += '<div><strong>Dead Miles:</strong> ' + escHtml(load.deadMiles || 0) + '</div>';
+        html += '<div><strong>Status:</strong> ' + escHtml(load.status || '') + '</div>';
+        html += '<div><strong>Notes:</strong> ' + escHtml(load.notes || '') + '</div>';
+        html += '<div style="margin-top:6px;display:flex;gap:6px;align-items:center">';
+        html += '<select id="' + selectId + '" style="flex:1;padding:4px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font-size:12px">';
+        html += '<option value="">— Select truck —</option>';
+        for (var t = 0; t < trucks.length; t++) {
+          html += '<option value="' + escHtml(trucks[t].id) + '">Unit ' + escHtml(trucks[t].unitNumber || trucks[t].id) + '</option>';
+        }
+        html += '</select>';
+        html += '<button onclick="assignFleetUnresolvedLoad(\'' + escHtml(loadKey) + '\', \'' + selectId + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--acc);color:#000;font-size:11px;font-weight:700;cursor:pointer">Assign</button>';
+        html += '</div>';
+        html += '</div>';
+      }
+      unresolvedListEl.innerHTML = html || '<div class="muted">No unresolved loads found.</div>';
+    } else {
+      unresolvedReviewEl.style.display = 'none';
+    }
+  }
+
   // ── TRUCK TABS (Fleet only) ───────────────────────────────────────────────
   var tabsEl = document.getElementById('fleetStatsTabs');
   if (tabsEl) {
@@ -3115,6 +3157,29 @@ function renderFleetStats() {
 function selectFleetStatsTruck(id) {
   _fleetStatsTruck = id;
   renderFleetStats();
+}
+
+function assignFleetUnresolvedLoad(loadKey, selectId) {
+  var role = getUserRole();
+  if (role !== 'owner_op' && role !== 'fleet') return;
+  var select = document.getElementById(selectId);
+  if (!select) {
+    Core.toast('Truck selector not found.', 'err');
+    return;
+  }
+  var truckId = select.value;
+  if (!truckId) {
+    Core.toast('Please select a truck.', 'err');
+    return;
+  }
+  if (typeof CrewBIQLoads !== 'undefined' && typeof CrewBIQLoads.assignUnresolvedLoad === 'function') {
+    var success = CrewBIQLoads.assignUnresolvedLoad(loadKey, truckId);
+    if (!success) {
+      Core.toast('Failed to assign load. Truck may already be assigned or API unavailable.', 'err');
+    }
+  } else {
+    Core.toast('Assign API unavailable.', 'err');
+  }
 }
 
 function fleetReportPeriod(){
