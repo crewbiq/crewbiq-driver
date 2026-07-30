@@ -925,6 +925,15 @@
 
   <!-- ══════════════ DEDUCTIONS ══════════════ -->
   <div id="page-deductions" class="page">
+    <div class="card" id="companySettlementCard" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:4px">🏢 Company & Settlement</div>
+      <div class="sfield"><div class="slabel">Company</div><input id="csCompany" placeholder="Company name"></div>
+      <div class="sfield"><div class="slabel">MC</div><input id="csMC" placeholder="MC number"></div>
+      <div class="sfield"><div class="slabel">Dispatch Percent</div><input type="number" step="0.01" id="csDispatchPercent" placeholder="0.00"></div>
+      <div class="sfield"><div class="slabel">Maintenance Rate</div><input type="number" step="0.01" id="csMaintenanceRate" placeholder="0.00"></div>
+      <div class="sfield"><div class="slabel">Week End Day</div><select id="csWeekEndDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
+      <button class="btn primary" onclick="saveCompanySettlementForm()" style="width:100%;margin-top:8px">Save Company & Settlement</button>
+    </div>
     <div class="card" style="margin-top:16px">
       <div style="font-size:16px;font-weight:800;color:var(--acc);margin-bottom:4px">💰 This Week</div>
       <div class="sfield" id="dedTruckRow" style="display:none;margin-bottom:10px">
@@ -3587,6 +3596,59 @@ function deleteDedTemplate(id){
   renderDeductionsPage();
 }
 
+function saveCompanySettlementForm(){
+  var list = loadTrucks();
+  var truckId = selectedTruckId('dedTruckSelect');
+  var truck = list.find(function(t){ return t.id===truckId; });
+  if(!truck) return;
+  var assignment = truckCarrierAssignment(truck);
+  var csCompany = document.getElementById('csCompany');
+  var csMC = document.getElementById('csMC');
+  var csDispatchPercent = document.getElementById('csDispatchPercent');
+  var csMaintenanceRate = document.getElementById('csMaintenanceRate');
+  var csWeekEndDay = document.getElementById('csWeekEndDay');
+  var candidateAssignment = {
+    company: csCompany.value.trim(),
+    mc: csMC.value.trim(),
+    dispatchPercent: parseFloat(csDispatchPercent.value)||0,
+    companyNameSnapshot: csCompany.value.trim(),
+    mcNumberSnapshot: csMC.value.trim(),
+    companyRef: (csCompany.value.trim() === assignment.companyNameSnapshot && csMC.value.trim() === assignment.mcNumberSnapshot) ? (assignment.companyRef||'') : '',
+    canonicalCompanyRef: (csCompany.value.trim() === assignment.companyNameSnapshot && csMC.value.trim() === assignment.mcNumberSnapshot) ? (assignment.canonicalCompanyRef||'') : '',
+    effectiveFrom: '',
+    effectiveTo: ''
+  };
+  var today = new Date().toISOString().slice(0,10);
+  var assignmentChanged = carrierAssignmentTermsChanged(assignment, candidateAssignment);
+  candidateAssignment.effectiveFrom = assignmentChanged ? today : (assignment.effectiveFrom || today);
+  candidateAssignment.effectiveTo = '';
+  var maintRateInput = parseFloat(csMaintenanceRate.value);
+  var maintenanceRate = isNaN(maintRateInput) ? (truck.maintenanceRate != null ? Number(truck.maintenanceRate) : 0.20) : maintRateInput;
+  var weekEndDayInput = parseInt(csWeekEndDay.value,10);
+  var weekEndDay = isNaN(weekEndDayInput) ? (truck.weekEndDay != null ? Number(truck.weekEndDay) : 0) : weekEndDayInput;
+  if(!assignmentChanged && maintenanceRate === (truck.maintenanceRate != null ? Number(truck.maintenanceRate) : 0.20) && weekEndDay === (truck.weekEndDay != null ? Number(truck.weekEndDay) : 0)){
+    return;
+  }
+  var confirmMsg = 'Company & Settlement changes will be saved. Continue?';
+  if(!confirm(confirmMsg)) return;
+  if(assignmentChanged && carrierAssignmentHasTerms(assignment)){
+    var history = truckCarrierAssignmentHistory(truck);
+    history.push(Object.assign({}, assignment, { effectiveTo: today }));
+    truck.carrierAssignmentHistory = history;
+  }
+  truck.carrierAssignment = candidateAssignment;
+  truck.company = candidateAssignment.company;
+  truck.mc = candidateAssignment.mc;
+  truck.dispatchPercent = candidateAssignment.dispatchPercent;
+  truck.maintenanceRate = maintenanceRate;
+  truck.weekEndDay = weekEndDay;
+  var idx = list.findIndex(function(t){ return t.id===truckId; });
+  list[idx] = truck;
+  saveTrucks(list);
+  queueFleetConfigSync();
+  renderDeductionsPage();
+}
+
 function renderDeductionsPage(){
   var truckId = renderTruckSelect('dedTruckSelect', 'dedTruckRow');
   var truck = findTruckByIdOrUnit(truckId);
@@ -3608,6 +3670,25 @@ function renderDeductionsPage(){
     tmplList.innerHTML = tmpl.length ? tmpl.map(function(t){
       return '<div class="line" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)"><span>'+escHtml(t.name)+'</span><span style="display:flex;gap:8px;align-items:center"><strong>'+fmt(t.amount)+'</strong><button onclick="deleteDedTemplate(\''+t.id+'\')" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button></span></div>';
     }).join('') : '<div class="empty" style="padding:16px 0">No templates yet</div>';
+  }
+  // Populate Company & Settlement card
+  var csCompany = document.getElementById('csCompany');
+  var csMC = document.getElementById('csMC');
+  var csDispatchPercent = document.getElementById('csDispatchPercent');
+  var csMaintenanceRate = document.getElementById('csMaintenanceRate');
+  var csWeekEndDay = document.getElementById('csWeekEndDay');
+  if (truck && assignment) {
+    csCompany.value = assignment.companyNameSnapshot || '';
+    csMC.value = assignment.mcNumberSnapshot || '';
+    csDispatchPercent.value = truck.dispatchPercent != null ? truck.dispatchPercent : '';
+    csMaintenanceRate.value = truck.maintenanceRate != null ? truck.maintenanceRate : '';
+    csWeekEndDay.value = truck.weekEndDay != null ? truck.weekEndDay : 0;
+  } else {
+    csCompany.value = '';
+    csMC.value = '';
+    csDispatchPercent.value = '';
+    csMaintenanceRate.value = '';
+    csWeekEndDay.value = 0;
   }
 }
 
