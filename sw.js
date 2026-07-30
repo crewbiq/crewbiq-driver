@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v78';
+const CACHE_NAME = 'crewbiq-driver-v79';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
@@ -35,6 +35,7 @@ const APP_SHELL = [
   '/crewbiq-driver/deduction-period-hotfix.js',
   '/crewbiq-driver/settlement-week-hotfix.js',
   '/crewbiq-driver/deduction-trip-resolution.js',
+  '/crewbiq-driver/fleet-load-resolution.js',
   '/crewbiq-driver/accounting-action-guard.js',
   '/crewbiq-driver/deduction-policy-ui-fix.js',
   '/crewbiq-driver/ocr-hotfix.js',
