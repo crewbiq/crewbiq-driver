@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4A — CrewBIQ Next UI Read-Only Visual Shell Prototype
+Slice 4A.3 — Interactive Data Visualization / Analytics Pass
 
 Status:
-PUBLISHED / AWAITING MOBILE VISUAL REVIEW
+IN_PROGRESS
 
 Current owner:
-ChatGPT / Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - sw.js cosmetic version strings remain v1.0.84 while functional CACHE_NAME is v85
 
 Next required actor:
-ChatGPT / Product Owner
+Codex
 
 Next bounded action:
-review corrected standalone prototype on Android
+add reusable role-aware interactive analytics to the accepted prototype
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -524,3 +524,9 @@ review corrected standalone prototype on Android
 - Blocking findings: NONE.
 - Next required actor: ChatGPT / Product Owner.
 - Next bounded action: review corrected standalone prototype on Android.
+
+### 2026-08-30 — Product Owner Decision — Slice 4A.2 Visual Baseline
+
+- Verdict: VISUAL ACCEPT.
+- Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
+- Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
