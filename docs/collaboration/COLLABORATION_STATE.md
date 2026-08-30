@@ -38,27 +38,50 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Slice 2B — Links / clinks Runtime Extraction
-Status: IN_PROGRESS
-Current owner: Codex
-Branch: agent/pre-base44-audit
-Product truth: current main + accepted Slice 2A.0/2A behavior contract
-Latest implementation commit: 85c82503ff3afa821f1d3fb33c301ba61413df46
-Latest review commit: aa54f6231c5647134b95967cf4e9bac11deb076e
-Blocking findings: NONE
+Phase:
+Slice 2B — Links / clinks Runtime Extraction
+
+Status:
+PUBLISHED / AWAITING CLAUDE REVIEW
+
+Current owner:
+Claude
+
+Branch:
+agent/pre-base44-audit
+
+Product truth:
+current main
+
+Latest implementation commit:
+78894780c07c1a848547302dac03ec01ba60bbd3
+
+Latest correction commit:
+NONE for Slice 2B
+
+Latest review commit:
+aa54f6231c5647134b95967cf4e9bac11deb076e (accepted Slice 2A)
+
+Latest state commit:
+publication commit containing this CURRENT block
+
+Blocking findings:
+NONE
+
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic }function boot() formatting artifact
-- HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts ($implementation, "gent/pre-base44-audit", "el=noopener noreferrer") — HISTORY-only, no coordination impact
-- clinks storage is device-global and unscoped across account changes; preserve during extraction pending a separate product decision
-- editing or deleting a missing link id saves unchanged data but still reports success
-- default-record creation and non-array-JSON coercion need dedicated executable tests
-Next required actor: Codex
-Next bounded action: extract Links runtime into bounded global-compatible module
-<!-- CURRENT_END -->
+- old collaboration history typo
+- clinks remains device-global by established contract
+- missing-id edit/delete success behavior remains preserved and now contract-tested
+- default creation and non-array coercion are now contract-tested, pending review
 
-<!-- HISTORY_START -->
+Next required actor:
+Claude
+
+Next bounded action:
+independent Slice 2B review; do not begin another slice
 ## HISTORY
 ### Codex
 - Task: Legacy Roadmap & Documentation Reconciliation
@@ -359,3 +382,16 @@ Next bounded action: extract Links runtime into bounded global-compatible module
 - Boundary: new global-compatible links.js plus index composition/shims and app-shell cache integration; no behavior or storage-scope redesign.
 - Next required actor: Codex
 - Next bounded action: run baseline, then extract the bounded Links runtime.
+### 2026-08-30 — Codex — Slice 2B publication
+
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: 78894780c07c1a848547302dac03ec01ba60bbd3
+- Extracted Links/clinks runtime into links.js with no load-time side effects.
+- Compatibility globals retained: renderCommunity, openLinkModal, closeLinkModal, handleSaveLink, toggleLinkFav, deleteLink.
+- links.js loads immediately after startup-session.js as a normal explicit script outside the hotfix chain.
+- Cache rotated to crewbiq-v84; links.js added to the app shell.
+- Direct module and narrow regression result: 22 passed, 0 failed.
+- Runtime files changed: index.html, links.js, sw.js.
+- Behavior differences: NONE intended.
+- Next required actor: Claude.
+- Next bounded action: independent Slice 2B review.
