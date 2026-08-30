@@ -292,3 +292,41 @@ Document Vault (B1), Weekly photo PTI (B2, partial — the schedule half is corr
 
 **NO-GO**, unchanged from the original review. This was a documentation-only reconciliation slice; it doesn't alter the underlying `index.html`/hotfix-loader risk profile. Additionally, Phase 1 of `ROADMAP.md` ("Preserve Safe Runtime Baseline") should not begin execution while Document Vault's status is overstated (B1), since baseline-preservation work needs an accurate picture of what exists to preserve versus what must be built new.
 
+---
+
+## Canonical Documentation Reconciliation Review — Addendum (2026-08-30, re-review)
+
+Reviewer: Claude. Same target as the section above: commit `e8822806713d2c3644880d1c88f3c603ffe7e029` (docs/product/* on `agent/pre-base44-audit`). Re-confirmed via blob-SHA comparison that these six files are byte-identical to what was reviewed above — no new commit has landed. This addendum stands on the analysis above and adds one new item this pass was asked to check directly: **Issue #90**.
+
+### VERDICT: **NEEDS FIX** (unchanged)
+
+The findings B1–B4 and all non-blocking items from the section above still apply in full; see that section for the complete evidence trail (Document Vault, Weekly photo PTI, Community, `DOCUMENTATION_AUTHORITY.md`). This addendum does not repeat that evidence — it stands as reviewed. One additional finding follows from directly reading Issue #90 and PR #91's full text, which the prior pass had only checked for open/closed state, not content.
+
+### New finding — B5: Issue #90 / PR #91 are misclassified as `DEPRECATE`-recommended in `LEGACY_ARTIFACT_MATRIX.md`
+
+- CODEX CLAIM: `LEGACY_ARTIFACT_MATRIX.md` — "Issue #90 — Base44-inspired UI refresh," Status `NEEDS_DECISION`, recommended action `DEPRECATE`; "PR #91 — Begin Base44-inspired UI refresh," Status `DEPRECATED`, recommended action `DEPRECATE`. Both rows justify this via "Conflicts with Base44 optionality rule" / "Conflicts with optionality contract."
+- CURRENT EVIDENCE: Read both artifacts in full via `gh api`. Issue #90's own text: *"Apply the Base44-inspired visual direction approved by the product owner to the existing CrewBIQ Driver PWA"* with an explicit **"Non-negotiable guardrails"** section: preserve all data/localStorage migrations, CrewBIQ ID, orchestrator sync, offline-first behavior, Company/Truck/Driver model, payroll/deductions/dispute/settlement/report logic, and *"Do not introduce parallel entities or a second application architecture."* PR #91's body states it *"Kept all data, storage, calculations, sync, identity, and offline logic untouched"* and lists guardrails matching the issue almost verbatim, closing with *"Closes #90 when the full visual refresh and validation are complete."* Both are open (issue) / open-draft (PR) — verified live.
+- YOUR VERDICT: Misclassified. Issue #90 and PR #91 do not conflict with the "Base44 is optional, not mandatory architecture" contract — they are the correctly-scoped, guardrailed *implementation* of that exact contract (visual layer only, explicit non-architecture-change guardrails, product-owner-approved). Recommending `DEPRECATE` for genuinely valid, open, in-guardrail work conflates it with the separate (and correctly deprecated) *old assumption* that Base44 must become mandatory runtime architecture — the same "old assumption vs. current live thing" conflation pattern as finding B3 (Community/Links), just in the design-direction domain instead of the runtime-code domain.
+- RISK: A future agent following `LEGACY_ARTIFACT_MATRIX.md` literally could close Issue #90 or abandon PR #91 as "deprecated," discarding real, already-guardrailed, product-owner-approved visual-refresh work that this same documentation set (`PRODUCT_CONTRACT.md` §5, `FEATURE_REGISTRY.md`'s own "Base44 redesign path" row) says should be *kept as an optional reference* — the opposite of closing it out.
+- RECOMMENDED RESOLUTION: Re-classify Issue #90 as `IN_PROGRESS` (open, actively scoped, guardrails already correctly encode the optionality contract) rather than `NEEDS_DECISION`/`DEPRECATE`; re-classify PR #91 as `IN_PROGRESS` (draft, consistent with contract) rather than `DEPRECATED`. Reserve `DEPRECATED` in this domain strictly for the historical *assumption* "Base44 must become mandatory runtime architecture" — which `DEPRECATED_DECISIONS.md` already correctly captures under "Base44 as mandatory runtime migration" — not for the currently-open, correctly-scoped work items that implement the corrected version of that assumption.
+
+### Consolidated output (per this task's requested format)
+
+- **ACCEPT / NEEDS FIX:** **NEEDS FIX** (5 blocking findings: B1–B5).
+- **Blocking findings:** B1 (Document Vault overstated as `IN_PROGRESS`, actually 0% implemented), B2 (Weekly photo PTI conflates a real schedule mechanism with nonexistent photo capture), B3 (Community row's "no active community surface" claim is false — it's the live Links container), B4 (`DOCUMENTATION_AUTHORITY.md` lacks the intent-vs-implementation authority split), B5 (Issue #90 / PR #91 wrongly recommended for deprecation despite being the correctly-guardrailed, contract-compliant implementation of Base44-optionality).
+- **Non-blocking findings:** Marketplace status/label undersells its own "defer, revisit later" text; Mobile packaging row lacks an explicit "PWA-only, no native store pipeline" disclaimer (confirmed via `manifest.json`/`package.json` — no Capacitor/Cordova/Android/iOS config anywhere in the repo); `LEGACY_ARTIFACT_MATRIX.md` omits `crewbiq-docs` issue #29 (Truckpedia epic, verified open) despite `FEATURE_REGISTRY.md` citing it; the hotfix-load-order-contract CI step uses `node --test` while every sibling step in the same workflow uses plain `node` (cosmetic only, both fail correctly on error).
+- **Exact rows/files requiring correction:**
+  - `docs/product/FEATURE_REGISTRY.md`: "Document Vault" row (status + evidence note), "Weekly photo PTI" row (split or footnote), "Community" row ("current behavior" text), "Mobile packaging" row (add disclaimer).
+  - `docs/product/DOCUMENTATION_AUTHORITY.md`: "Source-of-truth hierarchy" section (add the two-track split).
+  - `docs/product/LEGACY_ARTIFACT_MATRIX.md`: "Issue #90" row and "PR #91" row (status + recommended action), add missing `crewbiq-docs` #29 row.
+  - `.github/workflows/pwa-auth-contract.yml`: hotfix-load-order-contract `run:` step (cosmetic, `node --test` → `node`).
+- **Statuses recommended changing:**
+  - Document Vault: `IN_PROGRESS` → `PLANNED`.
+  - Weekly photo PTI: split into "PTI weekly schedule" (`IN_PROGRESS`, confirmed) and "PTI photo evidence capture" (`PLANNED`, 0% implemented).
+  - Community: keep `DEPRECATED` for the historical social/community *concept*, but the row text must stop asserting the technical surface is inactive.
+  - Issue #90: `NEEDS_DECISION` → `IN_PROGRESS`.
+  - PR #91: `DEPRECATED` → `IN_PROGRESS`.
+  - Marketplace: consider `DEPRECATED` → `NEEDS_DECISION` (current implementation dead, future concept undecided — see prior section).
+- **Whether canonical docs are safe to become the documentation gate:** **Not yet.** Five distinct, independently-verified factual/classification errors (B1–B5) remain uncorrected across three of the six files. The `DOCUMENTATION_AUTHORITY.md` hierarchy itself (B4) is the structural reason these kinds of errors can occur and persist — fix that first, then the specific row-level errors, before treating `docs/product/*` as binding over code/tests for implementation-state questions.
+- **Safest next bounded task after correction:** A docs-only correction commit touching exactly the rows/files listed above (no code, no tests, no CI beyond the one cosmetic line) — followed by a short re-review pass limited to confirming those specific edits, before any Slice 1 (auth/session) or Phase 1 roadmap execution begins.
+
