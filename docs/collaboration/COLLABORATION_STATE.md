@@ -8,64 +8,56 @@ Every agent MUST follow this protocol.
 
 ### BEFORE WORK
 
-1. Read `## CURRENT
+1. Read the live state bounded by the `CURRENT_START` and `CURRENT_END` marker names.
+2. Replace only the content between those markers with the active task state.
+3. Set Status to `IN_PROGRESS`, Current owner to the active agent, and Next required actor to that agent/current task.
 
-Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: BLOCKED / COORDINATOR DECISION REQUIRED
-Current owner: ChatGPT
-Branch: agent/pre-base44-audit
-Product truth: current main
-Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
-Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
-Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
-Latest state commit: 533ed8674e3dcddf3892cc9a628064dbc208d92e
-Blocking findings: UNSAFE_LINK_URL_SCHEME_ACCEPTANCE — normalizeLinkUrl preserves arbitrary non-empty schemes and renderCommunity places the result in href; blank input normalizes to # before the function-level required check
-Queued non-blocking findings:
-- resolveDefaultTruck case/whitespace sensitivity
-- deduction-template save branch without truckId guard
-- cosmetic `}function boot()` formatting artifact
-Next required actor: ChatGPT
-Next bounded action: decide whether to authorize a separate bounded Links URL-validation correction before Slice 2A resumes
+### AFTER PUBLICATION
 
-## HISTORY`.
-3. Never update `HISTORY` without updating `CURRENT`.
+1. Replace only the content between the `CURRENT_START` and `CURRENT_END` marker names with the new authoritative state.
+2. Append a historical entry below the `HISTORY_START` marker.
+3. Never update HISTORY without updating CURRENT.
 4. Never append a new status only to the bottom of the file.
-5. `CURRENT` always wins over `HISTORY` for coordination.
+5. CURRENT always wins over HISTORY for coordination.
 
-If an agent cannot update `CURRENT`, the task is NOT considered published.
+Agents must replace ONLY content between `CURRENT_START` and `CURRENT_END`. Never search/replace on the first occurrence of "## CURRENT".
 
-Keep `CURRENT` concise and normally under approximately 30 lines. Long explanations, audit narratives, and full test logs belong in `HISTORY`, `WORK_LOG.md`, or review documents.
+If an agent cannot update CURRENT, the task is NOT considered published.
+
+Keep CURRENT concise and normally under approximately 30 lines. Long explanations, audit narratives, and full test logs belong in HISTORY, WORK_LOG.md, or review documents.
 
 ### ChatGPT check rule
 
 When the user says "готово", ChatGPT should:
 
-1. Read `CURRENT`.
+1. Read the live marked CURRENT block.
 2. Inspect the latest commits on the collaboration branch.
-3. If commits are newer than `CURRENT`, reconcile them before responding.
+3. If commits are newer than CURRENT, reconcile them before responding.
 4. Never rely only on stale history headings.
 
+<!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: BLOCKED / COORDINATOR DECISION REQUIRED
-Current owner: ChatGPT
+Phase: Slice 2A.0 — Links URL Safety Correction
+Status: IN_PROGRESS
+Current owner: Codex
 Branch: agent/pre-base44-audit
 Product truth: current main
 Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
 Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
 Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
-Latest state commit: 533ed8674e3dcddf3892cc9a628064dbc208d92e
-Blocking findings: UNSAFE_LINK_URL_SCHEME_ACCEPTANCE — normalizeLinkUrl preserves arbitrary non-empty schemes and renderCommunity places the result in href; blank input normalizes to # before the function-level required check
+Latest state commit: a711da14d21519a850e2c34bee1dd9c43c4c0b87
+Blocking findings: UNSAFE_LINK_URL_SCHEME_ACCEPTANCE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-Next required actor: ChatGPT
-Next bounded action: decide whether to authorize a separate bounded Links URL-validation correction before Slice 2A resumes
+Next required actor: Codex
+Next bounded action: apply bounded URL validation correction and tests
+<!-- CURRENT_END -->
 
+<!-- HISTORY_START -->
 ## HISTORY
-
 ### Codex
 - Task: Legacy Roadmap & Documentation Reconciliation
 - Status: PUBLISHED / AWAITING REVIEW
@@ -265,3 +257,13 @@ Next bounded action: decide whether to authorize a separate bounded Links URL-va
 - Extraction readiness: `NOT_READY_FOR_LINKS_EXTRACTION`
 - Next required actor: ChatGPT
 - Next bounded action: decide whether to authorize a separate bounded Links URL-validation correction, then resume Slice 2A discovery/contract work after that decision.
+### Codex — Slice 2A.0 started and State v2.1 markers repaired
+
+- Agent: Codex
+- Task: Slice 2A.0 — Links URL Safety Correction
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- State repair: removed the CURRENT content accidentally embedded in protocol text and introduced explicit CURRENT_START, CURRENT_END, and HISTORY_START markers.
+- Runtime scope: bounded Links URL validation/render safety only; no extraction.
+- Next required actor: Codex
+- Next bounded action: apply bounded URL validation correction and executable tests.
