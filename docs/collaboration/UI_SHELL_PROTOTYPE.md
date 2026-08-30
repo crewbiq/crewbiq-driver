@@ -8,6 +8,10 @@ Slice 4A demonstrates that a substantially different premium shell can consume t
 
 ## Mobile visual review
 
+### Slice 4A.2 mobile polish
+
+The accepted visual direction and bottom navigation remain unchanged. Phone typography now uses a 16px body floor with larger secondary, metric, card, navigation, and sheet text. The mobile hero is approximately one quarter more compact. Work, Truck, Money, and Team open with role-aware operational summary signals before their capability cards. Role testing remains available through a compact prototype workspace control, while the normal header presents only subtle role metadata.
+
 Use `prototype/crewbiq-next/crewbiq-next-standalone.html` for Android and other file/content-provider review. This file is intentionally self-contained: CSS, prototype JavaScript, SVG generation, and a read-only embedded navigation-model snapshot are inline. It requires no neighboring files, local server, npm, production runtime, or network access. The canonical model remains `navigation-model.js`; the embedded snapshot is review packaging only.
 
 The standalone retains the same desktop design and phone breakpoints. At phone widths the rail is hidden, bottom navigation is shown, content grids collapse, role controls remain touchable, and bottom navigation/Quick Add account for safe-area insets.

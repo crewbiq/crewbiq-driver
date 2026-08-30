@@ -12,8 +12,12 @@ for (const width of [360, 390, 412, 430]) {
 
     await expect(page.locator('.rail')).toBeHidden();
     await expect(page.locator('.bottom-nav')).toBeVisible();
+    await expect(page.locator('#roleToggle')).toBeVisible();
+    await expect(page.locator('.role-switch')).toBeHidden();
+    await page.locator('#roleToggle').click();
     await expect(page.locator('.role-switch')).toBeVisible();
     await expect(page.locator('.role-switch button')).toHaveCount(3);
+    await page.locator('#roleToggle').click();
 
     const overflow = await page.evaluate(() => ({ viewport: window.innerWidth, body: document.body.scrollWidth, root: document.documentElement.scrollWidth }));
     expect(overflow.body).toBeLessThanOrEqual(overflow.viewport + 1);
@@ -32,6 +36,10 @@ for (const width of [360, 390, 412, 430]) {
     }
     if (width <= 390) expect(cards[1].top).toBeGreaterThan(cards[0].top);
     else expect(Math.abs(cards[1].top - cards[0].top)).toBeLessThan(2);
+
+    await page.locator('[data-route="work"]').last().click();
+    await expect(page.locator('.hub-summary')).toBeVisible();
+    await expect(page.locator('.summary-item')).toHaveCount(3);
 
     await page.locator('[data-quick]').click();
     await expect(page.locator('#quickSheet')).toHaveClass(/show/);

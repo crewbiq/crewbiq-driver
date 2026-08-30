@@ -49,7 +49,10 @@
         <div class="top-actions">
           <button class="sync-pill" data-route="states"><i></i><span>Synced</span></button>
           <button class="icon-button" id="functionsButton" aria-label="Open Functions"><span data-icon="grid"></span></button>
-          <div class="role-switch" id="roleSwitch" aria-label="Prototype role"></div>
+          <div class="role-control" id="roleControl">
+            <button class="workspace-role" id="roleToggle" aria-expanded="false" aria-controls="roleSwitch"><span>Prototype</span><strong id="currentRoleLabel">Driver</strong><i>⌄</i></button>
+            <div class="role-switch" id="roleSwitch" aria-label="Prototype role"></div>
+          </div>
         </div>
       </header>
 

@@ -50,6 +50,18 @@ test('STATIC_CONTRACT prototype consumes the accepted navigation model for role 
   assert.doesNotMatch(app, /const\s+ROLE_CONFIG|const\s+FUNCTION_GROUPS/);
 });
 
+test('STATIC_CONTRACT mobile polish preserves role evaluation and adds operational density', () => {
+  assert.match(html, /id="roleToggle"/);
+  assert.match(html, /id="roleSwitch"/);
+  assert.match(css, /\.role-control\.open \.role-switch/);
+  assert.match(app, /function operationalSummary\(page\)/);
+  for (const signal of ['Active load', 'PTI', 'RPM', 'Trucks moving']) assert.match(app, new RegExp(signal));
+  assert.match(css, /@media\(max-width:720px\)\{body\{font-size:16px\}/);
+  assert.match(css, /\.bottom-item\{font-size:12px\}/);
+  assert.match(css, /\.metric-label\{font-size:13px\}/);
+  assert.match(css, /\.tool-card p,[^}]*font-size:14px/);
+});
+
 test('SAFETY_CONTRACT prototype has no production storage writes or production transport', () => {
   const prototypeSource = `${html}\n${css}\n${app}\n${standalone}`;
   assert.doesNotMatch(prototypeSource, /localStorage\s*\.\s*setItem|sessionStorage\s*\.\s*setItem/);
