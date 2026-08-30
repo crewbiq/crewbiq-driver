@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 3B — Navigation Model Runtime Extraction
+Slice 4A — CrewBIQ Next UI Read-Only Visual Shell Prototype
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -67,21 +67,21 @@ Queued non-blocking findings:
 - deduction-template save branch without truckId guard
 - cosmetic }function boot() formatting artifact
 - old collaboration history typo
-- clinks remains device-global by established contract (reconfirmed unchanged, not worsened, by Slice 2B)
-- links.js LINK_CATEGORIES.maintenance icon drifted from 🛠 to 🔧 during extraction (confirmed the only category/icon difference; cosmetic, one-character fix)
-- missing-id edit (as opposed to delete) still lacks its own dedicated test, though confirmed unchanged by direct code reading
-- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons (reconfirmed field-by-field unchanged in navigation-model.js; preserved intentionally, not unified)
-- stale non-empty invalid persisted role is conservative but internally inconsistent (now proven via real execution, not just described)
-- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary (preserved, showPage still sole router)
-- installRoleGuard still wraps the single effective setUserRole (now proven via real execution against the actual current core-runtime.js — no second setter, no bypass)
-- Marketplace page/renderer remain orphaned from live navigation (preserved in page registry, re-confirmed)
-- sw.js header-comment/activation-log version strings (v1.0.84) were not bumped alongside the functional CACHE_NAME bump to v85 — cosmetic only
+- clinks remains device-global by established contract
+- links.js LINK_CATEGORIES.maintenance icon drifted from 🛠 to 🔧 during extraction
+- missing-id edit still lacks its own dedicated test
+- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons
+- stale non-empty invalid persisted role is conservative but internally inconsistent
+- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary
+- installRoleGuard still wraps the single effective setUserRole
+- Marketplace page/renderer remain orphaned from live navigation
+- sw.js cosmetic version strings remain v1.0.84 while functional CACHE_NAME is v85
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize next bounded UI-shell preparation slice (recommend: OCR intake transport-adapter contract, or a read-only visual prototype consuming navigation-model.js with no index.html changes)
+build a standalone visual prototype consuming the accepted navigation model
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
