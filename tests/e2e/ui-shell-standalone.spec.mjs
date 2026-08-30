@@ -23,6 +23,25 @@ for (const width of [360, 390, 412, 430]) {
     expect(overflow.body).toBeLessThanOrEqual(overflow.viewport + 1);
     expect(overflow.root).toBeLessThanOrEqual(overflow.viewport + 1);
 
+    await expect(page.locator('#analyticsGrid .chart-card')).toHaveCount(2);
+    const chartBox = await page.locator('.chart-card').first().boundingBox();
+    expect(chartBox.x).toBeGreaterThanOrEqual(0);
+    expect(chartBox.x + chartBox.width).toBeLessThanOrEqual(width + 1);
+    const firstChartHitArea = page.locator('.chart-hit-area').first();
+    await firstChartHitArea.scrollIntoViewIfNeeded();
+    const hitBox = await firstChartHitArea.boundingBox();
+    await page.mouse.move(hitBox.x + hitBox.width * .56, hitBox.y + hitBox.height * .45);
+    await expect(page.locator('.chart-tooltip').first()).toHaveClass(/show/);
+
+    if (width === 390) {
+      await page.locator('#roleToggle').click();
+      await page.locator('[data-role="owner_op"]').click();
+      await expect(page.locator('#analyticsGrid .chart-card')).toHaveCount(3);
+      await page.locator('#roleToggle').click();
+      await page.locator('[data-role="fleet"]').click();
+      await expect(page.locator('[data-chart-id="fleet-readiness"]')).toBeVisible();
+    }
+
     await page.getByRole('button', { name: 'Open Functions' }).click();
     const cards = await page.locator('.function-card').evaluateAll(nodes => nodes.slice(0, 2).map(node => {
       const box = node.getBoundingClientRect();

@@ -26,6 +26,18 @@ Open `prototype/crewbiq-next/index.html` directly in a browser. It uses the repo
 
 ## Visual system
 
+## Data Visualization Layer
+
+`prototype/crewbiq-next/charts.js` provides a dependency-free `CrewBIQCharts` namespace with reusable single/multi-series line charts, bars, progress signals, shared tooltips, selection guides, zero-state markup, and role-aware dashboard composition. SVG charts are generated from isolated mock datasets and are inlined into the standalone build.
+
+Driver Today shows daily earnings and Loaded vs Deadhead miles. Owner-Op adapts to Revenue vs Net, Loaded vs Deadhead miles, and Fuel cost per mile. Fleet shows Fleet Gross, utilization bars, and a non-line Compliance & Evidence progress view. KPI sparklines remain unchanged as fast indicators; full charts answer weekly operational questions below the snapshot.
+
+Mouse hover and forgiving pointer/touch selection choose the nearest day, reveal a bounded tooltip, emphasize marks, and show a vertical guide for Cartesian charts. Initial render and role changes replay restrained line/bar/progress animation. CSS reduced-motion handling collapses those animations when requested. Mobile uses one full-width card per row, readable 12–14px chart text, no horizontal chart scrolling, and the accepted bottom navigation remains untouched.
+
+Empty analytics do not draw a fabricated trend. `zeroStateMarkup()` displays a dedicated message such as “No earnings recorded this week”; the System States screen includes this visual treatment.
+
+Every selection emits `crewbiq:chart-select` with `{ chartId, role, metric, period, selectedDate, selectedSeries, selectedValue, relatedEntityIds }`. This is a prototype event contract for a future chart → drill-down → SIDR explanation path. SIDR, related-entity lookup, persistence, transport, production analytics, and all displayed values remain unimplemented/mock-only.
+
 The design system uses named color tokens, a four-to-48-pixel spacing scale, three surface levels, consistent 12/18/26/34-pixel radii, restrained shadows, semantic positive/warning/danger colors, and reusable card/button/status/icon patterns. Desktop uses a compact navigation rail and fluid dashboard grid. Phone layouts use a five-position floating bottom bar, stacked content, touch-sized controls, and a native-feeling Quick Add sheet.
 
 ## Navigation and role adaptation

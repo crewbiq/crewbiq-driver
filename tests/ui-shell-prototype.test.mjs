@@ -8,14 +8,17 @@ const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 const html = read('prototype/crewbiq-next/index.html');
 const css = read('prototype/crewbiq-next/styles.css');
 const app = read('prototype/crewbiq-next/app.js');
+const charts = read('prototype/crewbiq-next/charts.js');
 const standalone = read('prototype/crewbiq-next/crewbiq-next-standalone.html');
 const hash = path => createHash('sha256').update(readFileSync(new URL(`../${path}`, import.meta.url))).digest('hex').toUpperCase();
 
 test('STATIC_CONTRACT prototype files parse and compose as an isolated static shell', () => {
   new vm.Script(app, { filename: 'prototype/crewbiq-next/app.js' });
+  new vm.Script(charts, { filename: 'prototype/crewbiq-next/charts.js' });
   assert.match(html, /\.\.\/\.\.\/navigation-model\.js/);
   assert.match(html, /styles\.css/);
   assert.match(html, /app\.js/);
+  assert.match(html, /charts\.js/);
   for (const id of ['launch', 'shell', 'main', 'roleSwitch', 'bottomNav', 'quickSheet']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(css, /@media\(max-width:720px\)/);
   assert.match(css, /prefers-reduced-motion/);
@@ -27,13 +30,14 @@ test('STATIC_CONTRACT standalone review build embeds CSS, JavaScript, and read-o
   assert.match(standalone, /PROTOTYPE EMBEDDED NAVIGATION MODEL SNAPSHOT/);
   assert.match(standalone, /deepFreeze\(window\.CrewBIQNavigationModel\)/);
   assert.match(standalone, /\(function \(\) \{[\s\S]*CrewBIQNavigationModel/);
-  assert.doesNotMatch(standalone, /(?:src|href)="(?:styles\.css|app\.js|\.\.\/\.\.\/navigation-model\.js)"/);
+  assert.match(standalone, /CrewBIQCharts/);
+  assert.doesNotMatch(standalone, /(?:src|href)="(?:styles\.css|charts\.js|app\.js|\.\.\/\.\.\/navigation-model\.js)"/);
   assert.doesNotMatch(standalone, /https?:\/\//);
 });
 
 test('STATIC_CONTRACT standalone inline scripts parse and responsive switching remains packaged', () => {
   const scripts = [...standalone.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1]);
-  assert.equal(scripts.length, 2);
+  assert.equal(scripts.length, 3);
   scripts.forEach((script, index) => new vm.Script(script, { filename: `standalone-inline-${index}.js` }));
   assert.match(standalone, /@media\(max-width:720px\)/);
   assert.match(standalone, /\.rail\{display:none\}/);
@@ -63,7 +67,7 @@ test('STATIC_CONTRACT mobile polish preserves role evaluation and adds operation
 });
 
 test('SAFETY_CONTRACT prototype has no production storage writes or production transport', () => {
-  const prototypeSource = `${html}\n${css}\n${app}\n${standalone}`;
+  const prototypeSource = `${html}\n${css}\n${app}\n${charts}\n${standalone}`;
   assert.doesNotMatch(prototypeSource, /localStorage\s*\.\s*setItem|sessionStorage\s*\.\s*setItem/);
   assert.doesNotMatch(prototypeSource, /fiqD_/);
   assert.doesNotMatch(prototypeSource, /fetch\s*\(|XMLHttpRequest|WebSocket/);
