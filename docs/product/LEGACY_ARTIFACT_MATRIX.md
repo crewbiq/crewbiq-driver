@@ -5,7 +5,7 @@
 | Issue #97 — collect provenance-linked maintenance knowledge | Issue (Open) | IN_PROGRESS | Required for maintenance evidence | Conflicts with proof-weak maintenance notes only | MERGE_INTO_CANONICAL_PLAN |
 | Issue #98 — standardized service invoice and repair template | Issue (Open) | IN_PROGRESS | Needed for service-invoice quality and repair evidence consistency | Low conflict | MERGE_INTO_CANONICAL_PLAN |
 | Issue #83 — separate truck identity from company/settlement settings | Issue (Open) | IN_PROGRESS | Required for role/workspace governance | Low conflict (partially overlapping plan) | KEEP / MERGE_INTO_CANONICAL_PLAN |
-| Issue #90 — Base44-inspired UI refresh | Issue (Open) | DEPRECATED | Design reference only per Product Contract | Conflicts with optionality rule | DEPRECATE |
+| Issue #90 — Base44-inspired UI refresh | Issue (Open) | IN_PROGRESS | Approved/current Base44-inspired visual and product direction | Mandatory Base44 runtime migration/dependency is not required and is superseded; existing CrewBIQ business logic, canonical data, and architecture remain authoritative | KEEP / MERGE_INTO_CANONICAL_PLAN |
 | Issue #75 — durable dispute deactivation | Issue (Open) | IN_PROGRESS | Active product correctness item | Low/no conflict | KEEP |
 | Issue #21 — OCR phase 4: segmented service invoice review | Issue (Open) | IN_PROGRESS | Still valid for editable groups, segmentation, reconciliation, single-count, lineage, and duplicate prevention | Only conflict is the non-storage assumption: “original file remains unstored” | KEEP / MERGE_INTO_CANONICAL_PLAN |
 | Issue #19 — OCR phase 3 durable fuel audit trail | Issue (Open) | IN_PROGRESS | Core for source lineage and import integrity | Low conflict; aligns with contract | KEEP |
@@ -14,7 +14,7 @@
 | Issue #2 — zero-friction restore + trustworthy sync | Issue (Open) | IN_PROGRESS | Baseline sync direction | Low | KEEP |
 | Issue #100 — Pre-Base44 architecture audit | Issue (Open) | ACTIVE | Audit scope and process control | None | KEEP |
 | PR #94 — add Company & Settlement workflow | Draft PR | NEEDS_PRODUCT_DECISION | Domain still required | Potential overlap with issue #83 and role/capability split | MERGE_INTO_CANONICAL_PLAN or REVISE |
-| PR #91 — begin Base44-inspired UI refresh | Draft PR | DEPRECATED | Design-only relevance | Conflicts with optional Base44 rule | DEPRECATE |
+| PR #91 — begin Base44-inspired UI refresh | Draft PR | IN_PROGRESS | Approved/current Base44-inspired visual and product direction | Mandatory Base44 runtime migration/dependency is not required and is superseded; existing CrewBIQ business logic, canonical data, and architecture remain authoritative | KEEP / MERGE_INTO_CANONICAL_PLAN |
 | PR #77 — add TENANT-ID-01 collision journey | Draft PR | ACTIVE | Security-hardening confidence item | Low | KEEP |
 | PR #82 — loads populated edit form fix | Draft PR | ACTIVE | UX robustness for load workflows | None | KEEP |
 | PR #42 — local UX and responsive smoke | Draft PR | ACTIVE | Testing quality item | None | KEEP |
