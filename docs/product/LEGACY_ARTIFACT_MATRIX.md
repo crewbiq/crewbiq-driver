@@ -1,33 +1,33 @@
 # Legacy Artifact Matrix (Repository Reconciliation)
 
-This matrix lists representative legacy/open items that are still visible in planning and execution context and classifies how they should be handled by future slices.
-
-| Artifact | Type | Status | Current relevance | Conflict with current plan? | Recommended action |
+| Artifact | Type | Status | Current relevance | Conflict with current plan? | Action |
 | --- | --- | --- | --- | --- | --- |
-| Issue #97 — Collect provenance-linked maintenance knowledge | Issue (Open) | ACTIVE | Required for maintenance evidence | Conflicts with current proof-weak maintenance notes only | MERGE_INTO_CANONICAL_PLAN |
-| Issue #98 — Standardized service invoice and repair template | Issue (Open) | IN_PROGRESS | Helps complete OCR/service workflow | Conflicts with unstructured service-invoice handling | MERGE_INTO_CANONICAL_PLAN |
-| Issue #83 — Separate truck identity from company/settlement settings | Issue (Open) | IN_PROGRESS | Required for role/workspace governance | Low conflict (partially superseded by split architecture) | KEEP |
-| Issue #90 — Base44-inspired UI refresh | Issue (Open) | NEEDS_DECISION | Design-only relevance | Conflicts with Base44 optionality rule | DEPRECATE |
-| Issue #75 — durable dispute deactivation | Issue (Open) | IN_PROGRESS | Active product correctness item | No major conflict | KEEP |
-| Issue #21 — OCR Phase 4 segmented service invoice review | Issue (Open) | NEEDS_DECISION | Core for accounting correctness and evidence | Conflicts with legacy non-retention language | SUPERSEDE |
-| Issue #19 — OCR Phase 3 durable fuel audit trail | Issue (Open) | IN_PROGRESS | Core for source lineage and import integrity | Low conflict; aligns with contract | KEEP |
-| Issue #20 — Fleet accounting integrity | Issue (Open) | IN_PROGRESS | Settlement and ledger correctness | Conflicts with any overwrite-style logic | KEEP |
-| Issue #5 — Authenticated Bearer fleet restore after login | Issue (Open) | IN_PROGRESS | Sync reliability | Conflicts with any opaque restore behavior | KEEP |
-| Issue #2 — Zero Friction sync and trustworthy restore | Issue (Open) | IN_PROGRESS | Baseline sync direction | Conflicts only with unbounded rewrite plans | KEEP |
-| Issue #100 — Pre-Base44 architecture audit | Issue (Open) | ACTIVE | Canonical process gate | No direct conflict (meta-accepted) | KEEP |
-| PR #94 — Add Company & Settlement workflow | Draft PR | SUPERSEDED | Domain still required; better paths exist in registry/issue #83 | Potential overlap with issue #83 and role/capability refactor | MERGE_INTO_CANONICAL_PLAN |
-| PR #91 — Begin Base44-inspired UI refresh | Draft PR | DEPRECATED | UI reference only | Conflicts with optionality contract | DEPRECATE |
-| PR #77 — Add TENANT-ID-01 collision journey | Draft PR | ACTIVE | Security-hardening confidence item | Low conflict | KEEP |
-| PR #82 — Loads populated edit form fix | Draft PR | ACTIVE | UX robustness for load workflows | No material conflict | KEEP |
-| PR #42 — Local UX and responsive smoke | Draft PR | ACTIVE | Testing quality item | No material conflict | KEEP |
-| PR #99 — settings lifecycle coverage | Closed PR (merged) | ACTIVE | Canonical behavior for settings stability | No conflict | KEEP |
-| PR #95 — Resolve loads without first-truck guessing | Closed PR (merged) | ACTIVE | Canonical load ambiguity constraint | Supersedes old fallback practice | KEEP |
-| PR #93/92 — Significant mutation confirmation | Closed PRs (merged) | ACTIVE | Safer destructive actions | No conflict | KEEP |
-| PR #87 — Read-only canonical Company and Truck view | Closed PR (merged) | ACTIVE | Canonical identity visibility | No conflict | KEEP |
-| PR #85/86 — Identity and orchestrator read-only account | Closed PRs (merged) | ACTIVE | Authentication/session and restore baseline | No conflict | KEEP |
-| Issue #32 (docs) — CrewBIQ Knowledge Engine and Truckpedia | Issue (docs repo, Open) | NEEDS_DECISION | Strategic future dependency | Conflicts with current one-cabinet + canonical-first execution | NEEDS_PRODUCT_DECISION |
-| Issue #31 (docs) — Restore CrewBIQ Bot as governed SIDR | Issue (docs repo, Open) | NEEDS_DECISION | Strategic AI governance dependency | Conflicts with direct DB write risk | NEEDS_PRODUCT_DECISION |
-| Issue #30 (docs) — Parts Intelligence Platform | Issue (docs repo, Open) | DEFERRED | Future domain adjacent to maintenance | Conflicts with current sequencing | LEAVE_OPEN |
-| Issue #53 (orchestrator) — real-data lifecycle backlog | Issue (open) | KEEP | Cross-repo accounting/data lifecycle input | Low conflict | KEEP |
-| Issue #52 (orchestrator) — historical effective settings | Issue (open) | KEEP | Supports deduplication/accounting model | Alignment required | KEEP |
-| Issue #2 (orchestrator) — read-only AI auditor | Issue (open) | NEEDS_DECISION | AI governance path | Conflicts with unconstrained model assumptions | DEPRECATE / NEEDS_PRODUCT_DECISION |
+| Issue #97 — collect provenance-linked maintenance knowledge | Issue (Open) | IN_PROGRESS | Required for maintenance evidence | Conflicts with proof-weak maintenance notes only | MERGE_INTO_CANONICAL_PLAN |
+| Issue #98 — standardized service invoice and repair template | Issue (Open) | IN_PROGRESS | Needed for service-invoice quality and repair evidence consistency | Low conflict | MERGE_INTO_CANONICAL_PLAN |
+| Issue #83 — separate truck identity from company/settlement settings | Issue (Open) | IN_PROGRESS | Required for role/workspace governance | Low conflict (partially overlapping plan) | KEEP / MERGE_INTO_CANONICAL_PLAN |
+| Issue #90 — Base44-inspired UI refresh | Issue (Open) | DEPRECATED | Design reference only per Product Contract | Conflicts with optionality rule | DEPRECATE |
+| Issue #75 — durable dispute deactivation | Issue (Open) | IN_PROGRESS | Active product correctness item | Low/no conflict | KEEP |
+| Issue #21 — OCR phase 4: segmented service invoice review | Issue (Open) | IN_PROGRESS | Still valid for editable groups, segmentation, reconciliation, single-count, lineage, and duplicate prevention | Only conflict is the non-storage assumption: “original file remains unstored” | KEEP / MERGE_INTO_CANONICAL_PLAN |
+| Issue #19 — OCR phase 3 durable fuel audit trail | Issue (Open) | IN_PROGRESS | Core for source lineage and import integrity | Low conflict; aligns with contract | KEEP |
+| Issue #20 — Fleet accounting integrity | Issue (Open) | IN_PROGRESS | Settlement and ledger correctness | Conflicts with overwrite-style logic only | KEEP |
+| Issue #5 — authenticated Bearer fleet restore after login | Issue (Open) | IN_PROGRESS | Sync reliability | Conflicts with opaque restore behavior | KEEP |
+| Issue #2 — zero-friction restore + trustworthy sync | Issue (Open) | IN_PROGRESS | Baseline sync direction | Low | KEEP |
+| Issue #100 — Pre-Base44 architecture audit | Issue (Open) | ACTIVE | Audit scope and process control | None | KEEP |
+| PR #94 — add Company & Settlement workflow | Draft PR | NEEDS_PRODUCT_DECISION | Domain still required | Potential overlap with issue #83 and role/capability split | MERGE_INTO_CANONICAL_PLAN or REVISE |
+| PR #91 — begin Base44-inspired UI refresh | Draft PR | DEPRECATED | Design-only relevance | Conflicts with optional Base44 rule | DEPRECATE |
+| PR #77 — add TENANT-ID-01 collision journey | Draft PR | ACTIVE | Security-hardening confidence item | Low | KEEP |
+| PR #82 — loads populated edit form fix | Draft PR | ACTIVE | UX robustness for load workflows | None | KEEP |
+| PR #42 — local UX and responsive smoke | Draft PR | ACTIVE | Testing quality item | None | KEEP |
+| PR #99 — settings lifecycle coverage | Closed PR (merged) | ACTIVE | Settings stability | No conflict | KEEP |
+| PR #95 — resolve loads without first-truck guessing | Closed PR (merged) | ACTIVE | Canonical load ambiguity constraint | Supersedes fallback behavior | KEEP |
+| PR #93/#92 — significant mutation confirmation | Closed PRs (merged) | ACTIVE | Safer destructive-action policy | No conflict | KEEP |
+| PR #87 — canonical Company and Truck read-only view | Closed PR (merged) | ACTIVE | Canonical identity visibility | None | KEEP |
+| PR #85/86 — identity/accounting/read-only orchestrator baseline | Closed PRs (merged) | ACTIVE | Auth/session/read baseline | No conflict | KEEP |
+| Issue #29 (crewbiq-docs) — CrewBIQ Knowledge Engine and Truckpedia | Issue (open, cross-repo) | NEEDS_DECISION | Strategic future dependency | Not fully aligned with one-cabinet sequencing | NEEDS_PRODUCT_DECISION |
+| Issue #31 (crewbiq-docs) — restore CrewBIQ Bot as governed SIDR | Issue (open, cross-repo) | NEEDS_DECISION | AI governance path | Direct AI-to-DB risk conflict | NEEDS_PRODUCT_DECISION |
+| Issue #30 (crewbiq-docs) — Parts Intelligence Platform | Issue (open, cross-repo) | DEFERRED | Future maintenance-adjacent domain | Outside current sequencing | LEAVE_OPEN |
+| PR/fragment: `page-work` / `page-truck` / `page-money` / `page-team` IA hubs | Implementation fragment | DEPRECATED | Historical, no active nav path | Could be revisited if IA redesign is approved | DEPRECATE |
+| PR/fragment: `page-marketplace` shell and renderer | Implementation fragment | DEPRECATED | Historical shell only, not current product domain | Could be interpreted as active domain if not documented clearly | DEPRECATE |
+| Issue #53 (orchestrator) — real-data lifecycle backlog | Issue (open, cross-repo) | KEEP | Cross-repo accounting/data lifecycle input | Low conflict | KEEP |
+| Issue #52 (orchestrator) — historical effective settings | Issue (open, cross-repo) | KEEP | Supports deduplication/accounting model | Alignment required | KEEP |
+| Issue #2 (orchestrator) — read-only AI auditor | Issue (open, cross-repo) | NEEDS_DECISION | AI governance path | unconstrained model risk | NEEDS_PRODUCT_DECISION |

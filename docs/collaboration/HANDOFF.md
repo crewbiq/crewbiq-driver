@@ -1,5 +1,11 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Canonical documentation correction pass
+
+The canonical product documentation has been corrected against Claude's review findings and is ready for independent re-review. The next actor is Claude. Do not start decomposition, auth/session extraction, or Slice 1 until that review is complete.
+
+Scope was documentation-only: no runtime/product code, tests, CI, deployment, issues, or pull requests were changed.
+
 ## Current state
 
 - Audit complete, documentation-only changes made.

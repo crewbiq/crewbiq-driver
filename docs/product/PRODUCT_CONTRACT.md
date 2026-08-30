@@ -14,6 +14,8 @@
 ## 2) Core functional invariants
 
 - **Document Vault is required to retain source evidence** and provenance references for imported documents (OCR/scan pipelines included).
+  - **Current implemented behavior:** OCR flows state that source files are _not stored_ (source binary retention is currently missing).
+  - **Approved contract:** build a canonical Document Vault pipeline in this order: original binary evidence → local-first retention → object/file storage abstraction → hash/provenance metadata → operational record linkage → retention/export/audit policy.
 - **No silent data loss:** durable operations must be explicit, idempotent, and recoverable.
 - **No first-truck fallback** for ambiguous load assignment; ambiguity must be surfaced and reviewed.
 - **No double-count accounting:** deduplication and effective-dated settings must be protected so one expense/load contributes once to settlement and reporting.
@@ -28,8 +30,9 @@
 - **PTI is configurable, not globally mandatory**:
   - Personal PTI is optional.
   - Fleet/carrier-level policy may require PTI.
-  - Scheduled weekly photo PTI is supported where configured.
-  - PTI evidence must remain linked to relevant maintenance, disputes, and service-invoice flows.
+  - Scheduled weekly PTI cadence is currently supported (`ptiSchedule`-style logic in current runtime).
+  - Durable weekly photo evidence capture/linkage is required as an approved next-step domain contract.
+  - PTI evidence must remain linked to relevant maintenance, disputes, and service-invoice flows, including PTI ID, Truck/VIN, Driver, timestamp, odometer, checklist section, photo, defect state, and repair resolution evidence.
 
 ## 4) Product architecture direction
 
@@ -41,7 +44,10 @@
 ## 5) UI and portal status
 
 - Existing monolithic `index.html` is accepted as technical debt and must be preserved for compatibility until a sanctioned decomposition plan is approved.
-- Marketplace/Truckpedia/community-style concepts are **explicitly deferred** until canonical product sequencing authorizes implementation.
+- Links remains active through technical container `page-community` + `renderCommunity()` and must not be removed until Links has safe extraction and contract tests.
+- Marketplace/Truckpedia/community-style concepts are **explicitly separated** as legacy shell vs future concept:
+  - **Legacy UI shell:** keep as deprecated/deferred.
+  - **Future ecosystem concepts:** not deprecation-only; still pending strategic decision and product sequencing.
 
 ## 6) Explicitly out-of-contract in this slice
 

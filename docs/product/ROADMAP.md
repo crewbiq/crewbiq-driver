@@ -28,19 +28,25 @@
 ## Phase 2 — Document Vault + Evidence Foundation (PLANNED)
 
 1. Implement/complete source evidence retention for OCR imports and service documents.
+   - Registry rows: **Document Vault**, **OCR**.
+2. Explicitly mark `Document Vault` as implemented-missing in canonical inventory until hash/provenance/object-store pipeline is delivered.
    - Registry row: **Document Vault**.
-2. Tie OCR and maintenance ingestion to immutable source IDs and lineage markers.
+3. Tie OCR and maintenance ingestion to immutable source IDs and lineage markers.
    - Registry row: **OCR**, **Maintenance**.
-3. Ensure all load/service workflows consume verified source IDs and avoid duplicate import accounting.
+4. Ensure all load/service workflows consume verified source IDs and avoid duplicate import accounting.
    - Registry row: **OCR**, **Service Invoice**, **Expenses**, **Disputes**.
 
 ## Phase 3 — PTI Evidence + Compliance (PLANNED)
 
-1. Remove global mandatory PTI assumptions; enforce configurable workspace/fleet policy.
-   - Registry row: **PTI**, **Weekly photo PTI**.
-2. Require PTI linkage to relevant maintenance and repair evidence journeys.
+1. Preserve existing weekly PTI scheduling implementation (`ptiSchedule`) as a baseline.
+   - Registry rows: **PTI**, **Weekly PTI Scheduling**.
+2. Remove global mandatory PTI assumptions; enforce configurable workspace/fleet policy.
+   - Registry rows: **PTI**, **Weekly PTI Scheduling**, **Weekly PTI Photo Evidence**.
+3. Implement Weekly PTI Photo Evidence (PTI ID, Truck/VIN, Driver, timestamp, odometer, section, photo, defect state, repair/resolution).
+   - Registry row: **Weekly PTI Photo Evidence**.
+4. Require PTI linkage to relevant maintenance and repair evidence journeys.
    - Registry row: **PTI**, **Maintenance**.
-3. Expand compliance review entry points for policy exceptions and dispute evidence.
+5. Expand compliance review entry points for policy exceptions and dispute evidence.
    - Registry row: **Compliance/Audit Center**, **Disputes**.
 
 ## Phase 4 — IFTA/IRP Audit-Ready Evidence (PLANNED)
@@ -66,10 +72,12 @@
 
 ## Phase 7 — Marketplace / Truckpedia / ecosystem (DEFERRED)
 
-1. Keep truck/community marketplace concepts as deferred until canonical identity and evidence layers are complete.
-   - Registry row: **Knowledge Engine / Truckpedia**, **Marketplace**, **Community**.
-2. Revisit only after explicit product owner approval in subsequent slices.
-   - Registry row: **Knowledge Engine / Truckpedia**.
+1. Keep legacy UI shells (`page-marketplace`, related dead IA) deprecated and preserve them as historical evidence only.
+   - Registry row: **Marketplace** (legacy shell).
+2. Keep broader community/truckpedia/marketplace strategic ideas separate from dead shell status.
+   - Registry row: **Community**, **Knowledge Engine / Truckpedia**.
+3. Revisit strategic concepts only after explicit product owner approval in a later sequence.
+   - Registry row: **Knowledge Engine / Truckpedia**, **Marketplace**.
 
 ## Sequencing justification
 

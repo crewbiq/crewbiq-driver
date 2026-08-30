@@ -7,17 +7,40 @@ It reconciles legacy open work, deferred plans, and current product direction be
 
 ## Source-of-truth hierarchy
 
+### TRACK A — IMPLEMENTED BEHAVIOR TRUTH
+
+Authoritative evidence for what CrewBIQ actually does today:
+
+1. current GitHub main
+2. implementation-level tests/contracts that cover behavior
+3. verified production/staging evidence where available
+4. current architecture analysis of shipped code paths
+
+This track is used to set feature `Status`, `Current behavior`, and `Current behavior` columns in canonical tables.
+
+### TRACK B — PRODUCT INTENT TRUTH
+
+Authoritative source for what CrewBIQ is intended to become:
+
 1. `docs/product/PRODUCT_CONTRACT.md`
 2. `docs/product/FEATURE_REGISTRY.md`
-3. Current architecture/docs references in `docs/collaboration/ARCHITECTURE.md`, `docs/collaboration/DECISIONS.md`, and migration or ADR-style docs
-4. Accepted GitHub issues/PRs explicitly marked current in this repo
-5. Implementation code/tests only for historical validation
-6. Historical issues/PRs/ADR artifacts for context
-7. Chat logs / prompts / screenshots
+3. `docs/product/ROADMAP.md`
+4. accepted current product decisions/issues explicitly approved for implementation
+5. architecture target docs
+
+This track is used to set `Current approved direction`, `Next action`, and planning status.
+
+### Truth coupling rule
+
+- `Approved requirement` does **not** mean `implemented`.
+- `Implemented behavior` does **not** mean `approved long-term behavior`.
+- If an artifact conflict exists between Track A and Track B, prefer the explicit canonical Track A/Track B evidence as described above before making changes.
 
 ### Authority rule
 
-- If a historical artifact conflicts with `PRODUCT_CONTRACT.md` or `FEATURE_REGISTRY.md`, the canonical docs in this folder are binding unless a product owner explicitly approves reversal.
+- If a historical artifact conflicts with Track B requirements, Track A evidence must be checked first before reclassifying behavior. 
+- A historical artifact conflicts with Product direction only when it conflicts with both the current implementation truth and the approved intent truth.
+- If Track A and Track B disagree, classify the feature state explicitly and request a product decision rather than inferring behavior from prose alone.
 
 ## Document states and ownership
 
@@ -33,6 +56,7 @@ It reconciles legacy open work, deferred plans, and current product direction be
 ## Reconciliation policy
 
 - Old feature proposals and draft PRs are retained for history and should be linked, not hidden or closed by this slice.
+- Historical material is evidence only until canonicalized here.
 - Supersession/deprecation must be explained with evidence, including:
   - why the old approach existed
   - what supersedes it

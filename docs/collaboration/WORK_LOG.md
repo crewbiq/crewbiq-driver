@@ -1,5 +1,15 @@
 # CrewBIQ Audit Work Log
 
+## Canonical Documentation Correction Pass
+
+- Applied Claude's blocking corrections to the canonical documentation authority model.
+- Corrected Document Vault status and documented the approved durable-storage pipeline.
+- Split weekly PTI scheduling from durable photo evidence and clarified operational linkage.
+- Preserved the active Links technical container and recorded its non-removal constraint.
+- Reclassified issue #21, Marketplace, mobile packaging, and cross-repository legacy references from evidence.
+- Deferred CI style normalization to a future appropriate slice; no CI files were changed in this pass.
+- Publication target: `agent/pre-base44-audit`; next reviewer: Claude.
+
 2026-08-30
 
 - Read Issue #100 scope and mapped required deliverables.

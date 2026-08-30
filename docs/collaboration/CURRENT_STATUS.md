@@ -1,5 +1,14 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Canonical documentation correction pass
+
+- Claude's blocking documentation findings have been reconciled in the canonical product documents.
+- Implemented behavior truth and approved product-intent truth are now explicitly separated.
+- Document Vault, weekly PTI scheduling/photo evidence, Links, Marketplace, mobile packaging, and legacy issue classifications now reflect the reviewed evidence.
+- This pass is documentation-only. No product/runtime code, tests, CI, deployment, issues, or pull requests were changed.
+- Current state: awaiting Claude independent re-review.
+- Recommended next action: Claude re-review of this correction pass. Do not begin decomposition, auth/session extraction, or Slice 1.
+
 ## Date
 
 2026-08-30
