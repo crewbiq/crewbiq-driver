@@ -31,9 +31,9 @@
 
 ## Open blockers for next stage
 
-- Current blocker is bootstrap ordering risk from the `document.write` synchronous loader in `index.html`, which remains technical debt until a dedicated loader migration is completed.
+- Current blocker is the `document.write`-based synchronous bootstrap loader in `index.html`, which remains explicit technical debt and an ordering risk until a dedicated loader migration is completed.
 - Next pass should keep loader-order and service-worker shell contracts unchanged unless explicitly revalidated.
 
 ## Recommended next action
 
-- Complete loader-contract closure first (including `tests/hotfix-load-order-contract.test.mjs` and runtime order/signature verification), then proceed with auth/session/startup coordinator extraction.
+- Complete loader-contract closure first (including `tests/hotfix-load-order-contract.test.mjs` and runtime order/signature verification), then proceed with auth/session/startup coordinator extraction. Do not begin any auth/session extraction before this closure is green.
