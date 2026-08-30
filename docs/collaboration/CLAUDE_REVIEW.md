@@ -391,3 +391,74 @@ Three independent, mutually-reinforcing protections were added: (1) `PRODUCT_CON
 
 **NO-GO**, unchanged. This remains a documentation-only correction/re-review cycle. Recommend one more small, targeted correction commit (Issue #90 and PR #91 rows only) before treating `docs/product/*` as the closed documentation gate, and before any Slice 1 (auth/session) or `ROADMAP.md` Phase 1 execution begins.
 
+---
+
+## Slice 1A Independent Review — 2026-08-30
+
+Reviewer: Claude. Implementation commit under review: `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed` (`c8aaf45`). State commit: `1884d1095d71decbb096983ca82933cf4e8680a5`. Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` (unchanged since prior reviews). Method: read every function the new `docs/collaboration/AUTH_SESSION_STARTUP_CONTRACT.md` and `tests/auth-session-startup-contract.test.mjs` cite, in full, directly from `main`'s `index.html` and `core-runtime.js` via `gh api`, and compared source text byte-for-byte against every specific claim (function bodies, call order, exact string literals) rather than trusting the document's prose.
+
+### VERDICT: **ACCEPT**
+
+This is an unusually well-executed slice. Every specific, checkable claim in the contract and the test file was verified to match `main` exactly.
+
+### 1. No runtime/product files changed — CONFIRMED
+
+Commit file list: `docs/collaboration/{AUTH_SESSION_STARTUP_CONTRACT,CURRENT_STATUS,HANDOFF,WORK_LOG}.md`, `package.json` (one line, test-list addition only), `tests/auth-session-startup-contract.test.mjs`. No `index.html`, `core.js`, `core-runtime.js`, any hotfix file, `sw.js`, or workflow file appears in the diff.
+
+### 2. Contract accuracy — verified line-by-line against `main`
+
+Directly read and byte-compared against the actual source:
+- **Startup init sequence** (§1): `runLaunchCleanResetOnce(); migrateStorage(); loadAll(); initSync(); initPTI(); initLoads();` … `applyRoleUI();` … then the `getSavedSessionToken()` branch calling `restoreSession({sessionToken:_savedSession, syncUrl:_savedUrl || driver.syncUrl, silent:true}).catch(...).finally(() => boot())`, else `setFleetRestoreSettled(true); boot();` — **matches `index.html` lines 6958–6994 exactly**, including the exact `else` branch.
+- **`restoreSession()`** (§2): `setFleetRestoreSettled(false)` → token/sync-URL resolution → throw on missing token → `authPost('auth_restore', ...)` → `applyAuthRestoreData` → conditional `restoreFleetConfigFromOrchestrator(driver.crewId)` → `saveAll(); saveDriverProfile(); renderAll(); setFleetRestoreSettled(true)` — **matches `index.html:2373-2389` exactly**, condition included (`driver.crewId && (!loadTrucks().length || !loadDriverProfiles().length)`).
+- **`boot()`/`showApp()`** (§1, §6): setup-screen early return, then `if(needsPTI()){ showPTIBlocker(); } else { showApp(); }` — **matches `index.html:2563-2589` exactly**.
+- **`logoutDevice()`** (§7): confirmation → `registerAccountId(...)` → `importLegacyPaySettingsIntoScope()` with quarantine-failure abort → best-effort `auth_logout` → selective clear (`removeItem('driver')`, `clearSessionToken()`) while preserving `_savedSyncUrl`, `_savedPtiSched`, and fleet-config keys → `location.reload()` — **matches `index.html:2502-2547` exactly**, including the quarantine-abort branch the contract calls out.
+- **`activeTrucks()[0]` fallback** (§14): `getDefaultTruck(){ return findTruckByIdOrUnit(driver && driver.unitNumber) || activeTrucks()[0] || null; }` — **matches `index.html:4578-4579` exactly, verbatim**.
+- **Role persistence** (§4): `core-runtime.js` sets `authUser`/`authRoles`/`userRole` (`localStorage.setItem(K+'userRole', authorizedUiRole(safeRoles))`) — **matches `core-runtime.js:236-238` exactly**.
+- **No `sessionStorage` dependency** (§10): confirmed zero occurrences of `sessionStorage` in both `index.html` and `core-runtime.js`.
+
+No claim I checked was wrong, imprecise, or unsupported. This is a materially higher bar of self-verification than the Slice 0 hotfix-contract doc needed to clear (that one had 18 simple string-order facts; this one required tracing five separate control-flow functions).
+
+### 3. Evidence-label accuracy — honest, no false confidence
+
+Every claim about actual browser-visible, backend-authenticated, or installed-PWA behavior is correctly labeled `E2E_REQUIRED` or `STAGING_REQUIRED`, never asserted as proven. The document is explicit that the new test is `STATIC_CONTRACT` only ("runtime outcome is not proven") and separately lists, in §15, exactly what is *not yet* protected by meaningful runtime evidence (installed offline cold start, browser-visible expired-session handling, complete role restoration after cold restore, corrected ambiguity handling) — this is precisely the anti-false-confidence discipline item 7 of this task asked to verify, and it's done correctly. The disposition taxonomy (`PRESERVE_IN_EXTRACTION` / `KNOWN_UNSAFE_CURRENT_BEHAVIOR` / `UNKNOWN / NEEDS_RUNTIME_VERIFICATION`) is applied consistently — nothing is marked `PRESERVE_IN_EXTRACTION` that should be `UNKNOWN`, and nothing risky is quietly folded into `PRESERVE_IN_EXTRACTION`.
+
+### 4. Disposition of `activeTrucks()[0]` — correctly isolated
+
+Explicitly labeled `KNOWN_UNSAFE_CURRENT_BEHAVIOR` (§14), explicitly excluded from the `PRESERVE_IN_EXTRACTION` invariant list (§16: *"The ambiguous first-truck fallback is explicitly excluded from preservation. The corrected invariant is: no first-truck fallback for ambiguous ownership or assignment"*), and explicitly named as the Slice 1B blocker (§17). This directly extends `PRODUCT_CONTRACT.md`'s existing "no first-truck fallback for ambiguous load assignment" invariant to truck default-selection — a consistent generalization, not a new or contradictory rule.
+
+### 5. Test adequacy — proves exactly what it claims, no more
+
+`tests/auth-session-startup-contract.test.mjs` uses source-slicing (`section()`) and ordered-marker assertions (`assertOrdered()`) against literal strings pulled from `index.html` — the same "bare script + `node:test`" pattern already used by `driver_projections.test.mjs` and siblings, and it correctly imports `test` from `node:test` (unlike the Slice 0 hotfix test, which used the same convention without the import — this one gets the convention right). All 5 assertions were independently re-derived from the real source during this review and matched. The test proves **source-order and literal-presence facts only** — it cannot and does not claim to prove browser-visible outcomes, which the contract doc correctly defers to `E2E_REQUIRED`/`STAGING_REQUIRED`. No false confidence is created.
+
+### 6. CI/npm wiring — confirmed
+
+`package.json`'s `test:e2e:tooling` now includes `tests/auth-session-startup-contract.test.mjs` (verified directly in the diff and via `gh api` on the commit). Unlike the Slice 0 hotfix test, this one is wired in from the same commit that introduces it — no follow-up "0b-style" closure needed.
+
+### 7. Non-blocking findings
+
+- **A relevant existing code comment isn't surfaced in the contract.** `logoutDevice()` in `index.html` (lines 2504-2516, unchanged by this slice) contains a prior-review comment noting that `applyAuthRestoreData()`'s "switch" identity-transition classification never actually fires in the shipped UI — only "initial" does, because `logoutDevice()` clears `driver` and reloads before any next login can run in the same in-memory call chain. `AUTH_SESSION_STARTUP_CONTRACT.md` §3 states account switches "do not carry the previous driver's local fields... into the incoming account," which remains true in observable outcome, but doesn't mention that this happens via the *only reachable path* ("initial"), not via a working "switch" path. Doesn't affect the contract's correctness, but a future extraction agent relying on this document to reason about identity-transition code should know the "switch" branch is effectively dead code today.
+- Cosmetic only: §16's restated first-truck-fallback invariant doesn't cross-reference `PRODUCT_CONTRACT.md`'s existing wording verbatim, though the substance is a faithful, non-contradictory extension of it.
+
+### Unsafe-behavior inventory (as documented, independently re-confirmed)
+
+| Item | Status | My assessment |
+| --- | --- | --- |
+| `activeTrucks()[0]` ambiguous first-truck fallback | `KNOWN_UNSAFE_CURRENT_BEHAVIOR`, blocks Slice 1B | Confirmed real, confirmed correctly classified, confirmed correctly blocking. |
+| `runLaunchCleanResetOnce()` one-time reset | `UNKNOWN / NEEDS_RUNTIME_VERIFICATION` | Reasonable — installed-client/interrupted-storage outcomes genuinely aren't provable from source alone. |
+| Generic session-failure path doesn't distinguish expired vs. transient, doesn't clear token | `UNKNOWN / NEEDS_RUNTIME_VERIFICATION` (non-destructive behavior itself is `PRESERVE_IN_EXTRACTION`) | Reasonable classification — this is a UX/reliability gap, not a confirmed cross-account or accounting hazard, so `UNKNOWN` rather than `KNOWN_UNSAFE` is the right call; I found no evidence it should be escalated to a Slice 1B blocker. |
+| Dead "switch" identity-transition branch (see non-blocking findings) | Not mentioned in contract | Worth noting for a future slice, not a blocker — the corresponding user-visible invariant (no cross-account data carryover) is independently true via the "initial" path. |
+
+No additional unsafe current behavior was found during this review that should block Slice 1B beyond what the contract already identifies.
+
+### Whether Slice 1A can close
+
+**Yes.** Documentation-only (plus one net-new test and its wiring), zero runtime/product changes, every specific claim independently verified against `main`, evidence labels honestly applied, and the one known-unsafe behavior correctly isolated rather than preserved.
+
+### Whether Slice 1A.1 is the correct next step
+
+**Yes.** Removing the ambiguous first-truck fallback with explicit ambiguity handling and corrected-behavior contract tests is a small, well-bounded, safety-improving change consistent with `PRODUCT_CONTRACT.md`'s existing "no first-truck fallback" invariant, and it's the one concrete blocker this slice identified.
+
+### Whether Slice 1B must remain blocked
+
+**Yes**, until Slice 1A.1 lands and is independently re-reviewed. No other finding in this review adds a new blocker beyond `AMBIGUOUS_FIRST_TRUCK_FALLBACK`.
+
