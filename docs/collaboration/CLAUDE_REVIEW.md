@@ -193,3 +193,140 @@ Files changed in `6c32cd7`: `docs/collaboration/{ARCHITECTURE,CURRENT_STATUS,FUN
 
 **Slice 0b (closing, not new): wire `tests/hotfix-load-order-contract.test.mjs` into CI** (`pwa-auth-contract.yml` run step + path filter, or `package.json` `test:e2e:tooling`) **and reconcile `CURRENT_STATUS.md`'s recommendation with `FUNCTIONAL_AUDIT.md`'s revised order.** No other files should change. Only once this lands and is confirmed by re-review should Slice 1 (auth/session/startup extraction, per the now-corrected priority order) begin.
 
+---
+
+## Canonical Documentation Reconciliation Review — 2026-08-30
+
+Reviewer: Claude. Product truth: GitHub `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418`, cross-checked with live `main` re-fetches for `pti.js`, `manifest.json`, `package.json`, and `.github/workflows/*` during this pass. Codex commit under review: `e8822806713d2c3644880d1c88f3c603ffe7e029` on `agent/pre-base44-audit` (docs-only: all 6 `docs/product/*` files added, no other file touched — confirmed via commit file list). Also independently re-verified the Slice 0/0b CI-wiring status referenced in `COLLABORATION_STATE.md`.
+
+### VERDICT: **NEEDS FIX**
+
+All 6 required canonical docs exist (`PRODUCT_CONTRACT.md`, `FEATURE_REGISTRY.md`, `ROADMAP.md`, `DEPRECATED_DECISIONS.md`, `DOCUMENTATION_AUTHORITY.md`, `LEGACY_ARTIFACT_MATRIX.md`). The reconciliation work is substantially sound — every one of the ~17 GitHub issue citations (across `crewbiq-driver`, `crewbiq-docs`, `crewbiq-orchestrator`) and ~13 PR citations checked against live GitHub state were accurate (correct numbers, titles, open/closed/merged/draft states). But two of the five explicitly-flagged hotspots (Document Vault, Weekly photo PTI) are genuinely overstated relative to runtime evidence, one hotspot (Community) still contains the exact factual claim the task warned could cause future harm, and the authority-hierarchy document doesn't yet encode the safeguard that would have caught the first two.
+
+### 1. Blocking findings
+
+**B1 — Document Vault: CODEX CLASSIFICATION IN_PROGRESS is not supportable.**
+- CODEX CLAIM: `FEATURE_REGISTRY.md` "Document Vault" row — Status `IN_PROGRESS`, current behavior "required by policy, not fully implemented in current runtime."
+- CURRENT EVIDENCE: `index.html` (main) lines 5583 and 5594 display, verbatim, to the user: *"Review every field. OCR can be wrong. Fuel Log entries will be created per transaction. File is not stored."* and *"not stored"* — for every OCR document type (fuel invoice, BOL, receipt, service invoice). No object storage, hash, or provenance field exists adjacent to this flow. Implementation is 0%, not partial.
+- YOUR VERDICT: Misclassified. `IN_PROGRESS` implies partial implementation exists; none does. This is an approved *requirement* with zero *implementation* — the two are being conflated.
+- RISK: A future agent reading `IN_PROGRESS` could assume there's existing Document Vault code to extend or preserve during decomposition, when in fact this is 100% new-build work with an active behavioral contradiction (the UI explicitly promises non-retention) that must be changed.
+- RECOMMENDED RESOLUTION: Change status to `PLANNED` (the closest fit in the allowed vocabulary; there is no `MISSING` state) and add an explicit note: "current runtime: 0% implemented; UI explicitly discards source files (see `index.html:5583,5594`)."
+
+**B2 — "Weekly photo PTI": the row's two halves have different implementation states, hidden behind one status.**
+- CODEX CLAIM: `FEATURE_REGISTRY.md` "Weekly photo PTI" row — Status `IN_PROGRESS`, "support exists in partial flows."
+- CURRENT EVIDENCE: `pti.js` (main) genuinely implements a working weekly-schedule mechanism: a per-driver `ptiSchedule` setting (`daily`/`weekly`), Monday auto-detection (`new Date().getDay() === 1`), a `DEFAULT_WEEKLY` checklist array, a dedicated `ptiWeeklySection` UI block, and a `type: useWeekly ? 'weekly' : 'daily'` marker persisted on each PTI record. This part of "IN_PROGRESS" is accurate and, if anything, more built than the original review assumed. However: `pti.js` and the PTI page section contain **zero occurrences** of `photo`, `camera`, or `image`. There is no photo-capture code anywhere in the PTI flow, and no `defect`/`repair` status fields either — only odometer capture and pass/fail checklist items exist.
+- YOUR VERDICT: Partially misclassified. The row name is "Weekly **photo** PTI," and the single `IN_PROGRESS` status implies the whole named feature — including the photo evidence half, which is the actually novel/harder part of the future requirement — has begun. It hasn't; the photo-binding chain (photo↔defect↔repair/resolution) is 0% implemented. Only the scheduling half is real.
+- RISK: Same failure mode as B1 — a future agent could treat "photo evidence capture" as already-started work to extend, when it needs to be built from nothing, on top of the (real) Document Vault gap in B1, since PTI photos are exactly the evidence type Document Vault must retain.
+- RECOMMENDED RESOLUTION: Split into two registry lines (or a footnote): "PTI weekly schedule: `IN_PROGRESS`, confirmed in `pti.js` (`ptiSchedule`, Monday auto-detect, `DEFAULT_WEEKLY`)" and "PTI photo evidence capture: `PLANNED`, 0% implemented, depends on Document Vault (B1)."
+
+**B3 — "Community" row still states the exact false claim the task named as a hazard.**
+- CODEX CLAIM: `FEATURE_REGISTRY.md` "Community" row — Status `DEPRECATED`, current behavior: "no active community surface in runtime."
+- CURRENT EVIDENCE: `index.html` (main): the nav nodes `{page:'community', icon:'🔗', label:'Links'}` appear in all three role menus (driver/owner_op/fleet); `<div id="page-community" class="page">` (line 1048) is the DOM container; `if(name==='community') renderCommunity();` (line 2667) is the router dispatch; `renderCommunity()` (line 5953) is the actual Links-rendering function, backed by `loadCLinks()`/`saveCLinks()`. The page ID `community` **is** the live technical container for the `ACTIVE`-classified "Links" feature in the very same registry table. "No active community surface in runtime" is factually false — the surface is active every time a user opens Links.
+- YOUR VERDICT: Misclassified claim (not the status label itself — `Links` is correctly `ACTIVE` two rows above — but the Community row's factual description). Note: `DEPRECATED_DECISIONS.md`'s "Abandoned IA pages" list correctly does **not** include `page-community` alongside `page-work`/`page-truck`/`page-money`/`page-team`/`page-marketplace` — that part was handled correctly. The error is confined to the Community row's own "current behavior" text.
+- RISK: Exactly as the task anticipated — an agent optimizing on the Community row alone, without cross-referencing the Links row, could remove or gut `page-community`/`renderCommunity()`/the `community` router branch believing it dead code, which would delete the live Links feature.
+- RECOMMENDED RESOLUTION: Rewrite the Community row's "current behavior" to something like: "The historical 'social/community' product concept is deprecated; the `page-community` DOM container, `renderCommunity()` function, and `community` router branch are **not** dead — they are the current live implementation of the `ACTIVE` Links feature (see Links row) and must not be removed or altered as part of deprecating the community concept."
+
+**B4 — `DOCUMENTATION_AUTHORITY.md` doesn't separate "product intent" from "implemented behavior," which is the root cause of B1–B2.**
+- CODEX CLAIM: Source-of-truth hierarchy ranks `PRODUCT_CONTRACT.md`/`FEATURE_REGISTRY.md` at positions 1–2 and "implementation code/tests" at position 5, "for historical validation," with an "Authority rule" that canonical docs are binding over historical artifacts unless a product owner reverses them.
+- CURRENT EVIDENCE: As written, this hierarchy gives no special standing to code as evidence of *current implemented behavior* — only as a historical artifact, ranked below issues/PRs. That framing is exactly consistent with how Document Vault and Weekly-photo-PTI ended up overstated: the docs' stated intent was trusted for an implementation-state field without a code re-check being structurally required.
+- YOUR VERDICT: Gap confirmed — the task's requested distinction is genuinely absent from the document.
+- RISK: Without this split, every future FEATURE_REGISTRY update risks the same conflation, and any future agent following `DOCUMENTATION_AUTHORITY.md` literally would be justified in preferring a stale doc-claimed status over contradicting code.
+- RECOMMENDED RESOLUTION: Add an explicit two-track authority split, as specified in this review's source task: **PRODUCT INTENT authority** = `PRODUCT_CONTRACT.md`/`FEATURE_REGISTRY.md` "current approved direction" column; **IMPLEMENTED BEHAVIOR authority** = current `main` + tests + production evidence, which must independently back any `ACTIVE`/`IN_PROGRESS` status claim in the "current behavior" column. Historical intent (issues/PRs/ADRs/old docs) stays context, not evidence of either.
+
+### 2. Non-blocking findings
+
+- **Marketplace status/label mismatch.** Status is `DEPRECATED`, but the row's own "current approved direction" text ("defer Marketplace as exploratory until crewbiq.com governance is finalized") reads as deferred-but-revivable, closer to `NEEDS_DECISION` or a qualified `PLANNED`. The content is accurate (matches the confirmed-orphaned `page-marketplace`); only the status enum choice slightly undersells that this may return as a strategic direction. Low severity — recommend re-labeling or adding "current implementation: `ABANDONED`; future concept: `NEEDS_DECISION`" as two facets of one row.
+- **Mobile packaging: no explicit native-packaging disclaimer.** Confirmed via `manifest.json` (PWA manifest only) and `package.json` (no Capacitor/Cordova/Android/iOS/Gradle/Xcode dependency or config anywhere in the repo tree) that this is PWA-only. The row's own wording ("mobile-adjacent packaging behavior") is appropriately hedged and not itself false, but doesn't explicitly rule out native app-store readiness, which a future agent could over-read into `ACTIVE`. Recommend appending: "PWA-only; no native Android/iOS store packaging pipeline exists in this repo."
+- **`LEGACY_ARTIFACT_MATRIX.md` omits `crewbiq-docs` issue #29** ("Epic: CrewBIQ Knowledge Engine and Truckpedia," open — verified), even though `FEATURE_REGISTRY.md`'s Knowledge Engine/Truckpedia row cites "crewbiq-docs issues #29/#31/#30." The matrix table only lists #32/#31/#30. Minor citation gap, easy fix.
+- **CI style inconsistency (Slice 0b follow-through, not this commit):** re-verified independently that `tests/hotfix-load-order-contract.test.mjs` IS now wired into both `package.json`'s `test:e2e:tooling` and `.github/workflows/pwa-auth-contract.yml` (path filters + a `run:` step) on `agent/pre-base44-audit` — this resolves the blocking finding from my previous review. However, its run step uses `node --test tests/hotfix-load-order-contract.test.mjs`, while every sibling bare-script contract test in the same workflow uses plain `node tests/x.test.mjs` (no `--test` flag). Functionally both fail correctly on an assertion error, but this is a style inconsistency worth normalizing.
+
+### 3. Misclassified features
+
+Document Vault (B1), Weekly photo PTI (B2, partial — the schedule half is correctly classified, the photo half is not), Community (B3, factual-claim error not status-label error). No other rows in the 30-row `FEATURE_REGISTRY.md` table were found to be misclassified against the evidence checked (Launch/Auth, CrewBIQ ID, Loads, PTI, Expenses, Fuel/DEF, OCR, Maintenance, Service Invoice, Trucks, Drivers, Team, Company/Carrier/Settlement, Deductions, Disputes, Fleet Overview, Real Net, Reports, Offline/sync, Backup/export/import, Compliance/Audit Center, IFTA/IRP, crewbiq.com, SIDR Core, Base44 redesign path all check out against their cited issue/PR evidence and, where checkable, against actual code).
+
+### 4. Missing legacy artifacts
+
+- `crewbiq-docs` issue #29 (Truckpedia epic) — see non-blocking findings.
+- No other missing citations found; the issue/PR reference set is otherwise thorough (17 issues + 13 PRs spot-checked, all accurate).
+
+### 5. Unsafe supersession/deprecation decisions
+
+- The Community row (B3) is the one genuinely unsafe deprecation-adjacent claim — not because "Links = ACTIVE / Community = DEPRECATED" is the wrong call (it's the right distinction to draw), but because the supporting "current behavior" sentence contradicts the live code and could mislead a future edit. No other deprecation in `DEPRECATED_DECISIONS.md` (fabricated module maps, mandatory-PTI assumption, first-truck fallback, SW-version-as-behavior-key, abandoned IA pages, direct-AI-to-DB pattern, mandatory-Base44 assumption, monolith-as-blocker assumption, docs-fragments-as-plan assumption) was found to be unsafe — all correctly cite what superseded them and what evidence now governs.
+
+### 6. Items correctly reconciled
+
+- Fabricated module-map artifacts from the original review are properly retired with accurate rationale in `DEPRECATED_DECISIONS.md`.
+- "Original OCR file remains unstored" is explicitly and correctly marked superseded by the Document Vault direction (task hotspot #4) — done properly, independent of the B1 status-field issue above.
+- `page-team` correctly identified as dead orphaned UI, cleanly distinguished from the still-valid workspace/capability governance model — unlike Community, `page-team` genuinely has zero live callers, so no landmine here.
+- Issue #21 correctly separates the still-valid accounting single-count requirement from the superseded source-retention assumption (task hotspot #6) — done properly.
+- Issue #97 (maintenance provenance, this repo) is kept distinct from the separate `crewbiq-docs` Truckpedia epic, avoiding a parallel/incompatible evidence model (task hotspot #8).
+- IFTA/IRP, SIDR Core, and crewbiq.com Personal Cabinet are all classified `PLANNED`, not overstated — matches the repo evidence (no jurisdiction-mile/GPS-source/IFTA-quarter code, no SIDR API surface, no crewbiq.com-specific data layer found in this repo).
+- `ROADMAP.md`'s phase sequencing (Phase 0 doc/loader stabilization → Phase 1 baseline preservation → Phase 2 Document Vault/evidence → Phase 3 PTI/compliance → Phase 4 IFTA/IRP → Phase 5 crewbiq.com → Phase 6 SIDR → Phase 7 Marketplace/Truckpedia) matches the dependency order this review's own prior sections recommended, and invents no implementation dates.
+- Slice 0/0b CI-wiring closure claimed in `COLLABORATION_STATE.md` was independently re-verified as **true** on `agent/pre-base44-audit` (see non-blocking findings) — the blocking finding from my previous review is now resolved.
+
+### 7. NEEDS_PRODUCT_DECISION list
+
+- Issue #90 / PR #91 (Base44-inspired UI refresh) — whether/when to resume, under the Base44-optional contract.
+- `crewbiq-docs` #32 (crewbiq.com production domain/hosting/service boundaries).
+- `crewbiq-docs` #31 (Restore CrewBIQ Bot as governed SIDR).
+- `crewbiq-orchestrator` #2 (read-only AI Auditor) — AI governance model decision.
+- Knowledge Engine/Truckpedia cross-repo ownership boundary (`crewbiq-driver` #97 vs. `crewbiq-docs` #29/#30/#31).
+- Marketplace status framing (see non-blocking findings) — whether it's a closed door or a deferred strategic direction.
+
+### 8. Recommended corrections
+
+1. Document Vault status: `IN_PROGRESS` → `PLANNED`, with an explicit "0% implemented" evidence note (B1).
+2. Split or footnote "Weekly photo PTI" into schedule (`IN_PROGRESS`, real) vs. photo evidence capture (`PLANNED`, 0% implemented) (B2).
+3. Rewrite the Community row's "current behavior" text to explicitly protect the live `page-community`/`renderCommunity()` implementation from being read as dead code (B3).
+4. Add the PRODUCT INTENT vs. IMPLEMENTED BEHAVIOR two-track authority split to `DOCUMENTATION_AUTHORITY.md` (B4).
+5. Add a "PWA-only, no native store packaging" disclaimer to the Mobile packaging row.
+6. Add `crewbiq-docs` #29 to `LEGACY_ARTIFACT_MATRIX.md`.
+7. Re-examine Marketplace's status enum choice (`DEPRECATED` vs. `NEEDS_DECISION`/qualified `PLANNED`).
+8. Normalize the hotfix-load-order-contract CI step to plain `node tests/hotfix-load-order-contract.test.mjs` for consistency (cosmetic).
+
+### 9. Can canonical docs now become source of truth?
+
+**Not yet, but close.** The framework (`DOCUMENTATION_AUTHORITY.md`'s hierarchy plus the registry/roadmap/deprecated-decisions structure) is sound in design, and the large majority of content — every spot-checked issue/PR citation, most status classifications, the deprecation rationale, the roadmap sequencing — is accurate and re-verifiable. But B1–B4 are load-bearing enough that treating `docs/product/*` as fully binding today carries real risk: exactly the failure mode `DOCUMENTATION_AUTHORITY.md`'s current hierarchy invites (trusting doc-claimed implementation status over code) is what produced B1 and B2. Once corrections 1–4 land, this package is in good shape to serve as source of truth.
+
+### 10. GO / NO-GO for the first real decomposition slice
+
+**NO-GO**, unchanged from the original review. This was a documentation-only reconciliation slice; it doesn't alter the underlying `index.html`/hotfix-loader risk profile. Additionally, Phase 1 of `ROADMAP.md` ("Preserve Safe Runtime Baseline") should not begin execution while Document Vault's status is overstated (B1), since baseline-preservation work needs an accurate picture of what exists to preserve versus what must be built new.
+
+---
+
+## Canonical Documentation Reconciliation Review — Addendum (2026-08-30, re-review)
+
+Reviewer: Claude. Same target as the section above: commit `e8822806713d2c3644880d1c88f3c603ffe7e029` (docs/product/* on `agent/pre-base44-audit`). Re-confirmed via blob-SHA comparison that these six files are byte-identical to what was reviewed above — no new commit has landed. This addendum stands on the analysis above and adds one new item this pass was asked to check directly: **Issue #90**.
+
+### VERDICT: **NEEDS FIX** (unchanged)
+
+The findings B1–B4 and all non-blocking items from the section above still apply in full; see that section for the complete evidence trail (Document Vault, Weekly photo PTI, Community, `DOCUMENTATION_AUTHORITY.md`). This addendum does not repeat that evidence — it stands as reviewed. One additional finding follows from directly reading Issue #90 and PR #91's full text, which the prior pass had only checked for open/closed state, not content.
+
+### New finding — B5: Issue #90 / PR #91 are misclassified as `DEPRECATE`-recommended in `LEGACY_ARTIFACT_MATRIX.md`
+
+- CODEX CLAIM: `LEGACY_ARTIFACT_MATRIX.md` — "Issue #90 — Base44-inspired UI refresh," Status `NEEDS_DECISION`, recommended action `DEPRECATE`; "PR #91 — Begin Base44-inspired UI refresh," Status `DEPRECATED`, recommended action `DEPRECATE`. Both rows justify this via "Conflicts with Base44 optionality rule" / "Conflicts with optionality contract."
+- CURRENT EVIDENCE: Read both artifacts in full via `gh api`. Issue #90's own text: *"Apply the Base44-inspired visual direction approved by the product owner to the existing CrewBIQ Driver PWA"* with an explicit **"Non-negotiable guardrails"** section: preserve all data/localStorage migrations, CrewBIQ ID, orchestrator sync, offline-first behavior, Company/Truck/Driver model, payroll/deductions/dispute/settlement/report logic, and *"Do not introduce parallel entities or a second application architecture."* PR #91's body states it *"Kept all data, storage, calculations, sync, identity, and offline logic untouched"* and lists guardrails matching the issue almost verbatim, closing with *"Closes #90 when the full visual refresh and validation are complete."* Both are open (issue) / open-draft (PR) — verified live.
+- YOUR VERDICT: Misclassified. Issue #90 and PR #91 do not conflict with the "Base44 is optional, not mandatory architecture" contract — they are the correctly-scoped, guardrailed *implementation* of that exact contract (visual layer only, explicit non-architecture-change guardrails, product-owner-approved). Recommending `DEPRECATE` for genuinely valid, open, in-guardrail work conflates it with the separate (and correctly deprecated) *old assumption* that Base44 must become mandatory runtime architecture — the same "old assumption vs. current live thing" conflation pattern as finding B3 (Community/Links), just in the design-direction domain instead of the runtime-code domain.
+- RISK: A future agent following `LEGACY_ARTIFACT_MATRIX.md` literally could close Issue #90 or abandon PR #91 as "deprecated," discarding real, already-guardrailed, product-owner-approved visual-refresh work that this same documentation set (`PRODUCT_CONTRACT.md` §5, `FEATURE_REGISTRY.md`'s own "Base44 redesign path" row) says should be *kept as an optional reference* — the opposite of closing it out.
+- RECOMMENDED RESOLUTION: Re-classify Issue #90 as `IN_PROGRESS` (open, actively scoped, guardrails already correctly encode the optionality contract) rather than `NEEDS_DECISION`/`DEPRECATE`; re-classify PR #91 as `IN_PROGRESS` (draft, consistent with contract) rather than `DEPRECATED`. Reserve `DEPRECATED` in this domain strictly for the historical *assumption* "Base44 must become mandatory runtime architecture" — which `DEPRECATED_DECISIONS.md` already correctly captures under "Base44 as mandatory runtime migration" — not for the currently-open, correctly-scoped work items that implement the corrected version of that assumption.
+
+### Consolidated output (per this task's requested format)
+
+- **ACCEPT / NEEDS FIX:** **NEEDS FIX** (5 blocking findings: B1–B5).
+- **Blocking findings:** B1 (Document Vault overstated as `IN_PROGRESS`, actually 0% implemented), B2 (Weekly photo PTI conflates a real schedule mechanism with nonexistent photo capture), B3 (Community row's "no active community surface" claim is false — it's the live Links container), B4 (`DOCUMENTATION_AUTHORITY.md` lacks the intent-vs-implementation authority split), B5 (Issue #90 / PR #91 wrongly recommended for deprecation despite being the correctly-guardrailed, contract-compliant implementation of Base44-optionality).
+- **Non-blocking findings:** Marketplace status/label undersells its own "defer, revisit later" text; Mobile packaging row lacks an explicit "PWA-only, no native store pipeline" disclaimer (confirmed via `manifest.json`/`package.json` — no Capacitor/Cordova/Android/iOS config anywhere in the repo); `LEGACY_ARTIFACT_MATRIX.md` omits `crewbiq-docs` issue #29 (Truckpedia epic, verified open) despite `FEATURE_REGISTRY.md` citing it; the hotfix-load-order-contract CI step uses `node --test` while every sibling step in the same workflow uses plain `node` (cosmetic only, both fail correctly on error).
+- **Exact rows/files requiring correction:**
+  - `docs/product/FEATURE_REGISTRY.md`: "Document Vault" row (status + evidence note), "Weekly photo PTI" row (split or footnote), "Community" row ("current behavior" text), "Mobile packaging" row (add disclaimer).
+  - `docs/product/DOCUMENTATION_AUTHORITY.md`: "Source-of-truth hierarchy" section (add the two-track split).
+  - `docs/product/LEGACY_ARTIFACT_MATRIX.md`: "Issue #90" row and "PR #91" row (status + recommended action), add missing `crewbiq-docs` #29 row.
+  - `.github/workflows/pwa-auth-contract.yml`: hotfix-load-order-contract `run:` step (cosmetic, `node --test` → `node`).
+- **Statuses recommended changing:**
+  - Document Vault: `IN_PROGRESS` → `PLANNED`.
+  - Weekly photo PTI: split into "PTI weekly schedule" (`IN_PROGRESS`, confirmed) and "PTI photo evidence capture" (`PLANNED`, 0% implemented).
+  - Community: keep `DEPRECATED` for the historical social/community *concept*, but the row text must stop asserting the technical surface is inactive.
+  - Issue #90: `NEEDS_DECISION` → `IN_PROGRESS`.
+  - PR #91: `DEPRECATED` → `IN_PROGRESS`.
+  - Marketplace: consider `DEPRECATED` → `NEEDS_DECISION` (current implementation dead, future concept undecided — see prior section).
+- **Whether canonical docs are safe to become the documentation gate:** **Not yet.** Five distinct, independently-verified factual/classification errors (B1–B5) remain uncorrected across three of the six files. The `DOCUMENTATION_AUTHORITY.md` hierarchy itself (B4) is the structural reason these kinds of errors can occur and persist — fix that first, then the specific row-level errors, before treating `docs/product/*` as binding over code/tests for implementation-state questions.
+- **Safest next bounded task after correction:** A docs-only correction commit touching exactly the rows/files listed above (no code, no tests, no CI beyond the one cosmetic line) — followed by a short re-review pass limited to confirming those specific edits, before any Slice 1 (auth/session) or Phase 1 roadmap execution begins.
+
