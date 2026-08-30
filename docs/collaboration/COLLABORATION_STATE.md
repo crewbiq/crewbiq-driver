@@ -13,17 +13,18 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Canonical Documentation Correction Pass published; awaiting Claude independent re-review.
+Canonical Documentation Re-Review COMPLETE — verdict NEEDS FIX (one residual row-level correction pending; documentation gate OPEN).
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
 - Slice 0b CI/tooling closure: CLOSED.
 - Canonical legacy/product documentation package: PUBLISHED by Codex at `e8822806713d2c3644880d1c88f3c603ffe7e029`.
-- Independent Claude reconciliation review: COMPLETE — verdict NEEDS FIX.
-- Canonical documentation correction pass: PUBLISHED by Codex at `41aeb7e`; awaiting Claude re-review.
+- Independent Claude reconciliation review: COMPLETE — verdict NEEDS FIX (B1-B5 identified).
+- Canonical documentation correction pass: PUBLISHED by Codex at `41aeb7e` — resolved B1-B4.
+- Independent Claude re-review of `41aeb7e`: COMPLETE — verdict NEEDS FIX. B5 (Issue #90 / PR #91 misclassification in `LEGACY_ARTIFACT_MATRIX.md`) remains unresolved; gate OPEN pending a two-row correction.
 
 ## Current task owner
-Claude — independently re-review the canonical documentation correction commit `41aeb7e`.
+ChatGPT (coordinator) — route the Issue #90 / PR #91 status correction to Codex, then close the documentation gate.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -82,16 +83,25 @@ Do not start the next implementation slice unless this file says the previous sl
 ### Codex — Canonical Documentation Correction Pass
 - Agent: Codex
 - Task: Canonical Documentation Correction Pass
-- Status: PUBLISHED / AWAITING CLAUDE RE-REVIEW
+- Status: REVIEWED — see Claude re-review entry below
 - Branch: `agent/pre-base44-audit`
 - Correction commit SHA: `41aeb7e`
 - Files/artifacts corrected: canonical product documentation and collaboration status/handoff/work-log records.
 - Blocking findings addressed: B1 Document Vault status and storage pipeline; B2 PTI scheduling/photo-evidence split; B3 active Links technical-container non-removal caveat; B4 two-track documentation authority.
 - Additional corrections: mobile packaging evidence disclaimer, exact `crewbiq-docs` issue #29 citation, Marketplace legacy-shell/future-concept separation, and issue #21 reconciliation.
 - CI step style normalization remains deferred to a future appropriate slice; CI was not modified.
-- Next required actor: Claude.
-- Next bounded action: independent re-review of commit `41aeb7e`. Do not begin decomposition, auth/session extraction, or Slice 1.
-- Scope confirmation: documentation only; no product/runtime code, tests, CI, deployment, issues, or pull requests changed.
+- Scope confirmation: documentation only; no product/runtime code, tests, CI, deployment, issues, or pull requests changed — independently re-verified by Claude.
+
+### Claude — Canonical Documentation Re-Review
+- Agent: Claude
+- Task: Canonical Documentation Re-Review
+- Verdict: NEEDS FIX
+- Reviewed commit: `41aeb7e` (`41aeb7ec05a4ab5a34847128ab7f08a3b1267ba7`)
+- Review commit SHA: `2ef2090b8aeefc71c0196dff6866ffe09c2d94bf` (appended re-review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Blocking findings: B1 RESOLVED. B2 RESOLVED. B3 RESOLVED. B4 RESOLVED. One residual item carried forward from the prior addendum (B5, not part of the original B1–B4 scope): `LEGACY_ARTIFACT_MATRIX.md`'s "Issue #90" and "PR #91" rows still recommend `DEPRECATE` for guardrailed, contract-compliant, currently-open Base44-visual-refresh work — status was actually moved further in the wrong direction (`NEEDS_DECISION` → `DEPRECATED`) despite this finding being published 39 minutes before the correction commit landed. Recommended fix: reclassify both rows to `IN_PROGRESS`. This is a two-row edit, not a framework-level problem.
+- Canonical documentation gate: OPEN (pending the single Issue #90 / PR #91 row correction; all other reviewed content, including two fixes beyond what was strictly asked — mobile packaging disclaimer and a pre-existing #29/#32 issue-citation mix-up — is gate-ready).
+- Next required actor: ChatGPT
+- Next bounded action: apply the Issue #90 / PR #91 status correction in `LEGACY_ARTIFACT_MATRIX.md` (docs-only, two table cells), then close the documentation gate. No code, no decomposition, no auth/session work, no Slice 1 until that lands and is confirmed.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
