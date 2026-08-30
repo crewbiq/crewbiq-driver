@@ -39,21 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Slice 2A.0 — Links URL Safety Correction
-Status: IN_PROGRESS
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Product truth: current main
-Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
-Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
-Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
-Latest state commit: a711da14d21519a850e2c34bee1dd9c43c4c0b87
-Blocking findings: UNSAFE_LINK_URL_SCHEME_ACCEPTANCE
+Latest implementation commit: 3b77e1632465a76b29d750cc0cc17635e6ac4ee7
+Latest state commit: 827f0222cc6632d7c9a5b7c11ad7b6d7547077f6
+Blocking findings: NONE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
-- cosmetic `}function boot()` formatting artifact
-Next required actor: Codex
-Next bounded action: apply bounded URL validation correction and tests
+- cosmetic }function boot() formatting artifact
+Next required actor: Claude
+Next bounded action: independent Slice 2A.0 review
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -267,3 +265,20 @@ Next bounded action: apply bounded URL validation correction and tests
 - Runtime scope: bounded Links URL validation/render safety only; no extraction.
 - Next required actor: Codex
 - Next bounded action: apply bounded URL validation correction and executable tests.
+
+### Codex — Slice 2A.0 Links URL Safety Correction published
+
+- Agent: Codex
+- Task: Slice 2A.0 — Links URL Safety Correction
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Branch: gent/pre-base44-audit
+- Implementation commit: $implementation
+- URL policy: allow HTTP, HTTPS, mailto, tg, and existing bare-domain HTTPS normalization; reject blank, executable/local, and unknown schemes.
+- Legacy behavior: unsafe persisted records remain stored unchanged but render as Unavailable without a clickable href.
+- Valid behavior: valid persisted links remain clickable and retain el="noopener noreferrer".
+- Tests: 36 passed, 0 failed, 0 skipped across URL safety, navigation shell, settings IA, index parse/composition, service-worker path, hotfix order, and Slice 1B startup contracts.
+- Cache version: crewbiq-driver-v83; rotated because cache-first index.html changed after v82 publication.
+- Extraction performed: NONE.
+- Blocking findings: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent Slice 2A.0 review.
