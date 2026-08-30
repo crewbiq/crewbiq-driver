@@ -42,10 +42,10 @@ Phase:
 Slice 4A — CrewBIQ Next UI Read-Only Visual Shell Prototype
 
 Status:
-PUBLISHED / AWAITING VISUAL REVIEW
+IN_PROGRESS
 
 Current owner:
-ChatGPT / Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - sw.js cosmetic version strings remain v1.0.84 while functional CACHE_NAME is v85
 
 Next required actor:
-ChatGPT / Product Owner
+Codex
 
 Next bounded action:
-visual review of CrewBIQ Next prototype; no production integration yet
+build portable standalone mobile visual-review package
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
