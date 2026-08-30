@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 2B — Links / clinks Runtime Extraction
+Slice 3A — Navigation / Role Menu / FUNCTION_GROUPS Behavior Contract
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main
+current main + accepted collaboration runtime extractions
 
 Latest implementation commit:
 78894780c07c1a848547302dac03ec01ba60bbd3
@@ -73,10 +73,10 @@ Queued non-blocking findings:
 - "exports namespace" test checks only 1 of 13 links.js exports directly by name
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-select and authorize next bounded decomposition slice — recommend an OCR intake transport-adapter behavior contract (scoped to transport/encode/error-handling only, not the still-open Document Vault retention question), or the lower-risk FUNCTION_GROUPS/page-menu grouping logic as an alternative first win
+map and contract-pin navigation/role/page behavior
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
