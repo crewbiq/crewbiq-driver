@@ -149,3 +149,47 @@ Codex's proposed first slice (identity/session/startup) is *already partially un
 **Conditional GO** for a narrow, non-behavioral documentation-and-test slice: writing down and testing the hotfix load-order contract (§17). This is the safest possible next action, produces the evidence every subsequent decomposition step needs, and matches the issue's "no rewrite of business logic during extraction" and "add source/behavior contracts for extracted boundaries" rules exactly — because it adds a contract without extracting anything yet.
 
 Do not begin identity/session extraction, Links extraction, or any UI-module split until the precondition in §19.1 is met.
+
+---
+
+## Addendum — 2026-08-30: Review of Slice 0 (bounded commit `6c32cd7de64f2ecd77311847485fd2e483a48448`)
+
+Reviewer: Claude. Product truth: GitHub `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` (`core.js` on `main` re-verified byte-identical to the copy read in the original review above). Commit under review: `6c32cd7` on `agent/pre-base44-audit`.
+
+### Verdict: **NEEDS FIX**
+
+Files changed in `6c32cd7`: `docs/collaboration/{ARCHITECTURE,CURRENT_STATUS,FUNCTIONAL_AUDIT,HANDOFF,HOTFIX_LOAD_ORDER_CONTRACT,README,WORK_LOG}.md`, `tests/hotfix-load-order-contract.test.mjs`. No product/runtime file (`index.html`, `core.js`, any hotfix `.js`, `sw.js`, `package.json`, `.github/workflows/*`) appears in the commit's file list. **Requirement 1 (no product/runtime code changed): confirmed.**
+
+### Verification performed
+
+- **Sequence exactness (req. 2–3):** Extracted the live `load('...')` argument list from `core.js` on `main` via regex; it is 18 entries, exact strings, exact order, and matches `HOTFIX_LOAD_ORDER_CONTRACT.md` and the updated `ARCHITECTURE.md` line-for-line. Confirmed.
+- **Dependency claims (req. 4):** Spot-checked 10 of the 18 per-file dependency claims in `HOTFIX_LOAD_ORDER_CONTRACT.md` against the actual source of each file on `main` (`core-runtime.js` → exports `CrewBIQCore`; `restore-hotfix.js` → exports `CrewBIQRestoreHotfix`; `settlement-week-hotfix.js` → exports `CrewBIQSettlementWeek`; `deduction-trip-resolution.js` → consumes `CrewBIQSettlementWeek`/`CrewBIQDeductionPolicies`; `deduction-policy-hotfix.js` → exports `CrewBIQDeductionPolicies`/`effectivePolicies`/`buildWeeklySnapshot`; `load-order-hotfix.js` → touches `CrewBIQLoads`; `ocr-hotfix.js` → uses `orchestratorTransport`; `ocr-item-alias-hotfix.js` → uses `CrewBIQInvoiceReview`/`renderScanReview`; `service-invoice-legacy-upgrade.js` → uses `CrewBIQServiceInvoice`/`saveServiceLogs`; `dispute-tombstone-hotfix.js` → uses `getDriverDisputed`/`doSync`). All confirmed present in the named files. No fabricated dependency claims found.
+- **Test correctness (req. 5):** Read `tests/hotfix-load-order-contract.test.mjs` in full. Reasoned through each required failure mode against its actual assertion logic:
+  - *Reorder* → caught by the positional `observed[i] === expected[i]` loop.
+  - *Removal* → caught by the leading `assert.equal(observed.length, expected.length)` (18 ≠ 17).
+  - *Addition* → same length check (18 ≠ 19).
+  - *Duplicate* (same length, one entry replacing another) → any duplicate that preserves length 18 necessarily shifts a later position, which the positional loop catches (the dedicated `Set`-based duplicate check is real but structurally unreachable as the *first* failure in most duplicate scenarios — cosmetic, not a correctness gap).
+  - *Missing referenced file* (string unchanged in `core.js` but the physical `.js` file deleted from the repo) → caught by the per-entry `fs.existsSync` check.
+  All five scenarios verified to fail correctly. **Confirmed.**
+- **Fabrication cleanup (req. 6):** `ARCHITECTURE.md`'s "Current module map" no longer lists `expenses.js`, `settings.js`, `company.js`, `fleet-stats.js`, or `deductions.js` (the five fabricated files flagged in the original review) — the module map now lists only files that actually exist in the repo tree. `FUNCTIONAL_AUDIT.md`'s `sw.js` citation was also corrected from the stale `v78` to the current `v79`. **Confirmed fixed.**
+- **New claims (req. 7):** No new fabricated file/function claims were introduced in this pass. One **internal inconsistency** was introduced, not a fabrication against the codebase: `CURRENT_STATUS.md`'s "Recommended next action" still reads *"Execute first slice: auth/session/startup coordinator extraction..."*, unchanged from before — but `FUNCTIONAL_AUDIT.md`'s "Safe decomposition order" in this same commit was correctly revised to put "Lock hotfix loader contract with a dedicated test and contract map" as step 1 and auth/session extraction as step 2. The two docs in the same commit now disagree on what to do next.
+
+### Blocking findings
+
+1. **The new contract test is not wired into any CI workflow or npm script.** `package.json` and every `.github/workflows/*.yml` file are unchanged in this commit. `pwa-auth-contract.yml` is the workflow that runs this exact class of bare-script contract test (e.g. `node tests/orchestrator_transport.test.mjs`) via an explicit hard-coded file list in both its path-filter trigger and its `run:` steps — `tests/hotfix-load-order-contract.test.mjs` appears in neither. `package.json`'s `test:e2e:tooling` (which uses `node --test ...`) also does not reference it. As written, the test is logically correct (see above) but **inert** — nothing invokes it, so it currently enforces nothing. This directly undercuts the stated purpose of Slice 0 ("add a smoke test... before proceeding").
+2. **Stale cross-document recommendation.** `CURRENT_STATUS.md` was not reconciled with `FUNCTIONAL_AUDIT.md`/`HANDOFF.md` in the same commit — it still points the next agent at auth/session extraction first, contradicting the corrected priority order elsewhere in this same commit set. Low severity on its own, but exactly the kind of doc drift this audit exercise exists to prevent, and it's self-inflicted within one commit.
+
+### Non-blocking findings
+
+- Test file style (bare script using `node:assert/strict`, no `node:test` wrapper) correctly matches the existing convention for this class of contract test (`tests/orchestrator_transport.test.mjs` and siblings run the same way in `pwa-auth-contract.yml`), rather than the `node --test`-discovered style used elsewhere in `tests/*.test.mjs`. Consistent with precedent — no action needed once wired in.
+- The `document.write`-based script-injection mechanism itself (flagged as a distinct hazard in the original review — blocking/deprecated API, invisible to CSP/bundler tooling) is still not named as its own risk category in the updated docs; only generic "loader contract coupling" is called out. Doesn't affect the contract's correctness, but worth carrying forward into whichever slice eventually touches `core.js`'s loading mechanism itself.
+- `HOTFIX_LOAD_ORDER_CONTRACT.md`'s "Hidden non-chain dependencies" section (`sw.js` pre-caching `core.js` + all 18 hotfix files) was not independently re-verified line-by-line against `sw.js` in this pass; flagged as a residual UNKNOWN-NEEDS-VERIFICATION rather than a finding either way.
+
+### Can Slice 0 be considered closed?
+
+**Not yet.** The documentation and dependency-mapping work is sound and the fabricated claims from the original review are genuinely fixed — that part of Slice 0 is done. But a contract test that isn't wired into CI provides no actual protection against the exact failure mode (silent reorder/removal in a future PR) that Slice 0 exists to prevent. Slice 0 should not be marked closed until: (a) the test is added to `pwa-auth-contract.yml` (path filter + `run:` step, matching its sibling tests) or `package.json`'s `test:e2e:tooling`, and (b) `CURRENT_STATUS.md`'s next-action line is reconciled with the corrected decomposition order. Both are doc/CI-config-only changes — no product code involved — and should be a very small follow-up, not a new slice in its own right.
+
+### Recommended safest next bounded slice
+
+**Slice 0b (closing, not new): wire `tests/hotfix-load-order-contract.test.mjs` into CI** (`pwa-auth-contract.yml` run step + path filter, or `package.json` `test:e2e:tooling`) **and reconcile `CURRENT_STATUS.md`'s recommendation with `FUNCTIONAL_AUDIT.md`'s revised order.** No other files should change. Only once this lands and is confirmed by re-review should Slice 1 (auth/session/startup extraction, per the now-corrected priority order) begin.
+
