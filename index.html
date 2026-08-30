@@ -5876,11 +5876,11 @@ function escAttr(value) {
 
 function normalizeLinkUrl(url) {
   let u = String(url || '').trim();
-  if (!u) return '#';
+  if (!u) return '';
   // Allow common web/Telegram schemes. Default to https:// for bare domains.
   if (/^(https?:\/\/|tg:\/\/|mailto:)/i.test(u)) return u;
   if (/^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(u)) return 'https://' + u;
-  return u;
+  return '';
 }
 
 /**
@@ -5936,7 +5936,7 @@ function loadCLinks() {
         return {
           id: 'lnk-' + Math.random().toString(36).slice(2, 11) + '-' + Date.now(),
           name: link.name || 'Untitled Work Link',
-          url: normalizeLinkUrl(link.url || '#'),
+          url: normalizeLinkUrl(link.url) || String(link.url || '').trim(),
           category: 'other',
           note: '',
           favorite: false,
@@ -5953,7 +5953,7 @@ function loadCLinks() {
       }
       if (link.url) {
         const normalized = normalizeLinkUrl(link.url);
-        if (normalized !== link.url) {
+        if (normalized && normalized !== link.url) {
           wasMigrated = true;
           link.url = normalized;
         }
@@ -6048,11 +6048,16 @@ function renderCommunity() {
         const safeId = escAttr(link.id || '');
         const safeName = escHtml(link.name || 'Untitled Link');
         const safeNote = escHtml(link.note || '');
-        const safeUrl = escAttr(normalizeLinkUrl(link.url || '#'));
+        const normalizedUrl = normalizeLinkUrl(link.url);
+        const safeUrl = escAttr(normalizedUrl);
 
         let domain = '';
-        try { domain = new URL(normalizeLinkUrl(link.url)).hostname.replace('www.', ''); }
-        catch(e) { domain = normalizeLinkUrl(link.url || '#'); }
+        if (normalizedUrl) {
+          try { domain = new URL(normalizedUrl).hostname.replace('www.', ''); }
+          catch(e) { domain = normalizedUrl; }
+        } else {
+          domain = 'Invalid or unavailable URL';
+        }
         const safeDomain = escHtml(domain);
 
         html += `
@@ -6073,9 +6078,9 @@ function renderCommunity() {
               </div>
             </div>
             <div class="lm-card-actions">
-              <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="flex:1;text-align:center;text-decoration:none;color:var(--acc);padding:9px 4px;font-size:12px;font-weight:700">
-                Open ↗
-              </a>
+              ${normalizedUrl
+                ? '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer" style="flex:1;text-align:center;text-decoration:none;color:var(--acc);padding:9px 4px;font-size:12px;font-weight:700">Open ↗</a>'
+                : '<span aria-disabled="true" style="flex:1;text-align:center;color:var(--mu);padding:9px 4px;font-size:12px;font-weight:700">Unavailable</span>'}
               <button onclick="openLinkModal('${safeId}')">Edit</button>
               <button onclick="deleteLink('${safeId}')" style="color:var(--rd)">Delete</button>
             </div>
@@ -6174,13 +6179,18 @@ function handleSaveLink(e) {
 
   const id = document.getElementById('lm_id').value;
   const name = document.getElementById('lm_name').value.trim();
-  const url = normalizeLinkUrl(document.getElementById('lm_url').value.trim());
+  const rawUrl = document.getElementById('lm_url').value.trim();
   const category = document.getElementById('lm_category').value;
   const note = document.getElementById('lm_note').value.trim();
   const favorite = document.getElementById('lm_favorite').checked;
 
-  if (!name || !url) {
+  if (!name || !rawUrl) {
     toast('Name and URL required', 'err');
+    return;
+  }
+  const url = normalizeLinkUrl(rawUrl);
+  if (!url) {
+    toast('Use http(s), mailto, tg, or a valid domain', 'err');
     return;
   }
 
