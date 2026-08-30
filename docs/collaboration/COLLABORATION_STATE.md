@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Slice 1A — Auth/Session/Startup Behavior Contract Baseline: CLOSED (ACCEPT). Slice 1A.1 (ambiguous first-truck fallback fix) is the next bounded step; Slice 1B remains blocked until it lands and is re-reviewed.
+Slice 1A.1 — Remove Ambiguous First-Truck Fallback
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -25,9 +25,11 @@ Slice 1A — Auth/Session/Startup Behavior Contract Baseline: CLOSED (ACCEPT). S
 - Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
 - Canonical Documentation Gate: CLOSED.
 - Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
+- Slice 1A review: CLOSED / ACCEPT at `60a351c4cc6741d3a6fb96b3485ddecff534025a`.
+- Slice 1A.1 status: IN_PROGRESS.
 
 ## Current task owner
-ChatGPT (coordinator) — authorize Slice 1A.1 (ambiguous first-truck fallback fix). Slice 1B stays blocked until Slice 1A.1 lands and is independently re-reviewed.
+Codex — remove the ambiguous first-truck fallback with the smallest fail-closed runtime and contract changes.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -149,6 +151,13 @@ Do not start the next implementation slice unless this file says the previous sl
 - Slice 1B readiness: NOT_READY — blocked on `AMBIGUOUS_FIRST_TRUCK_FALLBACK`, correctly identified; Slice 1A.1 (remove the fallback, add explicit ambiguity handling + corrected-behavior contract tests, no auth/session/startup extraction) is the correct next bounded step.
 - Next required actor: ChatGPT
 - Next bounded action: authorize Slice 1A.1 (ambiguous first-truck fallback fix) as the next bounded implementation slice; Slice 1B remains blocked until Slice 1A.1 lands and is independently re-reviewed.
+
+### Codex — Slice 1A.1 Remove Ambiguous First-Truck Fallback
+- Agent: Codex
+- Task: Slice 1A.1 — Remove Ambiguous First-Truck Fallback
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- Boundary: no auth/session extraction, PTI change, loader reordering, schema redesign, or unrelated cleanup.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
