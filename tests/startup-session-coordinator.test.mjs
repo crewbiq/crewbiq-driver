@@ -87,11 +87,15 @@ test('boot enforces the PTI gate before app visibility', () => {
 test('one startup invocation performs one auth restore and one delayed pull', async () => {
   let authCalls = 0;
   let pullCalls = 0;
+  let scheduleCalls = 0;
   const state = fixture({
     authPost: async () => { authCalls += 1; return { ok: true }; },
     getPullFromCloud: () => () => { pullCalls += 1; },
+    scheduleAutoSync: () => { scheduleCalls += 1; },
   });
   await loadModule().create(state.deps).start({ savedUrl: 'https://sync.example' });
   assert.equal(authCalls, 1);
+  assert.equal(state.events.filter(event => event === 'app:show').length, 1);
+  assert.equal(scheduleCalls, 1);
   assert.equal(pullCalls, 1);
 });
