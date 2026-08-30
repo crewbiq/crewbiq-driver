@@ -81,7 +81,10 @@ Next required actor:
 Claude
 
 Next bounded action:
-independent Slice 2B review; do not begin another slice
+independent Slice 2B review
+<!-- CURRENT_END -->
+
+<!-- HISTORY_START -->
 ## HISTORY
 ### Codex
 - Task: Legacy Roadmap & Documentation Reconciliation
@@ -395,3 +398,8 @@ independent Slice 2B review; do not begin another slice
 - Behavior differences: NONE intended.
 - Next required actor: Claude.
 - Next bounded action: independent Slice 2B review.
+
+### 2026-08-30 — Codex — State marker repair
+
+- Documentation-only repair restoring `CURRENT_END` and `HISTORY_START` around the existing published Slice 2B state.
+- Runtime/product files changed: NONE.
