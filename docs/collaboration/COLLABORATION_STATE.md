@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Slice 1A.1 — Remove Ambiguous First-Truck Fallback PUBLISHED / AWAITING CLAUDE REVIEW
+Slice 1A.1 — Remove Ambiguous First-Truck Fallback: CLOSED (ACCEPT). Slice 1B is READY, pending ChatGPT authorization.
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -25,11 +25,9 @@ Slice 1A.1 — Remove Ambiguous First-Truck Fallback PUBLISHED / AWAITING CLAUDE
 - Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
 - Canonical Documentation Gate: CLOSED.
 - Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
-- Slice 1A review: CLOSED / ACCEPT at `60a351c4cc6741d3a6fb96b3485ddecff534025a`.
-- Slice 1A.1 status: PUBLISHED / AWAITING CLAUDE REVIEW at `f16534a009fc2e84e14509ddd87b473dfd05425f`.
 
 ## Current task owner
-Claude — independently review Slice 1A.1 corrected resolution, fail-closed mutation guards, tests, and cache rotation.
+ChatGPT (coordinator) — authorize Slice 1B. Two non-blocking follow-ups from the Slice 1A.1 review (case-sensitivity harmonization in `resolveDefaultTruck`, unguarded deduction-template-save branch) may be queued separately; neither blocks Slice 1B.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -152,23 +150,20 @@ Do not start the next implementation slice unless this file says the previous sl
 - Next required actor: ChatGPT
 - Next bounded action: authorize Slice 1A.1 (ambiguous first-truck fallback fix) as the next bounded implementation slice; Slice 1B remains blocked until Slice 1A.1 lands and is independently re-reviewed.
 
-### Codex — Slice 1A.1 Remove Ambiguous First-Truck Fallback
-- Agent: Codex
-- Task: Slice 1A.1 — Remove Ambiguous First-Truck Fallback
-- Status: PUBLISHED / AWAITING CLAUDE REVIEW
-- Branch: `agent/pre-base44-audit`
-- Commit SHA: `f16534a009fc2e84e14509ddd87b473dfd05425f`
-- Runtime files changed: `index.html`, `loads.js`, `sw.js`
-- Call sites reviewed: `currentCarrierCompany()`, `currentDriverAssignment()`, `getDefaultTruck()`, `renderTruckSelect()`, `selectedTruckId()`, `populateLoadTruckSelect()`, `getLoadTruckSelection()`, load/fuel/service/current-week-deduction mutation callers, and OCR fuel/service form-prefill callers.
-- Tests: added `tests/first-truck-fallback.test.mjs`; updated `tests/auth-session-startup-contract.test.mjs`; wired the new test into `test:e2e:tooling` and `pwa-auth-contract.yml`.
-- Test results: `node --test tests/first-truck-fallback.test.mjs tests/auth-session-startup-contract.test.mjs tests/hotfix-load-order-contract.test.mjs tests/driver_projections.test.mjs tests/fleet_mutation_contract.test.mjs tests/fleet_overview_driver_edit.test.mjs tests/load_date_ordering.test.mjs tests/e2e/service-worker-path.test.mjs` — PASS, 60 tests, 0 failures, 0 skipped.
-- Single-active-truck policy: when no explicit assignment exists, exactly one active truck is unambiguous and may resolve; any invalid non-empty explicit assignment fails closed.
-- Unsafe fallback remaining: NONE in the reviewed default/selector/mutation assignment paths.
-- Service-worker discipline: cache rotated from `crewbiq-driver-v79` to `crewbiq-driver-v80` because `index.html` and `loads.js` are cache-first app-shell files.
-- Slice 1B readiness: `READY_FOR_SLICE_1B`
-- Next required actor: Claude
-- Next bounded action: independent Slice 1A.1 review
-- Boundary confirmation: no auth/session extraction, PTI behavior change, loader reordering, schema change, deployment, or unrelated redesign.
+### Claude — Slice 1A.1 Independent Review
+- Agent: Claude
+- Task: Slice 1A.1 Independent Review
+- Verdict: ACCEPT
+- Reviewed commit: `f16534a009fc2e84e14509ddd87b473dfd05425f`
+- Review commit SHA: `20826de65529e7993eba6b66b5616d8534a0c0ed` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: fetched `index.html`, `loads.js`, `sw.js`, `fleet-load-resolution.js`, and both test files directly from this commit and traced every changed mutation/selector/read-only-projection call-site, plus a broader search of `fleet-load-resolution.js` (unchanged, checked anyway) for any residual first-truck fallback.
+- Blocking findings: none.
+- Non-blocking findings: (1) `resolveDefaultTruck()`'s explicit-assignment match is case/whitespace-sensitive, unlike `findTruckByIdOrUnit()` used everywhere else — fails safe (blocks rather than misattributes) but is a real functional-regression risk for a driver/truck unit-number pair differing only by case; recommend it call `findTruckByIdOrUnit()` directly. (2) `saveDedModal()`'s template-save branch has no `!truckId` guard (its sibling current-week-deduction branch does) — low severity, no financial-mutation hazard, just an unscoped "generic" template saved instead of blocked. (3) The new `unresolvedTruck:true` sentinel flag on `getCurrentWeekDed()` isn't yet consumed by any rendering — harmless, currently inert.
+- Confirmed: old `activeTrucks()[0]` fallback (and a second, previously-unnoticed `|| trucks[0]` fallback in `renderTruckSelect`) fully removed at every call-site; every mutation path (fuel/service/deduction/load save) fails closed instead of silently mutating against the wrong truck; new test proves the core resolver via real execution (not string matching); CI/npm wiring landed in the same commit, including a valuable side-fix (`index.html`/`loads.js` added to the workflow's path-filter triggers, which were previously missing); cache-version bump v79→v80 correctly justified and complete; no loader-order or auth/session code touched.
+- Slice 1A.1: CLOSED
+- Slice 1B readiness: READY_FOR_SLICE_1B — independently confirmed, not merely accepted on Codex's self-assessment.
+- Next required actor: ChatGPT
+- Next bounded action: authorize Slice 1B. Optionally queue the two non-blocking follow-ups (case-sensitivity harmonization in `resolveDefaultTruck`, the unguarded template-save branch) as a small future cleanup — neither blocks Slice 1B.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
