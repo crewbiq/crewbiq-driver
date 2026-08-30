@@ -1,0 +1,50 @@
+# CrewBIQ PRODUCT CONTRACT (Canonical)
+
+**Scope:** Canonical product requirements and invariants for `crewbiq/crewbiq-driver` as of `2026-08-30` for Slice 0b documentation reconciliation.  
+**Source precedence:** See [`DOCUMENTATION_AUTHORITY.md`](./DOCUMENTATION_AUTHORITY.md).  
+**Branch:** `agent/pre-base44-audit`.
+
+## 1) Canonical identity and access
+
+- **One canonical identity/data layer** for CrewBIQ users, crews, fleets, loads, expenses, and settings.
+- **Role/workspace/capability visibility model** governs what can be viewed/edited by each actor.
+- **No auth/session extraction work starts yet** outside this Slice.
+- **All frontend decompositions must preserve existing business behavior** until explicit handoff artifacts are updated and verified.
+
+## 2) Core functional invariants
+
+- **Document Vault is required to retain source evidence** and provenance references for imported documents (OCR/scan pipelines included).
+- **No silent data loss:** durable operations must be explicit, idempotent, and recoverable.
+- **No first-truck fallback** for ambiguous load assignment; ambiguity must be surfaced and reviewed.
+- **No double-count accounting:** deduplication and effective-dated settings must be protected so one expense/load contributes once to settlement and reporting.
+- **No destructive overwrite of verified provenance** for audit trails, OCR imports, settlement lineage, and destructive actions.
+- **Local-first / offline-first expectations remain active:** queued operations and staged sync must not discard user intent on transport or browser lifecycle failures.
+- **CrewBIQ ID and restored data snapshot behavior remains canonical** for identity continuity.
+
+## 3) Compliance and evidence direction
+
+- **IFTA/IRP evidence is a first-class requirement** and belongs to the compliance/audit domain.
+- **Compliance/Audit Center remains canonical** for cross-feature evidence review and issue linkage.
+- **PTI is configurable, not globally mandatory**:
+  - Personal PTI is optional.
+  - Fleet/carrier-level policy may require PTI.
+  - Scheduled weekly photo PTI is supported where configured.
+  - PTI evidence must remain linked to relevant maintenance, disputes, and service-invoice flows.
+
+## 4) Product architecture direction
+
+- `Base44` is an **optional** reference/design direction only; not a required runtime architecture dependency.
+- Future SIDR-style augmentation is allowed only as a **constrained CrewBIQ-side system integration** (not DB-level autonomous writes).
+- `crewbiq.com` is the web surface target for **personal cabinet** integration with canonical identity + data layer.
+- Existing loader and startup contract tests/guardrails remain required before any auth/session extraction work.
+
+## 5) UI and portal status
+
+- Existing monolithic `index.html` is accepted as technical debt and must be preserved for compatibility until a sanctioned decomposition plan is approved.
+- Marketplace/Truckpedia/community-style concepts are **explicitly deferred** until canonical product sequencing authorizes implementation.
+
+## 6) Explicitly out-of-contract in this slice
+
+- No direct UI refresh to Base44 as mandatory architecture.
+- No assumption that open issues with earlier experimental intent are current requirements.
+- No new runtime behavior changes or decomposition changes are part of this docs-only slice.
