@@ -1,5 +1,15 @@
 # CrewBIQ Audit Work Log
 
+## Slice 1B - Auth / Session / Startup Coordinator Extraction
+
+- Added a global-compatible startup-session.js factory with injected existing runtime dependencies.
+- Moved startup restore orchestration, boot/PTI routing, app-shell visibility, and delayed initial pull out of the inline coordinator path.
+- Preserved inline compatibility functions for existing callers and intentionally left coupled logout behavior in index.html.
+- Added deterministic coordinator tests and rewired the static auth/startup contract to the extracted module.
+- Added the module to the normal page script order, PWA app shell, existing npm contract suite, and existing CI contract workflow.
+- Did not change core.js, auth transport, restore hotfixes, offline queue, PTI internals, business schemas, or domain behavior.
+- Deferred review notes: resolveDefaultTruck case/whitespace sensitivity and unguarded deduction-template save remain queued and were not changed.
+
 ## Slice 1A.1 — Remove Ambiguous First-Truck Fallback
 
 - Reviewed every `getDefaultTruck()` call site and direct first-truck default in current main.

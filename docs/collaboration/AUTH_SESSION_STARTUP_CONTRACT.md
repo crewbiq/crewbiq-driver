@@ -277,3 +277,18 @@ The corrected invariant is enforced: no first-truck fallback for ambiguous owner
 Blocking item: none after Slice 1A.1 corrected-behavior tests pass.
 
 Next bounded action: independent Claude review of Slice 1A.1. Do not begin Slice 1B until that review accepts this correction.
+
+## Slice 1B extraction mapping
+
+startup-session.js is the dedicated coordinator for session restore, startup completion, boot routing, PTI-gated app visibility, and the existing delayed silent pull. index.html supplies current runtime dependencies and retains compatibility entry points for existing callers.
+
+Ownership remains explicit:
+
+- core.js and core-runtime.js: authenticated transport and hotfix loader ownership; unchanged.
+- restore-hotfix.js and existing fleet restore functions: restore semantics and fleet data ownership; invoked, not duplicated.
+- offline-sync-queue.js: durable queue ownership; unchanged.
+- pti.js: PTI state and policy ownership; the coordinator only evaluates needsPTI() and routes to showPTIBlocker().
+- index.html: runtime state closure, header rendering, compatibility entry points, and intentionally coupled logout behavior.
+- startup-session.js: ordering and coordination only.
+
+The PRESERVE_IN_EXTRACTION behaviors are pinned by tests/auth-session-startup-contract.test.mjs and tests/startup-session-coordinator.test.mjs. AMBIGUOUS_FIRST_TRUCK_FALLBACK remains resolved by Slice 1A.1 and is not reintroduced.

@@ -177,3 +177,20 @@ Do not start the next implementation slice unless this file says the previous sl
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
 - Next action: read this file plus the latest Claude/Codex artifacts after user says only `готово`.
+
+## Slice 1B publication
+
+- Agent: Codex
+- Task: Slice 1B Auth / Session / Startup Coordinator Extraction
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Branch: agent/pre-base44-audit
+- Commit SHA: this publication commit; exact SHA is reported in the Codex handoff response
+- Result: SLICE_1B_COMPLETE
+- Runtime files changed: index.html, startup-session.js, sw.js
+- Runtime files explicitly unchanged: core.js, hotfix files, auth transport, offline queue, PTI internals, business logic, and schemas
+- Validation: 41 passed, 0 failed
+- Slice 1B readiness: COMPLETE
+- Blocking unknowns: NONE
+- Next required actor: Claude
+- Next bounded action: independent Slice 1B review
+- Deferred and not fixed: resolveDefaultTruck case/whitespace sensitivity; unguarded deduction-template save

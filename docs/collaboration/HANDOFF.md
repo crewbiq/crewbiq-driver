@@ -1,5 +1,13 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Slice 1B handoff
+
+startup-session.js now owns the bounded startup/session coordinator flow while consuming existing transport, restore, PTI, fleet, storage, and rendering contracts through injected dependencies. Existing callers continue through restoreSession(), boot(), and showApp() compatibility functions in index.html.
+
+The core.js hotfix loader chain is unchanged. The coordinator loads as a normal script after the existing domain modules and is cached in the PWA app shell. logoutDevice() intentionally remains inline because extracting it would pull pay, archive, role, and continuity-storage behavior into this slice.
+
+Next actor: Claude. Next bounded action: independent Slice 1B review. Do not begin the next decomposition slice before that verdict.
+
 ## Slice 1A.1 handoff
 
 The ambiguous first-truck fallback is removed. Explicit valid assignment wins; invalid explicit assignment fails closed; zero or multiple trucks without assignment resolve no truck; exactly one active truck is retained as unambiguous only when no explicit assignment exists.

@@ -182,7 +182,8 @@ jobs:
           grep -q "service-invoice-legacy-upgrade.js" core.js
           grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
           grep -q "fleet-load-resolution.js?v=20260730-issue20-v1" index.html
-          grep -q "crewbiq-driver-v80" sw.js
+          grep -q "startup-session.js?v=20260830-slice1b-v1" index.html
+          grep -q "crewbiq-driver-v81" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "load-order-hotfix.js" sw.js
@@ -190,6 +191,7 @@ jobs:
           grep -q "settlement-week-hotfix.js" sw.js
           grep -q "deduction-trip-resolution.js" sw.js
           grep -q "fleet-load-resolution.js" sw.js
+          grep -q "startup-session.js" sw.js
           grep -q "accounting-action-guard.js" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
           grep -q "service-invoice-legacy-upgrade.js" sw.js

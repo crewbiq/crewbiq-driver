@@ -61,3 +61,9 @@ The 18-script ordered chain loaded from `core.js` is:
 - Second cut: extract dedicated module boundaries only where runtime guards are already explicit and contract-safe.
 - Tests and assertions should gate any reorder or removal of the chain.
 
+
+## Slice 1B startup/session coordinator boundary
+
+startup-session.js is a normal, global-compatible module loaded by index.html outside the synchronous core.js hotfix chain. It owns startup/session ordering only: restore completion, boot routing, PTI gating, app-shell visibility, and the delayed initial pull. Existing transport, fleet restore, PTI, offline queue, rendering, and persistence functions remain in their established owners and are injected into the coordinator.
+
+index.html remains the composition root and exposes compatibility functions for existing call sites. Logout remains inline because its current responsibilities span account registration, pay migration, archival state, role continuity, and selective storage clearing.

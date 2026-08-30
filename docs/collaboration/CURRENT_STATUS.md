@@ -1,5 +1,14 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 1B - Auth / Session / Startup Coordinator Extraction
+
+- Status: SLICE_1B_COMPLETE / PUBLISHED / AWAITING CLAUDE REVIEW.
+- Startup restore, boot, PTI-gated app visibility, and delayed initial pull are coordinated by startup-session.js.
+- index.html retains compatibility entry points and inline UI/header rendering; logoutDevice() remains inline because it is coupled to pay, archive, role, and storage continuity behavior.
+- core.js, restore transport, fleet restore, PTI internals, and offline queue ownership are unchanged.
+- The coordinator is a normal script outside the core.js hotfix chain and is included in the service-worker app shell.
+- Slice 1A.1 explicit truck-assignment behavior remains authoritative.
+
 ## Slice 1A.1 — Remove Ambiguous First-Truck Fallback
 
 - Removed implicit first-truck selection from `getDefaultTruck()`, shared selectors, and the load selector.

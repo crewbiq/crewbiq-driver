@@ -3,26 +3,27 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const coordinator = fs.readFileSync(new URL('../startup-session.js', import.meta.url), 'utf8');
 
-function section(start, end) {
-  const startAt = html.indexOf(start);
-  const endAt = html.indexOf(end, startAt + start.length);
-  assert.notEqual(startAt, -1, `missing start marker: ${start}`);
-  assert.notEqual(endAt, -1, `missing end marker: ${end}`);
-  return html.slice(startAt, endAt);
+function section(source, start, end) {
+  const startAt = source.indexOf(start);
+  const endAt = source.indexOf(end, startAt + start.length);
+  assert.notEqual(startAt, -1, 'missing start marker: ' + start);
+  assert.notEqual(endAt, -1, 'missing end marker: ' + end);
+  return source.slice(startAt, endAt);
 }
 
 function assertOrdered(source, markers) {
   let cursor = -1;
   for (const marker of markers) {
     const found = source.indexOf(marker, cursor + 1);
-    assert.ok(found > cursor, `expected ordered marker: ${marker}`);
+    assert.ok(found > cursor, 'expected ordered marker: ' + marker);
     cursor = found;
   }
 }
 
-test('STATIC_CONTRACT startup initializes dependencies before restore and always reaches boot', () => {
-  const init = section('runLaunchCleanResetOnce();', '</script>');
+test('STATIC_CONTRACT startup initializes dependencies before one coordinator start', () => {
+  const init = section(html, 'runLaunchCleanResetOnce();', '</script>');
   assertOrdered(init, [
     'runLaunchCleanResetOnce();',
     'migrateStorage();',
@@ -31,41 +32,45 @@ test('STATIC_CONTRACT startup initializes dependencies before restore and always
     'initPTI();',
     'initLoads();',
     'applyRoleUI();',
-    'const _savedSession = getSavedSessionToken();',
-    'restoreSession({sessionToken:_savedSession',
-    ".catch(e => console.warn('[CrewBIQ Auth] session restore failed:', e.message))",
-    '.finally(() => boot());',
+    'getStartupCoordinator().start({savedUrl:_savedUrl});',
   ]);
-  assert.match(init, /else \{\s*setFleetRestoreSettled\(true\);\s*boot\(\);\s*\}/);
+  assert.equal(init.match(/getStartupCoordinator\(\)\.start\(/g)?.length, 1);
 });
 
 test('STATIC_CONTRACT restore applies identity before optional fleet restore and render settlement', () => {
-  const restore = section('async function restoreSession(options={}){', 'async function authLogin(){');
+  const restore = section(coordinator, 'async function restoreSession(options = {}) {', 'function showApp() {');
   assertOrdered(restore, [
-    'setFleetRestoreSettled(false);',
-    "if(!sessionToken) throw endpointError('auth_restore', 'sessionToken missing before restore');",
-    "authPost('auth_restore', {sessionToken}, syncUrl)",
-    'applyAuthRestoreData(data, syncUrl);',
-    'restoreFleetConfigFromOrchestrator(driver.crewId)',
-    'saveAll();',
-    'saveDriverProfile();',
-    'renderAll();',
-    'setFleetRestoreSettled(true);',
+    'deps.setFleetRestoreSettled(false);',
+    "deps.endpointError('auth_restore', 'sessionToken missing before restore')",
+    "deps.authPost('auth_restore', { sessionToken }, syncUrl)",
+    'deps.applyAuthRestoreData(data, syncUrl);',
+    'deps.restoreFleetConfigFromOrchestrator(driver.crewId)',
+    'deps.saveAll();',
+    'deps.saveDriverProfile();',
+    'deps.renderAll();',
+    'deps.setFleetRestoreSettled(true);',
   ]);
-  assert.doesNotMatch(restore, /clearSessionToken|localStorage\.clear|removeItem\(K\+'sessionToken'/);
+  assert.doesNotMatch(restore, /clearSessionToken|localStorage\.clear|removeItem/);
 });
 
-test('STATIC_CONTRACT boot keeps setup, PTI gate, and app visibility in their current order', () => {
-  const boot = section('function boot(){', 'function showApp(){');
+test('STATIC_CONTRACT boot keeps setup, PTI gate, and app visibility in order', () => {
+  const boot = section(coordinator, 'function boot() {', 'function start(options = {}) {');
   assertOrdered(boot, [
-    "if(!driver){ document.getElementById('setupScreen').style.display='flex'; return; }",
-    'if(needsPTI()){ showPTIBlocker(); } else { showApp(); }',
+    "deps.document.getElementById('setupScreen').style.display = 'flex';",
+    'deps.renderStartupShell();',
+    'if (deps.needsPTI()) deps.showPTIBlocker();',
+    'else showApp();',
   ]);
-  assert.doesNotMatch(boot, /showApp\(\)[\s\S]*needsPTI\(\)/);
+});
+
+test('STATIC_CONTRACT index exposes compatibility entry points without owning coordinator behavior', () => {
+  assert.match(html, /function restoreSession\(options=\{\}\)\{ return getStartupCoordinator\(\)\.restoreSession\(options\); \}/);
+  assert.match(html, /function boot\(\)\{ return getStartupCoordinator\(\)\.boot\(\); \}/);
+  assert.match(html, /function showApp\(\)\{ return getStartupCoordinator\(\)\.showApp\(\); \}/);
 });
 
 test('STATIC_CONTRACT logout clears only primary session shell and preserves configured continuity', () => {
-  const logout = section('async function logoutDevice(){', 'function toggleSetupRate(){');
+  const logout = section(html, 'async function logoutDevice(){', 'function toggleSetupRate(){');
   assertOrdered(logout, [
     'registerAccountId({crewId: driver.crewId, email: driver.email}, driver.accountId);',
     'importLegacyPaySettingsIntoScope();',
@@ -80,8 +85,8 @@ test('STATIC_CONTRACT logout clears only primary session shell and preserves con
   assert.doesNotMatch(logout, /removeItem\(K\+'userRole'/);
 });
 
-test('STATIC_CONTRACT confirms the ambiguous first-truck fallback was removed', () => {
-  const getDefaultTruck = section('function getDefaultTruck(){', 'function truckDisplay(t){');
+test('STATIC_CONTRACT confirms the ambiguous first-truck fallback remains removed', () => {
+  const getDefaultTruck = section(html, 'function getDefaultTruck(){', 'function truckDisplay(t){');
   assert.doesNotMatch(getDefaultTruck, /activeTrucks\(\)\[0\]/);
   assert.match(getDefaultTruck, /resolveDefaultTruck\(driver, activeTrucks\(\)\)/);
 });

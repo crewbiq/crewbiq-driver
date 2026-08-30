@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.80
+ * CrewBIQ Driver — Service Worker v1.0.81
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v80';
+const CACHE_NAME = 'crewbiq-driver-v81';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
@@ -47,6 +47,7 @@ const APP_SHELL = [
   '/crewbiq-driver/sync.js',
   '/crewbiq-driver/pti.js',
   '/crewbiq-driver/loads.js',
+  '/crewbiq-driver/startup-session.js',
   '/crewbiq-driver/manifest.json',
 ];
 
@@ -74,7 +75,7 @@ self.addEventListener('activate', (event) => {
           })
       ))
       .then(() => {
-        console.log('[CrewBIQ SW] v1.0.80 activated');
+        console.log('[CrewBIQ SW] v1.0.81 activated');
         return self.clients.claim();
       })
   );

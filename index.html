@@ -14,6 +14,7 @@
   <script src="pti.js?v=20260617-pg-pwa"></script>
   <script src="loads.js?v=20260715-bol-load-fields-v1"></script>
   <script src="fleet-load-resolution.js?v=20260730-issue20-v1"></script>
+<script src="startup-session.js?v=20260830-slice1b-v1"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--tx);max-width:480px;margin:0 auto;min-height:100vh}
@@ -2370,7 +2371,39 @@ async function onOrchDisconnectClick(){
   toast('Orchestrator account disconnected');
 }
 
-async function restoreSession(options={}){
+let startupCoordinator = null;
+function getStartupCoordinator(){
+  if(startupCoordinator) return startupCoordinator;
+  startupCoordinator = CrewBIQStartupSession.create({
+    document,
+    getDriver:()=>driver,
+    setFleetRestoreSettled,
+    getSavedSessionToken,
+    getAuthSyncUrl,
+    endpointError,
+    authPost,
+    applyAuthRestoreData,
+    loadTrucks,
+    loadDriverProfiles,
+    restoreFleetConfigFromOrchestrator,
+    saveAll,
+    saveDriverProfile,
+    renderAll,
+    setLoginStatus,
+    formatRestoreSummary,
+    unwrapAuthResponse,
+    renderStartupShell,
+    needsPTI,
+    showPTIBlocker,
+    ensureDefaultTruckFromDriver,
+    scheduleAutoSync,
+    getPullFromCloud:()=>typeof pullFromCloud==='function' ? pullFromCloud : null,
+    setTimeout:(callback, delay)=>setTimeout(callback, delay),
+    warn:(...args)=>console.warn(...args),
+  });
+  return startupCoordinator;
+}
+function restoreSession(options={}){ return getStartupCoordinator().restoreSession(options); }){
   setFleetRestoreSettled(false);
   const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
   const syncUrl=String(options.syncUrl || getAuthSyncUrl()).trim();
@@ -2560,7 +2593,7 @@ async function saveSetup(){
 }
 
 // ── BOOT ──
-function boot(){
+function renderStartupShell(){
   if(!driver){ document.getElementById('setupScreen').style.display='flex'; return; }
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('hdrDriverName').textContent = driver.name + (driver.teamDriver ? ' + '+driver.teamDriver : '');
@@ -2578,20 +2611,11 @@ function boot(){
   if(driver.teamDriver){ teamRow.style.display=''; document.getElementById('hdrTeam').textContent = driver.teamDriver; }
   else { teamRow.style.display='none'; }
   if(needsPTI()){ showPTIBlocker(); } else { showApp(); }
-}
+}function boot(){ return getStartupCoordinator().boot(); }
 
 
 // ── APP ──
-function showApp(){
-  document.getElementById('app').classList.add('show');
-  ensureDefaultTruckFromDriver();
-  renderAll();
-  scheduleAutoSync();
-  // Two-way sync: on app open, silently pull new cloud data from other devices.
-  if(driver && driver.syncUrl && typeof pullFromCloud === 'function'){
-    setTimeout(()=>pullFromCloud({silent:true}), 1000);
-  }
-}
+function showApp(){ return getStartupCoordinator().showApp(); }
 function primaryDestinationForPage(name){
   if(['load','disputes','work'].includes(name)) return 'work';
   if(['pti','fuel','service','truck'].includes(name)) return getUserRole()==='fleet' ? 'team' : 'truck';
@@ -7003,15 +7027,7 @@ if(_savedUrl && document.getElementById('loginSyncUrl'))
 if(_savedSched && document.getElementById('setupPtiSchedule'))
   document.getElementById('setupPtiSchedule').value = _savedSched;
 document.getElementById('pickupDate').value = today();
-const _savedSession = getSavedSessionToken();
-if(_savedSession && (_savedUrl || (driver && driver.syncUrl))){
-  restoreSession({sessionToken:_savedSession, syncUrl:_savedUrl || driver.syncUrl, silent:true})
-    .catch(e => console.warn('[CrewBIQ Auth] session restore failed:', e.message))
-    .finally(() => boot());
-} else {
-  setFleetRestoreSettled(true);
-  boot();
-}
+getStartupCoordinator().start({savedUrl:_savedUrl});
 </script>
 </body>
 </html>
