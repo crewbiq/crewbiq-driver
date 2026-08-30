@@ -39,19 +39,21 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Slice 2A.0 — Links URL Safety Correction
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Status: CLOSED / ACCEPT
+Current owner: ChatGPT
 Branch: agent/pre-base44-audit
 Product truth: current main
 Latest implementation commit: 3b77e1632465a76b29d750cc0cc17635e6ac4ee7
-Latest state commit: 827f0222cc6632d7c9a5b7c11ad7b6d7547077f6
+Latest review commit: f995fa72f11bc8299ea3c09ccd8d6f2f27a0d421
 Blocking findings: NONE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic }function boot() formatting artifact
-Next required actor: Claude
-Next bounded action: independent Slice 2A.0 review
+- links-url-safety.test.mjs lacks explicit case-variant scheme assertions (HTTPS://, MailTo:, TG://)
+- HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts ($implementation, "gent/pre-base44-audit", "el=noopener noreferrer") — HISTORY-only, no coordination impact
+Next required actor: ChatGPT
+Next bounded action: authorize resumption of Slice 2A Links/clinks behavior contract
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -282,3 +284,19 @@ Next bounded action: independent Slice 2A.0 review
 - Blocking findings: NONE.
 - Next required actor: Claude.
 - Next bounded action: independent Slice 2A.0 review.
+
+### Claude — Slice 2A.0 Independent Review
+
+- Agent: Claude
+- Task: Slice 2A.0 Independent Review
+- Verdict: ACCEPT
+- Reviewed implementation commit: `3b77e1632465a76b29d750cc0cc17635e6ac4ee7`
+- Review commit SHA: `f995fa72f11bc8299ea3c09ccd8d6f2f27a0d421` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: read the full `normalizeLinkUrl`/`loadCLinks`/`saveCLinks`/`renderCommunity`/`openLinkModal`/`handleSaveLink` implementation directly (not just diff hunks), traced every required accept/reject URL case by hand, whole-file-grepped for any other href-construction site touching Links data, and independently inspected the pre-fix `normalizeLinkUrl` to confirm the actual stored-XSS gap this slice closes.
+- Blocking findings: NONE.
+- Non-blocking findings: (1) case-variant scheme inputs (`HTTPS://`, `MailTo:`, `TG://`) aren't explicitly tested, though the regex's `i` flag makes correct behavior very likely and this reviewer confirmed it by hand; (2) this file's own HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts (`$implementation` placeholder, `gent/pre-base44-audit` typo, `el=noopener noreferrer` typo) — HISTORY-only, no coordination impact since CURRENT always wins.
+- Confirmed: URL policy is a default-deny allowlist (safer than an enumerated blocklist) covering every required accept/reject case; legacy unsafe records are preserved in storage (never deleted/rewritten) and re-validated fresh on every render, so they can never become a clickable/executable href; the one href-construction site in the whole codebase is correctly gated and escaped with `rel="noopener noreferrer"`; blank and unsafe input are both blocked before persistence in `handleSaveLink`, the only save entry point; the new test suite genuinely executes real runtime behavior via `node:vm` (not string matching); no storage redesign, Links extraction, `page-community` rename, or Marketplace/Base44/cloud-sync work occurred; service-worker cache correctly rotated v82→v83.
+- Slice 2A.0: CLOSED
+- Slice 2A resumption: May resume once ChatGPT authorizes it — no remaining blocker found.
+- Next required actor: ChatGPT
+- Next bounded action: authorize resumption of Slice 2A Links/clinks behavior contract.
