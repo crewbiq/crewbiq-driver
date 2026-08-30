@@ -42,10 +42,10 @@ Phase:
 Slice 4A — CrewBIQ Next UI Read-Only Visual Shell Prototype
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING MOBILE VISUAL REVIEW
 
 Current owner:
-Codex
+ChatGPT / Product Owner
 
 Branch:
 agent/pre-base44-audit
@@ -54,7 +54,7 @@ Product truth:
 current main + accepted collaboration runtime extractions
 
 Latest implementation commit:
-dcc45f91a9eb42c844db5ab0da5cdff4a627ceac
+ae44497111cb50d63ef5d8bccab83eb20946f856
 
 Latest review commit:
 81c3b203ad65eb2da50c24069e1f3c89a00bd93e (accepted Slice 3B)
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - sw.js cosmetic version strings remain v1.0.84 while functional CACHE_NAME is v85
 
 Next required actor:
-Codex
+ChatGPT / Product Owner
 
 Next bounded action:
-apply bounded mobile typography and operational-density polish
+review corrected standalone prototype on Android
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -508,3 +508,19 @@ apply bounded mobile typography and operational-density polish
 - Blocking findings: NONE.
 - Next required actor: ChatGPT / Product Owner.
 - Next bounded action: open standalone prototype on Android and perform real mobile visual review.
+
+### 2026-08-30 — Codex — Slice 4A.2 Mobile Polish Pass
+
+- Status: PUBLISHED / AWAITING MOBILE VISUAL REVIEW
+- Implementation commit: ae44497111cb50d63ef5d8bccab83eb20946f856
+- Increased mobile body, secondary, card, metric, navigation, and Quick Add typography while leaving desktop scale unchanged.
+- Compacted mobile hero and preserved headline, role message, and operational status chips.
+- Added role-aware Work, Truck, Money, and Team operational summary blocks.
+- Replaced the permanent header role strip with a compact prototype-only workspace popover; all three roles remain testable.
+- Preserved bottom navigation, grouped Functions, Quick Add design, audit-readiness language, and model-driven visibility.
+- Updated the fully offline standalone Android review build.
+- Validation: 33 static/contracts passed; 4 Chromium phone viewport checks passed at 360/390/412/430px.
+- Production runtime files changed: NONE.
+- Blocking findings: NONE.
+- Next required actor: ChatGPT / Product Owner.
+- Next bounded action: review corrected standalone prototype on Android.
