@@ -647,3 +647,97 @@ High. `startup-session.js` is a small (72-line), single-purpose, dependency-inje
 
 **Links/`clinks` storage-and-render extraction** (matching `FUNCTIONAL_AUDIT.md`'s own "safe decomposition order" step 3, and this reviewer's repeated observation across earlier reviews that `page-community`/`renderCommunity()`/`clinks` is the most self-contained domain in `index.html` — its own storage key, no accounting/identity/PTI coupling, and no dependency on the auth/session coordinator just extracted). Recommend it over an OCR-adapter extraction next, since OCR still carries the open Document Vault gap (source-file retention) as an unresolved product dependency, whereas Links has no such open product question blocking a clean, narrow, behavior-preserving extraction.
 
+---
+
+## Slice 2A.0 Independent Review — 2026-08-30
+
+Reviewer: Claude. Read the live `CURRENT_START`/`CURRENT_END` block in `docs/collaboration/COLLABORATION_STATE.md` (Phase: Slice 2A.0 — Links URL Safety Correction; Status: PUBLISHED / AWAITING CLAUDE REVIEW; latest implementation commit `3b77e163`, latest state commit `827f0222`) as the mandatory first step, then inspected the branch commit chain directly rather than trusting the CURRENT block's own summary. Chain confirmed linear: `827f0222` (state-marker repair) → `3b77e163` (runtime correction: "fix: enforce safe Links URL policy") → `54687d65` (publication, docs-only). Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` (unchanged).
+
+Method: fetched `index.html`, `sw.js`, `package.json`, `.github/workflows/pwa-auth-contract.yml`, and `tests/links-url-safety.test.mjs` directly from `3b77e163` via `gh api`, read the full `normalizeLinkUrl`/`loadCLinks`/`saveCLinks`/`renderCommunity`/`openLinkModal`/`handleSaveLink` implementation (not just the diff hunks), traced every one of the task's required accept/reject URL cases by hand against the actual regex logic, and independently searched the entire file for any other `href=` construction site touching Links data.
+
+### VERDICT: **ACCEPT**
+
+### 1. URL policy — correct, and it's an allowlist (safer than a denylist)
+
+`normalizeLinkUrl(url)`:
+```
+let u = String(url || '').trim();
+if (!u) return '';
+if (/^(https?:\/\/|tg:\/\/|mailto:)/i.test(u)) return u;
+if (/^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(u)) return 'https://' + u;
+return '';
+```
+This is a **default-deny allowlist**, not a denylist of known-bad schemes — meaning every one of the task's required rejections is covered by construction, not by an enumerated blocklist that could miss a future dangerous scheme. Traced each required case by hand against the regex:
+- **Accepted**: `http://…`, `https://…` (first regex, case-insensitive `i` flag covers `HTTP://`/`HTTPS://`), `mailto:…`, `tg://…`, bare domain `example.com/path` → normalized to `https://example.com/path` (second regex).
+- **Rejected** (none match either accept regex, so all fall through to the final `return ''`): `javascript:`, `data:`, `file:`, `vbscript:`, `blob:`, `chrome:`, `about:`, any arbitrary unknown scheme (e.g. `custom-scheme://…`) — confirmed none of these can match the bare-domain regex either, since a colon appears before any `.`, which breaks the anchored `^[\w.-]+\.[a-z]{2,}...$` pattern (colon is not in the `[\w.-]` character class). Blank (`''`) and whitespace-only (`'   '`) are both caught by `if (!u) return ''` after `.trim()`.
+- **Case/whitespace**: leading/trailing whitespace is stripped before any check (`.trim()`); rejected schemes are rejected regardless of case because they simply never match the accept-list, not because of an explicit case-sensitive blocklist check.
+- Directly re-verified via `tests/links-url-safety.test.mjs`'s "rejects executable, local, unknown, and blank URL inputs" test, which enumerates exactly the task's reject list (`javascript:`, `data:`, `file:`, `vbscript:`, `blob:`, `chrome:`, `about:`, `custom-scheme://value`, `''`, `'   '`) and asserts each returns `''` via genuine execution (see §5).
+
+### 2. Legacy stored links — not deleted, not silently rewritten, cannot become clickable
+
+Read both migration branches inside `loadCLinks()`:
+- No-`id` legacy branch: `url: normalizeLinkUrl(link.url) || String(link.url || '').trim()` — if the stored URL is unsafe (`normalizeLinkUrl` returns `''`), the migrated record's `url` field falls back to the **raw original string**, not an empty value. The unsafe value is preserved, not deleted or blanked.
+- Already-migrated branch: `if (normalized && normalized !== link.url) { wasMigrated = true; link.url = normalized; }` — the `normalized &&` guard means an unsafe URL (`normalized === ''`) never triggers an overwrite; the original stored value is left completely untouched.
+- Confirmed: **before this fix**, `normalizeLinkUrl` had no default-deny path at all — its final line was `return u;` (the raw, unrecognized string returned unchanged), meaning a legacy or attacker-supplied record with `url: 'javascript:alert(1)'` would previously have flowed straight into an `href` attribute (only HTML-attribute-escaped, not scheme-validated) — a genuine stored-XSS path this slice closes. This context, read directly from the pre-fix code, confirms why this correction was necessary and how serious the prior gap was.
+- Render-time re-validation is independent of storage: `renderCommunity()` calls `normalizeLinkUrl(link.url)` fresh on every render, never trusting a cached "is this safe" flag — so even a record that predates this fix, or one an attacker crafted directly in `localStorage`, is re-checked every time it's displayed.
+- Directly re-verified via the test suite's "unsafe persisted legacy URL remains stored but is not clickable" test: seeds `localStorage` directly with `{url: 'javascript:alert(1)', ...}`, calls the real `renderCommunity()`, and asserts (a) the persisted storage value is still exactly `'javascript:alert(1)'` after render (not deleted/rewritten), (b) the rendered HTML contains no `href="javascript:` (case-insensitive), and (c) it contains "Unavailable". This is genuine proof, not inference.
+
+### 3. Render safety — single href-construction site, correctly gated, correctly protected
+
+Read `renderCommunity()` in full: there is exactly **one** place in the entire function (and, confirmed by a whole-file grep, the entire codebase) that constructs an `<a href=...>` for Links data:
+```
+${normalizedUrl
+  ? '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer" ...>Open ↗</a>'
+  : '<span aria-disabled="true" ...>Unavailable</span>'}
+```
+where `normalizedUrl = normalizeLinkUrl(link.url)` (freshly computed, not the raw stored value) and `safeUrl = escAttr(normalizedUrl)` (HTML-attribute-escaped on top of the scheme check — defense in depth). `target="_blank"` is paired with `rel="noopener noreferrer"` exactly as required. No code path in `renderCommunity()` bypasses `normalizeLinkUrl` before constructing an href.
+
+### 4. Save path — blank input and unsafe URLs both correctly blocked before persistence
+
+Read `handleSaveLink()` in full:
+```
+const rawUrl = document.getElementById('lm_url').value.trim();
+...
+if (!name || !rawUrl) { toast('Name and URL required', 'err'); return; }
+const url = normalizeLinkUrl(rawUrl);
+if (!url) { toast('Use http(s), mailto, tg, or a valid domain', 'err'); return; }
+```
+Blank/whitespace-only input is rejected **before** `normalizeLinkUrl` is even called (the `!rawUrl` check catches it first) — it can never reach the old `'#'`-producing path, and that path no longer exists anyway (`normalizeLinkUrl` now returns `''` for blank, not `'#'`). An unsafe scheme entered by the user is rejected by the second guard and never persisted. This is the *only* save entry point (`<form onsubmit="handleSaveLink(event)">` in `openLinkModal()`) — confirmed no second/alternate save path exists. Directly re-verified via the test suite's "blank form URL is rejected and never saved as hash" test, which calls the real `handleSaveLink` with a mocked whitespace-only input and asserts storage is left at its untouched initial value (`'[]'`) plus the exact toast message.
+
+### 5. Test quality — genuine execution via `node:vm`, not string matching
+
+`tests/links-url-safety.test.mjs` extracts the real Links runtime source from `index.html` between two literal markers (`let currentLinkFilter = 'all';` … `function shareInvite(){`) and loads it into a `vm.createContext` with a realistic mocked `document`/`localStorage`/`toast`/`URL` harness, then calls the **actual** `normalizeLinkUrl`, `handleSaveLink`, and `renderCommunity` functions and asserts on real return values, real `localStorage` snapshots, and real rendered HTML strings. This is genuine runtime-semantics testing. Confirmed the harness is internally consistent: `getLinksKey()` (defined inside the extracted slice) falls back to `'fiqD_' + 'clinks'` when the sandboxed context has no `K` global, matching the test's storage-key assumption exactly. All five tests were traced by hand against the actual module logic and confirmed correct — including the two tests that directly answer "is render-time legacy protection genuinely tested" (yes, via the seeded-unsafe-record test) and "is the save path genuinely tested" (yes, via the blank-input test). One minor gap: explicit case-variant scheme inputs (`HTTPS://…`, `MailTo:…`, `TG://…`) aren't individually asserted, though the regex's `i` flag makes this very likely correct — see non-blocking findings.
+
+### 6. Regression — existing valid Links behavior intact, no scope creep
+
+The test suite's "valid persisted link remains clickable with opener protection" test confirms a normal `https://` link still renders with the correct `href` and `rel="noopener noreferrer"`. Confirmed via the commit's file list (`.github/workflows/pwa-auth-contract.yml`, `index.html`, `package.json`, `sw.js`, `tests/links-url-safety.test.mjs`) that no storage-schema file, no separate Links/community module, no rename of `renderCommunity()`/`page-community`/`getLinksKey()`, and no Marketplace/Base44/cloud-sync file was touched. `page-community` remains the technical container for Links, unrenamed, exactly as the Slice 0/B3 protection required.
+
+### 7. Service worker — correct
+
+`sw.js`: `CACHE_NAME` bumped `crewbiq-driver-v82` → `crewbiq-driver-v83` (version-string comments bumped in step), justified because `index.html` (cache-first, in `APP_SHELL`) changed. The CI workflow's own grep-based verification step was updated in the same commit (`crewbiq-driver-v83`). No other `APP_SHELL` file changed and none needed to.
+
+### 8. `COLLABORATION_STATE.md` v2.1 structure — correct
+
+Confirmed via direct grep: `<!-- CURRENT_START -->` and `<!-- CURRENT_END -->` each appear **exactly once**, immediately bracketing the one `## CURRENT` heading in the entire file — no stray or duplicate `## CURRENT` heading exists anywhere in `HISTORY`, so a future agent naively searching for the first occurrence of that heading would still land on the correct, live block (though the file's own protocol text explicitly warns against relying on that anyway, instructing agents to key off the marker comments specifically). `<!-- HISTORY_START -->` exists exactly once, immediately after `CURRENT_END`. The protocol section itself (before `CURRENT_START`) contains only prose instructions referencing the marker names as text (`` `CURRENT_START` ``, `` `CURRENT_END` ``) — it does not contain a second `<!-- CURRENT_START -->` HTML comment or a second `## CURRENT` heading, so it cannot be mistaken for the live block by a marker-based (not heading-based) replace operation. This design is sound.
+
+### 9. Bypass search — clean
+
+Grepped the entire final `index.html` for `href=` anywhere referencing link/URL data: exactly one match, the one already audited in §3. Confirmed all seven `loadCLinks()`/`saveCLinks()` call sites (`renderCommunity`, `toggleLinkFav`, `deleteLink`, `openLinkModal` prefill, `handleSaveLink`) either don't touch `href` construction at all or route through the already-verified render path. `openLinkModal()`'s edit-form prefill (`value="${escAttr(item.url || '')}"`) places the raw stored URL into a text `<input>`'s `value` attribute (not an `href`), which is inert for navigation/execution and is itself `escAttr`-escaped against attribute-breakout. `shareInvite()` (the function immediately after the extracted test-source slice) is a separate, hardcoded, unrelated "install/invite link" feature with no user-supplied or Links-derived URL — confirmed not a bypass path.
+
+### Blocking findings
+
+None.
+
+### Non-blocking findings
+
+- **Case-variant scheme inputs aren't explicitly tested** (`HTTPS://…`, `MailTo:…`, `TG://…`). The regex's `i` flag makes correct behavior very likely, and this reviewer traced it by hand and confirmed it, but an explicit test case would remove any doubt for a future maintainer who might otherwise assume case-sensitivity from reading the code without the flag in view.
+- **`COLLABORATION_STATE.md`'s own `HISTORY` entry for this slice's publication contains literal unsubstituted/typo artifacts**: `Branch: gent/pre-base44-audit` (missing leading "a"), `Implementation commit: $implementation` (an unsubstituted template variable, not the actual commit SHA), and `retain el="noopener noreferrer"` (missing leading "r" — should read `rel=`). These are documentation-quality defects confined to `HISTORY`, which the protocol explicitly says never wins over `CURRENT` for coordination purposes, so they carry no operational risk — but they're worth a cleanup pass, and they suggest whatever produced that entry didn't fully render a template before committing.
+
+### Whether Slice 2A.0 is CLOSED
+
+**Yes.** URL policy, legacy-record safety, render-path safety, and save-path safety were all independently verified against the actual code (not just the diff or the commit's own description), the new test suite genuinely exercises real runtime behavior rather than checking source strings, no scope creep occurred, the service-worker cache rotation is correct, and the `COLLABORATION_STATE.md` v2.1 marker structure is sound.
+
+### Whether Slice 2A may resume
+
+**Yes**, once ChatGPT authorizes it. The URL-safety gap that blocked Slice 2A is now closed and verified; there is no remaining reason found in this review to keep Slice 2A paused.
+
