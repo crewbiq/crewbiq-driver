@@ -39,21 +39,23 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: IN_PROGRESS
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
-Product truth: current main + accepted Slice 2A.0 correction on collaboration branch
-Latest implementation commit: 3b77e1632465a76b29d750cc0cc17635e6ac4ee7
+Product truth: current main + accepted Slice 2A.0 correction
+Latest implementation commit: 85c82503ff3afa821f1d3fb33c301ba61413df46
 Latest review commit: f995fa72f11bc8299ea3c09ccd8d6f2f27a0d421
 Blocking findings: NONE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic }function boot() formatting artifact
-- links-url-safety.test.mjs lacks explicit case-variant scheme assertions (HTTPS://, MailTo:, TG://)
+- links-url-safety.test.mjs case-variant scheme assertions added in Slice 2A, pending independent confirmation
 - HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts ($implementation, "gent/pre-base44-audit", "el=noopener noreferrer") — HISTORY-only, no coordination impact
-Next required actor: Codex
-Next bounded action: complete Links/clinks discovery, behavior contract, tests, and extraction-readiness decision
+- clinks storage is device-global and unscoped across account changes; preserve during extraction pending a separate product decision
+- editing or deleting a missing link id saves unchanged data but still reports success
+Next required actor: Claude
+Next bounded action: independent Slice 2A review
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -311,3 +313,21 @@ Next bounded action: complete Links/clinks discovery, behavior contract, tests, 
 - Scope: complete discovery, behavior contract, deterministic contract tests, and extraction-readiness decision; no Links extraction.
 - Next required actor: Codex
 - Next bounded action: complete Links/clinks discovery, behavior contract, tests, and extraction-readiness decision.
+
+### Codex — Slice 2A Links behavior contract published
+
+- Agent: Codex
+- Task: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Branch: agent/pre-base44-audit
+- Implementation commit: 85c82503ff3afa821f1d3fb33c301ba61413df46
+- Contract: docs/collaboration/LINKS_CONTRACT.md
+- Storage model: device-local, browser-profile-wide, unscoped fiqD_clinks with fiqD__clinks repair; no cloud sync, queue, import, or export.
+- Technical container: page-community / renderCommunity(). Links remains ACTIVE and distinct from historical Community and future Marketplace concepts.
+- Tests: 32 passed, 0 failed, 0 skipped across Links reload/migration/CRUD/role/navigation/separation, accepted URL policy, navigation shell, settings IA, inline parse/composition, and hotfix order.
+- Extraction readiness: READY_FOR_LINKS_EXTRACTION.
+- Proposed Slice 2B: global-compatible links.js owning clinks storage/migration, URL policy, render state, and CRUD behind temporary compatibility shims; page-community shell/route/static controls remain.
+- Runtime/product files changed: NONE.
+- Blocking findings: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent Slice 2A review.
