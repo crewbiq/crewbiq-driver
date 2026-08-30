@@ -554,3 +554,96 @@ Grepped `index.html`, `loads.js`, and `fleet-load-resolution.js` for any remaini
 
 **READY_FOR_SLICE_1B** — independently confirmed, not merely accepted on Codex's assertion. The one blocker identified after Slice 1A (`AMBIGUOUS_FIRST_TRUCK_FALLBACK`) is resolved and verified. Recommend the two non-blocking items (case-sensitivity harmonization in `resolveDefaultTruck`, the unguarded template-save branch) be picked up as a small follow-up at some point, but neither rises to a Slice 1B blocker.
 
+---
+
+## Slice 1B Independent Review — 2026-08-30
+
+Reviewer: Claude. Final composed state reviewed: `54655e461c3357f9e6af07bf2f2145f5d7bfe84e` on `agent/pre-base44-audit`, comprising the linear chain `f8503874` (original extraction) → `fdd6902d` (blocking correction) → `b9d49cc1` (composition guard) → `54655e46` (publication/docs). Confirmed linear via `.parents[0].sha` at each step. Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` (unchanged). Baseline for comparison: the Slice 1A.1-accepted state (`f16534a0`).
+
+Method: fetched `index.html`, `startup-session.js`, `loads.js`, `sw.js`, `core.js`, `package.json`, and all four relevant test files directly from the final commit `54655e46` via `gh api` — not from the original `f8503874` in isolation, per the task's instruction. Ran the extracted inline `<script>` block and `startup-session.js` through Node's own parser (`node --check`) independently of the repo's own vm-based parse test. Diffed the complete `index.html` and `loads.js` against the Slice 1A.1 baseline to see the *entire* change surface, not just the hunks Codex chose to show. Also independently inspected `f8503874` (the original, uncorrected extraction) to understand and confirm the actual bugs the correction commits fixed, rather than taking the "blocking correction" label at face value.
+
+### VERDICT: **ACCEPT**
+
+### Primary questions
+
+1. **Does `startup-session.js` now own a real coherent coordinator boundary?** Yes. It is a pure factory (`create(deps)`) with no load-time side effects — `global.CrewBIQStartupSession = Object.freeze({create})` is the only top-level statement. `boot()`, `restoreSession()`, `showApp()`, and `start()` all operate purely on an injected `deps` object; nothing reaches into `index.html`'s global scope directly. This is a genuine dependency-injected coordinator, not a copy-paste with a thin wrapper.
+2. **Is observable behavior preserved relative to the Slice 1A contract?** Yes, verified line-for-line — see "Behavior preservation" below.
+3. **Did `index.html` actually lose meaningful orchestration code, or just wrap duplicated logic?** It lost real code: the full bodies of `restoreSession()`, `showApp()`, and the final inline restore-or-boot block are gone from `index.html`, replaced by one-line delegating shims and a single `getStartupCoordinator()` composition-root function. `boot()`'s own PTI/showApp decision also moved out; `index.html` retains only `renderStartupShell()` (pure DOM header rendering) as boot-adjacent logic. Confirmed via a complete diff (below) — this is a real extraction, not cosmetic wrapping.
+4. **Are compatibility shims safe?** Yes — each shim (`restoreSession`, `boot`, `showApp`) is a single-line delegation to `getStartupCoordinator()`, with no residual logic, and `index-startup-composition.test.mjs` pins that exactly one `restoreSession` definition exists and that it contains no leaked `setFleetRestoreSettled(false)` (the tell-tale sign of the original bug, see below).
+5. **Are ownership boundaries clear?** Yes. `startup-session.js` owns orchestration only; `index.html` remains the composition root (wires concrete functions into `deps`) plus DOM rendering and business logic; `core-runtime.js`, `restore-hotfix.js`, `offline-sync-queue.js`, and `pti.js` are all untouched and consumed by the coordinator purely as injected functions (e.g. `deps.needsPTI`/`deps.showPTIBlocker`, confirmed defined in `pti.js` and exposed as globals — not absorbed into the coordinator). No boundary overlap or duplication introduced.
+
+### A. Parse / composition — verified independently, not just via the repo's own test
+
+- Extracted `index.html`'s single inline `<script>` block (300,849 chars) and ran `node --check` on it directly: **parses cleanly**.
+- Ran `node --check` on `startup-session.js` directly: **parses cleanly**.
+- Fetched the *original* extraction commit (`f8503874`) and found the actual bug the "blocking correction" fixed: `function restoreSession(options={}){ return getStartupCoordinator().restoreSession(options); }){` — a literal dangling `){` left over from a botched edit, immediately followed by an orphaned `async function authLogin(){` — this is exactly the class of bug a naive line-based patch tool produces. Confirmed **absent** in the final state: `final_index.html` shows a clean 3-line `restoreSession` shim with no dangling tokens.
+- Confirmed via regex count that exactly **one** `function restoreSession(options={})` definition exists in the final `index.html` (matches `index-startup-composition.test.mjs`'s own assertion, independently re-derived).
+
+### B. PTI routing — confirmed single ownership, no duplication
+
+- Read `renderStartupShell()`'s full body in the final state (lines 2581–2597): DOM header updates only (name, unit, company row, team row). **Does not** call `needsPTI()`, `showPTIBlocker()`, or `showApp()`.
+- Compared against the *original* extraction (`f8503874`): `renderStartupShell()` there **still contained** the leftover line `if(needsPTI()){ showPTIBlocker(); } else { showApp(); }` at its end — meaning in the uncorrected version, calling `boot()` would have run PTI/showApp routing **twice** (once via this leftover line inside `renderStartupShell()`, once via the coordinator's own `boot()` calling `renderStartupShell()` and then its own PTI check) — including double-scheduling `scheduleAutoSync()` and the delayed `pullFromCloud()` call. This is a real, serious bug the correction fixed, not a cosmetic one.
+- Grepped the final `index.html` for direct calls to `needsPTI()`, `showPTIBlocker()`, and `scheduleAutoSync()`: **zero** matches outside `startup-session.js`. `showApp()` appears only as the one-line delegating shim definition. The single non-startup `pullFromCloud(` call site in `index.html` (inside `restoreFromCloud()`, a distinct user-triggered manual "restore" action, unrelated to the startup auto-pull) was independently traced and confirmed to be pre-existing, unrelated functionality.
+- `startup-session-coordinator.test.mjs`'s "one startup invocation performs one auth restore and one delayed pull" test genuinely executes the module (via `node:vm`) with counting mocks and asserts `authCalls === 1`, one `'app:show'` event, `scheduleCalls === 1`, `pullCalls === 1` — this is real proof, not inference.
+
+### C. Restore behavior — matches the Slice 1A contract exactly
+
+Traced `startup-session.js`'s `restoreSession()` step-by-step against `AUTH_SESSION_STARTUP_CONTRACT.md` §2 and the Slice 1A-verified `index.html` implementation: `deps.setFleetRestoreSettled(false)` → token/sync-URL resolution → throw on missing token → `deps.authPost('auth_restore', ...)` → `deps.applyAuthRestoreData(data, syncUrl)` → conditional `deps.restoreFleetConfigFromOrchestrator(driver.crewId)` (same guard condition: `driver.crewId && (!loadTrucks().length || !loadDriverProfiles().length)`) → `deps.saveAll()` → `deps.saveDriverProfile()` → `deps.renderAll()` → `deps.setFleetRestoreSettled(true)` → non-silent status message → `return {...deps.unwrapAuthResponse(data), fleetRestore}`. Every step present, in the same order, with the same conditions. Independently re-derived the exact event sequence the coordinator test asserts (`['settled:false','auth-post','apply-auth','fleet-restore','save-all','save-profile','render','settled:true','login-status']`) by hand-tracing the code and confirmed it matches.
+
+### D. Startup failure path — confirmed via genuine execution
+
+Traced `startup-session-coordinator.test.mjs`'s "failed startup restore still reaches boot without clearing continuity state" test by hand: with `driver = null` and `authPost` throwing, `start()` still enters the `restoreSession(...).catch(warn).finally(() => boot())` branch (since a saved session token and `savedUrl` are present), the rejection is caught and warned (`'warn:[CrewBIQ Auth] session restore failed: offline'`), and `.finally()` still calls `boot()`, which (with `driver` null) sets `setupScreen.style.display = 'flex'` — the test asserts this exact element-state change plus the exact 3-event sequence, and I confirmed this by tracing the module's actual control flow rather than trusting the assertion. No `clearSessionToken()` or any destructive storage call occurs anywhere in this path — confirmed absent from `startup-session.js` entirely.
+
+### E. Offline startup — unchanged
+
+`sw.js`'s only changes across this whole chain are the `CACHE_NAME`/version-string bump (`v80` → `v81` → `v82`, tracking `index.html` changes at each step) and adding `/crewbiq-driver/startup-session.js` to `APP_SHELL`. Network-only auth/API routing rules are untouched (confirmed unchanged in the diff). `offline-sync-queue.js` is not in this commit chain's file list at all — queue ownership is untouched.
+
+### F. Role / identity — no migration, no behavior change
+
+`core-runtime.js` does not appear anywhere in this commit chain's file list. The role/identity persistence keys (`fiqD_authUser`, `fiqD_authRoles`, `fiqD_userRole`, `fiqD_sessionToken`, `fiqD_driver`, identity-scoped `fiqD_data_*` keys) are untouched — no file that writes them was modified.
+
+### G. Logout — byte-for-byte unchanged
+
+Extracted `logoutDevice()`'s full body from both the Slice 1A.1 baseline and this final state and diffed them directly: **byte-identical**, including the pre-existing "switch never fires" comment. No accidental interaction with the coordinator extraction.
+
+### H. Slice 1A.1 regression check — clean
+
+Extracted and diffed `getDefaultTruck()`/`resolveDefaultTruck()` (`index.html`) and `populateLoadTruckSelect()` (`loads.js`) between the Slice 1A.1 baseline and this final state: **byte-identical** in both files. Additionally grepped the entire final `index.html` and `loads.js` for `activeTrucks()[0]` and `|| trucks[0]`: **zero matches**. `loads.js` as a whole file is byte-identical to the Slice 1A.1 baseline (confirmed via full-file diff) — Slice 1B did not touch it at all, matching the commit's own claim.
+
+### I. Loader order — confirmed unchanged and safely positioned
+
+`core.js` at the final commit is byte-identical to `main`'s `core.js` (confirmed via direct diff) — the 18-script hotfix chain and its order are completely untouched. `startup-session.js` is loaded via a new `<script src="startup-session.js?v=20260830-slice1b-v1">` tag appended **after** the five existing static tags (`core.js`, `sync.js`, `pti.js`, `loads.js`, `fleet-load-resolution.js`) — a purely additive insertion at the end of the static-tag list, not interleaved with them. `startup-session.js` itself has no load-time side effects (it only assigns a frozen factory object), so its dependencies (all the `deps.*` functions) only need to exist by the time `getStartupCoordinator()` is first *called* at runtime — well after all scripts, inline and external, have loaded. Position is safe.
+
+### J. Service worker — correct across the full chain
+
+Verified all three cache-version steps directly: Slice 1A.1 baseline `v80` → original extraction (`f8503874`) `v81` → blocking correction (`fdd6902d`) `v82`, each bump paired with an `index.html` change in the same commit, consistent with `sw.js`'s own "bump `CACHE_NAME` any time an `APP_SHELL` file changes" rule. `/crewbiq-driver/startup-session.js` is present in `APP_SHELL` in both `v81` and the final `v82`. Final state is `v82`, matching the CI workflow's own grep-based verification step.
+
+### K. Test adequacy
+
+- **`index-startup-composition.test.mjs`**: extracts every executable inline `<script>` from `index.html` (filtering `src=`-linked and JSON-type scripts) and runs each through `new vm.Script(...)` — a genuine parse-smoke test, not just eyeballing. Independently re-confirmed via my own separate `node --check` run — both methods agree. Also pins exactly one `restoreSession` definition and its exact shim pattern, and asserts the old leaked-implementation pattern (`setFleetRestoreSettled(false)` appearing inside a `restoreSession` function body in `index.html`) is absent.
+- **`startup-session-coordinator.test.mjs`**: loads `startup-session.js` via `node:vm.runInNewContext` and genuinely **executes** `restoreSession`, `boot`, and `start` against fully mocked `deps`, asserting exact event-order sequences (not just "was called," but "was called in this order and no other order"). This is real runtime-semantics coverage for the highest-risk behaviors (restore ordering, single PTI/showApp routing, single auto-sync/delayed-pull), independently traced and confirmed correct by hand above (§B–D).
+- **`auth-session-startup-contract.test.mjs`**: correctly updated to source its assertions from `startup-session.js` where the logic now lives, and from `index.html` where the compatibility shims and unrelated functions (`logoutDevice`, `getDefaultTruck`) still live. Still `STATIC_CONTRACT`-level (source-shape only) by design, and correctly so — it doesn't overclaim proof of runtime behavior, deferring to the coordinator test for that.
+- **`first-truck-fallback.test.mjs`**: unaffected by this slice (confirmed unchanged), still valid against the byte-identical `resolveDefaultTruck`/`populateLoadTruckSelect` code.
+- No test in this set overstates a static check as E2E/runtime proof; the genuine-execution tests are correctly reserved for exactly the behaviors that most need them (ordering, single-invocation guarantees).
+
+### L. Change scope — confirmed via complete diffs, not just the commit's own hunks
+
+Diffed the **entire** `index.html` between the Slice 1A.1 baseline and this final state: exactly one new `<script src>` tag, and four locations changed (`restoreSession` → shim + `getStartupCoordinator()`, `boot`/`renderStartupShell` split, `showApp` → shim, and the final inline init block → single `getStartupCoordinator().start(...)` call). Nothing else in the 7,017-line file differs. Diffed the entire `loads.js`: **zero** differences from the Slice 1A.1 baseline. `core.js` and `core-runtime.js`: untouched (the latter not even in this chain's file list). No accounting, OCR, navigation, PTI-internals, schema, or Base44/UI-refresh file appears anywhere in this commit chain.
+
+### Non-blocking findings
+
+- **Cosmetic formatting artifact**: `}function boot(){ return getStartupCoordinator().boot(); }` — the closing brace of `renderStartupShell()` and the `boot()` shim definition sit on the same line with no separating whitespace/newline. This is valid JavaScript (confirmed by the parse checks above) and has zero functional effect, but it's a visible sign of a mechanical, non-formatted edit and is worth a trivial cleanup pass whenever this file is next touched for an unrelated reason. Not worth a dedicated commit on its own.
+- Everything flagged as non-blocking in the Slice 1A.1 review (`resolveDefaultTruck` case-sensitivity, the unguarded deduction-template-save branch) remains present and unchanged — carried forward, not newly introduced or newly ignored by this slice.
+
+### Coordinator boundary quality
+
+High. `startup-session.js` is a small (72-line), single-purpose, dependency-injected module with no ambient global access and no load-time side effects — a genuinely reusable, testable unit, and a good template for how the remaining `index.html` orchestration (OCR intake, Links/`clinks`, offline-queue contract boundaries — the next steps `FUNCTIONAL_AUDIT.md`'s own "safe decomposition order" already named) should eventually be extracted.
+
+### Whether Slice 1B is CLOSED
+
+**Yes.** Every verification item (A–L) checks out against the actual final composed state, independently re-derived rather than accepted on the correction commits' own descriptions. The one real bug in the original extraction (duplicate PTI/showApp/auto-sync/pull routing via the leftover line in `renderStartupShell()`, plus the malformed dangling-token `restoreSession` shim) is confirmed fixed, and the fix itself is now backed by genuine execution tests that would catch a regression of either issue.
+
+### Safest next bounded decomposition slice
+
+**Links/`clinks` storage-and-render extraction** (matching `FUNCTIONAL_AUDIT.md`'s own "safe decomposition order" step 3, and this reviewer's repeated observation across earlier reviews that `page-community`/`renderCommunity()`/`clinks` is the most self-contained domain in `index.html` — its own storage key, no accounting/identity/PTI coupling, and no dependency on the auth/session coordinator just extracted). Recommend it over an OCR-adapter extraction next, since OCR still carries the open Document Vault gap (source-file retention) as an unresolved product dependency, whereas Links has no such open product question blocking a clean, narrow, behavior-preserving extraction.
+
