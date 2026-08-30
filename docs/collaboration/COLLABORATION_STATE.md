@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Canonical Documentation Re-Review COMPLETE — verdict NEEDS FIX (one residual row-level correction pending; documentation gate OPEN).
+Final B5 Documentation Gate Correction PUBLISHED — READY FOR GATE CLOSURE.
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -22,9 +22,10 @@ Canonical Documentation Re-Review COMPLETE — verdict NEEDS FIX (one residual r
 - Independent Claude reconciliation review: COMPLETE — verdict NEEDS FIX (B1-B5 identified).
 - Canonical documentation correction pass: PUBLISHED by Codex at `41aeb7e` — resolved B1-B4.
 - Independent Claude re-review of `41aeb7e`: COMPLETE — verdict NEEDS FIX. B5 (Issue #90 / PR #91 misclassification in `LEGACY_ARTIFACT_MATRIX.md`) remains unresolved; gate OPEN pending a two-row correction.
+- Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
 
 ## Current task owner
-ChatGPT (coordinator) — route the Issue #90 / PR #91 status correction to Codex, then close the documentation gate.
+ChatGPT — verify the B5 correction and close the canonical documentation gate.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -102,6 +103,18 @@ Do not start the next implementation slice unless this file says the previous sl
 - Canonical documentation gate: OPEN (pending the single Issue #90 / PR #91 row correction; all other reviewed content, including two fixes beyond what was strictly asked — mobile packaging disclaimer and a pre-existing #29/#32 issue-citation mix-up — is gate-ready).
 - Next required actor: ChatGPT
 - Next bounded action: apply the Issue #90 / PR #91 status correction in `LEGACY_ARTIFACT_MATRIX.md` (docs-only, two table cells), then close the documentation gate. No code, no decomposition, no auth/session work, no Slice 1 until that lands and is confirmed.
+
+### Codex — Final B5 Documentation Gate Correction
+- Agent: Codex
+- Task: Final B5 Documentation Gate Correction
+- Status: PUBLISHED / READY FOR GATE CLOSURE
+- Branch: `agent/pre-base44-audit`
+- Commit SHA: `efba9423de3c992cbbf3a4715d11eef497741ba9`
+- Correction: Issue #90 + PR #91 → `IN_PROGRESS`
+- Preserved distinction: the Base44-inspired approved visual/product direction is in progress; mandatory Base44 runtime migration/dependency is not required and is superseded; existing CrewBIQ business logic, canonical data, and architecture remain authoritative.
+- Next required actor: ChatGPT
+- Next bounded action: verify correction and close canonical documentation gate
+- Scope confirmation: only `docs/product/LEGACY_ARTIFACT_MATRIX.md` and this collaboration state were changed; no code, tests, CI, package, issues, or PRs were modified.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
