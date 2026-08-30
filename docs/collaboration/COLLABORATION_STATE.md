@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Slice 1A.1 — Remove Ambiguous First-Truck Fallback: CLOSED (ACCEPT). Slice 1B is READY, pending ChatGPT authorization.
+Slice 1B — Auth/Session/Startup Coordinator Extraction
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -25,9 +25,11 @@ Slice 1A.1 — Remove Ambiguous First-Truck Fallback: CLOSED (ACCEPT). Slice 1B 
 - Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
 - Canonical Documentation Gate: CLOSED.
 - Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
+- Slice 1A.1 status: CLOSED / ACCEPT at `20826de65529e7993eba6b66b5616d8534a0c0ed`.
+- Slice 1B status: IN_PROGRESS.
 
 ## Current task owner
-ChatGPT (coordinator) — authorize Slice 1B. Two non-blocking follow-ups from the Slice 1A.1 review (case-sensitivity harmonization in `resolveDefaultTruck`, unguarded deduction-template-save branch) may be queued separately; neither blocks Slice 1B.
+Codex — extract the smallest global-compatible startup/session coordinator while preserving the Slice 1A behavior contract.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -164,6 +166,13 @@ Do not start the next implementation slice unless this file says the previous sl
 - Slice 1B readiness: READY_FOR_SLICE_1B — independently confirmed, not merely accepted on Codex's self-assessment.
 - Next required actor: ChatGPT
 - Next bounded action: authorize Slice 1B. Optionally queue the two non-blocking follow-ups (case-sensitivity harmonization in `resolveDefaultTruck`, the unguarded template-save branch) as a small future cleanup — neither blocks Slice 1B.
+
+### Codex — Slice 1B Auth/Session/Startup Coordinator Extraction
+- Agent: Codex
+- Task: Slice 1B — Auth/Session/Startup Coordinator Extraction
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- Boundary: orchestration extraction only; no auth, identity, role, PTI, loader, storage, or product redesign.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
