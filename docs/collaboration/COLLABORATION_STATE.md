@@ -213,3 +213,20 @@ Do not start the next implementation slice unless this file says the previous sl
 - Behavior differences: NONE intended
 - Next required actor: Claude
 - Next bounded action: independent review of the Slice 1B blocking correction
+
+## Claude — Slice 1B Independent Review
+
+- Agent: Claude
+- Task: Slice 1B Independent Review
+- Verdict: ACCEPT
+- Reviewed final state: `54655e461c3357f9e6af07bf2f2145f5d7bfe84e`
+- Original extraction: `f85038747037e4bf3c625064a660df552db294c9`
+- Blocking correction: `fdd6902de35ddc9760bd2285966ebe300b654509`
+- Review commit SHA: `5af4de0c5dd39296aa8e6643462a4ed459da7031` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: fetched `index.html`, `startup-session.js`, `loads.js`, `sw.js`, `core.js`, `package.json`, and all four relevant test files directly from the final composed commit (not the original extraction in isolation); ran the extracted inline script and `startup-session.js` through Node's own parser independently of the repo's own test; diffed the complete `index.html` and `loads.js` against the Slice 1A.1 baseline to see the full change surface; independently inspected the original uncorrected extraction commit to confirm the actual bugs the correction fixed.
+- Blocking findings: none.
+- Non-blocking findings: a cosmetic formatting artifact (`}function boot(){...}` on one line, no functional effect, confirmed via parse checks) left over from the mechanical edit process; the two previously-flagged Slice 1A.1 non-blocking items (case-sensitivity in `resolveDefaultTruck`, unguarded template-save branch) remain unchanged, carried forward, not newly introduced.
+- Confirmed: original extraction's real bug (leftover `if(needsPTI()){showPTIBlocker();}else{showApp();}` line still inside `renderStartupShell()`, causing duplicate PTI/showApp/auto-sync/pull routing on every `boot()` call, plus a malformed dangling-token `restoreSession` shim) is genuinely fixed in the final state, and the fix is backed by real `node:vm`-executed tests (not string matching) that would catch a regression of either issue. Complete diffs confirm index.html changes are scoped to exactly 4 locations plus one new `<script src>` tag; `loads.js` is byte-identical to the Slice 1A.1 baseline; `core.js` is byte-identical to `main`; logout, first-truck-fallback fix, role/identity keys, and offline/network-only SW rules are all untouched. Cache version correctly rotated v80→v81→v82 across the chain, `startup-session.js` present in `APP_SHELL`.
+- Slice 1B: CLOSED
+- Next required actor: ChatGPT
+- Next bounded action: authorize the next decomposition slice — recommend Links/`clinks` storage-and-render extraction (self-contained, no auth/session/PTI/accounting coupling, no open product dependency like OCR's Document Vault gap) over an OCR-adapter extraction next.
