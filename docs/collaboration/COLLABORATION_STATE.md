@@ -39,23 +39,23 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Status: CLOSED / ACCEPT
+Current owner: ChatGPT
 Branch: agent/pre-base44-audit
 Product truth: current main + accepted Slice 2A.0 correction
 Latest implementation commit: 85c82503ff3afa821f1d3fb33c301ba61413df46
-Latest review commit: f995fa72f11bc8299ea3c09ccd8d6f2f27a0d421
+Latest review commit: aa54f6231c5647134b95967cf4e9bac11deb076e
 Blocking findings: NONE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic }function boot() formatting artifact
-- links-url-safety.test.mjs case-variant scheme assertions added in Slice 2A, pending independent confirmation
 - HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts ($implementation, "gent/pre-base44-audit", "el=noopener noreferrer") — HISTORY-only, no coordination impact
-- clinks storage is device-global and unscoped across account changes; preserve during extraction pending a separate product decision
-- editing or deleting a missing link id saves unchanged data but still reports success
-Next required actor: Claude
-Next bounded action: independent Slice 2A review
+- clinks storage is device-global and unscoped across account changes; preserve during extraction pending a separate product decision (assessed: does not block Slice 2B)
+- editing or deleting a missing link id saves unchanged data but still reports success (confirmed factual; no dedicated test)
+- LINKS_CONTRACT.md's load/migration lifecycle section blanket-labels UNIT_CONTRACT but default-record creation and non-array-JSON coercion lack dedicated tests (confirmed accurate by direct code reading)
+Next required actor: ChatGPT
+Next bounded action: authorize bounded Slice 2B Links extraction
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -331,3 +331,20 @@ Next bounded action: independent Slice 2A review
 - Blocking findings: NONE.
 - Next required actor: Claude.
 - Next bounded action: independent Slice 2A review.
+
+### Claude — Slice 2A Independent Review
+
+- Agent: Claude
+- Task: Slice 2A Independent Review
+- Verdict: ACCEPT
+- Reviewed implementation commit: `85c82503ff3afa821f1d3fb33c301ba61413df46`
+- Review commit SHA: `aa54f6231c5647134b95967cf4e9bac11deb076e` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: read `LINKS_CONTRACT.md` in full and located/read the actual corresponding code in `index.html` for every factual claim (there is no runtime diff to review — confirmed `index.html` is byte-identical to the Slice 2A.0 baseline); read both `tests/links-contract.test.mjs` and `tests/links-url-safety.test.mjs` in full and traced each test by hand against the real code.
+- Blocking findings: NONE.
+- Non-blocking findings: (1) `LINKS_CONTRACT.md`'s load/migration lifecycle section blanket-labels `UNIT_CONTRACT` but two of its seven sub-claims (default-record creation, non-array-JSON coercion) lack a dedicated executing test — both independently confirmed accurate by direct code reading; (2) the documented missing-id edit/delete edge behavior is similarly accurate but untested; (3) device-global unscoped `clinks` storage is a real, moderate cross-account data-ownership gap, explicitly assessed and found to NOT block a behavior-preserving extraction (extraction doesn't worsen it; fixing the scoping is itself a separate product decision, already correctly excluded from Slice 2B's scope by the contract's own extraction invariant #8).
+- Confirmed: storage ownership, schema/migration, default records, malformed-storage handling, URL policy, CRUD semantics (including the missing-id edge case), category/filter/search, role visibility (both `ROLE_CONFIG` and the newly-found `FUNCTION_GROUPS`/`menuGrid` surface), `page-community`/`renderCommunity()` container identity, Marketplace `moduleTarget` route-only separation from `mktModules` storage, and logout persistence all match `LINKS_CONTRACT.md`'s claims exactly against the actual code. Zero runtime/product files changed. New tests genuinely execute real behavior via `node:vm`, including the new case-variant URL assertions that resolve the prior Slice 2A.0 non-blocking finding.
+- Extraction readiness: READY_FOR_LINKS_EXTRACTION — independently confirmed.
+- Slice 2B boundary: appropriately bounded as one slice (storage/migration/URL-policy/render/CRUD are already tightly interlinked in ~350 lines with no external dependencies) — recommend sequencing within it (pure storage/URL-policy first, DOM-coupled modal glue last, following the Slice 1B `renderStartupShell()` precedent) rather than splitting into multiple slices.
+- Slice 2A: CLOSED
+- Next required actor: ChatGPT
+- Next bounded action: authorize bounded Slice 2B Links extraction.
