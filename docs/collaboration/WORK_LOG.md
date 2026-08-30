@@ -1,5 +1,14 @@
 # CrewBIQ Audit Work Log
 
+## Slice 1A — Auth/Session/Startup Behavior Contract Baseline
+
+- Mapped current-main synchronous loader through restore, identity/role/account restoration, `boot()`, PTI gating, and initial app visibility.
+- Inventoried static/unit/E2E/staging auth, restore, identity, PTI, tenant-isolation, and offline coverage.
+- Added `AUTH_SESSION_STARTUP_CONTRACT.md` with explicit evidence levels and preservation/unsafe/unknown categories.
+- Added one deterministic static source contract and wired it into `test:e2e:tooling`.
+- Classified `activeTrucks()[0]` as `KNOWN_UNSAFE_CURRENT_BEHAVIOR`; it is not an approved extraction invariant.
+- No runtime/product files were changed. Slice 1B remains blocked by `AMBIGUOUS_FIRST_TRUCK_FALLBACK`.
+
 ## Canonical Documentation Correction Pass
 
 - Applied Claude's blocking corrections to the canonical documentation authority model.

@@ -1,5 +1,14 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 1A — Auth/Session/Startup Behavior Contract Baseline
+
+- Current-main startup/auth/session/PTI behavior is mapped in `AUTH_SESSION_STARTUP_CONTRACT.md`.
+- A narrow static contract pins startup, restore, boot/PTI ordering, selective logout, and the explicit presence of one unsafe fallback without approving it.
+- Runtime/product files were not changed.
+- Slice 1B readiness: `NOT_READY_FOR_SLICE_1B`.
+- Blocker: `AMBIGUOUS_FIRST_TRUCK_FALLBACK` (`activeTrucks()[0]`) is `KNOWN_UNSAFE_CURRENT_BEHAVIOR`, contrary to canonical product intent.
+- Next bounded action after Claude review: Slice 1A.1 removes the fallback with explicit ambiguity handling and corrected-behavior tests.
+
 ## Canonical documentation correction pass
 
 - Claude's blocking documentation findings have been reconciled in the canonical product documents.

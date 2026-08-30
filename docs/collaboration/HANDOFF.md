@@ -1,5 +1,13 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Slice 1A handoff
+
+Slice 1A establishes a behavior-contract baseline without extracting or changing auth/session/startup runtime code. Claude should independently review the evidence classifications, source-order assertions, and coverage inventory.
+
+Readiness is `NOT_READY_FOR_SLICE_1B`. The blocker is `AMBIGUOUS_FIRST_TRUCK_FALLBACK`: current `getDefaultTruck()` can select `activeTrucks()[0]` when assignment is ambiguous. This is documented as `KNOWN_UNSAFE_CURRENT_BEHAVIOR`, not behavior to preserve.
+
+If Slice 1A is accepted, the next bounded action is Slice 1A.1: remove the ambiguous fallback safely, add explicit ambiguity handling, and contract-test the corrected behavior. Do not begin auth/session extraction in that slice.
+
 ## Canonical documentation correction pass
 
 The canonical product documentation has been corrected against Claude's review findings and is ready for independent re-review. The next actor is Claude. Do not start decomposition, auth/session extraction, or Slice 1 until that review is complete.
