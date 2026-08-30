@@ -43,6 +43,7 @@ on:
       - tests/dispute_tombstone_hotfix.test.mjs
       - tests/hotfix-load-order-contract.test.mjs
       - tests/first-truck-fallback.test.mjs
+      - tests/navigation-contract.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -88,6 +89,7 @@ on:
       - tests/dispute_tombstone_hotfix.test.mjs
       - tests/hotfix-load-order-contract.test.mjs
       - tests/first-truck-fallback.test.mjs
+      - tests/navigation-contract.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -160,6 +162,9 @@ jobs:
 
       - name: Run explicit truck-assignment contract
         run: node --test tests/first-truck-fallback.test.mjs
+
+      - name: Run navigation and role-menu contract
+        run: node --test tests/navigation-contract.test.mjs
 
       - name: Verify loader and service-worker cache rotation
         run: |
