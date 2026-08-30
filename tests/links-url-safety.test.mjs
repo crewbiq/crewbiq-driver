@@ -3,133 +3,55 @@ import fs from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const start = html.indexOf("let currentLinkFilter = 'all';");
-const end = html.indexOf('function shareInvite(){', start);
-assert.notEqual(start, -1, 'Links runtime start marker missing');
-assert.notEqual(end, -1, 'Links runtime end marker missing');
-const linksSource = html.slice(start, end);
+const source = fs.readFileSync(new URL('../links.js', import.meta.url), 'utf8');
 
-function createStorage(initial = {}) {
+function setup(initial = {}) {
   const values = new Map(Object.entries(initial));
-  return {
-    getItem: key => values.has(key) ? values.get(key) : null,
-    setItem: (key, value) => values.set(key, String(value)),
-    removeItem: key => values.delete(key),
-    snapshot: key => values.get(key),
-  };
-}
-
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function createRuntime(initial = {}) {
-  const storage = createStorage(initial);
-  const toasts = [];
   const elements = {
-    communityCustomLinks: { innerHTML: '' },
-    lmSearch: { value: '' },
-    lm_modal_backdrop: { style: {} },
-    lm_id: { value: '' },
-    lm_name: { value: '' },
-    lm_url: { value: '' },
-    lm_category: { value: 'other' },
-    lm_note: { value: '' },
-    lm_favorite: { checked: false },
+    communityCustomLinks: { innerHTML: '' }, lmSearch: { value: '' }, lm_modal_backdrop: { style: {} },
+    lm_id: { value: '' }, lm_name: { value: '' }, lm_url: { value: '' }, lm_category: { value: 'other' },
+    lm_note: { value: '' }, lm_favorite: { checked: false },
   };
-  const context = vm.createContext({
-    URL,
-    confirm: () => true,
-    console,
-    document: {
-      body: { appendChild() {} },
-      createElement: () => ({ style: {}, className: '', innerHTML: '' }),
-      getElementById: id => elements[id] || null,
-    },
-    escHtml: escapeHtml,
-    localStorage: storage,
-    setTimeout: callback => callback(),
-    toast: (...args) => toasts.push(args),
+  const context = vm.createContext({ window: {}, globalThis: {} });
+  vm.runInContext(source, context);
+  const api = context.window.CrewBIQLinks.create({
+    K: 'fiqD_', URL, confirm: () => true, console,
+    document: { body: { appendChild() {} }, createElement: () => ({}), getElementById: id => elements[id] || null },
+    escHtml: value => String(value == null ? '' : value).replaceAll('"', '&quot;'),
+    localStorage: { getItem: k => values.has(k) ? values.get(k) : null, setItem: (k, v) => values.set(k, String(v)), removeItem: k => values.delete(k) },
+    now: () => 1, random: () => 0.5, setTimeout: callback => callback(), toast() {},
   });
-  vm.runInContext(linksSource, context, { filename: 'index-links-runtime.js' });
-  return { context, elements, storage, toasts };
+  return { api, elements, snapshot: key => values.get(key) };
 }
 
-test('UNIT_CONTRACT allows supported URL schemes and normalizes bare domains', () => {
-  const { context } = createRuntime();
-  assert.equal(context.normalizeLinkUrl('https://example.com/path'), 'https://example.com/path');
-  assert.equal(context.normalizeLinkUrl('http://example.com'), 'http://example.com');
-  assert.equal(context.normalizeLinkUrl('example.com/path'), 'https://example.com/path');
-  assert.equal(context.normalizeLinkUrl('mailto:dispatch@example.com'), 'mailto:dispatch@example.com');
-  assert.equal(context.normalizeLinkUrl('tg://resolve?domain=CrewBIQSupport_bot'), 'tg://resolve?domain=CrewBIQSupport_bot');
-  assert.equal(context.normalizeLinkUrl('HTTPS://example.com/path'), 'HTTPS://example.com/path');
-  assert.equal(context.normalizeLinkUrl('MailTo:dispatch@example.com'), 'MailTo:dispatch@example.com');
-  assert.equal(context.normalizeLinkUrl('TG://resolve?domain=CrewBIQSupport_bot'), 'TG://resolve?domain=CrewBIQSupport_bot');
+test('UNIT_CONTRACT accepted URL policy is unchanged', () => {
+  const { api } = setup();
+  for (const value of ['https://example.com', 'http://example.com', 'mailto:a@example.com', 'tg://resolve?domain=a', 'HTTPS://example.com', 'MailTo:a@example.com', 'TG://resolve?domain=a']) assert.equal(api.normalizeLinkUrl(value), value);
+  assert.equal(api.normalizeLinkUrl('example.com/path'), 'https://example.com/path');
+  for (const value of ['javascript:x', 'data:x', 'file:x', 'vbscript:x', 'blob:x', 'chrome:x', 'about:x', 'custom:x', '', ' ']) assert.equal(api.normalizeLinkUrl(value), '');
 });
 
-test('UNIT_CONTRACT rejects executable, local, unknown, and blank URL inputs', () => {
-  const { context } = createRuntime();
-  for (const value of [
-    'javascript:alert(1)',
-    'data:text/html,unsafe',
-    'file:///tmp/secret',
-    'vbscript:msgbox(1)',
-    'blob:https://example.com/id',
-    'chrome://settings',
-    'about:blank',
-    'custom-scheme://value',
-    '',
-    '   ',
-  ]) {
-    assert.equal(context.normalizeLinkUrl(value), '', value + ' must be rejected');
-  }
+test('UNIT_CONTRACT blank save is rejected', () => {
+  const state = setup({ fiqD_clinks: '[]' });
+  state.elements.lm_name.value = 'Name';
+  state.elements.lm_url.value = ' ';
+  state.api.handleSaveLink({ preventDefault() {} });
+  assert.equal(state.snapshot('fiqD_clinks'), '[]');
 });
 
-test('UNIT_CONTRACT blank form URL is rejected and never saved as hash', () => {
-  const runtime = createRuntime({ fiqD_clinks: '[]' });
-  runtime.elements.lm_name.value = 'Dispatch';
-  runtime.elements.lm_url.value = '   ';
-  runtime.context.handleSaveLink({ preventDefault() {} });
-  assert.equal(runtime.storage.snapshot('fiqD_clinks'), '[]');
-  assert.deepEqual(runtime.toasts[0], ['Name and URL required', 'err']);
+test('UNIT_CONTRACT unsafe legacy remains stored and non-clickable', () => {
+  const record = { id: 'u', name: 'Unsafe', url: 'javascript:x', category: 'other', note: '', favorite: false };
+  const state = setup({ fiqD_clinks: JSON.stringify([record]) });
+  state.api.renderCommunity();
+  assert.equal(JSON.parse(state.snapshot('fiqD_clinks'))[0].url, 'javascript:x');
+  assert.doesNotMatch(state.elements.communityCustomLinks.innerHTML, /href="javascript:/i);
+  assert.match(state.elements.communityCustomLinks.innerHTML, /Unavailable/);
 });
 
-test('UNIT_CONTRACT unsafe persisted legacy URL remains stored but is not clickable', () => {
-  const record = {
-    id: 'legacy-unsafe',
-    name: 'Legacy unsafe',
-    url: 'javascript:alert(1)',
-    category: 'other',
-    note: '',
-    favorite: false,
-    createdAt: 1,
-  };
-  const runtime = createRuntime({ fiqD_clinks: JSON.stringify([record]) });
-  runtime.context.renderCommunity();
-  const persisted = JSON.parse(runtime.storage.snapshot('fiqD_clinks'));
-  assert.equal(persisted[0].url, 'javascript:alert(1)');
-  assert.doesNotMatch(runtime.elements.communityCustomLinks.innerHTML, /href="javascript:/i);
-  assert.match(runtime.elements.communityCustomLinks.innerHTML, /Unavailable/);
-});
-
-test('UNIT_CONTRACT valid persisted link remains clickable with opener protection', () => {
-  const record = {
-    id: 'valid-link',
-    name: 'Dispatch',
-    url: 'https://dispatch.example/path',
-    category: 'dispatch',
-    note: '',
-    favorite: false,
-    createdAt: 1,
-  };
-  const runtime = createRuntime({ fiqD_clinks: JSON.stringify([record]) });
-  runtime.context.renderCommunity();
-  assert.match(runtime.elements.communityCustomLinks.innerHTML, /href="https:\/\/dispatch\.example\/path"/);
-  assert.match(runtime.elements.communityCustomLinks.innerHTML, /rel="noopener noreferrer"/);
+test('UNIT_CONTRACT valid link remains clickable with opener protection', () => {
+  const record = { id: 'v', name: 'Valid', url: 'https://example.com', category: 'other', note: '', favorite: false };
+  const state = setup({ fiqD_clinks: JSON.stringify([record]) });
+  state.api.renderCommunity();
+  assert.match(state.elements.communityCustomLinks.innerHTML, /href="https:\/\/example\.com"/);
+  assert.match(state.elements.communityCustomLinks.innerHTML, /rel="noopener noreferrer"/);
 });

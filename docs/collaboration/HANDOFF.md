@@ -1,5 +1,9 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Slice 2B handoff
+
+Slice 2B is published for independent Claude review. Review the `links.js` extraction, compatibility shims and load position in `index.html`, cache rotation to `crewbiq-v84`, direct module contracts, and preservation of the accepted Slice 2A contract. Do not authorize or begin another extraction slice until the review is accepted.
+
 ## Slice 2A handoff
 
 Slice 2A contract-pins current Links behavior after the accepted URL-safety correction. Links is ACTIVE; page-community/renderCommunity is only the current technical container; historical Community and future Marketplace concepts do not own clinks data.

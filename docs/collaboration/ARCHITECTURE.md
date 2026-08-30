@@ -73,3 +73,9 @@ index.html remains the composition root and exposes compatibility functions for 
 Links is an active device-local capability currently implemented inline in index.html. fiqD_clinks and the temporary fiqD__clinks repair key are unscoped localStorage ownership; there is no clinks cloud, queue, import, or export path. page-community/renderCommunity is a compatibility container, not the product identity.
 
 Slice 2A adds contracts only. The proposed future links.js boundary would own storage migration, URL policy, render state, and CRUD while index.html temporarily retains page-community markup, role/navigation routes, static controls, and compatibility shims.
+
+## Slice 2B Links runtime module
+
+links.js is the global-compatible dependency-injected owner of Links state, clinks storage/migration, URL safety, rendering, CRUD/favorite, and modal behavior. It loads after startup-session.js outside the core.js hotfix chain and is cached in the service-worker app shell.
+
+index.html remains shell/composition owner: page-community markup/CSS/static controls, role/route wiring, Marketplace mapping, module construction, and compatibility shims.

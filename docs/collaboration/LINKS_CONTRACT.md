@@ -183,3 +183,15 @@ Temporary page-community responsibilities:
 - Keep page markup, CSS, static Community/Support/Invite controls, communityCustomLinks mount point, search/add controls, role menu entries, showPage route, and Marketplace route mapping until a later UI-shell slice.
 
 Protect extraction with the current URL-safety, reload/migration/CRUD, role/navigation/separation, inline parse, service-worker, and hotfix-order contracts.
+
+## Slice 2B extracted ownership
+
+links.js owns categories, filter/search state, fiqD_clinks and fiqD__clinks storage/migration, accepted URL policy, rendering, favorite/delete, add/edit save logic, and modal behavior through the global-compatible dependency-injected CrewBIQLinks.create factory.
+
+Load position: links.js is a normal explicit script immediately after startup-session.js and before the large index.html inline composition script. It is outside the core.js 18-script hotfix chain.
+
+index.html retains page-community markup/CSS/static Community-Support-Invite controls, role/navigation wiring, Marketplace route mapping, the getLinksRuntime composition root, and delegating globals. Compatibility globals include renderCommunity, openLinkModal, closeLinkModal, handleSaveLink, toggleLinkFav, deleteLink, getLinksKey, normalizeLinkUrl, loadCLinks, saveCLinks, setLinkFilter, and setLinkSearchQuery.
+
+The search input uses setLinkSearchQuery; generated filter controls use setLinkFilter. page-community, communityCustomLinks, search/add markup, showPage community routing, Marketplace moduleTarget, and shareInvite intentionally remain inline.
+
+links.js is cached in the app shell. Cache v84 is required because cache-first index.html changed and the new module is an offline runtime dependency.

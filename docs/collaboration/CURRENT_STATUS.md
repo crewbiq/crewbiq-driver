@@ -1,5 +1,9 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 2B publication
+
+Links/clinks runtime ownership has moved from the main inline script to `links.js`, loaded immediately after `startup-session.js`. `index.html` retains the page shell, route, static controls, Marketplace mapping, and compatibility globals. The service-worker cache is rotated to `crewbiq-v84` and includes the new module. No behavior differences are intended; independent Claude review is required before another slice begins.
+
 ## Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
 
 - Current post-Slice-2A.0 Links behavior is documented in LINKS_CONTRACT.md.

@@ -1,5 +1,16 @@
 # CrewBIQ Audit Work Log
 
+## Slice 2B - Links/clinks runtime extraction
+
+- Extracted Links storage, normalization, migration, CRUD, favorites, filtering, search, categories, role visibility, modal operations, rendering, and URL-safe link output into `links.js`.
+- Retained compatibility globals in `index.html`: `renderCommunity`, `openLinkModal`, `closeLinkModal`, `handleSaveLink`, `toggleLinkFav`, and `deleteLink`.
+- Loaded `links.js` as a normal explicit script immediately after `startup-session.js`; it is not part of the hotfix chain.
+- Rotated the cache from `crewbiq-v83` to `crewbiq-v84` and added `/crewbiq-driver/links.js` to the app shell.
+- Added direct module contract coverage, including default creation, non-array coercion, migration, missing-id success behavior, CRUD/favorites, filters/search/categories, roles, URL safety, namespace/parse behavior, and duplicate-runtime prevention.
+- Narrow result: 22 passed, 0 failed.
+- Runtime files changed: `index.html`, `links.js`, `sw.js`.
+- Behavior differences: NONE intended.
+
 ## Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
 
 - Resumed discovery after accepted Slice 2A.0 URL safety correction.
