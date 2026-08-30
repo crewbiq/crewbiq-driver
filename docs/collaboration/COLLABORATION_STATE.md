@@ -194,3 +194,22 @@ Do not start the next implementation slice unless this file says the previous sl
 - Next required actor: Claude
 - Next bounded action: independent Slice 1B review
 - Deferred and not fixed: resolveDefaultTruck case/whitespace sensitivity; unguarded deduction-template save
+
+## Slice 1B Blocking Correction
+
+- Agent: Codex
+- Task: Slice 1B Blocking Correction
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Branch: agent/pre-base44-audit
+- Correction commit SHA: fdd6902de35ddc9760bd2285966ebe300b654509
+- Composition guard commit SHA: b9d49cc12c6f518a3c05b46159f7068787376adf
+- Malformed restoreSession fixed: YES; index.html now contains only the compatibility shim
+- Duplicate PTI/showApp routing fixed: YES; startup-session.js boot is the single owner
+- Parse smoke added: tests/index-startup-composition.test.mjs using node:vm
+- Composition guards: one PTI decision, one showApp, one scheduleAutoSync, and one delayed pull
+- Exact tests: node --test tests/auth-session-startup-contract.test.mjs tests/startup-session-coordinator.test.mjs tests/index-startup-composition.test.mjs tests/first-truck-fallback.test.mjs tests/hotfix-load-order-contract.test.mjs tests/.slice1b-correction-runtime-contract.mjs tests/full_restore_transport.test.mjs tests/settings_restore_transport.test.mjs tests/driver_projections.test.mjs tests/e2e/service-worker-path.test.mjs
+- Test result: 44 passed, 0 failed, 0 skipped
+- Cache version: crewbiq-driver-v82; rotated because corrected index.html is cache-first and published v81 clients must receive it
+- Behavior differences: NONE intended
+- Next required actor: Claude
+- Next bounded action: independent review of the Slice 1B blocking correction
