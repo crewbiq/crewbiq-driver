@@ -8,16 +8,26 @@ Every agent MUST follow this protocol.
 
 ### BEFORE WORK
 
-1. Read `## CURRENT`.
-2. Replace `CURRENT` with:
-   - Status: `IN_PROGRESS`
-   - Current owner: `<agent>`
-   - Next required actor: `<agent/current task>`
+1. Read `## CURRENT
 
-### AFTER PUBLICATION
+Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+Status: IN_PROGRESS
+Current owner: Codex
+Branch: agent/pre-base44-audit
+Product truth: current main
+Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
+Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
+Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
+Latest state commit: b8692a04b5886dfc79677a04593bdcfabf86447d
+Blocking findings: NONE
+Queued non-blocking findings:
+- resolveDefaultTruck case/whitespace sensitivity
+- deduction-template save branch without truckId guard
+- cosmetic `}function boot()` formatting artifact
+Next required actor: Codex
+Next bounded action: map and contract-pin live Links behavior before extraction
 
-1. REPLACE the entire `## CURRENT` block with the new authoritative state.
-2. Append a historical entry under `## HISTORY`.
+## HISTORY`.
 3. Never update `HISTORY` without updating `CURRENT`.
 4. Never append a new status only to the bottom of the file.
 5. `CURRENT` always wins over `HISTORY` for coordination.
@@ -37,22 +47,22 @@ When the user says "готово", ChatGPT should:
 
 ## CURRENT
 
-Phase: Slice 1B — Auth/Session/Startup Coordinator Extraction
-Status: CLOSED / ACCEPT
-Current owner: ChatGPT
+Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+Status: IN_PROGRESS
+Current owner: Codex
 Branch: agent/pre-base44-audit
 Product truth: current main
 Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
 Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
 Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
-Latest state commit: dc35085f74d0ccd4af139162e08eb0a987b09214
+Latest state commit: b8692a04b5886dfc79677a04593bdcfabf86447d
 Blocking findings: NONE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-Next required actor: ChatGPT
-Next bounded action: authorize next decomposition slice; current recommendation is Links/clinks storage-and-render extraction.
+Next required actor: Codex
+Next bounded action: map and contract-pin live Links behavior before extraction
 
 ## HISTORY
 
@@ -230,3 +240,13 @@ Next bounded action: authorize next decomposition slice; current recommendation 
 - Result: one authoritative `CURRENT` block and append-only `HISTORY`; no runtime/product files changed
 - Next required actor: ChatGPT
 - Next bounded action: use `CURRENT` as the sole coordination state and authorize the next bounded slice when ready
+
+### Codex — Slice 2A started
+
+- Agent: Codex
+- Task: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- Scope: behavior discovery, ownership mapping, contract documentation, and deterministic tests only; no runtime extraction
+- Next required actor: Codex
+- Next bounded action: map and contract-pin live Links behavior before extraction
