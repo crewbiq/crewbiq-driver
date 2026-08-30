@@ -39,6 +39,7 @@ on:
       - tests/ocr_service_invoice_review.test.mjs
       - tests/service_invoice_legacy_upgrade.test.mjs
       - tests/dispute_tombstone_hotfix.test.mjs
+      - tests/hotfix-load-order-contract.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -80,6 +81,7 @@ on:
       - tests/ocr_service_invoice_review.test.mjs
       - tests/service_invoice_legacy_upgrade.test.mjs
       - tests/dispute_tombstone_hotfix.test.mjs
+      - tests/hotfix-load-order-contract.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -146,6 +148,9 @@ jobs:
 
       - name: Run durable dispute deletion contract
         run: node tests/dispute_tombstone_hotfix.test.mjs
+
+      - name: Run hotfix load-order contract (core.js sequence)
+        run: node --test tests/hotfix-load-order-contract.test.mjs
 
       - name: Verify loader and service-worker cache rotation
         run: |

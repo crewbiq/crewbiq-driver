@@ -31,10 +31,9 @@
 
 ## Open blockers for next stage
 
-- Current constraint is decomposition risk around bootstrap ordering and shared state in `index.html`.
+- Current blocker is bootstrap ordering risk from the `document.write` synchronous loader in `index.html`, which remains technical debt until a dedicated loader migration is completed.
 - Next pass should keep loader-order and service-worker shell contracts unchanged unless explicitly revalidated.
 
 ## Recommended next action
 
-- Execute first slice: auth/session/startup coordinator extraction behind existing public behavior contract.
-
+- Complete loader-contract closure first (including `tests/hotfix-load-order-contract.test.mjs` and runtime order/signature verification), then proceed with auth/session/startup coordinator extraction.
