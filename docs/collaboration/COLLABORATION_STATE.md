@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 3A — Navigation / Role Menu / FUNCTION_GROUPS Behavior Contract
+Slice 3B — Navigation Model Runtime Extraction
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - Marketplace page/renderer are currently orphaned from live navigation (exhaustively re-confirmed across index.html, loads.js, links.js — not just ROLE_CONFIG absence)
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize Slice 3B navigation-model extraction
+extract navigation model while preserving dual-model behavior
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
