@@ -1,5 +1,9 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Slice 3B handoff
+
+Review data/model-only ownership, exact dual-model parity, load position after `links.js`, unchanged `installRoleGuard()` wrapping, absence of a second router/setter, and cache `v85`. Do not begin UI redesign or another slice before acceptance.
+
 ## Slice 2B handoff
 
 Slice 2B is published for independent Claude review. Review the `links.js` extraction, compatibility shims and load position in `index.html`, cache rotation to `crewbiq-v84`, direct module contracts, and preservation of the accepted Slice 2A contract. Do not authorize or begin another extraction slice until the review is accepted.

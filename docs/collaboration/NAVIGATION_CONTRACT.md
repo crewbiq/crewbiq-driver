@@ -2,6 +2,12 @@
 
 ## Scope and evidence
 
+## Slice 3B runtime ownership
+
+`navigation-model.js` owns the independent `ROLE_CONFIG` and `FUNCTION_GROUPS` models, `ROLE_RANK`, page/primary metadata, and pure lookup helpers. It loads immediately after `links.js`, before its inline consumers, and outside the 18-script hotfix chain. Compatibility globals preserve existing callers; the effective Scan insertion order is represented directly in the extracted model.
+
+`index.html` retains page markup, `getUserRole`, the single effective `setUserRole`, menu DOM glue, `showPage`, render dispatch, primary-nav DOM updates, history/back, visual shell, and event wiring. `core-runtime.js` retains `installRoleGuard()` unchanged: its `DOMContentLoaded` callback wraps that same setter using `fiqD_authRoles`. The model exports no setter or router.
+
 Slice 3A contract-pins the navigation behavior implemented in `index.html` at accepted Slice 2B state. It does not redesign or extract navigation. Static observations are marked `STATIC_CONTRACT`; executable model/routing checks are marked `UNIT_CONTRACT`; browser layout, focus, animation, and actual back interaction remain `E2E_REQUIRED`.
 
 ## Current navigation architecture
@@ -122,4 +128,3 @@ Known differences include Disputes/Exceptions, Scan/Documents with 📷/📄, PT
 Recommended Slice 3B boundary: add `navigation-model.js` owning data/model only: page registry metadata, role navigation definitions, grouping definitions, role-rank and lookup helpers. Keep DOM page markup, `showPage()` DOM mutation, visual shell, render-hook dispatch, history/back behavior, and existing event wiring in `index.html`. Preserve both models before any reviewed unification.
 
 Future Base44-inspired visual/navigation redesign may change the visual shell, cards, bottom navigation, sidebar, icons, grouping, transitions, and dashboard presentation. It must not silently change product feature availability, role permissions, page/domain ownership, persistence, business logic, or audit/compliance behavior. Visual navigation and business-domain ownership must become separate layers.
-

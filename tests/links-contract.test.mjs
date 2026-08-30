@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const source = fs.readFileSync(new URL('../links.js', import.meta.url), 'utf8');
+const navigationModelSource = fs.readFileSync(new URL('../navigation-model.js', import.meta.url), 'utf8');
 
 function storage(initial = {}) {
   const map = new Map(Object.entries(initial));
@@ -105,11 +106,9 @@ test('UNIT_CONTRACT filters/search/categories and all-role visibility remain', (
   state.api.renderCommunity();
   assert.match(state.elements.communityCustomLinks.innerHTML, />Accounting</);
 
-  const start = html.indexOf('const ROLE_CONFIG = {');
-  const end = html.indexOf('function getUserRole()', start);
-  const context = vm.createContext({});
-  vm.runInContext(html.slice(start, end), context);
-  const roles = JSON.parse(vm.runInContext('JSON.stringify(ROLE_CONFIG)', context));
+  const context = vm.createContext({ window: {} });
+  vm.runInContext(navigationModelSource, context);
+  const roles = JSON.parse(vm.runInContext('JSON.stringify(window.CrewBIQNavigationModel.ROLE_CONFIG)', context));
   for (const role of ['driver', 'owner_op', 'fleet']) assert.ok(roles[role].menu.some(item => item.page === 'community' && item.label === 'Links'));
 });
 

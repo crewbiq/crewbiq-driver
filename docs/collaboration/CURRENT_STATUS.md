@@ -1,5 +1,9 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 3B publication
+
+Navigation data/model ownership is extracted to `navigation-model.js`; DOM routing and visual responsibilities remain in `index.html`. Dual-model behavior and `installRoleGuard()` interaction are preserved. Cache is rotated to `crewbiq-driver-v85`; Claude review is required before any UI redesign.
+
 ## Slice 2B publication
 
 Links/clinks runtime ownership has moved from the main inline script to `links.js`, loaded immediately after `startup-session.js`. `index.html` retains the page shell, route, static controls, Marketplace mapping, and compatibility globals. The service-worker cache is rotated to `crewbiq-v84` and includes the new module. No behavior differences are intended; independent Claude review is required before another slice begins.

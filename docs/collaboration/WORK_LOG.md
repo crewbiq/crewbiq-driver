@@ -1,5 +1,12 @@
 # CrewBIQ Audit Work Log
 
+## Slice 3B - Navigation model runtime extraction
+
+- Moved both navigation models, role rank, page metadata, primary mapping, and pure helpers to `navigation-model.js`.
+- Kept `showPage`, DOM/rendering, role setter, menu glue, history/back, visual shell, and event wiring in `index.html`.
+- Preserved dual-model differences, effective Scan order, and `installRoleGuard()` timing; cache rotated to `v85`.
+- Behavior differences: NONE intended.
+
 ## Slice 2B - Links/clinks runtime extraction
 
 - Extracted Links storage, normalization, migration, CRUD, favorites, filtering, search, categories, role visibility, modal operations, rendering, and URL-safe link output into `links.js`.

@@ -16,6 +16,7 @@
   <script src="fleet-load-resolution.js?v=20260730-issue20-v1"></script>
 <script src="startup-session.js?v=20260830-slice1b-v1"></script>
 <script src="links.js?v=20260830-slice2b-v1"></script>
+<script src="navigation-model.js?v=20260830-slice3b-v1"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--tx);max-width:480px;margin:0 auto;min-height:100vh}
@@ -1274,95 +1275,9 @@ const APP_SCHEMA_VERSION = 2;
 
 // ── ROLE SYSTEM ───────────────────────────────────────────────────────────────
 
-const ROLE_CONFIG = {
-  driver: {
-    label: 'Driver',    icon: '🚛',
-    desc:  'Load tracking, PTI, expenses, sync',
-    menu: [
-      {page:'load',      icon:'📦', label:'Loads'},
-      {page:'report',    icon:'📄', label:'Reports'},
-      {page:'expenses',  icon:'💳', label:'Expenses'},
-      {page:'disputes',  icon:'⚖️', label:'Disputes'},
-      {page:'pti',       icon:'🔍', label:'PTI'},
-      {page:'stats',     icon:'📈', label:'Stats'},
-      {page:'community', icon:'🔗', label:'Links'},
-      {page:'settings',  icon:'⚙️', label:'Settings'},
-    ],
-  },
-  owner_op: {
-    label: 'Owner-Op',  icon: '🏢',
-    desc:  'Driver + fuel, deductions, service fund, P&L',
-    menu: [
-      {page:'load',        icon:'📦', label:'Loads'},
-      {page:'report',      icon:'📄', label:'Reports'},
-      {page:'expenses',    icon:'💳', label:'Expenses'},
-      {page:'fuel',        icon:'⛽', label:'Fuel'},
-      {page:'deductions',  icon:'💰', label:'Deductions'},
-      {page:'service',     icon:'🔧', label:'Service'},
-      {page:'disputes',    icon:'⚖️', label:'Disputes'},
-      {page:'pti',         icon:'🔍', label:'PTI'},
-      {page:'stats',       icon:'📈', label:'Stats'},
-      {page:'community',   icon:'🔗', label:'Links'},
-      {page:'settings',    icon:'⚙️', label:'Settings'},
-    ],
-  },
-  fleet: {
-    label: 'Fleet',     icon: '🚚',
-    desc:  'Owner-Op + fleet dashboard, multi-truck, drivers',
-    menu: [
-      {page:'load',        icon:'📦', label:'Loads'},
-      {page:'fleet',       icon:'🚚', label:'Fleet'},
-      {page:'drivers',     icon:'👥', label:'Drivers'},
-      {page:'report',      icon:'📄', label:'Reports'},
-      {page:'expenses',    icon:'💳', label:'Expenses'},
-      {page:'fuel',        icon:'⛽', label:'Fuel'},
-      {page:'deductions',  icon:'💰', label:'Deductions'},
-      {page:'service',     icon:'🔧', label:'Service'},
-      {page:'disputes',    icon:'⚖️', label:'Disputes'},
-      {page:'pti',         icon:'🔍', label:'PTI'},
-      {page:'stats',       icon:'📈', label:'Stats'},
-      {page:'community',   icon:'🔗', label:'Links'},
-      {page:'settings',    icon:'⚙️', label:'Settings'},
-    ],
-  },
-};
-
-['driver','owner_op','fleet'].forEach(function(role){
-  var cfg = ROLE_CONFIG[role];
-  if(cfg && !cfg.menu.some(function(x){ return x.page === 'scan'; })){
-    var after = cfg.menu.findIndex(function(x){ return x.page === 'expenses'; });
-    cfg.menu.splice(after >= 0 ? after + 1 : cfg.menu.length, 0, {page:'scan', icon:'📷', label:'Scan'});
-  }
-});
-
-// One source of truth for the grouped information architecture.
-// `Add` is intentionally not a group: it starts a new record from any domain.
-const FUNCTION_GROUPS = [
-  {label:'Work', items:[
-    {page:'load', icon:'📦', label:'Loads'},
-    {page:'disputes', icon:'⚖️', label:'Exceptions'},
-    {page:'scan', icon:'📄', label:'Documents'},
-  ]},
-  {label:'Truck', items:[
-    {page:'pti', icon:'🔍', label:'Inspections'},
-    {page:'fuel', icon:'⛽', label:'Fuel', minRole:'owner_op'},
-    {page:'service', icon:'🔧', label:'Maintenance', minRole:'owner_op'},
-  ]},
-  {label:'Money', items:[
-    {page:'expenses', icon:'💳', label:'Expenses'},
-    {page:'report', icon:'📄', label:'Reports'},
-    {page:'stats', icon:'📈', label:'Performance'},
-    {page:'deductions', icon:'💰', label:'Deductions', minRole:'owner_op'},
-  ]},
-  {label:'Team', roles:['fleet'], items:[
-    {page:'fleet', icon:'🚚', label:'Fleet overview'},
-    {page:'drivers', icon:'👥', label:'Drivers'},
-  ]},
-  {label:'Resources & account', items:[
-    {page:'community', icon:'🔗', label:'Links'},
-    {page:'settings', icon:'⚙️', label:'Settings'},
-  ]},
-];
+/* Navigation data/model is owned by navigation-model.js. */
+var ROLE_CONFIG = CrewBIQNavigationModel.ROLE_CONFIG;
+var FUNCTION_GROUPS = CrewBIQNavigationModel.FUNCTION_GROUPS;
 
 function getUserRole(){ return localStorage.getItem(K+'userRole') || 'driver'; }
 function setUserRole(role){
@@ -1411,7 +1326,7 @@ function changeRole(role, btn){
 function applyRoleUI(){
   const role = getUserRole();
   const cfg  = ROLE_CONFIG[role] || ROLE_CONFIG.driver;
-  const roleRank = {driver:0, owner_op:1, fleet:2};
+  const roleRank = CrewBIQNavigationModel.ROLE_RANK;
 
   // Sync setup role buttons if visible
   ['driver','owner_op','fleet'].forEach(r => {
@@ -2602,14 +2517,9 @@ function renderStartupShell(){
 // ── APP ──
 function showApp(){ return getStartupCoordinator().showApp(); }
 function primaryDestinationForPage(name){
-  if(['load','disputes','work'].includes(name)) return 'work';
-  if(['pti','fuel','service','truck'].includes(name)) return getUserRole()==='fleet' ? 'team' : 'truck';
-  if(['expenses','deductions','report','stats','money'].includes(name)) return 'money';
-  if(['fleet','drivers','team'].includes(name)) return 'team';
-  if(name === 'home') return 'home';
-  return '';
+  return CrewBIQNavigationModel.primaryDestinationForPage(name, getUserRole());
 }
-const PRIMARY_NAV_PAGES = ['home','work','truck','team','money'];
+const PRIMARY_NAV_PAGES = CrewBIQNavigationModel.PRIMARY_NAV_PAGES;
 let pageNavigationHistory = [];
 let currentPageName = 'home';
 function pageNavigationLabel(name){
