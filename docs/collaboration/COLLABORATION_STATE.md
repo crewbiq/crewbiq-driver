@@ -38,11 +38,11 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: CLOSED / ACCEPT
-Current owner: ChatGPT
+Phase: Slice 2B — Links / clinks Runtime Extraction
+Status: IN_PROGRESS
+Current owner: Codex
 Branch: agent/pre-base44-audit
-Product truth: current main + accepted Slice 2A.0 correction
+Product truth: current main + accepted Slice 2A.0/2A behavior contract
 Latest implementation commit: 85c82503ff3afa821f1d3fb33c301ba61413df46
 Latest review commit: aa54f6231c5647134b95967cf4e9bac11deb076e
 Blocking findings: NONE
@@ -51,11 +51,11 @@ Queued non-blocking findings:
 - deduction-template save branch without truckId guard
 - cosmetic }function boot() formatting artifact
 - HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts ($implementation, "gent/pre-base44-audit", "el=noopener noreferrer") — HISTORY-only, no coordination impact
-- clinks storage is device-global and unscoped across account changes; preserve during extraction pending a separate product decision (assessed: does not block Slice 2B)
-- editing or deleting a missing link id saves unchanged data but still reports success (confirmed factual; no dedicated test)
-- LINKS_CONTRACT.md's load/migration lifecycle section blanket-labels UNIT_CONTRACT but default-record creation and non-array-JSON coercion lack dedicated tests (confirmed accurate by direct code reading)
-Next required actor: ChatGPT
-Next bounded action: authorize bounded Slice 2B Links extraction
+- clinks storage is device-global and unscoped across account changes; preserve during extraction pending a separate product decision
+- editing or deleting a missing link id saves unchanged data but still reports success
+- default-record creation and non-array-JSON coercion need dedicated executable tests
+Next required actor: Codex
+Next bounded action: extract Links runtime into bounded global-compatible module
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -348,3 +348,14 @@ Next bounded action: authorize bounded Slice 2B Links extraction
 - Slice 2A: CLOSED
 - Next required actor: ChatGPT
 - Next bounded action: authorize bounded Slice 2B Links extraction.
+
+### Codex — Slice 2B started
+
+- Agent: Codex
+- Task: Slice 2B — Links / clinks Runtime Extraction
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- Binding contract: accepted `docs/collaboration/LINKS_CONTRACT.md` and Slice 2A.0 URL policy.
+- Boundary: new global-compatible links.js plus index composition/shims and app-shell cache integration; no behavior or storage-scope redesign.
+- Next required actor: Codex
+- Next bounded action: run baseline, then extract the bounded Links runtime.
