@@ -6,7 +6,14 @@ Slice 4A demonstrates that a substantially different premium shell can consume t
 
 ## Prototype files
 
+## Mobile visual review
+
+Use `prototype/crewbiq-next/crewbiq-next-standalone.html` for Android and other file/content-provider review. This file is intentionally self-contained: CSS, prototype JavaScript, SVG generation, and a read-only embedded navigation-model snapshot are inline. It requires no neighboring files, local server, npm, production runtime, or network access. The canonical model remains `navigation-model.js`; the embedded snapshot is review packaging only.
+
+The standalone retains the same desktop design and phone breakpoints. At phone widths the rail is hidden, bottom navigation is shown, content grids collapse, role controls remain touchable, and bottom navigation/Quick Add account for safe-area insets.
+
 - `prototype/crewbiq-next/index.html`: isolated static shell and semantic UI structure.
+- `prototype/crewbiq-next/crewbiq-next-standalone.html`: portable single-file offline visual-review build.
 - `prototype/crewbiq-next/styles.css`: reusable prototype tokens, components, responsive layout, focus treatment, and reduced-motion support.
 - `prototype/crewbiq-next/app.js`: in-memory demo state, role adaptation, navigation rendering, mock screens, and prototype interactions.
 - `tests/ui-shell-prototype.test.mjs`: parse, isolation, model-consumption, and production-hash safety contract.
@@ -52,4 +59,3 @@ After visual acceptance, a separate bounded plan can map reusable shell componen
 - Open Quick Add and dismiss it by close button, scrim, and Escape.
 - Open Synced/System states and review loading, empty, and error feedback.
 - Check keyboard focus visibility and reduced-motion preference.
-

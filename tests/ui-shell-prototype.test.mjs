@@ -8,6 +8,7 @@ const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 const html = read('prototype/crewbiq-next/index.html');
 const css = read('prototype/crewbiq-next/styles.css');
 const app = read('prototype/crewbiq-next/app.js');
+const standalone = read('prototype/crewbiq-next/crewbiq-next-standalone.html');
 const hash = path => createHash('sha256').update(readFileSync(new URL(`../${path}`, import.meta.url))).digest('hex').toUpperCase();
 
 test('STATIC_CONTRACT prototype files parse and compose as an isolated static shell', () => {
@@ -20,6 +21,28 @@ test('STATIC_CONTRACT prototype files parse and compose as an isolated static sh
   assert.match(css, /prefers-reduced-motion/);
 });
 
+test('STATIC_CONTRACT standalone review build embeds CSS, JavaScript, and read-only model snapshot', () => {
+  assert.match(standalone, /<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">/);
+  assert.match(standalone, /<style>[\s\S]*:root\{/);
+  assert.match(standalone, /PROTOTYPE EMBEDDED NAVIGATION MODEL SNAPSHOT/);
+  assert.match(standalone, /deepFreeze\(window\.CrewBIQNavigationModel\)/);
+  assert.match(standalone, /\(function \(\) \{[\s\S]*CrewBIQNavigationModel/);
+  assert.doesNotMatch(standalone, /(?:src|href)="(?:styles\.css|app\.js|\.\.\/\.\.\/navigation-model\.js)"/);
+  assert.doesNotMatch(standalone, /https?:\/\//);
+});
+
+test('STATIC_CONTRACT standalone inline scripts parse and responsive switching remains packaged', () => {
+  const scripts = [...standalone.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1]);
+  assert.equal(scripts.length, 2);
+  scripts.forEach((script, index) => new vm.Script(script, { filename: `standalone-inline-${index}.js` }));
+  assert.match(standalone, /@media\(max-width:720px\)/);
+  assert.match(standalone, /\.rail\{display:none\}/);
+  assert.match(standalone, /\.bottom-nav\{position:fixed/);
+  assert.match(standalone, /@media\(max-width:390px\)/);
+  assert.match(standalone, /safe-area-inset-top/);
+  assert.match(standalone, /safe-area-inset-bottom/);
+});
+
 test('STATIC_CONTRACT prototype consumes the accepted navigation model for role surfaces', () => {
   assert.match(app, /CrewBIQNavigationModel/);
   assert.match(app, /visibleFunctionGroups\(state\.role\)/);
@@ -28,7 +51,7 @@ test('STATIC_CONTRACT prototype consumes the accepted navigation model for role 
 });
 
 test('SAFETY_CONTRACT prototype has no production storage writes or production transport', () => {
-  const prototypeSource = `${html}\n${css}\n${app}`;
+  const prototypeSource = `${html}\n${css}\n${app}\n${standalone}`;
   assert.doesNotMatch(prototypeSource, /localStorage\s*\.\s*setItem|sessionStorage\s*\.\s*setItem/);
   assert.doesNotMatch(prototypeSource, /fiqD_/);
   assert.doesNotMatch(prototypeSource, /fetch\s*\(|XMLHttpRequest|WebSocket/);
