@@ -42,10 +42,10 @@ Phase:
 Slice 3B — Navigation Model Runtime Extraction
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,10 +54,10 @@ Product truth:
 current main + accepted collaboration runtime extractions
 
 Latest implementation commit:
-bfff0ed8e5ddb6e55d89ce8de8ea3bd5c259915b
+626c96fcf75394bab54aca84bce5dfd94d712823
 
 Latest review commit:
-0f7d97df2ae160ba4856e76dccaf02801f1fadb4
+0f7d97df2ae160ba4856e76dccaf02801f1fadb4 (accepted Slice 3A)
 
 Blocking findings:
 NONE
@@ -71,17 +71,17 @@ Queued non-blocking findings:
 - links.js LINK_CATEGORIES.maintenance icon drifted from 🛠 to 🔧 during extraction (confirmed the only category/icon difference; cosmetic, one-character fix)
 - missing-id edit (as opposed to delete) still lacks its own dedicated test, though confirmed unchanged by direct code reading
 - "exports namespace" test checks only 1 of 13 links.js exports directly by name
-- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons (reconfirmed by independent hand-computation; does not block Slice 3B, which preserves both)
-- stale non-empty invalid persisted role is not normalized and produces conservative but inconsistent UI state (accurate; no dedicated executing test)
-- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary (confirmed correct classification; actual tenant boundary is Bearer-session + identity-scoped storage, unaffected)
-- NAVIGATION_CONTRACT.md omits core-runtime.js's installRoleGuard(), a conditional setUserRole()-only authorization clamp tied to server-assigned fiqD_authRoles — doesn't change the showPage-has-no-role-enforcement conclusion, but is a completeness gap worth adding
-- Marketplace page/renderer are currently orphaned from live navigation (exhaustively re-confirmed across index.html, loads.js, links.js — not just ROLE_CONFIG absence)
+- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons (preserved intentionally in navigation-model.js)
+- stale non-empty invalid persisted role is not normalized and produces conservative but inconsistent UI state (preserved and directly contract-tested)
+- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary (preserved)
+- installRoleGuard dependency is now documented and directly contract-tested against the single effective setUserRole
+- Marketplace page/renderer remain orphaned from live navigation (preserved in page registry)
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-extract navigation model while preserving dual-model behavior
+independent Slice 3B review
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -448,3 +448,20 @@ extract navigation model while preserving dual-model behavior
 - Slice 3A: CLOSED
 - Next required actor: ChatGPT
 - Next bounded action: authorize Slice 3B navigation-model extraction.
+### 2026-08-30 — Codex — Slice 3B Navigation Model Runtime Extraction
+
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: 626c96fcf75394bab54aca84bce5dfd94d712823
+- Added navigation-model.js owning ROLE_CONFIG, FUNCTION_GROUPS, ROLE_RANK, page/primary metadata, and pure helpers.
+- Kept showPage, DOM/render dispatch, role setter, menu glue, history/back, visual shell, and event wiring in index.html.
+- Preserved exact effective Scan order, independent dual-model differences, role-visible targets, Links reachability, Marketplace orphan status, invalid-page fallback, and technical containers.
+- core-runtime.js changed: NO; installRoleGuard still wraps the single effective setter and is directly contract-tested.
+- Load position: immediately after links.js, outside the 18-script hotfix chain and before inline consumers.
+- Cache: crewbiq-driver-v85; navigation-model.js added to app shell.
+- Baseline: 36 passed, 0 failed.
+- Final validation: 38 passed, 0 failed.
+- Runtime files changed: navigation-model.js, index.html, sw.js.
+- Behavior differences: NONE intended.
+- Blocking findings: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent Slice 3B review.
