@@ -38,11 +38,11 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Slice 2A.0 — Links URL Safety Correction
-Status: CLOSED / ACCEPT
-Current owner: ChatGPT
+Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+Status: IN_PROGRESS
+Current owner: Codex
 Branch: agent/pre-base44-audit
-Product truth: current main
+Product truth: current main + accepted Slice 2A.0 correction on collaboration branch
 Latest implementation commit: 3b77e1632465a76b29d750cc0cc17635e6ac4ee7
 Latest review commit: f995fa72f11bc8299ea3c09ccd8d6f2f27a0d421
 Blocking findings: NONE
@@ -52,8 +52,8 @@ Queued non-blocking findings:
 - cosmetic }function boot() formatting artifact
 - links-url-safety.test.mjs lacks explicit case-variant scheme assertions (HTTPS://, MailTo:, TG://)
 - HISTORY entry for the Slice 2A.0 publication contains unsubstituted/typo artifacts ($implementation, "gent/pre-base44-audit", "el=noopener noreferrer") — HISTORY-only, no coordination impact
-Next required actor: ChatGPT
-Next bounded action: authorize resumption of Slice 2A Links/clinks behavior contract
+Next required actor: Codex
+Next bounded action: complete Links/clinks discovery, behavior contract, tests, and extraction-readiness decision
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -300,3 +300,14 @@ Next bounded action: authorize resumption of Slice 2A Links/clinks behavior cont
 - Slice 2A resumption: May resume once ChatGPT authorizes it — no remaining blocker found.
 - Next required actor: ChatGPT
 - Next bounded action: authorize resumption of Slice 2A Links/clinks behavior contract.
+
+### Codex — Slice 2A resumed
+
+- Agent: Codex
+- Task: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- Product truth: current main plus accepted Slice 2A.0 URL-safety correction.
+- Scope: complete discovery, behavior contract, deterministic contract tests, and extraction-readiness decision; no Links extraction.
+- Next required actor: Codex
+- Next bounded action: complete Links/clinks discovery, behavior contract, tests, and extraction-readiness decision.
