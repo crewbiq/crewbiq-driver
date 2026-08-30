@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Slice 1A — Auth/Session/Startup Behavior Contract Baseline
+Slice 1A — Auth/Session/Startup Behavior Contract Baseline PUBLISHED / AWAITING CLAUDE REVIEW
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -24,10 +24,10 @@ Slice 1A — Auth/Session/Startup Behavior Contract Baseline
 - Independent Claude re-review of `41aeb7e`: COMPLETE — verdict NEEDS FIX. B5 (Issue #90 / PR #91 misclassification in `LEGACY_ARTIFACT_MATRIX.md`) remains unresolved; gate OPEN pending a two-row correction.
 - Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
 - Canonical Documentation Gate: CLOSED.
-- Slice 1A status: IN_PROGRESS.
+- Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
 
 ## Current task owner
-Codex — build the Slice 1A auth/session/startup behavior-contract baseline without runtime extraction or behavior changes.
+Claude — independently review the Slice 1A contract baseline, evidence classifications, and readiness decision.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -121,10 +121,19 @@ Do not start the next implementation slice unless this file says the previous sl
 ### Codex — Slice 1A Auth/Session/Startup Baseline
 - Agent: Codex
 - Task: Slice 1A — Auth/Session/Startup Behavior Contract Baseline
-- Status: IN_PROGRESS
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
 - Branch: `agent/pre-base44-audit`
-- Runtime scope: observation and contract pinning only; no extraction or product behavior changes.
-- Guardrails: do not rewrite `boot()` or `restoreSession()`; do not alter PTI, identity, navigation, loader order, or storage-clearing behavior.
+- Commit SHA: `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`
+- Files changed: `docs/collaboration/AUTH_SESSION_STARTUP_CONTRACT.md`, `docs/collaboration/CURRENT_STATUS.md`, `docs/collaboration/WORK_LOG.md`, `docs/collaboration/HANDOFF.md`, `tests/auth-session-startup-contract.test.mjs`, `package.json`, and this state record.
+- Tests added/updated: added `tests/auth-session-startup-contract.test.mjs`; wired it into `npm run test:e2e:tooling` in `package.json`.
+- Test result: `node --test tests/auth-session-startup-contract.test.mjs` — PASS, 5 tests, 0 failures, 0 skipped.
+- Runtime files changed: NONE
+- Slice 1B readiness: `NOT_READY_FOR_SLICE_1B`
+- Blocking unknowns / blockers: `AMBIGUOUS_FIRST_TRUCK_FALLBACK`
+- Classification: `activeTrucks()[0]` is `KNOWN_UNSAFE_CURRENT_BEHAVIOR`, not an approved behavior invariant.
+- Next required actor: Claude
+- Next bounded action: independent Slice 1A review, followed by Slice 1A.1 if accepted
+- Slice 1A.1 boundary: remove ambiguous first-truck fallback safely, add explicit ambiguity handling, and contract-test corrected behavior; do not extract auth/session/startup.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
