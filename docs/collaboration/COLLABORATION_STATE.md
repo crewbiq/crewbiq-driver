@@ -11,21 +11,21 @@ Every agent MUST follow this protocol.
 1. Read `## CURRENT
 
 Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: IN_PROGRESS
-Current owner: Codex
+Status: BLOCKED / COORDINATOR DECISION REQUIRED
+Current owner: ChatGPT
 Branch: agent/pre-base44-audit
 Product truth: current main
 Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
 Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
 Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
-Latest state commit: b8692a04b5886dfc79677a04593bdcfabf86447d
-Blocking findings: NONE
+Latest state commit: 533ed8674e3dcddf3892cc9a628064dbc208d92e
+Blocking findings: UNSAFE_LINK_URL_SCHEME_ACCEPTANCE — normalizeLinkUrl preserves arbitrary non-empty schemes and renderCommunity places the result in href; blank input normalizes to # before the function-level required check
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-Next required actor: Codex
-Next bounded action: map and contract-pin live Links behavior before extraction
+Next required actor: ChatGPT
+Next bounded action: decide whether to authorize a separate bounded Links URL-validation correction before Slice 2A resumes
 
 ## HISTORY`.
 3. Never update `HISTORY` without updating `CURRENT`.
@@ -48,21 +48,21 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
-Status: IN_PROGRESS
-Current owner: Codex
+Status: BLOCKED / COORDINATOR DECISION REQUIRED
+Current owner: ChatGPT
 Branch: agent/pre-base44-audit
 Product truth: current main
 Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
 Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
 Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
-Latest state commit: b8692a04b5886dfc79677a04593bdcfabf86447d
-Blocking findings: NONE
+Latest state commit: 533ed8674e3dcddf3892cc9a628064dbc208d92e
+Blocking findings: UNSAFE_LINK_URL_SCHEME_ACCEPTANCE — normalizeLinkUrl preserves arbitrary non-empty schemes and renderCommunity places the result in href; blank input normalizes to # before the function-level required check
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-Next required actor: Codex
-Next bounded action: map and contract-pin live Links behavior before extraction
+Next required actor: ChatGPT
+Next bounded action: decide whether to authorize a separate bounded Links URL-validation correction before Slice 2A resumes
 
 ## HISTORY
 
@@ -250,3 +250,18 @@ Next bounded action: map and contract-pin live Links behavior before extraction
 - Scope: behavior discovery, ownership mapping, contract documentation, and deterministic tests only; no runtime extraction
 - Next required actor: Codex
 - Next bounded action: map and contract-pin live Links behavior before extraction
+
+### Codex — Slice 2A discovery stopped on unsafe URL handling
+
+- Agent: Codex
+- Task: Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+- Status: BLOCKED / COORDINATOR DECISION REQUIRED
+- Branch: `agent/pre-base44-audit`
+- Finding: `normalizeLinkUrl()` explicitly recognizes HTTP(S), `tg:`, `mailto:`, and bare domains, but returns every other non-empty value unchanged; `renderCommunity()` writes the normalized value to a clickable anchor `href`.
+- Additional evidence: an empty value normalizes to `#` before `handleSaveLink()` evaluates `!url`, so the function-level missing-URL guard does not reject it and relies on browser-native form validation.
+- Risk: arbitrary schemes can be persisted and rendered; contract-pinning this as approved behavior would preserve an unsafe validation boundary.
+- Runtime/product files changed: NONE
+- Contract/tests created: NONE; work stopped as required when the runtime defect was discovered.
+- Extraction readiness: `NOT_READY_FOR_LINKS_EXTRACTION`
+- Next required actor: ChatGPT
+- Next bounded action: decide whether to authorize a separate bounded Links URL-validation correction, then resume Slice 2A discovery/contract work after that decision.
