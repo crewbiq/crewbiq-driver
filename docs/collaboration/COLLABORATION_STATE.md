@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Slice 1A.1 — Remove Ambiguous First-Truck Fallback
+Slice 1A.1 — Remove Ambiguous First-Truck Fallback PUBLISHED / AWAITING CLAUDE REVIEW
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -26,10 +26,10 @@ Slice 1A.1 — Remove Ambiguous First-Truck Fallback
 - Canonical Documentation Gate: CLOSED.
 - Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
 - Slice 1A review: CLOSED / ACCEPT at `60a351c4cc6741d3a6fb96b3485ddecff534025a`.
-- Slice 1A.1 status: IN_PROGRESS.
+- Slice 1A.1 status: PUBLISHED / AWAITING CLAUDE REVIEW at `f16534a009fc2e84e14509ddd87b473dfd05425f`.
 
 ## Current task owner
-Codex — remove the ambiguous first-truck fallback with the smallest fail-closed runtime and contract changes.
+Claude — independently review Slice 1A.1 corrected resolution, fail-closed mutation guards, tests, and cache rotation.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -155,9 +155,20 @@ Do not start the next implementation slice unless this file says the previous sl
 ### Codex — Slice 1A.1 Remove Ambiguous First-Truck Fallback
 - Agent: Codex
 - Task: Slice 1A.1 — Remove Ambiguous First-Truck Fallback
-- Status: IN_PROGRESS
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
 - Branch: `agent/pre-base44-audit`
-- Boundary: no auth/session extraction, PTI change, loader reordering, schema redesign, or unrelated cleanup.
+- Commit SHA: `f16534a009fc2e84e14509ddd87b473dfd05425f`
+- Runtime files changed: `index.html`, `loads.js`, `sw.js`
+- Call sites reviewed: `currentCarrierCompany()`, `currentDriverAssignment()`, `getDefaultTruck()`, `renderTruckSelect()`, `selectedTruckId()`, `populateLoadTruckSelect()`, `getLoadTruckSelection()`, load/fuel/service/current-week-deduction mutation callers, and OCR fuel/service form-prefill callers.
+- Tests: added `tests/first-truck-fallback.test.mjs`; updated `tests/auth-session-startup-contract.test.mjs`; wired the new test into `test:e2e:tooling` and `pwa-auth-contract.yml`.
+- Test results: `node --test tests/first-truck-fallback.test.mjs tests/auth-session-startup-contract.test.mjs tests/hotfix-load-order-contract.test.mjs tests/driver_projections.test.mjs tests/fleet_mutation_contract.test.mjs tests/fleet_overview_driver_edit.test.mjs tests/load_date_ordering.test.mjs tests/e2e/service-worker-path.test.mjs` — PASS, 60 tests, 0 failures, 0 skipped.
+- Single-active-truck policy: when no explicit assignment exists, exactly one active truck is unambiguous and may resolve; any invalid non-empty explicit assignment fails closed.
+- Unsafe fallback remaining: NONE in the reviewed default/selector/mutation assignment paths.
+- Service-worker discipline: cache rotated from `crewbiq-driver-v79` to `crewbiq-driver-v80` because `index.html` and `loads.js` are cache-first app-shell files.
+- Slice 1B readiness: `READY_FOR_SLICE_1B`
+- Next required actor: Claude
+- Next bounded action: independent Slice 1A.1 review
+- Boundary confirmation: no auth/session extraction, PTI behavior change, loader reordering, schema change, deployment, or unrelated redesign.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
