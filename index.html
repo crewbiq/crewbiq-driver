@@ -2403,23 +2403,8 @@ function getStartupCoordinator(){
   });
   return startupCoordinator;
 }
-function restoreSession(options={}){ return getStartupCoordinator().restoreSession(options); }){
-  setFleetRestoreSettled(false);
-  const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
-  const syncUrl=String(options.syncUrl || getAuthSyncUrl()).trim();
-  if(!sessionToken) throw endpointError('auth_restore', 'sessionToken missing before restore');
-  const data=await authPost('auth_restore', {sessionToken}, syncUrl);
-  applyAuthRestoreData(data, syncUrl);
-  var fleetRestore = null;
-  if(driver && driver.crewId && (!loadTrucks().length || !loadDriverProfiles().length)){
-    fleetRestore = await restoreFleetConfigFromOrchestrator(driver.crewId);
-  }
-  saveAll();
-  saveDriverProfile();
-  renderAll();
-  setFleetRestoreSettled(true);
-  if(!options.silent) setLoginStatus('Restored cloud data: '+formatRestoreSummary(data, fleetRestore),'ok');
-  return {...unwrapAuthResponse(data), fleetRestore};
+function restoreSession(options={}){
+  return getStartupCoordinator().restoreSession(options);
 }
 async function authLogin(){
   const syncUrl=getAuthSyncUrl();
@@ -2610,7 +2595,6 @@ function renderStartupShell(){
   let teamRow = document.getElementById('hdrTeamRow');
   if(driver.teamDriver){ teamRow.style.display=''; document.getElementById('hdrTeam').textContent = driver.teamDriver; }
   else { teamRow.style.display='none'; }
-  if(needsPTI()){ showPTIBlocker(); } else { showApp(); }
 }function boot(){ return getStartupCoordinator().boot(); }
 
 

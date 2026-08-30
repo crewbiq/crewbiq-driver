@@ -1,5 +1,13 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 1B blocking correction
+
+- Removed the stale inline restoreSession body left after the compatibility shim.
+- Removed PTI/showApp routing from renderStartupShell; startup-session.js boot is the single routing owner.
+- Added an index inline-script parse smoke and startup composition guards.
+- Rotated the cache-first app shell from crewbiq-driver-v81 to crewbiq-driver-v82 because index.html changed after v81 publication.
+- Behavior differences: NONE intended.
+
 ## Slice 1B - Auth / Session / Startup Coordinator Extraction
 
 - Status: SLICE_1B_COMPLETE / PUBLISHED / AWAITING CLAUDE REVIEW.

@@ -64,7 +64,7 @@ test('STATIC_CONTRACT boot keeps setup, PTI gate, and app visibility in order', 
 });
 
 test('STATIC_CONTRACT index exposes compatibility entry points without owning coordinator behavior', () => {
-  assert.match(html, /function restoreSession\(options=\{\}\)\{ return getStartupCoordinator\(\)\.restoreSession\(options\); \}/);
+  assert.match(html, /function restoreSession\(options=\{\}\)\{\s*return getStartupCoordinator\(\)\.restoreSession\(options\);\s*\}/);
   assert.match(html, /function boot\(\)\{ return getStartupCoordinator\(\)\.boot\(\); \}/);
   assert.match(html, /function showApp\(\)\{ return getStartupCoordinator\(\)\.showApp\(\); \}/);
 });

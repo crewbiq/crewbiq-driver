@@ -1,5 +1,13 @@
 # CrewBIQ Audit Work Log
 
+## Slice 1B blocking correction
+
+- Corrected malformed restoreSession extraction and duplicate PTI/showApp routing only.
+- Added deterministic vm parse coverage for executable index.html inline scripts.
+- Added single-routing, single-showApp, single-auto-sync, and single-delayed-pull assertions.
+- Rotated the service-worker app-shell cache to crewbiq-driver-v82 so installed v81 clients receive the corrected index.html.
+- No transport, session semantics, PTI policy, domain logic, schema, or unrelated product code was changed.
+
 ## Slice 1B - Auth / Session / Startup Coordinator Extraction
 
 - Added a global-compatible startup-session.js factory with injected existing runtime dependencies.
