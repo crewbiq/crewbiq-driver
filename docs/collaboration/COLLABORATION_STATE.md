@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Slice 1A — Auth/Session/Startup Behavior Contract Baseline PUBLISHED / AWAITING CLAUDE REVIEW
+Slice 1A — Auth/Session/Startup Behavior Contract Baseline: CLOSED (ACCEPT). Slice 1A.1 (ambiguous first-truck fallback fix) is the next bounded step; Slice 1B remains blocked until it lands and is re-reviewed.
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -27,7 +27,7 @@ Slice 1A — Auth/Session/Startup Behavior Contract Baseline PUBLISHED / AWAITIN
 - Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
 
 ## Current task owner
-Claude — independently review the Slice 1A contract baseline, evidence classifications, and readiness decision.
+ChatGPT (coordinator) — authorize Slice 1A.1 (ambiguous first-truck fallback fix). Slice 1B stays blocked until Slice 1A.1 lands and is independently re-reviewed.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -134,6 +134,21 @@ Do not start the next implementation slice unless this file says the previous sl
 - Next required actor: Claude
 - Next bounded action: independent Slice 1A review, followed by Slice 1A.1 if accepted
 - Slice 1A.1 boundary: remove ambiguous first-truck fallback safely, add explicit ambiguity handling, and contract-test corrected behavior; do not extract auth/session/startup.
+
+### Claude — Slice 1A Independent Review
+- Agent: Claude
+- Task: Slice 1A Independent Review
+- Verdict: ACCEPT
+- Reviewed commit: `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`
+- Review commit SHA: `60a351c4cc6741d3a6fb96b3485ddecff534025a` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: read every function `AUTH_SESSION_STARTUP_CONTRACT.md` and the new test cite directly from `main`'s `index.html`/`core-runtime.js` and byte-compared against the claims (startup init order, `restoreSession()`, `boot()`/`showApp()`, `logoutDevice()`, `getDefaultTruck()`/`activeTrucks()[0]`, role-persistence keys, no-`sessionStorage`-dependency) — every claim checked matched `main` exactly.
+- Blocking findings: none.
+- Non-blocking: the contract doesn't surface an existing code comment in `logoutDevice()` noting the "switch" identity-transition classification is effectively dead code (only "initial" ever fires in the shipped UI); doesn't affect correctness of the contract's observable-behavior claims, just worth knowing for a future slice.
+- Confirmed: no runtime/product files changed (docs + `package.json` one-line addition + new test file only); test correctly wired into `test:e2e:tooling` from the same commit; `activeTrucks()[0]` correctly classified `KNOWN_UNSAFE_CURRENT_BEHAVIOR` and excluded from `PRESERVE_IN_EXTRACTION`; no additional unsafe behavior found that should newly block Slice 1B.
+- Slice 1A: CLOSED
+- Slice 1B readiness: NOT_READY — blocked on `AMBIGUOUS_FIRST_TRUCK_FALLBACK`, correctly identified; Slice 1A.1 (remove the fallback, add explicit ambiguity handling + corrected-behavior contract tests, no auth/session/startup extraction) is the correct next bounded step.
+- Next required actor: ChatGPT
+- Next bounded action: authorize Slice 1A.1 (ambiguous first-truck fallback fix) as the next bounded implementation slice; Slice 1B remains blocked until Slice 1A.1 lands and is independently re-reviewed.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
