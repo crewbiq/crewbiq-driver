@@ -3,6 +3,8 @@ name: PWA Auth Contract
 on:
   pull_request:
     paths:
+      - index.html
+      - loads.js
       - core.js
       - core-runtime.js
       - offline-sync-queue.js
@@ -40,11 +42,14 @@ on:
       - tests/service_invoice_legacy_upgrade.test.mjs
       - tests/dispute_tombstone_hotfix.test.mjs
       - tests/hotfix-load-order-contract.test.mjs
+      - tests/first-truck-fallback.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
       - main
     paths:
+      - index.html
+      - loads.js
       - core.js
       - core-runtime.js
       - offline-sync-queue.js
@@ -82,6 +87,7 @@ on:
       - tests/service_invoice_legacy_upgrade.test.mjs
       - tests/dispute_tombstone_hotfix.test.mjs
       - tests/hotfix-load-order-contract.test.mjs
+      - tests/first-truck-fallback.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -152,6 +158,9 @@ jobs:
       - name: Run hotfix load-order contract (core.js sequence)
         run: node --test tests/hotfix-load-order-contract.test.mjs
 
+      - name: Run explicit truck-assignment contract
+        run: node --test tests/first-truck-fallback.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
@@ -173,7 +182,7 @@ jobs:
           grep -q "service-invoice-legacy-upgrade.js" core.js
           grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
           grep -q "fleet-load-resolution.js?v=20260730-issue20-v1" index.html
-          grep -q "crewbiq-driver-v79" sw.js
+          grep -q "crewbiq-driver-v80" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "load-order-hotfix.js" sw.js

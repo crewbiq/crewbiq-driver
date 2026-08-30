@@ -195,19 +195,39 @@ Evidence: `STATIC_CONTRACT`. Disposition: loader order is `PRESERVE_IN_EXTRACTIO
 
 Evidence: `STATIC_CONTRACT`; installed-client update behavior is `E2E_REQUIRED`.
 
-## 14. Known unsafe current behavior
+## 14. Behavior disposition updates
 
 ### `AMBIGUOUS_FIRST_TRUCK_FALLBACK`
 
-Category: `KNOWN_UNSAFE_CURRENT_BEHAVIOR`.
+Category: `RESOLVED_IN_SLICE_1A_1`.
 
-Current `getDefaultTruck()` returns:
+The prior implementation returned:
 
 `findTruckByIdOrUnit(driver && driver.unitNumber) || activeTrucks()[0] || null`
 
-The `activeTrucks()[0]` branch can silently select the first active truck when ownership/assignment is ambiguous. It is currently implemented, contrary to canonical product intent, and must not be protected as an approved extraction invariant.
+The corrected resolution contract is:
 
-This is a blocker for Slice 1B. It requires a separate bounded runtime-fix slice with explicit ambiguity handling and corrected-behavior contract tests.
+- A valid explicit driver unit/truck reference resolves that truck.
+- An invalid explicit reference returns no truck and never falls back.
+- With no explicit reference, zero active trucks returns no truck.
+- With no explicit reference, exactly one active truck is treated as unambiguous and resolves that truck.
+- With no explicit reference, multiple active trucks return no truck and surface `Truck assignment required` in existing selectors.
+- Load, fuel, service, and current-week deduction mutations refuse to persist until a truck is explicitly resolved.
+
+The exactly-one convenience is retained because the canonical prohibition is against ambiguous assignment, the existing UI already supports a single active operational truck, and no competing assignment exists in that state. Any non-empty invalid explicit reference remains authoritative evidence of unresolved assignment and fails closed.
+
+### Call-site inventory reviewed in Slice 1A.1
+
+| Call site | Type | Null behavior / correction |
+| --- | --- | --- |
+| `currentCarrierCompany()` | Read-only projection | Already null-safe; falls back to legacy company display only, no truck mutation |
+| `currentDriverAssignment()` | Read-only projection | Already null-safe; returns empty truck/company refs |
+| `renderTruckSelect()` / `selectedTruckId()` | Shared fuel/service/deduction selector | Removed first-option fallback; unresolved/ambiguous state renders disabled `Truck assignment required` placeholder |
+| `populateLoadTruckSelect()` / `getLoadTruckSelection()` | Load selector and mutation context | Removed `trucks[0].id`; unresolved state renders placeholder and `saveLoad()` refuses persistence |
+| Fuel save | Mutation | Refuses save without resolved truck |
+| Service save | Mutation | Refuses save without resolved truck |
+| Current-week deduction creation/apply/edit/delete | Mutation | Returns a non-persisted unresolved view or refuses mutation without resolved truck |
+| OCR fuel/service apply | Form prefill | Uses explicit scanned unit when resolvable; invalid scanned unit remains unresolved for user selection |
 
 ### One-time launch reset
 
@@ -227,8 +247,9 @@ This is a blocker for Slice 1B. It requires a separate bounded runtime-fix slice
 | PTI lifecycle | `staging-pti-lifecycle.spec.mjs` | `STAGING_REQUIRED` |
 | Offline retry | `staging-offline-retry.spec.mjs` | `STAGING_REQUIRED` |
 | Inline startup/restore/boot/PTI ordering and selective logout | `auth-session-startup-contract.test.mjs` | `STATIC_CONTRACT` |
+| Explicit/default truck resolution and fail-closed mutation paths | `first-truck-fallback.test.mjs` | `UNIT_CONTRACT` + `STATIC_CONTRACT` |
 
-Not yet protected by meaningful runtime evidence: installed offline cold start, browser-visible expired-session handling, complete role restoration after cold restore, and corrected ambiguity handling. Static source checks must not be interpreted as proof of those outcomes.
+Not yet protected by meaningful runtime evidence: installed offline cold start, browser-visible expired-session handling, and complete role restoration after cold restore. Static source checks must not be interpreted as proof of those outcomes.
 
 ## 16. Extraction invariants
 
@@ -247,12 +268,12 @@ Future extraction must preserve:
 - no duplicate network mutations during startup;
 - no loader/hotfix ordering change.
 
-The ambiguous first-truck fallback is explicitly excluded from preservation. The corrected invariant is: no first-truck fallback for ambiguous ownership or assignment.
+The corrected invariant is enforced: no first-truck fallback for ambiguous ownership or assignment.
 
 ## 17. Slice 1B readiness
 
-`NOT_READY_FOR_SLICE_1B`
+`READY_FOR_SLICE_1B`
 
-Blocking item: `AMBIGUOUS_FIRST_TRUCK_FALLBACK`.
+Blocking item: none after Slice 1A.1 corrected-behavior tests pass.
 
-Recommended next bounded action after independent review: Slice 1A.1 - remove the ambiguous first-truck fallback safely, add explicit ambiguity handling, and contract-test the corrected behavior. Do not extract auth/session/startup in Slice 1A.1.
+Next bounded action: independent Claude review of Slice 1A.1. Do not begin Slice 1B until that review accepts this correction.

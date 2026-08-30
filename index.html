@@ -3381,6 +3381,7 @@ function saveFuelLog(){
   var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
   if(!gal){ toast('Fuel gallons required','err'); return; }
   var truckId = selectedTruckId('fuelTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var entry = {
     id:          document.getElementById('fuelEditId').value || ('fuel_'+Date.now()),
     date:        date,
@@ -3482,6 +3483,7 @@ function getDedWeekKey(){
 function getCurrentWeekDed(){
   var wk = getDedWeekKey();
   var truckId = selectedTruckId('dedTruckSelect');
+  if(!truckId) return {id:'', weekKey:wk, truckId:'', items:[], total:0, unresolvedTruck:true};
   var list = loadWeeklyDeds();
   var found = list.find(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
   if(!found){
@@ -3493,6 +3495,7 @@ function getCurrentWeekDed(){
 
 function applyDedTemplate(){
   var truckId = selectedTruckId('dedTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var truck = findTruckByIdOrUnit(truckId);
   var templates = deductionTemplatesForTruck(truck);
   if(!templates.length){ toast('No templates yet. Add templates first.','warn'); return; }
@@ -3556,6 +3559,7 @@ function saveDedModal(){
   } else {
     var wk   = getDedWeekKey();
     var truckId = selectedTruckId('dedTruckSelect');
+    if(!truckId){ toast('Truck assignment required','err'); return; }
     var list = loadWeeklyDeds();
     var idx  = list.findIndex(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
     var entry = idx>=0 ? list[idx] : {id:'wd_'+Date.now(), weekKey:wk, truckId:truckId, items:[], total:0};
@@ -3572,6 +3576,7 @@ function saveDedModal(){
 function deleteDedItem(idx){
   var wk   = getDedWeekKey();
   var truckId = selectedTruckId('dedTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var list = loadWeeklyDeds();
   var wi   = list.findIndex(function(x){ return x.weekKey===wk && (x.truckId || '') === truckId; });
   if(wi<0) return;
@@ -3717,6 +3722,7 @@ function saveServiceLog(){
   var amount = parseFloat(document.getElementById('svcAmount').value) || 0;
   if(!date || !amount){ toast('Date and amount required','err'); return; }
   var truckId = selectedTruckId('svcTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var entry = {
     id:         document.getElementById('svcEditId').value || ('svc_'+Date.now()),
     date:       date,
@@ -4576,7 +4582,17 @@ function normalizeFleetLookupValue(value){
   return String(value == null ? '' : value).trim().toLowerCase();
 }
 function getDefaultTruck(){
-  return findTruckByIdOrUnit(driver && driver.unitNumber) || activeTrucks()[0] || null;
+  return resolveDefaultTruck(driver, activeTrucks());
+}
+function resolveDefaultTruck(driverValue, trucks){
+  trucks = Array.isArray(trucks) ? trucks.filter(function(t){ return t && t.active !== false; }) : [];
+  var explicitAssignment = String((driverValue && driverValue.unitNumber) || '').trim();
+  if(explicitAssignment){
+    return trucks.find(function(t){
+      return String(t.id || '') === explicitAssignment || String(t.unitNumber || '') === explicitAssignment;
+    }) || null;
+  }
+  return trucks.length === 1 ? trucks[0] : null;
 }
 function truckDisplay(t){
   if(!t) return 'Truck';
@@ -4594,9 +4610,12 @@ function renderTruckSelect(selectId, rowId, preferred){
     sel.innerHTML = '';
     return '';
   }
-  var selected = findTruckByIdOrUnit(preferred) || findTruckByIdOrUnit(sel.value) || getDefaultTruck() || trucks[0];
+  var preferredKey = String(preferred || '').trim();
+  var currentKey = String(sel.value || '').trim();
+  var explicitKey = preferredKey || currentKey;
+  var selected = explicitKey ? findTruckByIdOrUnit(explicitKey) : getDefaultTruck();
   if(row) row.style.display='';
-  sel.innerHTML = trucks.map(function(t){
+  sel.innerHTML = (!selected ? '<option value="" selected disabled>Truck assignment required</option>' : '') + trucks.map(function(t){
     return '<option value="'+escHtml(t.id)+'" '+(selected && selected.id===t.id?'selected':'')+'>'+escHtml(truckDisplay(t))+'</option>';
   }).join('');
   return selected ? selected.id : '';

@@ -80,8 +80,8 @@ test('STATIC_CONTRACT logout clears only primary session shell and preserves con
   assert.doesNotMatch(logout, /removeItem\(K\+'userRole'/);
 });
 
-test('STATIC_CONTRACT does not normalize the known unsafe first-truck fallback as approved', () => {
+test('STATIC_CONTRACT confirms the ambiguous first-truck fallback was removed', () => {
   const getDefaultTruck = section('function getDefaultTruck(){', 'function truckDisplay(t){');
-  assert.match(getDefaultTruck, /activeTrucks\(\)\[0\]/,
-    'KNOWN_UNSAFE_CURRENT_BEHAVIOR changed: update the contract and add corrected behavior tests');
+  assert.doesNotMatch(getDefaultTruck, /activeTrucks\(\)\[0\]/);
+  assert.match(getDefaultTruck, /resolveDefaultTruck\(driver, activeTrucks\(\)\)/);
 });

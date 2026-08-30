@@ -1,5 +1,14 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 1A.1 — Remove Ambiguous First-Truck Fallback
+
+- Removed implicit first-truck selection from `getDefaultTruck()`, shared selectors, and the load selector.
+- Exactly one active truck resolves only when no explicit assignment exists; invalid explicit assignments fail closed.
+- Ambiguous selectors display `Truck assignment required`; load/fuel/service/current-week deduction mutations refuse unresolved writes.
+- `AMBIGUOUS_FIRST_TRUCK_FALLBACK` is `RESOLVED_IN_SLICE_1A_1`.
+- Service-worker cache rotates to `crewbiq-driver-v80` because `index.html` and `loads.js` are cache-first app-shell files.
+- Slice 1B readiness: `READY_FOR_SLICE_1B`, pending Claude acceptance of Slice 1A.1.
+
 ## Slice 1A — Auth/Session/Startup Behavior Contract Baseline
 
 - Current-main startup/auth/session/PTI behavior is mapped in `AUTH_SESSION_STARTUP_CONTRACT.md`.

@@ -1,5 +1,13 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Slice 1A.1 handoff
+
+The ambiguous first-truck fallback is removed. Explicit valid assignment wins; invalid explicit assignment fails closed; zero or multiple trucks without assignment resolve no truck; exactly one active truck is retained as unambiguous only when no explicit assignment exists.
+
+Read projections remain null-safe. Existing load/fuel/service/deduction selectors now surface `Truck assignment required`, and mutation paths refuse unresolved writes. Claude should independently review the call-site inventory, corrected-behavior tests, single-truck policy, and service-worker cache rotation.
+
+Slice 1B readiness is `READY_FOR_SLICE_1B`, contingent on Claude accepting Slice 1A.1. Do not begin Slice 1B before that review.
+
 ## Slice 1A handoff
 
 Slice 1A establishes a behavior-contract baseline without extracting or changing auth/session/startup runtime code. Claude should independently review the evidence classifications, source-order assertions, and coverage inventory.

@@ -1,5 +1,15 @@
 # CrewBIQ Audit Work Log
 
+## Slice 1A.1 — Remove Ambiguous First-Truck Fallback
+
+- Reviewed every `getDefaultTruck()` call site and direct first-truck default in current main.
+- Kept null-safe read projections unchanged.
+- Removed ambiguous fallback behavior in `index.html` and `loads.js`.
+- Added fail-closed assignment placeholders and guards for mutation-relevant load/fuel/service/deduction paths.
+- Added corrected-behavior unit/static contracts and updated the Slice 1A contract assertion.
+- Rotated the service-worker app-shell cache and synchronized the existing CI cache check.
+- No auth/session extraction, PTI change, loader reordering, schema change, or UI redesign was performed.
+
 ## Slice 1A — Auth/Session/Startup Behavior Contract Baseline
 
 - Mapped current-main synchronous loader through restore, identity/role/account restoration, `boot()`, PTI gating, and initial app visibility.

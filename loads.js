@@ -189,13 +189,19 @@
     }
 
     const driver = _get.driver ? _get.driver() : null;
-    const preferredTruck = findTruckByIdOrUnit(preferred)
-      || findTruckByIdOrUnit(select.value)
-      || findTruckByIdOrUnit(driver && driver.unitNumber);
-    const selectedId = preferredTruck ? preferredTruck.id : trucks[0].id;
+    const preferredKey = String(preferred || '').trim();
+    const currentKey = String(select.value || '').trim();
+    const driverKey = String((driver && driver.unitNumber) || '').trim();
+    const explicitKey = preferredKey || currentKey || driverKey;
+    const selectedTruck = explicitKey
+      ? findTruckByIdOrUnit(explicitKey)
+      : (trucks.length === 1 ? trucks[0] : null);
+    const selectedId = selectedTruck ? selectedTruck.id : '';
 
     row.style.display = '';
-    select.innerHTML = trucks.map(t => {
+    select.innerHTML = (!selectedTruck
+      ? '<option value="" selected disabled>Truck assignment required</option>'
+      : '') + trucks.map(t => {
       const selected = t.id === selectedId ? ' selected' : '';
       return `<option value="${_escHtml(t.id)}"${selected}>${_escHtml(truckLabel(t))}</option>`;
     }).join('');
@@ -347,6 +353,7 @@
     const loads     = _get.loads();
     const driver    = _get.driver();
     const truckSel  = getLoadTruckSelection();
+    if (!truckSel.truckId) return _toast('Truck assignment required', 'err');
     if (!editId && loads.find(x => x.loadId === loadId)) return _toast('Load ID already exists', 'err');
     if (!editId) {
       const sameDate = loads.filter(x => x.pickup === pickupVal);
