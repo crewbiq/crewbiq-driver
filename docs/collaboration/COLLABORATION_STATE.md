@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4A.3 - Interactive Data Visualization / Analytics Pass
+Slice 4B - Production Integration Contract + Analytics Scope Architecture
 
 Status:
-PUBLISHED / AWAITING VISUAL REVIEW
+IN_PROGRESS
 
 Current owner:
-ChatGPT / Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4A.2 visual direction is the accepted baseline
+current main; Slice 4A.2 and Slice 4A.3 visual direction approved as production-integration baseline
 
 Latest implementation commit:
 8dcad94b6eaa50d14ed4479399a2756bf0d7b599
@@ -60,10 +60,10 @@ Latest correction commit:
 NONE
 
 Latest review commit:
-NONE
+Product Owner decision in Slice 4B assignment
 
 Latest state commit:
-PENDING (this publication commit)
+fc94dca7d211ef08f1a9cf70c00f994bff6c56a5
 
 Blocking findings:
 NONE
@@ -74,10 +74,10 @@ Queued non-blocking findings:
 - cosmetic `}function boot()` formatting artifact
 
 Next required actor:
-ChatGPT / Product Owner
+Codex
 
 Next bounded action:
-review interactive analytics on Android and desktop before production integration planning
+map canonical production data and publish analytics-scope and production-UI integration contracts
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -539,4 +539,5 @@ review interactive analytics on Android and desktop before production integratio
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
