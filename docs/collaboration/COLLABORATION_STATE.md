@@ -42,10 +42,10 @@ Phase:
 Slice 3B — Navigation Model Runtime Extraction
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -57,7 +57,7 @@ Latest implementation commit:
 626c96fcf75394bab54aca84bce5dfd94d712823
 
 Latest review commit:
-0f7d97df2ae160ba4856e76dccaf02801f1fadb4 (accepted Slice 3A)
+81c3b203ad65eb2da50c24069e1f3c89a00bd93e
 
 Blocking findings:
 NONE
@@ -70,18 +70,18 @@ Queued non-blocking findings:
 - clinks remains device-global by established contract (reconfirmed unchanged, not worsened, by Slice 2B)
 - links.js LINK_CATEGORIES.maintenance icon drifted from 🛠 to 🔧 during extraction (confirmed the only category/icon difference; cosmetic, one-character fix)
 - missing-id edit (as opposed to delete) still lacks its own dedicated test, though confirmed unchanged by direct code reading
-- "exports namespace" test checks only 1 of 13 links.js exports directly by name
-- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons (preserved intentionally in navigation-model.js)
-- stale non-empty invalid persisted role is not normalized and produces conservative but inconsistent UI state (preserved and directly contract-tested)
-- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary (preserved)
-- installRoleGuard dependency is now documented and directly contract-tested against the single effective setUserRole
-- Marketplace page/renderer remain orphaned from live navigation (preserved in page registry)
+- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons (reconfirmed field-by-field unchanged in navigation-model.js; preserved intentionally, not unified)
+- stale non-empty invalid persisted role is conservative but internally inconsistent (now proven via real execution, not just described)
+- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary (preserved, showPage still sole router)
+- installRoleGuard still wraps the single effective setUserRole (now proven via real execution against the actual current core-runtime.js — no second setter, no bypass)
+- Marketplace page/renderer remain orphaned from live navigation (preserved in page registry, re-confirmed)
+- sw.js header-comment/activation-log version strings (v1.0.84) were not bumped alongside the functional CACHE_NAME bump to v85 — cosmetic only
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent Slice 3B review
+authorize next bounded UI-shell preparation slice (recommend: OCR intake transport-adapter contract, or a read-only visual prototype consuming navigation-model.js with no index.html changes)
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -465,3 +465,19 @@ independent Slice 3B review
 - Blocking findings: NONE.
 - Next required actor: Claude.
 - Next bounded action: independent Slice 3B review.
+
+### 2026-08-30 — Claude — Slice 3B Independent Review
+
+- Agent: Claude
+- Task: Slice 3B Independent Review
+- Verdict: ACCEPT
+- Reviewed implementation commit: `626c96fcf75394bab54aca84bce5dfd94d712823`
+- Review commit SHA: `81c3b203ad65eb2da50c24069e1f3c89a00bd93e` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: read all 57 lines of `navigation-model.js` directly; diffed the complete `index.html` against the Slice 3A baseline (5 contiguous hunks, all within the navigation region); independently confirmed `links.js`, `loads.js`, and `core-runtime.js` are byte-identical before/after via blob-SHA comparison; read `setUserRole`, `getUserRole`, `applyRoleUI`, `primaryDestinationForPage`, `showPage`, and `installRoleGuard`/`authorizedUiRole`/`roleLevel` in `core-runtime.js` directly rather than trusting the contract or test suite's own descriptions.
+- Blocking findings: NONE.
+- Non-blocking findings: `sw.js`'s header-comment and activation-log version strings (`v1.0.84`) were not bumped alongside the functional `CACHE_NAME` bump to `v85` — purely cosmetic, zero behavioral impact, a confirmed drift from the pattern every prior slice followed.
+- Confirmed: `navigation-model.js` owns only data/pure-helpers (page registry, `ROLE_CONFIG`, `FUNCTION_GROUPS`, `ROLE_RANK`, `PRIMARY_NAV_PAGES`, lookup functions) with zero DOM/auth/role-authorization code; both navigation models preserved field-by-field including all six known label/icon divergences (Disputes/Exceptions, Scan/Documents, PTI/Inspections, Service/Maintenance, Stats/Performance, Fleet/Fleet overview) — no silent unification; scan's runtime-mutation step is correctly replaced by baked-in static order with no caller depending on the mutation itself; exactly one effective `ROLE_CONFIG`/`FUNCTION_GROUPS`/`ROLE_RANK` exists at runtime, re-bound via explicit `var`/`const` assignments, no shadowing; `primaryDestinationForPage` is byte-for-byte equivalent logic (role now an explicit parameter); **`installRoleGuard()` fully intact** — `core-runtime.js` untouched, `setUserRole` remains the sole setter in `index.html`, `navigation-model.js` contains zero reference to it, and the new test suite proves the guard's reject/accept behavior via real execution against the actual current `core-runtime.js` (not a reimplementation); `showPage()` remains the sole router in `index.html`, unchanged in responsibility, confirmed via genuine `vm`-executed invocation; Marketplace remains orphaned, Links/`community` reachability unaffected; script load order is genuinely dependency-required before the inline script's top-level consumer line (not merely convenient); cache correctly rotated v84→v85 with the new module added to the app shell; this slice's test suite closes two gaps this reviewer flagged as non-blocking in the Slice 3A review (full namespace check, invalid-role behavior, and `installRoleGuard` now all proven via real execution rather than description); complete `index.html` diff confirms zero unrelated behavior change anywhere (auth/session, PTI, Links runtime, loads, fuel, expenses, deductions, OCR, Marketplace state, Document Vault, IFTA, cloud sync, Base44 shell — none touched).
+- UI-shell preparation: MAY BEGIN in the sense the task allows — the data/logic boundary is now clean enough for a later visual shell to consume `navigation-model.js` without touching business domains, role authorization, or route ownership; this review does not design that shell.
+- Slice 3B: CLOSED
+- Next required actor: ChatGPT
+- Next bounded action: authorize the next bounded slice — recommend an OCR intake transport-adapter behavior contract (scoped away from the still-open Document Vault question), or, if beginning UI-shell prep now, a read-only visual prototype consuming `navigation-model.js` with zero `index.html` changes as the safest first step.
