@@ -741,3 +741,76 @@ None.
 
 **Yes**, once ChatGPT authorizes it. The URL-safety gap that blocked Slice 2A is now closed and verified; there is no remaining reason found in this review to keep Slice 2A paused.
 
+---
+
+## Slice 2A Independent Review — 2026-08-30
+
+Reviewer: Claude. Read the live `CURRENT_START`/`CURRENT_END` block first (Phase: Slice 2A; Status: PUBLISHED / AWAITING CLAUDE REVIEW; implementation commit `85c82503`, prior review commit `f995fa72`). Implementation commit under review: `85c82503ff3afa821f1d3fb33c301ba61413df46` ("test: contract-pin Links behavior"), parent `e3f4ed93` (the Slice 2A "resumed" IN_PROGRESS marker, docs-only). Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` plus the accepted Slice 2A.0 correction (`3b77e163`) — confirmed `index.html` at this commit is byte-identical (same blob SHA, `a8303fba`) to the Slice 2A.0-accepted `index.html`, i.e. this slice changed **zero** runtime code.
+
+Method: read `docs/collaboration/LINKS_CONTRACT.md` in full and, for every factual claim in it, located and read the actual corresponding code in `index.html` directly (not the diff — there is no runtime diff) rather than trusting the contract's prose. Read both `tests/links-contract.test.mjs` and `tests/links-url-safety.test.mjs` in full and traced each test by hand against the real code to confirm it proves what it claims.
+
+### VERDICT: **ACCEPT**
+
+### 1–9, 11–14: Contract accuracy — verified claim-by-claim against actual code
+
+- **Storage ownership**: `getLinksKey()` returns `(typeof K !== 'undefined' ? K : 'fiqD_') + 'clinks'` → `fiqD_clinks`. `loadCLinks()` repairs `fiqD__clinks` (the historical wrong key) by copying its bytes to the canonical key and removing it, exactly as documented. Confirmed **no** identity/account/workspace/role scoping key pattern anywhere in this path (unlike `fiqD_data_crew_<slug>_*`/`fiqD_data_email_<slug>_*`, which do exist elsewhere in the app for driver-scoped data). Confirmed no cloud-sync/queue call, no import/export function, anywhere in the extracted Links source range.
+- **Schema/migration**: read both `loadCLinks()` migration branches directly. No-`id` legacy records reconstruct into the full schema (`id: lnk-…`, `name: link.name || 'Untitled Work Link'`, `category: 'other'`, `note: ''`, `favorite: false`, `createdAt: Date.now()`), with `url: normalizeLinkUrl(link.url) || String(link.url || '').trim()` — confirmed the unsafe-URL fallback preserves the raw value rather than blanking it. Already-`id`-bearing records get in-place repairs only for invalid category, non-boolean favorite, and normalizable URL — each gated by its own check, matching the contract table exactly.
+- **Default records**: confirmed `!raw` branch creates and persists exactly the two named "CrewBIQ Community"/"CrewBIQ Support Bot" records with `t.me` URLs, matching the contract.
+- **Malformed/non-array storage**: confirmed `if (!Array.isArray(links)) links = [];` coerces in-memory only — traced the `wasMigrated` flag through the empty-array `.map()` (which never sets it true, since it never iterates) to confirm the malformed raw value is genuinely **not** overwritten in storage, exactly as the contract states ("not explicitly quarantined or overwritten"). Confirmed the outer `try/catch` separately handles genuine `JSON.parse` throws by logging and returning `[]`.
+- **URL policy**: re-confirmed against the Slice 2A.0-accepted `normalizeLinkUrl` (unchanged, same blob) — matches the contract's summary exactly, including that unsafe/unknown schemes are rejected and legacy unsafe values are preserved-but-non-clickable.
+- **CRUD**: `handleSaveLink()`'s edit branch (`links.map(l => l.id === id ? {...l, ...} : l)`) and delete's filter (`.filter(l => l.id !== id)`) both leave every non-matching record byte-identical — confirmed via the contract's own new test (§15) and by direct reading.
+- **Missing-id edit/delete**: read both functions directly and confirmed the exact claimed edge behavior — a non-matching `id` on edit leaves the array structurally unchanged (the `.map()` predicate never matches, so every element passes through as-is) yet still displays "Link updated"; delete's `.filter()` behaves the same way with "Link deleted." Factual, confirmed by code reading (not, however, backed by its own dedicated test — see non-blocking findings).
+- **Category/filter/search**: confirmed `LINK_CATEGORIES` has all ten listed categories, `renderCommunity()` groups filtered records by `Object.entries(LINK_CATEGORIES)` iteration order (category-definition order) and preserves within-group array order (`grouped[cat].push(l)` in filter order), and the search predicate matches name/note/url case-insensitively via `.toLowerCase().includes(q)`.
+- **Role visibility**: confirmed `ROLE_CONFIG.driver/owner_op/fleet` all include `{page:'community', icon:'🔗', label:'Links'}` in their `menu` arrays (unchanged since the very first Slice 0 review). Also independently found and confirmed a second navigation surface, `FUNCTION_GROUPS` (rendered into `#menuGrid`, the `page-menu` route), whose "Resources & account" group contains the same `community`/Links entry with no `roles` restriction on the group and no `minRole` on the item — matching the contract's claim precisely.
+- **`page-community`/`renderCommunity()` as current-only container**: confirmed the route dispatch (`if(name==='community') renderCommunity();`), the DOM container id, and the nav labels are all unchanged and still point at this same container — no rename occurred.
+- **Marketplace separation**: found and read `moduleTarget(id)` directly: `const map={expenses:'expenses',links:'community',reports:'report',pti:'pti',fuel:'expenses'};` — confirms `moduleTarget('links')` is a pure page-routing shortcut (`openModule` just calls `showPage('community')`), entirely separate from `mktModules`/`MKT_MODULES`/`loadMktModules`/`saveMktModules` (a different `scopedLoad('mktModules', [])` storage key, unrelated to `fiqD_clinks`). Links visibility in the main nav menus is in no way gated by Marketplace "installed" state. This directly and precisely confirms item 13.
+- **Logout persistence**: confirmed `fiqD_clinks` matches neither `FLEET_DIRECT_KEYS` nor any `FLEET_CONFIG_KEY_PATTERNS` suffix (`_trucks`, `_driverProfiles`, `_svcRate`), and `logoutDevice()` (unchanged since Slice 1A/1B, re-confirmed) never references `clinks` at all — Links persist across logout by simple omission from the logout-clearing logic, not by deliberate fleet-config preservation, matching the contract's precise phrasing.
+
+### 10. Data ownership assessment / cross-account risk
+
+**Assessment: real, but not a blocker for a behavior-preserving extraction.**
+
+`fiqD_clinks` is device-local, browser-profile-wide, and **not** identity-scoped — confirmed by direct comparison against the identity-scoping pattern (`fiqD_data_crew_<slug>_*`) used elsewhere in this same app for driver-owned data. This means on a shared or rotated device (e.g. a fleet tablet used by multiple drivers across shifts), one driver's saved Links — including free-text `note` fields that could contain dispatcher extensions, gate codes, or similar quick-reference details — remain visible to the next driver who logs in on the same device, with no account boundary at all.
+
+This is a genuine, moderate-severity data-ownership gap. It should **not** block this behavior-preserving code extraction, for three reasons: (1) the extraction does not create, worsen, or newly expose this behavior — it is pre-existing and would remain identical after extraction either way; (2) the sensitivity class here (bookmarks/quick-reference notes) is materially lower than the accounting, identity, or compliance-evidence data this whole audit has treated as hard blockers elsewhere (Document Vault, first-truck fallback, URL-safety/XSS); (3) *fixing* the scoping (e.g. making `clinks` identity-scoped like other driver data) is itself a product/behavior decision — it would change what a returning user sees, is exactly the kind of change this audit process has repeatedly required a separate bounded, authorized slice for, and `LINKS_CONTRACT.md`'s own extraction invariant #8 ("Do not add cloud/account/workspace scoping during behavior-preserving extraction") already correctly excludes it from Slice 2B's scope rather than silently attempting it.
+
+Recommendation: keep this queued as a separate, explicitly-authorized future product/runtime decision (as it already is in the CURRENT block's queue), not a Slice 2B blocker.
+
+### 15. Test quality
+
+Both test files genuinely execute the real Links runtime via `node:vm` (`vm.createContext`/`vm.runInContext`) against a realistic mocked `document`/`localStorage`/`toast` harness — not string matching. Traced every test in both files by hand against the actual code:
+
+- `tests/links-contract.test.mjs`: "reload survives independent contexts" genuinely creates two *separate* vm contexts and confirms `loadCLinks()` returns identical data from each — directly proving the "no durable global array" claim. "Wrong-key and legacy-shape migration" seeds only the wrong key with a no-id bare-domain record and asserts the full migrated shape, wrong-key removal, and canonical-key persistence in one pass. "Edit updates only the intended record" and "delete removes only the intended record" both use two-record fixtures and assert the *non-target* record is left `deepEqual` to its original — precise, not just "did it change somehow." "Links are visible in every current role configuration" is the strongest test in the suite: it executes the literal `ROLE_CONFIG`/`FUNCTION_GROUPS` object definitions in a vm context and inspects the real resulting JS objects, rather than regex-matching source text. "Links storage is independent from Community and Marketplace" combines a real `getLinksKey()` call with a source-absence assertion (`doesNotMatch(linksSource, /mktModules|MKT_MODULES|.../)`) — a meaningful negative check, not just a positive one.
+- `tests/links-url-safety.test.mjs`: the new case-variant assertions (`HTTPS://…`, `MailTo:…`, `TG://…`) directly resolve the non-blocking gap flagged in the Slice 2A.0 review — confirmed the values pass through unmodified (the accept regex only tests case-insensitively, it doesn't normalize case on return), matching what this reviewer predicted by hand in the prior review.
+- **False-confidence finding**: `LINKS_CONTRACT.md`'s "Load and migration lifecycle" section is blanket-labeled `UNIT_CONTRACT` for all seven of its listed steps, but two of them — **default-record creation on first run** (no stored value at all) and **non-array-JSON coercion to an empty array** — are not exercised by any test in either file. I independently verified both behaviors are accurately described by reading the code directly, so the contract's *content* is correct, but the blanket `UNIT_CONTRACT` label overstates the actual test coverage for these two specific sub-claims. Recommend either adding two small test cases (seed no key at all; seed a non-array JSON value like `"5"` or `{}`) or footnoting those two bullets as verified by direct source reading rather than by an executing test.
+- The documented "missing-id edit/delete" edge behavior (§8) is similarly accurate-by-reading but not backed by its own dedicated test in `links-contract.test.mjs` — same category of gap, same low severity given the behavior is explicitly framed as a fidelity note rather than an invariant to protect.
+
+### 16. Runtime/product files changed
+
+**None.** Confirmed via the commit's file list (`docs/collaboration/{ARCHITECTURE,CURRENT_STATUS,HANDOFF,LINKS_CONTRACT,WORK_LOG}.md`, `package.json`, `tests/links-contract.test.mjs`, `tests/links-url-safety.test.mjs`) and independently via blob-SHA comparison (`index.html` identical to the Slice 2A.0 baseline). No `sw.js` change was needed or made, consistent with "docs/tests only" requiring no cache rotation.
+
+### 17. Proposed Slice 2B boundary
+
+The proposed single module (`links.js`, global-compatible, dependency-injected, covering storage/migration, URL policy, render state, CRUD, and — hedged as "if kept in the same coherent boundary" — modal behavior) is **appropriately bounded as one slice**, not too broad, for this specific domain: having now read the entire ~350-line Links runtime source in full across this and the Slice 2A.0 review, every one of these pieces already calls directly into the others within a small, self-contained block with no external dependencies beyond generic utilities (`escHtml`, `K`, `document`, `localStorage`, `toast`, `confirm`, `URL`) — splitting storage from CRUD from render would require inventing temporary cross-slice interfaces for functions that are going to live in the same module anyway, adding risk without a corresponding safety benefit. This is also a lower-risk situation than Slice 1B was: the comprehensive contract-test suite already exists and passes *before* extraction begins, rather than needing to be built as part of the extraction commit itself.
+
+One refinement, following the pattern that worked well in Slice 1B: within Slice 2B, sequence the move so that the *DOM-coupled* modal open/close/save glue is handled the same way `renderStartupShell()` was — either kept as a thin, dependency-injected shim, or moved last and re-verified against the contract tests before finishing — rather than treated as equally "core" to the module as the pure storage/URL-policy layer, which carries the lowest extraction risk and should move first.
+
+### Blocking findings
+
+None.
+
+### Non-blocking findings
+
+- The "Load and migration lifecycle" section's blanket `UNIT_CONTRACT` label overstates test coverage for two of its seven sub-claims (default-record creation, non-array-JSON coercion) — both independently confirmed accurate by direct code reading, but not backed by a dedicated executing test.
+- The documented "missing-id edit/delete" edge behavior is accurate but similarly untested by a dedicated case.
+- Device-global unscoped `clinks` storage is a real, moderate cross-account data-ownership gap (see §10) — correctly queued as a separate future product decision, not a Slice 2B blocker.
+- All previously-queued non-blocking items (from Slices 1A.1, 1B, and 2A.0) remain outstanding and unresolved; none were newly introduced or newly ignored by this slice.
+
+### Extraction readiness
+
+**READY_FOR_LINKS_EXTRACTION** — independently confirmed, not merely accepted on Codex's assertion.
+
+### Whether Slice 2A is CLOSED
+
+**Yes.** Every contract claim checked out against the actual code, no runtime file was touched, the new tests genuinely execute real behavior, the one identified false-confidence labeling gap is minor and about test-coverage completeness rather than factual accuracy, and the cross-account data-ownership question was explicitly assessed and correctly does not block extraction.
+
