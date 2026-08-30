@@ -1019,3 +1019,123 @@ This genuinely prepares the ground for a later Base44-inspired shell without pre
 
 **Yes.** Every contract claim was independently verified against the actual code — much of it recomputed by hand rather than merely re-read — the dual-navigation-model characterization holds up under independent computation, the role/authorization boundary is correctly classified with one genuinely useful addition beyond the contract's own text, the invalid-role edge case is accurately described, Marketplace's orphaned status was exhaustively re-confirmed across every file in the codebase (not just ROLE_CONFIG absence), Links/`community` ownership is unaffected, the new tests genuinely execute real code for the highest-value claims, and zero runtime code was touched.
 
+---
+
+## Slice 3B Independent Review — 2026-08-30
+
+Reviewer: Claude. Read the live `CURRENT_START`/`CURRENT_END` block first (Phase: Slice 3B; Status: PUBLISHED / AWAITING CLAUDE REVIEW; implementation commit `626c96fc`). Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` plus all accepted extractions through Slice 3A. Method: read all 57 lines of `navigation-model.js` directly, diffed the complete `index.html` against the Slice 3A-accepted baseline (5 contiguous hunks, all within the navigation region), independently re-verified byte-identity of `links.js`, `loads.js`, and `core-runtime.js` (all unchanged, confirmed via blob-SHA comparison), and read every relevant function (`setUserRole`, `getUserRole`, `applyRoleUI`, `primaryDestinationForPage`, `showPage`, `installRoleGuard`/`authorizedUiRole`/`roleLevel` in `core-runtime.js`) directly rather than trusting the contract's or the test suite's own claims.
+
+### VERDICT: **ACCEPT**
+
+### Module ownership
+
+Read `navigation-model.js` line-by-line: it exports exactly `ROLE_CONFIG`, `FUNCTION_GROUPS`, `ROLE_RANK`, `PRIMARY_NAV_PAGES`, `PAGE_REGISTRY`, and five pure lookup/helper functions (`roleConfig`, `visibleFunctionGroups`, `roleMenuTargets`, `groupedTargets`, `bottomDestinationsForRole`, `primaryDestinationForPage`) — confirmed via `Object.keys(api)` matching this exact list. It contains **zero** DOM references, no `showPage`/`querySelector`/`getElementById`/`classList` code (confirmed both by direct reading and by the new test suite's own negative-space regex assertion against the module's source), no `pageNavigationHistory`, no auth/session code, and no `setUserRole` reference at all (confirmed absent by direct grep). `primaryDestinationForPage(name, role)` deliberately takes `role` as an explicit parameter rather than calling `getUserRole()` internally — a genuinely pure function, unlike the original inline version which read the global directly. One notable, deliberate design difference from the `startup-session.js`/`links.js` precedent: this module assigns its exports directly to `window` at load time (`global.ROLE_CONFIG = ROLE_CONFIG`, etc.) rather than using a dependency-injected `create(deps)` factory. This is appropriate here, not a regression from the established pattern — the module has no effectful external dependencies to inject (everything is static data or pure functions of explicit arguments), so a factory indirection would add nothing; the DI pattern in the prior two extractions existed specifically to inject `document`/`localStorage`/`toast`/etc., none of which this module needs.
+
+### Dual-model preservation — re-verified against the Slice 3A baseline, not just internal consistency
+
+Diffed `navigation-model.js`'s `ROLE_CONFIG`/`FUNCTION_GROUPS` object literals against the Slice 3A-accepted inline versions field-by-field: identical role labels/icons/descriptions, identical menu item order/labels/icons for all three roles, identical `FUNCTION_GROUPS` group order/item order/labels/icons/`roles`/`minRole` values. Specifically re-checked every pairing the task called out: Disputes/Exceptions, Scan/Documents (📷 in `ROLE_CONFIG` vs 📄 in `FUNCTION_GROUPS` — confirmed both preserved, not unified), PTI/Inspections, Service/Maintenance, Stats/Performance, Fleet/Fleet overview — every one of these six known divergences is still present and distinct between the two models. No silent unification occurred.
+
+### Scan behavior
+
+The original inline code inserted `{page:'scan', icon:'📷', label:'Scan'}` into each role's `menu` array at runtime via a `forEach`+`splice` IIFE, positioned immediately after `expenses`. `navigation-model.js` instead bakes the post-insertion state directly into each role's static `menu` array literal — confirmed by reading the raw array literal that `scan` already sits immediately after `expenses` in all three roles' arrays. Grepped the entire final `index.html` for any remaining `.menu.splice`, `.menu.push`, or `.menu.some(...page==='scan')` check: **none exist** — nothing in the codebase depends on `ROLE_CONFIG` mutating after initial load, so representing the final effective order directly is behavior-equivalent, not merely convenient. The new test suite's "ROLE_CONFIG deep shape and effective scan order" test independently confirms this by locating the scan entry via `.find()` for all three roles and asserting its exact shape.
+
+### Compatibility globals
+
+`index.html` no longer declares `ROLE_CONFIG`/`FUNCTION_GROUPS`/`ROLE_RANK` as its own object literals — confirmed via a full grep that the only remaining declarations are `var ROLE_CONFIG = CrewBIQNavigationModel.ROLE_CONFIG;`, `var FUNCTION_GROUPS = CrewBIQNavigationModel.FUNCTION_GROUPS;`, and `const roleRank = CrewBIQNavigationModel.ROLE_RANK;` (inside `applyRoleUI()`) and `const PRIMARY_NAV_PAGES = CrewBIQNavigationModel.PRIMARY_NAV_PAGES;` — one explicit re-binding per identifier, no shadowing, no duplicate declarations. There is exactly one effective navigation model at runtime: `navigation-model.js`'s data, re-exposed under the same names `index.html`'s existing code already expects.
+
+### Primary destination mapping
+
+Read `navigation-model.js`'s `primaryDestinationForPage(name, role)` and compared it line-for-line against the original inline `primaryDestinationForPage(name)` (which called `getUserRole()` internally): identical branch structure and target pages for every case the task listed (`home→home`, `load/disputes/work→work`, `pti/fuel/service/truck→truck` unless `role==='fleet'` then `team`, `team/fleet/drivers→team`, `expenses/deductions/report/stats/money→money`, unknown pages→`''`). The only textual difference is `if(name==='home') return 'home'; return '';` refactored to a ternary — semantically identical. `index.html`'s new shim (`function primaryDestinationForPage(name){ return CrewBIQNavigationModel.primaryDestinationForPage(name, getUserRole()); }`) always supplies the live current role, so the fleet-specific `truck`→`team` behavior is preserved exactly, confirmed directly via the new test's `api.primaryDestinationForPage('pti','fleet') === 'team'` real function call.
+
+### Role rank
+
+`ROLE_RANK = {driver:0, owner_op:1, fleet:2}` — confirmed identical values via direct comparison to the original inline `roleRank` object. `FUNCTION_GROUPS`'s `minRole` gating logic (`visibleFunctionGroups`) uses the identical comparison expression (`!item.minRole || ROLE_RANK[role] >= ROLE_RANK[item.minRole]`) as the original inline `applyRoleUI()` code. The stale-invalid-role cascade (`ROLE_RANK['stale']` → `undefined`, making every `>=` comparison `false`, and `group.roles.includes('stale')` → `false`) is preserved exactly, and — unlike the Slice 3A contract, which described this only in prose — this slice's test suite now **proves it via real execution**: `api.roleConfig('stale').label === 'Driver'` and `api.groupedTargets('stale')` deep-equal to driver's exact target set. This directly closes the test-coverage gap this reviewer flagged as non-blocking in the Slice 3A review.
+
+### installRoleGuard — the highest-stakes check in this review
+
+Confirmed `core-runtime.js` is byte-identical to `main` (same blob SHA) — completely untouched by this slice. `setUserRole` remains solely defined in `index.html` (confirmed via `(html.match(/function setUserRole\(role\)/g)||[]).length === 1`), with a body byte-identical to the pre-extraction version (`if (!ROLE_CONFIG[role]) return; localStorage.setItem(K+'userRole', role);`). Confirmed `navigation-model.js` contains **zero** reference to `setUserRole` (direct grep, and the new test's own `assert.doesNotMatch(source, /setUserRole/)`) — no second setter exists anywhere. Confirmed the script-load order still satisfies `installRoleGuard()`'s timing requirement: `core-runtime.js` (loaded first via the untouched hotfix chain) registers its `DOMContentLoaded` listener before the inline script — which still defines `setUserRole` — has executed, so by the time the listener fires, `typeof global.setUserRole === 'function'` is still true and gets wrapped exactly as before.
+
+The new test suite's "core role guard wraps the single effective setter" test goes further than static confirmation: it extracts `roleLevel`, `authorizedUiRole`, and `installRoleGuard`'s actual current function bodies directly from the real, unmodified `core-runtime.js`, executes `installRoleGuard()` for real against a mocked `global.setUserRole` spy and a `localStorage` simulating an authenticated driver-only account (`authRoles: ["driver"]`), and asserts the exact resulting behavior: requesting `'fleet'` is rejected with the real toast message and never reaches the underlying setter, while requesting `'driver'` passes through correctly. This is genuine, current-code proof — not an assumption — that the guard mechanism is unaffected by this extraction. No new path can bypass the guard, because the thing being guarded (`setUserRole`) never moved.
+
+### showPage ownership
+
+Confirmed `showPage()` remains solely in `index.html` (`(html.match(/function showPage\(/g)||[]).length === 1`) and unchanged in responsibility: invalid-page fallback to `menu`, activation, the exact render-hook dispatch table, history/back handling via `pageNavigationHistory`, and primary-nav highlighting are all still present in the same function, confirmed via direct reading and via the new test's genuine `vm`-executed invocation of the real, regex-extracted `showPage` function body (`showPage('invalid')` → `activated === ['menu']`, callback order `['menu','menu']` confirming both `applyRoleUI()` and `updatePageBackNavigation('menu')` fire). `navigation-model.js` contains no `function showPage`, no DOM query methods, and no `classList` reference — confirmed both by direct reading and by the test's explicit negative-space assertion. `navigation-model.js` did not become a second router.
+
+### Page registry
+
+`PAGE_REGISTRY` in the new module carries `classification` (and `technicalContainer: true` where applicable) for all 21 pages. Cross-checked every classification against the Slice 3A-established runtime truth: `work`/`truck`/`money`/`team`/`community` all `ACTIVE` with `technicalContainer:true`; `menu` is `LEGACY_CONTAINER` with `technicalContainer:true`; `marketplace` is `ORPHANED`; every other page is plain `ACTIVE`. This is metadata only — confirmed nothing in `index.html` or `navigation-model.js` branches on `PAGE_REGISTRY` at runtime to alter behavior (it exists purely for tests/documentation, not as a live behavior switch), so its presence cannot itself introduce a hidden behavior change.
+
+### Links
+
+`community`'s reachability is unaffected: still present in every role's `ROLE_CONFIG.menu` and in `FUNCTION_GROUPS`' "Resources & account" group (both confirmed via direct reading of the preserved literals), `showPage('community')`'s dispatch to `renderCommunity()` is untouched (part of the unchanged `showPage()` function), `renderCommunity()` itself is untouched (still delegates to `getLinksRuntime().renderCommunity()` per Slice 2B, and `links.js` is confirmed byte-identical — unchanged by this slice), and the Marketplace `links:'community'` shortcut mapping is still present in `index.html`, confirmed via direct grep and the new test's regex assertion.
+
+### Marketplace
+
+Re-confirmed orphaned: `PAGE_REGISTRY.marketplace.classification === 'ORPHANED'`, and — as in the Slice 3A review — no `showPage('marketplace')` call exists anywhere in the codebase. This extraction changed nothing about Marketplace's reachability; the page registry metadata simply documents the pre-existing state.
+
+### Script load order
+
+Confirmed the `<script src>` order is `core.js, sync.js, pti.js, loads.js, fleet-load-resolution.js, startup-session.js, links.js, navigation-model.js` — `navigation-model.js` is last, appended purely additively (not interleaved), entirely outside `core.js`'s untouched 18-script hotfix chain (`core.js` confirmed byte-identical to `main`). Its position immediately after `links.js` is **not** dependency-required between those two modules (`navigation-model.js` and `links.js` have no relationship to each other) — that specific adjacency is convenient/arbitrary. However, its position **before the inline composition script is genuinely dependency-required, not merely convenient**: unlike `startup-session.js`/`links.js` (whose factories are only invoked lazily, at runtime, well after all scripts load), `navigation-model.js`'s consumer code runs at the inline script's **top level**, synchronously, at parse time (`var ROLE_CONFIG = CrewBIQNavigationModel.ROLE_CONFIG;` executes immediately as the parser reaches it) — if `navigation-model.js` loaded after the inline script, this line would throw a `ReferenceError` and break the entire page. The new test suite directly proves the ordering is correct via an index-position comparison on the real file content (`html.indexOf('navigation-model.js?v=...') < html.indexOf('var ROLE_CONFIG = CrewBIQNavigationModel.ROLE_CONFIG')`).
+
+### Service worker
+
+`CACHE_NAME` correctly bumped `crewbiq-driver-v84` → `crewbiq-driver-v85`, and `/crewbiq-driver/navigation-model.js` correctly added to `APP_SHELL` — confirmed via direct diff. No stale-cache-references-missing-module risk: the bump and the app-shell addition landed in the same commit. The CI workflow's grep-verification step was updated in the same commit for both the new script-tag string and the new cache version, and `navigation-model.js` was also added to the workflow's `pull_request`/`push` path-filter triggers. **One confirmed, purely cosmetic inconsistency**: `sw.js`'s header comment (`* CrewBIQ Driver — Service Worker v1.0.84`) and the activation `console.log('[CrewBIQ SW] v1.0.84 activated')` string were **not** bumped to `v1.0.85` alongside the functional `CACHE_NAME` change — confirmed via the exact commit patch, which touches only the `CACHE_NAME` line and the `APP_SHELL` array. Every prior slice (1B, 2B, 3A's SW predecessor) bumped both together; this one only bumped the functionally-relevant `CACHE_NAME`. Zero behavioral impact (the comment and log string are purely informational), but worth a one-line follow-up.
+
+### Test quality
+
+The new `tests/navigation-contract.test.mjs` is exceptionally thorough and, notably, closes two gaps this reviewer flagged as non-blocking in the Slice 3A review:
+
+- **Full namespace check** (addressing a Slice 2B-era gap pattern): `assert.deepEqual(Object.keys(api), [...all 11 exported names...])` — a complete export-surface check, not a single-member spot check.
+- **Invalid-role behavior now genuinely executed** (closing the Slice 3A gap): `api.roleConfig('stale').label === 'Driver'` and `api.groupedTargets('stale')` deep-equal to driver's set, both real function calls against the real loaded module.
+- **`installRoleGuard` proven against the real, current `core-runtime.js`** (closing the other Slice 3A gap): extracts and executes the actual current function bodies, not a hand-written reimplementation, and asserts the exact reject/accept behavior plus the absence of a second setter.
+- The "load order, globals and single model definitions" test proves single-definition and correct-ordering claims via direct index-position comparison and exact occurrence counts on real file content — not assumptions.
+- The `showPage` test genuinely executes the real, regex-extracted function body via `vm.runInNewContext` and asserts real observable call sequences.
+- The role-model and `FUNCTION_GROUPS` tests all call real exported functions (`api.roleMenuTargets`, `api.groupedTargets`, `api.visibleFunctionGroups` indirectly via `groupedTargets`, `api.bottomDestinationsForRole`, `api.primaryDestinationForPage`) against the real loaded module rather than re-parsing source text for these particular claims.
+- No assertion in this file overstates a `STATIC_CONTRACT`-appropriate structural check (script ordering, single-definition counts) as behavioral proof — the one test explicitly labeled `STATIC_CONTRACT` is correctly limited to exactly that kind of claim.
+- The updates to the pre-existing `navigation_shell.test.mjs` and `links-contract.test.mjs` are sensible, necessary maintenance (retargeting assertions that used to read `ROLE_CONFIG`/`FUNCTION_GROUPS` out of `index.html` to instead read them from `navigation-model.js`), not new coverage — appropriate given the extraction moved where these definitions live.
+
+### Runtime scope
+
+Confirmed via a complete diff of `index.html` against the Slice 3A baseline: exactly 5 contiguous hunks, all within the navigation-related code regions (the new script tag, the `ROLE_CONFIG`/`FUNCTION_GROUPS` re-binding block, the `roleRank` re-binding inside `applyRoleUI`, and the `primaryDestinationForPage`/`PRIMARY_NAV_PAGES` shims). Independently confirmed via blob-SHA comparison that `links.js`, `loads.js`, and `core-runtime.js` are all byte-identical before and after this commit. No auth/session, PTI, Links runtime, loads, fuel, expenses, deductions, OCR, Marketplace *state*, Document Vault, IFTA, cloud-sync, or Base44 visual-shell file or code path appears anywhere in this commit.
+
+### Blocking findings
+
+None.
+
+### Non-blocking findings
+
+- `sw.js`'s header-comment and activation-log version strings (`v1.0.84`) were not bumped alongside the functional `CACHE_NAME` bump to `v85` — purely cosmetic, zero behavioral impact, but a confirmed drift from the pattern every prior slice followed.
+- All previously-queued non-blocking items (`resolveDefaultTruck` case-sensitivity, unguarded deduction-template save, cosmetic `}function boot()` formatting, HISTORY typos, device-global `clinks` scoping, the `links.js` maintenance-icon drift, the missing-id-edit test gap) remain outstanding, unresolved, and untouched by this slice.
+
+### Model-boundary quality
+
+High. `navigation-model.js` is a small (57-line), purely-data-and-pure-function module with a deliberately simpler export style than the DI-factory pattern used for `startup-session.js`/`links.js` — appropriately so, since it has no effectful dependencies to inject. Its one function that needs live state (`primaryDestinationForPage`) takes that state as an explicit parameter rather than reaching for a global, which is the correct way to keep a data module pure while still being genuinely reusable by a stateful caller.
+
+### Dual-model fidelity
+
+Confirmed exact, field-by-field, against the Slice 3A baseline — see "Dual-model preservation" above. No silent unification.
+
+### Scan behavior assessment
+
+Behavior-equivalent. See "Scan behavior" above — no caller depends on the runtime mutation step itself.
+
+### installRoleGuard assessment
+
+Fully intact and now more rigorously proven than before this slice — see dedicated section above. This is the single most important check in this review given the stakes, and it holds up completely: one setter, one guard, unchanged timing, unchanged `core-runtime.js`.
+
+### Primary-destination parity
+
+Confirmed byte-for-byte equivalent logic (modulo an inert `if`-to-ternary refactor) for every case listed, including the fleet-specific `truck`/`team` behavior.
+
+### Whether Slice 3B is CLOSED
+
+**Yes.** Every ownership, preservation, and safety claim was independently verified against the actual code — much of it via direct execution of the real files rather than trusting either the contract or the test suite's descriptions. The one confirmed finding (the SW version-string cosmetic drift) is trivial and non-blocking. This is, if anything, the most rigorously tested slice in the series so far, closing multiple gaps this reviewer flagged in earlier reviews.
+
+### Whether UI-shell preparation may begin
+
+**Yes, in the sense the task allows** — this extraction genuinely creates a clean enough data/logic boundary that a later visual shell could consume `navigation-model.js`'s page registry, role definitions, and grouping data to drive a redesigned presentation layer without needing to touch business-domain code, role authorization (`installRoleGuard` in `core-runtime.js`, fully independent of this module), or route ownership (`showPage()`'s dispatch table, still in `index.html`, still the single router). Per the task's own instruction, this review does not design that shell — it only confirms the boundary is now sound enough to build toward one.
+
+### Safest next bounded slice recommendation
+
+With auth/session, Links, and navigation-model all now cleanly separated from business logic, the next lowest-risk candidate remains the same one recommended after Slice 2B and reaffirmed after Slice 3A: an **OCR intake transport-adapter behavior contract**, scoped strictly to transport/encode/error-handling (not the still-open Document Vault retention question). Alternatively, if the team wants to begin genuine UI-shell preparation work now that the navigation data boundary exists, the safest first step there would be a **read-only visual prototype** consuming `navigation-model.js` directly (no `index.html` changes at all) to validate that the extracted data is sufficient to drive a new shell before committing to any actual `index.html` rewiring.
+
