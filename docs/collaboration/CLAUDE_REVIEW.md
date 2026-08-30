@@ -330,3 +330,64 @@ The findings B1–B4 and all non-blocking items from the section above still app
 - **Whether canonical docs are safe to become the documentation gate:** **Not yet.** Five distinct, independently-verified factual/classification errors (B1–B5) remain uncorrected across three of the six files. The `DOCUMENTATION_AUTHORITY.md` hierarchy itself (B4) is the structural reason these kinds of errors can occur and persist — fix that first, then the specific row-level errors, before treating `docs/product/*` as binding over code/tests for implementation-state questions.
 - **Safest next bounded task after correction:** A docs-only correction commit touching exactly the rows/files listed above (no code, no tests, no CI beyond the one cosmetic line) — followed by a short re-review pass limited to confirming those specific edits, before any Slice 1 (auth/session) or Phase 1 roadmap execution begins.
 
+---
+
+## Canonical Documentation Re-Review — 2026-08-30
+
+Reviewer: Claude. Correction commit under review: `41aeb7ec05a4ab5a34847128ab7f08a3b1267ba7` (`41aeb7e`) on `agent/pre-base44-audit`, authored `2026-08-30T13:56:19Z`. Files touched (verified via commit file list): `docs/collaboration/{COLLABORATION_STATE,CURRENT_STATUS,HANDOFF,WORK_LOG}.md`, `docs/product/{PRODUCT_CONTRACT,FEATURE_REGISTRY,ROADMAP,DEPRECATED_DECISIONS,DOCUMENTATION_AUTHORITY,LEGACY_ARTIFACT_MATRIX}.md`. **No product/runtime code, tests, CI/workflow files, schemas, issues, PRs, or deployment were touched — confirmed.**
+
+Method: diffed every `docs/product/*.md` file against the pre-correction version reviewed in the sections above, line by line, and re-verified the changed factual claims (mobile packaging config, `crewbiq-docs` issue numbers, Issue #90/PR #91 text) directly against live GitHub/repo state rather than trusting the diff alone.
+
+### VERDICT: **NEEDS FIX**
+
+This verdict is narrowly scoped: **B1–B4 are all correctly and thoroughly resolved.** The single remaining item is a previously-flagged, still-open finding (B5, from the addendum above) that this same correction commit had the opportunity to fix — it was published 39 minutes before commit `41aeb7e` — but did not.
+
+### B1 status: **RESOLVED**
+
+`FEATURE_REGISTRY.md`'s Document Vault row now reads `PLANNED`, "**not implemented / missing**: OCR screens state source files are not stored," "no storage path currently exists." `PRODUCT_CONTRACT.md` §2 now states the current-implemented-behavior/approved-contract split explicitly. `ROADMAP.md` Phase 2 adds "Explicitly mark Document Vault as implemented-missing in canonical inventory until hash/provenance/object-store pipeline is delivered." `DEPRECATED_DECISIONS.md`'s row now says "OCR UI still says 'not stored.' The missing-implementation behavior remains to be implemented, not a completed feature." This is exactly the correction recommended — status changed, evidence note added, no overstatement remains.
+
+### B2 status: **RESOLVED**
+
+`FEATURE_REGISTRY.md` now has two separate rows: "Weekly PTI Scheduling" (`ACTIVE`, "recurring/PTI scheduling runtime and `ptiSchedule`-style logic with weekly cadence checks are present" — matches the confirmed real code in `pti.js`) and "Weekly PTI Photo Evidence" (`PLANNED`, "durable photo/camera evidence capture and linkage is not implemented yet... gap is confirmed by code evidence"). `ROADMAP.md` Phase 3 was restructured to sequence these as separate steps. This is exactly the split recommended, and correctly grounded in the same code evidence (`ptiSchedule`, Monday auto-detect) this review originally cited.
+
+### B3 status: **RESOLVED**
+
+Three independent, mutually-reinforcing protections were added: (1) `PRODUCT_CONTRACT.md` §5 — "Links remains active through technical container `page-community` + `renderCommunity()` and must not be removed until Links has safe extraction and contract tests." (2) `FEATURE_REGISTRY.md`'s Links row "Conflicts" cell — bolded: "**Do not remove/rename `page-community` or `renderCommunity` before Links extraction is safely migrated and contract-tested**." (3) `DEPRECATED_DECISIONS.md` adds a dedicated new row: "Broad 'community' product surface in runtime" → superseded by "`page-community` is preserved for Links until migration + contract testing; broader community concept is deferred, not removed." The exact hazard flagged in B3 (an agent reading "Community: DEPRECATED" and deleting the live container) is now closed off in three separate places. Minor cosmetic note: the Community row's `Status` cell reads `DEPRECATED (surface concept) / TECHNICAL_CONTAINER ACTIVE`, a compound label outside the strict `ACTIVE/IN_PROGRESS/PLANNED/SUPERSEDED/DEPRECATED/ABANDONED/NEEDS_DECISION/UNKNOWN` enum — semantically unambiguous and correct, but worth normalizing to one enum value plus an explanatory note in a future pass (non-blocking).
+
+### B4 status: **RESOLVED**
+
+`DOCUMENTATION_AUTHORITY.md` now has an explicit **"TRACK A — IMPLEMENTED BEHAVIOR TRUTH"** (current `main` + tests + verified runtime/production evidence; used to set `Status`/`Current behavior` columns) and **"TRACK B — PRODUCT INTENT TRUTH"** (`PRODUCT_CONTRACT.md`, `FEATURE_REGISTRY.md`, `ROADMAP.md`, accepted current decisions; used to set `Current approved direction`/planning status), plus an explicit "Truth coupling rule": *"Approved requirement does not mean implemented. Implemented behavior does not mean approved long-term behavior. ... If Track A and Track B disagree, classify the feature state explicitly and request a product decision rather than inferring behavior from prose alone."* This is exactly the split requested and directly addresses the root cause that allowed B1/B2 to happen. One sentence in the "Truth coupling rule" is circularly worded ("prefer the explicit canonical Track A/Track B evidence as described above") but the substantive rule that follows is clear — non-blocking wording nit only.
+
+### Other required verifications
+
+- **Mobile packaging:** now `PLANNED`, "native/store packaging pipeline evidence is not present; only mobile-friendly frontend behavior is observed... defer app store packaging until explicit roadmap sequencing." Independently re-confirmed via `manifest.json` (PWA manifest only, no native config) and `package.json` (no Capacitor/Cordova/Android/iOS dependency) — matches reality, no overstatement remains.
+- **Marketplace:** legacy shell vs. future concept now explicitly separated: Status `DEPRECATED (legacy shell) + FUTURE concept pending`, "legacy `page-marketplace` container/render path exists but is not navigable from runtime flows... separate legacy shell risk from future strategy." Correctly resolved (same compound-label cosmetic note as Community, non-blocking).
+- **Issue #21:** now correctly split — "Still valid for editable groups, segmentation, reconciliation, single-count, lineage, and duplicate prevention" / "Only conflict is the non-storage assumption: 'original file remains unstored'." Exactly matches the required distinction between the obsolete source-retention clause and the still-valid accounting/segmentation requirements.
+- **`crewbiq-docs` #29 citation:** now correctly attached to "CrewBIQ Knowledge Engine and Truckpedia" in `LEGACY_ARTIFACT_MATRIX.md`. Independently re-verified via `gh api`: issue #29 in `crewbiq-docs` is open and titled "Epic: CrewBIQ Knowledge Engine and Truckpedia." This also fixes a citation error this review had not previously caught: the *prior* version of this matrix had attached that same title to "#32," which is actually a different, unrelated open issue ("Architecture: production domain, hosting, and service boundaries for crewbiq.com"). Net improvement beyond what was asked.
+- **No product/runtime code, tests, CI, schemas, issues, PRs, or deployment modified:** confirmed via the commit's file list — 10 files, all under `docs/collaboration/` or `docs/product/`.
+
+### Residual blocking finding: B5 carried forward, unaddressed
+
+- CODEX CLAIM (unchanged from before `41aeb7e`, re-confirmed still present after it): `LEGACY_ARTIFACT_MATRIX.md` — "Issue #90 — Base44-inspired UI refresh," Status changed from `NEEDS_DECISION` to **`DEPRECATED`**, action still `DEPRECATE`, justified by "Conflicts with optionality rule." "PR #91 — begin Base44-inspired UI refresh" unchanged at `DEPRECATED` / `DEPRECATE`.
+- CURRENT EVIDENCE: Same as the previous addendum's B5 finding — Issue #90's own text (re-read in full, unchanged) states the work is *"the Base44-inspired visual direction approved by the product owner"* with explicit non-negotiable guardrails ("do not introduce parallel entities or a second application architecture"); PR #91's draft body states it "kept all data, storage, calculations, sync, identity, and offline logic untouched." Both remain open/open-draft.
+- YOUR VERDICT: Not only unresolved, but the status moved in the wrong direction — `NEEDS_DECISION` → `DEPRECATED` is a stronger, more final claim than before, while the actual evidence (an approved, guardrailed, still-open, contract-compliant work item) hasn't changed. This finding was published (in the addendum above) 39 minutes before commit `41aeb7e` landed, so it was available to this correction pass.
+- RISK: Unchanged from before — a future agent or automated issue-hygiene sweep following this matrix could close Issue #90 or abandon PR #91 as "deprecated," discarding real, guardrailed, product-owner-approved visual-refresh work that `PRODUCT_CONTRACT.md` §5 and `FEATURE_REGISTRY.md`'s own "Base44 redesign path" row both say should be *preserved* as an optional reference.
+- RECOMMENDED RESOLUTION: Unchanged — re-classify Issue #90 and PR #91 as `IN_PROGRESS` (open, correctly guardrailed, consistent with the Base44-optionality contract). Reserve `DEPRECATED` in this domain for the historical *assumption* "Base44 must become mandatory runtime architecture," which `DEPRECATED_DECISIONS.md` already correctly captures separately.
+
+### Summary
+
+- **B1:** RESOLVED
+- **B2:** RESOLVED
+- **B3:** RESOLVED
+- **B4:** RESOLVED
+- **B5 (carried forward, not part of the original B1–B4 scope but still open):** NOT RESOLVED — regressed one notch (`NEEDS_DECISION` → `DEPRECATED`) rather than corrected.
+- **Non-blocking:** compound status labels for Community/Marketplace outside the strict status enum; one circularly-worded sentence in `DOCUMENTATION_AUTHORITY.md`'s Truth coupling rule. Neither causes operational risk.
+
+### Whether canonical product docs are now safe to become the documentation gate
+
+**Not fully — one small, known correction remains.** All four originally-scoped blocking findings (B1–B4) are cleanly and thoroughly resolved, including two fixes (mobile packaging, the #29/#32 citation mix-up) that went beyond what was strictly asked. The documentation package is close to gate-ready. But `LEGACY_ARTIFACT_MATRIX.md`'s Issue #90 / PR #91 rows still recommend `DEPRECATE` for guardrailed, contract-compliant, currently-open work — a real risk if any future process (automated or agent-driven) acts on "recommended action" columns literally. This is a two-row edit, not a re-architecture of the documentation framework.
+
+### GO / NO-GO for selecting the first real decomposition slice
+
+**NO-GO**, unchanged. This remains a documentation-only correction/re-review cycle. Recommend one more small, targeted correction commit (Issue #90 and PR #91 rows only) before treating `docs/product/*` as the closed documentation gate, and before any Slice 1 (auth/session) or `ROADMAP.md` Phase 1 execution begins.
+
