@@ -13,7 +13,7 @@ Chat history is supplementary only. GitHub is the durable source of truth.
 - Collaboration branch: `agent/pre-base44-audit`
 
 ## Current phase
-Final B5 Documentation Gate Correction PUBLISHED — READY FOR GATE CLOSURE.
+Slice 1A — Auth/Session/Startup Behavior Contract Baseline
 
 ## Current implementation status
 - Slice 0 hotfix load-order contract: CLOSED.
@@ -23,9 +23,11 @@ Final B5 Documentation Gate Correction PUBLISHED — READY FOR GATE CLOSURE.
 - Canonical documentation correction pass: PUBLISHED by Codex at `41aeb7e` — resolved B1-B4.
 - Independent Claude re-review of `41aeb7e`: COMPLETE — verdict NEEDS FIX. B5 (Issue #90 / PR #91 misclassification in `LEGACY_ARTIFACT_MATRIX.md`) remains unresolved; gate OPEN pending a two-row correction.
 - Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
+- Canonical Documentation Gate: CLOSED.
+- Slice 1A status: IN_PROGRESS.
 
 ## Current task owner
-ChatGPT — verify the B5 correction and close the canonical documentation gate.
+Codex — build the Slice 1A auth/session/startup behavior-contract baseline without runtime extraction or behavior changes.
 
 ## Required Claude review target
 Review these files on `agent/pre-base44-audit`:
@@ -115,6 +117,14 @@ Do not start the next implementation slice unless this file says the previous sl
 - Next required actor: ChatGPT
 - Next bounded action: verify correction and close canonical documentation gate
 - Scope confirmation: only `docs/product/LEGACY_ARTIFACT_MATRIX.md` and this collaboration state were changed; no code, tests, CI, package, issues, or PRs were modified.
+
+### Codex — Slice 1A Auth/Session/Startup Baseline
+- Agent: Codex
+- Task: Slice 1A — Auth/Session/Startup Behavior Contract Baseline
+- Status: IN_PROGRESS
+- Branch: `agent/pre-base44-audit`
+- Runtime scope: observation and contract pinning only; no extraction or product behavior changes.
+- Guardrails: do not rewrite `boot()` or `restoreSession()`; do not alter PTI, identity, navigation, loader order, or storage-clearing behavior.
 
 ### ChatGPT
 - Role: architecture/product coordinator and reconciliation authority
