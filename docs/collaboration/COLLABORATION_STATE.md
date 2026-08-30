@@ -39,25 +39,31 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4A.3 — Interactive Data Visualization / Analytics Pass
+Slice 4A.3 - Interactive Data Visualization / Analytics Pass
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING VISUAL REVIEW
 
 Current owner:
-Codex
+ChatGPT / Product Owner
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main + accepted collaboration runtime extractions
+current main; Slice 4A.2 visual direction is the accepted baseline
 
 Latest implementation commit:
-ae44497111cb50d63ef5d8bccab83eb20946f856
+8dcad94b6eaa50d14ed4479399a2756bf0d7b599
+
+Latest correction commit:
+NONE
 
 Latest review commit:
-81c3b203ad65eb2da50c24069e1f3c89a00bd93e (accepted Slice 3B)
+NONE
+
+Latest state commit:
+PENDING (this publication commit)
 
 Blocking findings:
 NONE
@@ -65,27 +71,30 @@ NONE
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
-- cosmetic }function boot() formatting artifact
-- old collaboration history typo
-- clinks remains device-global by established contract
-- links.js LINK_CATEGORIES.maintenance icon drifted from 🛠 to 🔧 during extraction
-- missing-id edit still lacks its own dedicated test
-- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons
-- stale non-empty invalid persisted role is conservative but internally inconsistent
-- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary
-- installRoleGuard still wraps the single effective setUserRole
-- Marketplace page/renderer remain orphaned from live navigation
-- sw.js cosmetic version strings remain v1.0.84 while functional CACHE_NAME is v85
+- cosmetic `}function boot()` formatting artifact
 
 Next required actor:
-Codex
+ChatGPT / Product Owner
 
 Next bounded action:
-add reusable role-aware interactive analytics to the accepted prototype
+review interactive analytics on Android and desktop before production integration planning
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+## Slice 4A.3 - Interactive Data Visualization / Analytics Pass published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING VISUAL REVIEW
+- Implementation commit: `8dcad94b6eaa50d14ed4479399a2756bf0d7b599`
+- Preserved the accepted Slice 4A.2 visual baseline and added an additive, dependency-free SVG chart layer only to the prototype source and standalone package.
+- Driver: earnings and loaded/deadhead miles. Owner-operator: revenue/net, loaded/deadhead miles, and fuel cost. Fleet: gross, utilization, and readiness/compliance exceptions.
+- Added mouse/touch selection, guide and tooltip feedback, reduced-motion handling, explicit zero states, and structured `crewbiq:chart-select` events for future SIDR integration.
+- Contract tests: 38 passed, 0 failed. Standalone mobile Playwright checks at 360/390/412/430 px: 4 passed, 0 failed.
+- Production runtime files changed: NONE.
+- Next required actor: ChatGPT / Product Owner.
+- Next bounded action: visual review on Android and desktop before production integration planning.
 ### Codex
 - Task: Legacy Roadmap & Documentation Reconciliation
 - Status: PUBLISHED / AWAITING REVIEW
@@ -530,3 +539,4 @@ add reusable role-aware interactive analytics to the accepted prototype
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
