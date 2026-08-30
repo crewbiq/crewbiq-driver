@@ -1,71 +1,61 @@
 # CrewBIQ Collaboration State
 
-This is the single coordination entry point for ChatGPT, Codex, and Claude during the current pre-Base44 work.
+This is the single durable coordination entry point for ChatGPT, Codex, and Claude. GitHub is authoritative; chat history is supplementary.
 
-## Rule
-Every agent MUST read this file before starting work and MUST update it after publishing work.
+## Coordination rules
 
-Chat history is supplementary only. GitHub is the durable source of truth.
+Every agent MUST follow this protocol.
 
-## Repository
-- Repo: `crewbiq/crewbiq-driver`
-- Product truth: current `main`
-- Collaboration branch: `agent/pre-base44-audit`
+### BEFORE WORK
 
-## Current phase
-Slice 1B — Auth/Session/Startup Coordinator Extraction
+1. Read `## CURRENT`.
+2. Replace `CURRENT` with:
+   - Status: `IN_PROGRESS`
+   - Current owner: `<agent>`
+   - Next required actor: `<agent/current task>`
 
-## Current implementation status
-- Slice 0 hotfix load-order contract: CLOSED.
-- Slice 0b CI/tooling closure: CLOSED.
-- Canonical legacy/product documentation package: PUBLISHED by Codex at `e8822806713d2c3644880d1c88f3c603ffe7e029`.
-- Independent Claude reconciliation review: COMPLETE — verdict NEEDS FIX (B1-B5 identified).
-- Canonical documentation correction pass: PUBLISHED by Codex at `41aeb7e` — resolved B1-B4.
-- Independent Claude re-review of `41aeb7e`: COMPLETE — verdict NEEDS FIX. B5 (Issue #90 / PR #91 misclassification in `LEGACY_ARTIFACT_MATRIX.md`) remains unresolved; gate OPEN pending a two-row correction.
-- Final B5 correction: PUBLISHED by Codex at `efba9423de3c992cbbf3a4715d11eef497741ba9`; Issue #90 and PR #91 are now `IN_PROGRESS`.
-- Canonical Documentation Gate: CLOSED.
-- Slice 1A status: PUBLISHED / AWAITING CLAUDE REVIEW at `c8aaf45b207064fbd9db93a96ab73a539a1fa0ed`.
-- Slice 1A.1 status: CLOSED / ACCEPT at `20826de65529e7993eba6b66b5616d8534a0c0ed`.
-- Slice 1B status: IN_PROGRESS.
+### AFTER PUBLICATION
 
-## Current task owner
-Codex — extract the smallest global-compatible startup/session coordinator while preserving the Slice 1A behavior contract.
+1. REPLACE the entire `## CURRENT` block with the new authoritative state.
+2. Append a historical entry under `## HISTORY`.
+3. Never update `HISTORY` without updating `CURRENT`.
+4. Never append a new status only to the bottom of the file.
+5. `CURRENT` always wins over `HISTORY` for coordination.
 
-## Required Claude review target
-Review these files on `agent/pre-base44-audit`:
-- `docs/product/PRODUCT_CONTRACT.md`
-- `docs/product/FEATURE_REGISTRY.md`
-- `docs/product/ROADMAP.md`
-- `docs/product/DEPRECATED_DECISIONS.md`
-- `docs/product/DOCUMENTATION_AUTHORITY.md`
-- `docs/product/LEGACY_ARTIFACT_MATRIX.md` if present
+If an agent cannot update `CURRENT`, the task is NOT considered published.
 
-Codex source commit:
-`e8822806713d2c3644880d1c88f3c603ffe7e029`
+Keep `CURRENT` concise and normally under approximately 30 lines. Long explanations, audit narratives, and full test logs belong in `HISTORY`, `WORK_LOG.md`, or review documents.
 
-## Known review hotspots
-- `Document Vault` status may be incorrectly marked `IN_PROGRESS`; previous evidence found source retention missing.
-- `Weekly photo PTI` status may be incorrectly marked `IN_PROGRESS`; verify actual runtime evidence.
-- `Community` must not be deprecated in a way that breaks the live Links surface.
-- Historical OCR requirements that say original files remain unstored are superseded by source-retention requirements.
-- Old Work/Truck/Money/Team/Marketplace pages must remain clearly distinguished from current product intent.
-- Issue #83, #97, #98, #19, #21 and old sync/identity work must be reconciled, not blindly adopted.
+### ChatGPT check rule
 
-## Agent publication protocol
-After any agent finishes a task, update this file with:
-- Agent
-- Task
-- Verdict/status
-- Branch
-- Commit SHA
-- Files/artifacts created or reviewed
-- Blocking findings
-- Next required actor
-- Next bounded action
+When the user says "готово", ChatGPT should:
 
-Do not start the next implementation slice unless this file says the previous slice is accepted/closed.
+1. Read `CURRENT`.
+2. Inspect the latest commits on the collaboration branch.
+3. If commits are newer than `CURRENT`, reconcile them before responding.
+4. Never rely only on stale history headings.
 
-## Latest published work
+## CURRENT
+
+Phase: Slice 1B — Auth/Session/Startup Coordinator Extraction
+Status: CLOSED / ACCEPT
+Current owner: ChatGPT
+Branch: agent/pre-base44-audit
+Product truth: current main
+Latest implementation commit: f85038747037e4bf3c625064a660df552db294c9
+Latest correction commit: fdd6902de35ddc9760bd2285966ebe300b654509
+Latest review commit: 5af4de0c5dd39296aa8e6643462a4ed459da7031
+Latest state commit: dc35085f74d0ccd4af139162e08eb0a987b09214
+Blocking findings: NONE
+Queued non-blocking findings:
+- resolveDefaultTruck case/whitespace sensitivity
+- deduction-template save branch without truckId guard
+- cosmetic `}function boot()` formatting artifact
+Next required actor: ChatGPT
+Next bounded action: authorize next decomposition slice; current recommendation is Links/clinks storage-and-render extraction.
+
+## HISTORY
+
 ### Codex
 - Task: Legacy Roadmap & Documentation Reconciliation
 - Status: PUBLISHED / AWAITING REVIEW
@@ -178,7 +168,7 @@ Do not start the next implementation slice unless this file says the previous sl
 - Role: architecture/product coordinator and reconciliation authority
 - Next action: read this file plus the latest Claude/Codex artifacts after user says only `готово`.
 
-## Slice 1B publication
+### Slice 1B publication
 
 - Agent: Codex
 - Task: Slice 1B Auth / Session / Startup Coordinator Extraction
@@ -195,7 +185,7 @@ Do not start the next implementation slice unless this file says the previous sl
 - Next bounded action: independent Slice 1B review
 - Deferred and not fixed: resolveDefaultTruck case/whitespace sensitivity; unguarded deduction-template save
 
-## Slice 1B Blocking Correction
+### Slice 1B Blocking Correction
 
 - Agent: Codex
 - Task: Slice 1B Blocking Correction
@@ -214,7 +204,7 @@ Do not start the next implementation slice unless this file says the previous sl
 - Next required actor: Claude
 - Next bounded action: independent review of the Slice 1B blocking correction
 
-## Claude — Slice 1B Independent Review
+### Claude — Slice 1B Independent Review
 
 - Agent: Claude
 - Task: Slice 1B Independent Review
@@ -230,3 +220,13 @@ Do not start the next implementation slice unless this file says the previous sl
 - Slice 1B: CLOSED
 - Next required actor: ChatGPT
 - Next bounded action: authorize the next decomposition slice — recommend Links/`clinks` storage-and-render extraction (self-contained, no auth/session/PTI/accounting coupling, no open product dependency like OCR's Document Vault gap) over an OCR-adapter extraction next.
+### Codex — Collaboration State v2
+
+- Agent: Codex
+- Task: Collaboration State v2 documentation/coordination refactor
+- Status: PUBLISHED
+- Branch: `agent/pre-base44-audit`
+- Scope: `docs/collaboration/COLLABORATION_STATE.md` only
+- Result: one authoritative `CURRENT` block and append-only `HISTORY`; no runtime/product files changed
+- Next required actor: ChatGPT
+- Next bounded action: use `CURRENT` as the sole coordination state and authorize the next bounded slice when ready
