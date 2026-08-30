@@ -42,10 +42,10 @@ Phase:
 Slice 3A — Navigation / Role Menu / FUNCTION_GROUPS Behavior Contract
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,10 +54,10 @@ Product truth:
 current main + accepted collaboration runtime extractions
 
 Latest implementation commit:
-78894780c07c1a848547302dac03ec01ba60bbd3
+bfff0ed8e5ddb6e55d89ce8de8ea3bd5c259915b
 
 Latest review commit:
-bce30a1c16340e23d655e7c8e2934ebefec7443a
+bce30a1c16340e23d655e7c8e2934ebefec7443a (accepted Slice 2B)
 
 Blocking findings:
 NONE
@@ -71,12 +71,16 @@ Queued non-blocking findings:
 - links.js LINK_CATEGORIES.maintenance icon drifted from 🛠 to 🔧 during extraction (confirmed the only category/icon difference; cosmetic, one-character fix)
 - missing-id edit (as opposed to delete) still lacks its own dedicated test, though confirmed unchanged by direct code reading
 - "exports namespace" test checks only 1 of 13 links.js exports directly by name
+- ROLE_CONFIG and FUNCTION_GROUPS independently duplicate targets with different ordering, labels, and icons
+- stale non-empty invalid persisted role is not normalized and produces conservative but inconsistent UI state
+- showPage role visibility is UI-only and direct calls can reach hidden pages; roles are not an authorization boundary
+- Marketplace page/renderer are currently orphaned from live navigation
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-map and contract-pin navigation/role/page behavior
+independent Slice 3A review
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -413,3 +417,16 @@ map and contract-pin navigation/role/page behavior
 - Slice 2B: CLOSED
 - Next required actor: ChatGPT
 - Next bounded action: authorize the next bounded decomposition slice — recommend an OCR intake transport-adapter behavior contract (transport/encode/error-handling only, not the still-open Document Vault retention question) or the lower-risk `FUNCTION_GROUPS`/`page-menu` grouping logic as an alternative first win.
+### 2026-08-30 — Codex — Slice 3A Navigation Behavior Contract
+
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: bfff0ed8e5ddb6e55d89ce8de8ea3bd5c259915b
+- Added NAVIGATION_CONTRACT.md with the 21-page registry, exact role matrices, model ownership, routing behavior, Marketplace/Links ownership, and legacy/container/orphan classifications.
+- Added executable navigation-contract coverage for all roles, both model orders, drift detection, Links reachability, technical containers, orphaned Marketplace, render hooks, and invalid-page fallback.
+- Validation: 40 passed, 0 failed.
+- Runtime/product files changed: NONE.
+- Blocking findings: NONE.
+- Readiness: READY_FOR_NAVIGATION_EXTRACTION.
+- Proposed Slice 3B boundary: navigation-model.js data/model only; keep DOM, showPage, visual shell, render dispatch, history/back, and event wiring in index.html.
+- Next required actor: Claude.
+- Next bounded action: independent Slice 3A review.
