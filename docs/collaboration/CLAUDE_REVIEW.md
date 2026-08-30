@@ -462,3 +462,95 @@ No additional unsafe current behavior was found during this review that should b
 
 **Yes**, until Slice 1A.1 lands and is independently re-reviewed. No other finding in this review adds a new blocker beyond `AMBIGUOUS_FIRST_TRUCK_FALLBACK`.
 
+---
+
+## Slice 1A.1 Independent Review — 2026-08-30
+
+Reviewer: Claude. Commit under review: `f16534a009fc2e84e14509ddd87b473dfd05425f` (`f16534a`) on `agent/pre-base44-audit`, parent `c960dfb85d6b0cd189d3c879f3f5f8d3167a0f49`. Method: fetched `index.html`, `loads.js`, `sw.js`, `fleet-load-resolution.js`, and the two test files directly from this commit via `gh api` (not from an older cached copy), read every changed function's full body and every read/write call-site it touches, and independently traced the mutation and read-only-projection paths rather than trusting the diff or the contract doc's own claims.
+
+### VERDICT: **ACCEPT**
+
+### 1. Old unsafe fallback confirmed removed
+
+`getDefaultTruck(){ return resolveDefaultTruck(driver, activeTrucks()); }` — the literal string `activeTrucks()[0]` no longer appears anywhere in `getDefaultTruck()`. `resolveDefaultTruck(driverValue, trucks)`:
+```
+trucks = trucks.filter(t => t && t.active !== false);
+var explicitAssignment = String((driverValue && driverValue.unitNumber) || '').trim();
+if(explicitAssignment){ return trucks.find(...) || null; }
+return trucks.length === 1 ? trucks[0] : null;
+```
+No silent first-item selection remains when assignment is ambiguous.
+
+### 2. Explicit assignment behavior — verified correct
+
+- Valid explicit assignment resolves correctly: confirmed both by reading the source and by the test's real execution of the extracted function (`resolveDefaultTruck({unitNumber:'202'}, [truckA, truckB]) === truckB`).
+- Invalid non-empty explicit assignment fails closed: `trucks.find(...) || null` — no `|| activeTrucks()[0]` after it. Confirmed by test: `resolveDefaultTruck({unitNumber:'missing'}, [truckA])` returns `null`, not `truckA`.
+- Never silently redirects to another truck: confirmed — the explicit-assignment branch has exactly one `return`, with no further fallback expression after it.
+
+### 3. No-explicit-assignment behavior — verified correct
+
+- Zero active trucks → `null` (confirmed, both by source and by test).
+- Exactly one active truck → that truck, genuinely treated as unambiguous (`trucks.length === 1 ? trucks[0] : null` — there is no competing candidate in that state, so this is not a "first of many" fallback, it's the only truck; confirmed by test).
+- More than one active truck, no explicit assignment → `null`, no silent first-truck selection (confirmed by source and by test: `resolveDefaultTruck({}, [truckA, truckB])` returns `null`).
+
+### 4. Every changed runtime call-site reviewed
+
+Read the full body of every function touched in `index.html` and `loads.js`:
+
+- **`saveFuelLog()`, `applyDedTemplate()`, `saveDedModal()`'s current-week branch, `deleteDedItem()`, `saveServiceLog()`** (`index.html`): each now has `if(!truckId){ toast('Truck assignment required','err'); return; }` immediately after resolving `truckId`, before any read of `document.getElementById` beyond what's needed for the guard or any persistence call. No dereference of a null/undefined truck occurs in any of these — verified by reading each function's full body, not just the diff hunk.
+- **`getCurrentWeekDed()`** (read path, not a mutation): returns a sentinel `{id:'', weekKey:wk, truckId:'', items:[], total:0, unresolvedTruck:true}` instead of toasting. Its one caller, `renderDeductionsPage()`, handles this safely (`(wd.items||[])`, `wd.total||0`) — no crash, no wrong-truck attribution. The `unresolvedTruck` flag itself is not yet read/rendered anywhere (non-blocking, noted below).
+- **`getDefaultTruck()`'s read-only callers, `currentCarrierCompany()` and `currentDriverAssignment()`**: both already null-safe (`truck ? ... : null`-style guards existed before this commit and still work correctly with a `null` return); no crash, no silent misattribution.
+- **`renderTruckSelect()`/`selectedTruckId()`** (shared by fuel/service/deduction/load selectors): the old code was `findTruckByIdOrUnit(preferred) || findTruckByIdOrUnit(sel.value) || getDefaultTruck() || trucks[0]` — note this had **two** first-truck-fallback layers (the inner `getDefaultTruck()` and an outer `|| trucks[0]`, the latter of which could even throw if `trucks` were empty). Both are now removed; unresolved state renders a disabled `<option value="" selected disabled>Truck assignment required</option>` placeholder and returns `''`.
+- **`populateLoadTruckSelect()`/`getLoadTruckSelection()`** (`loads.js`): same pattern — old `trucks[0].id` unconditional fallback removed, replaced with the same explicit-or-single-truck-only logic; the load-save call site gained `if (!truckSel.truckId) return _toast('Truck assignment required', 'err');` immediately before persistence.
+- **OCR prefill paths** (`applyScanToFuel`/`applyScanTruck`, `applyScanToLoad`): traced independently — neither bypasses the fix. `applyScanTruck` only calls `renderTruckSelect(..., unit)` when OCR actually extracted a unit; when it doesn't, the selector falls through to the same fixed default-resolution logic, and the eventual save still goes through the guarded `selectedTruckId()`/`getLoadTruckSelection()` path. `applyInvoiceToFuelLogs()` (the bulk fuel-invoice OCR import) was not touched by this commit and has never attributed a `truckId` to its entries at all — pre-existing, unrelated behavior, not a regression from this fix.
+- **`fleet-load-resolution.js`** (not touched by this commit, checked anyway per item 11): every `[0]`-style indexing in this file (`candidates[0]`, `matchingProfiles[0]`, `uniqueLinked[0]`) is guarded by an explicit `.length === 1`/`.length !== 1` check immediately before, i.e. "the only candidate," not a first-of-many fallback. This file was already built to the same discipline (consistent with its own PR history, "protected unresolved load assignment workflow").
+
+No immediate null dereference, no silent mutation against the wrong truck, and no hidden first-item fallback found anywhere in the reachable assignment/mutation paths.
+
+### 5. Unrelated behavior — none found changed
+
+Diff is scoped exactly to truck default-resolution and its direct callers/guards, the corresponding test/doc updates, the CI path-filter/step addition, and the service-worker cache-version bump. No auth/session/startup function body, no loader file, no accounting-formula code, and no unrelated UI was touched.
+
+### 6. Test adequacy — real runtime semantics, not just string matching
+
+`tests/first-truck-fallback.test.mjs` extracts `resolveDefaultTruck`'s actual source via `Function(...)` construction and **executes it as real code** against literal truck objects (`truckA`, `truckB`) for every one of the scenarios in items 2–3 above — this directly answers item 6's concern: the highest-risk function is proven by genuine execution, not brittle string matching. The remaining assertions (mutation-caller guards, selector placeholder text, absence of `trucks[0]`) are intentionally source-shape checks (`STATIC_CONTRACT`-level, consistent with this repo's existing convention for guard-clause presence/ordering) — appropriately labeled, not overclaimed as proof of runtime behavior. One assertion goes further than simple presence-checking: it verifies the guard clause's *ordering* relative to the persistence call (`currentDeduction.indexOf('if(!truckId)') < currentDeduction.indexOf('saveWeeklyDeds(list)')`), which is a meaningful safety-ordering proof, not just presence.
+
+### 7. Test wiring into npm/CI — confirmed
+
+`package.json`'s `test:e2e:tooling` includes `tests/first-truck-fallback.test.mjs` (verified in the diff). `.github/workflows/pwa-auth-contract.yml` gained `index.html` and `loads.js` to its `pull_request`/`push` path-filter triggers (previously absent — a real, valuable side-fix: this workflow could not have re-triggered on a direct `index.html`/`loads.js` edit before this commit), added `tests/first-truck-fallback.test.mjs` to the same path filters, and added a `run: node --test tests/first-truck-fallback.test.mjs` step. Both files landed in the same commit as the fix — no follow-up "0b-style" closure needed.
+
+### 8. Existing Slice 1A contract — updated correctly, still passes
+
+`tests/auth-session-startup-contract.test.mjs`'s "known unsafe fallback" test was correctly inverted: it now asserts `activeTrucks()[0]` is **absent** and `resolveDefaultTruck(driver, activeTrucks())` is **present** in `getDefaultTruck()` — both verified true by direct source inspection. `AUTH_SESSION_STARTUP_CONTRACT.md` §14 was updated from `KNOWN_UNSAFE_CURRENT_BEHAVIOR` to `RESOLVED_IN_SLICE_1A_1` with an accurate call-site inventory table that matches every call-site this review independently traced — no material omission found. §17 was updated to `READY_FOR_SLICE_1B`.
+
+### 9. Cache-version rotation — correct
+
+`sw.js`: `CACHE_NAME` bumped `crewbiq-driver-v79` → `crewbiq-driver-v80` (and the header/log-string version comment bumped in step). Justified: both `index.html` and `loads.js` are in `sw.js`'s own `APP_SHELL` cache-first list, and their runtime behavior changed, so a stale installed client must be forced to fetch the new versions — exactly the rule `sw.js`'s own header comment states ("bump CACHE_NAME any time an APP_SHELL file changes"). The CI workflow's own grep-based verification step was correctly updated in the same commit (`crewbiq-driver-v79` → `crewbiq-driver-v80`).
+
+### 10. No loader-order change — confirmed
+
+`core.js` does not appear in this commit's file list at all. The 18-script hotfix chain is untouched.
+
+### 11. No auth/session extraction — confirmed
+
+No auth/session/startup function (`restoreSession`, `boot`, `showApp`, `logoutDevice`, `applyAuthRestoreData`, `core-runtime.js`) appears in this diff. The change is confined to truck default-resolution and its selector/mutation call-sites.
+
+### 12. Remaining unsafe fallback search — clean
+
+Grepped `index.html`, `loads.js`, and `fleet-load-resolution.js` for any remaining `trucks[0]`/`activeTrucks()[0]`/`loadTrucks()[0]`-style pattern. The only two `trucks[0]` occurrences left (`index.html`'s `resolveDefaultTruck`, `loads.js`'s `populateLoadTruckSelect`) are both guarded by `trucks.length === 1` immediately before — the intentional, safe "exactly one truck" case, not an ambiguous fallback. No other direct or indirect first-truck fallback found in the relevant assignment/mutation paths.
+
+### Non-blocking findings
+
+- **Case/whitespace-sensitivity inconsistency in `resolveDefaultTruck()`'s explicit-assignment match.** It compares `String(t.id||'') === explicitAssignment || String(t.unitNumber||'') === explicitAssignment` — case-sensitive, and the truck-side values aren't trimmed — whereas `findTruckByIdOrUnit()` (used everywhere else, including `renderTruckSelect`'s own explicit-key branch two lines away in the same file) normalizes via `.trim().toLowerCase()`. A driver whose `unitNumber` matches a truck's `unitNumber`/`id` only case-insensitively (e.g. trailing whitespace, or "Unit5" vs "unit5") would have resolved correctly under the old code's `findTruckByIdOrUnit(...)` call but will now fail closed ("Truck assignment required") under `resolveDefaultTruck`'s reimplemented comparison. This fails *safely* (blocks the mutation rather than misattributing it), so it is not a safety regression, but it is a real functional regression risk for any driver/truck pair with such a mismatch. Recommend `resolveDefaultTruck` call `findTruckByIdOrUnit(explicitAssignment)` directly instead of reimplementing the match.
+- **`saveDedModal()`'s template-save branch (`_dedModalMode === 'template'`) has no `!truckId` guard**, unlike its sibling current-week-deduction branch three lines below it. When the truck is unresolved, `findTruckByIdOrUnit(selectedTruckId('dedTruckSelect'))` returns `null`, and the saved template is persisted with an empty `carrierCompanyRef` (i.e., it becomes a "generic" template per the existing `deductionTemplatesForTruck()` filter logic) rather than being blocked or flagged. Not a financial-mutation hazard — no money is attributed to any truck here, and `applyDedTemplate()` (which actually applies a template as a real deduction) is correctly guarded — but it's an inconsistent application of the new fail-closed discipline, worth a follow-up.
+- **The `unresolvedTruck: true` flag on `getCurrentWeekDed()`'s sentinel return is not yet consumed anywhere in rendering.** Harmless (the render path already degrades safely without it), but currently a dead hook — a future pass could use it to show an explicit "select a truck to see this week's deductions" message instead of an empty list.
+- **Pre-existing, unrelated inconsistency (not introduced by this commit):** `loads.js` has its own separate `findTruckByIdOrUnit()` (case-sensitive, no `normalizeFleetLookupValue`-style normalization) distinct from `index.html`'s global one (case-insensitive). Both pre-date this commit and weren't touched by it; noted only because it's adjacent to the case-sensitivity finding above and worth harmonizing in the same future pass.
+
+### Whether Slice 1A.1 can close
+
+**Yes.** The unsafe fallback is genuinely removed at every call-site, every changed mutation path fails closed rather than silently misattributing data, the new test proves the core resolver by real execution, CI/npm wiring landed in the same commit, the cache-version bump is correctly justified and complete, and no loader-order or auth/session code was touched. The non-blocking findings above are all fail-safe (they block a mutation rather than risk a wrong-truck one) and are appropriate follow-up items, not reasons to reopen this slice.
+
+### Slice 1B readiness
+
+**READY_FOR_SLICE_1B** — independently confirmed, not merely accepted on Codex's assertion. The one blocker identified after Slice 1A (`AMBIGUOUS_FIRST_TRUCK_FALLBACK`) is resolved and verified. Recommend the two non-blocking items (case-sensitivity harmonization in `resolveDefaultTruck`, the unguarded template-save branch) be picked up as a small follow-up at some point, but neither rises to a Slice 1B blocker.
+
