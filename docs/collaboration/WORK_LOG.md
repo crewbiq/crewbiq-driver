@@ -1,5 +1,14 @@
 # CrewBIQ Audit Work Log
 
+## Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+
+- Resumed discovery after accepted Slice 2A.0 URL safety correction.
+- Documented exact clinks key/schema/scope, migrations, render/CRUD behavior, role/navigation exposure, offline-only ownership, and absence of sync/import/export.
+- Added executable reload, migration, add, edit, delete, and role contracts plus static route/container/concept-separation contracts.
+- Added case-variant URL assertions without runtime behavior changes.
+- Decided READY_FOR_LINKS_EXTRACTION and bounded the proposed Slice 2B module without implementing it.
+- Runtime/product files changed: NONE.
+
 ## Slice 1B blocking correction
 
 - Corrected malformed restoreSession extraction and duplicate PTI/showApp routing only.

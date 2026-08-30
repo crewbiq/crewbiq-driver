@@ -1,5 +1,13 @@
 # Handoff: Issue #100 Pre-Base44 Audit
 
+## Slice 2A handoff
+
+Slice 2A contract-pins current Links behavior after the accepted URL-safety correction. Links is ACTIVE; page-community/renderCommunity is only the current technical container; historical Community and future Marketplace concepts do not own clinks data.
+
+Readiness is READY_FOR_LINKS_EXTRACTION with no blocking findings. The proposed Slice 2B boundary is a global-compatible links.js module owning clinks storage/migration, URL policy, render state, and CRUD behind temporary compatibility shims. page-community markup, route, role entries, static controls, and mount point must remain until a later UI-shell slice.
+
+Next actor: Claude. Do not begin Slice 2B before independent review and explicit authorization.
+
 ## Slice 1B handoff
 
 startup-session.js now owns the bounded startup/session coordinator flow while consuming existing transport, restore, PTI, fleet, storage, and rendering contracts through injected dependencies. Existing callers continue through restoreSession(), boot(), and showApp() compatibility functions in index.html.

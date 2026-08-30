@@ -1,5 +1,14 @@
 # CURRENT STATUS — CrewBIQ Pre-Base44 Audit
 
+## Slice 2A — Links / clinks Behavior Contract + Extraction Readiness
+
+- Current post-Slice-2A.0 Links behavior is documented in LINKS_CONTRACT.md.
+- Device-local fiqD_clinks storage, wrong-key/legacy migration, CRUD, URL policy, role visibility, navigation, and concept separation are contract-pinned.
+- Extraction readiness: READY_FOR_LINKS_EXTRACTION.
+- Blocking findings: NONE.
+- Runtime/product files changed in Slice 2A: NONE.
+- Proposed next implementation boundary: a bounded global-compatible links.js module, subject to Claude review and separate Slice 2B authorization.
+
 ## Slice 1B blocking correction
 
 - Removed the stale inline restoreSession body left after the compatibility shim.

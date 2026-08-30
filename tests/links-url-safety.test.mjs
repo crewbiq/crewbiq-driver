@@ -68,6 +68,9 @@ test('UNIT_CONTRACT allows supported URL schemes and normalizes bare domains', (
   assert.equal(context.normalizeLinkUrl('example.com/path'), 'https://example.com/path');
   assert.equal(context.normalizeLinkUrl('mailto:dispatch@example.com'), 'mailto:dispatch@example.com');
   assert.equal(context.normalizeLinkUrl('tg://resolve?domain=CrewBIQSupport_bot'), 'tg://resolve?domain=CrewBIQSupport_bot');
+  assert.equal(context.normalizeLinkUrl('HTTPS://example.com/path'), 'HTTPS://example.com/path');
+  assert.equal(context.normalizeLinkUrl('MailTo:dispatch@example.com'), 'MailTo:dispatch@example.com');
+  assert.equal(context.normalizeLinkUrl('TG://resolve?domain=CrewBIQSupport_bot'), 'TG://resolve?domain=CrewBIQSupport_bot');
 });
 
 test('UNIT_CONTRACT rejects executable, local, unknown, and blank URL inputs', () => {

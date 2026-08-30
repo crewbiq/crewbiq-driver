@@ -67,3 +67,9 @@ The 18-script ordered chain loaded from `core.js` is:
 startup-session.js is a normal, global-compatible module loaded by index.html outside the synchronous core.js hotfix chain. It owns startup/session ordering only: restore completion, boot routing, PTI gating, app-shell visibility, and the delayed initial pull. Existing transport, fleet restore, PTI, offline queue, rendering, and persistence functions remain in their established owners and are injected into the coordinator.
 
 index.html remains the composition root and exposes compatibility functions for existing call sites. Logout remains inline because its current responsibilities span account registration, pay migration, archival state, role continuity, and selective storage clearing.
+
+## Slice 2A Links ownership boundary
+
+Links is an active device-local capability currently implemented inline in index.html. fiqD_clinks and the temporary fiqD__clinks repair key are unscoped localStorage ownership; there is no clinks cloud, queue, import, or export path. page-community/renderCommunity is a compatibility container, not the product identity.
+
+Slice 2A adds contracts only. The proposed future links.js boundary would own storage migration, URL policy, render state, and CRUD while index.html temporarily retains page-community markup, role/navigation routes, static controls, and compatibility shims.
