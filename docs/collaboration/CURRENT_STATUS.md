@@ -6,8 +6,8 @@
 
 ## Repository / branch
 
-- Repo: `D:\CrewBIQ`
-- Branch: `agent/carrier-directory-framework-line-endings`
+- Repo: `D:\CrewBIQ\crewbiq-driver`
+- Branch: `agent/pre-base44-audit`
 
 ## Scope and constraints
 
@@ -21,16 +21,18 @@
   - `docs/collaboration/README.md`
   - `docs/collaboration/FUNCTIONAL_AUDIT.md`
   - `docs/collaboration/ARCHITECTURE.md`
+  - `docs/collaboration/HOTFIX_LOAD_ORDER_CONTRACT.md`
   - `docs/collaboration/DECISIONS.md`
   - `docs/collaboration/WORK_LOG.md`
   - `docs/collaboration/HANDOFF.md`
   - `docs/collaboration/CURRENT_STATUS.md`
+- Added a verified `core.js` hotfix-load-order contract with existence/order/duplication assertions and explicit dependency map.
 - Populated functional risk and coupling map across auth/session, PTI, OCR, offline queue, PWA/SW, and links module.
 
 ## Open blockers for next stage
 
-- No code changes yet, so no functional blocker is removed.
-- Main constraint is decomposition risk around bootstrap ordering and shared state in `index.html`.
+- Current constraint is decomposition risk around bootstrap ordering and shared state in `index.html`.
+- Next pass should keep loader-order and service-worker shell contracts unchanged unless explicitly revalidated.
 
 ## Recommended next action
 

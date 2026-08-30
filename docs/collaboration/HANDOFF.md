@@ -12,10 +12,15 @@
 3. Add contract tests for session restore + PTI gate behavior before refactor.
 4. Re-audit after first slice and repeat table for residual in-module coupling.
 
+Current hard dependency now documented:
+
+- `core.js` hotfix loader chain order is the top-priority non-negotiable contract.
+- `docs/collaboration/HOTFIX_LOAD_ORDER_CONTRACT.md` must be read before any module reordering.
+
 ## Acceptance checks before refactor starts
 
 - No behavior modifications in existing index-level flows while splitting slices.
-- Snapshot of token/session restore and PTI gating behavior captured in tests.
+- Snapshot of token/session restore, PTI gating, and exact hotfix loader contract captured in tests.
 - Service worker caching behavior unchanged during first slice.
 
 ## Watch for

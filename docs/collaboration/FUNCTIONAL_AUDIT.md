@@ -1,18 +1,18 @@
 # Issue #100 Functional Audit (Pre-Base44): CrewBIQ
 
 Date: 2026-08-30  
-Branch: `agent/carrier-directory-framework-line-endings` (as checked out in workspace)  
+Branch: `agent/pre-base44-audit`  
 Scope: read-only audit only; no behavior changes.
 
 ## Executive summary
 
-CrewBIQ’s current runtime is operational and most core contracts are already present across extracted modules with orchestrated bootstrap behavior in `index.html`. The largest decomposition risk is not feature completeness but sequencing risk: key flows (boot/auth restore, PTI gate, OCR upload path, and legacy inlined UI state) are highly coupled to global state and startup order.  
+CrewBIQ’s current runtime is operational and most core contracts are already present across extracted modules. The highest immediate risk is sequencing and load-order drift because the `core.js` chain injects adapters that assume prior objects and shared globals exist in a strict order.
 
-Recommended first slice is an extraction of identity/session orchestration with a strict interface contract before any UI-surface module splits.
+Recommended first slice is hardening the hotfix loader contract and documenting hidden dependencies before any deep extraction.
 
 ## Highest-risk issues
 
-- Bootstrap coupling: `boot()`, `restoreSession()`, and PTI gate logic are mostly in `index.html` and are sensitive to execution order.
+- Loader contract coupling: the 18-script hotfix chain in `core.js` has strict ordering constraints and hidden dependencies across `CrewBIQ` globals.
 - Inlined business logic: Links/workspace/community module remains embedded in `index.html` (load/save/filter/search/favorites flow), increasing decomposition blast radius.
 - Offline boundary assumptions: service worker caches and network exception rules are well-defined, but queue drain/order guarantees rely on current call flow in `offline-sync-queue`.
 - Feature-flag edge behavior: PTI gating in `boot()` can short-circuit rendering; changing load order can accidentally bypass or over-trigger blocker UI.
@@ -22,12 +22,12 @@ Recommended first slice is an extraction of identity/session orchestration with 
 
 | Domain | Contract | Status | Evidence | Gaps / Risks |
 | --- | --- | --- | --- | --- |
-| Identity + auth restore | Restore from persisted token, preserve migration path, apply role-based initialization, fallback on failures | Partially implemented, stable but coupled | `core-runtime.js`, `index.html` (`restoreSession`, `applyAuthRestoreData`, `authLogin`, `authSignup`) | Must extract contract first; session migration and role transitions are high risk if reordered. |
-| Service worker shell + offline baseline | Cache static app shell and API-safe routing; keep transport behavior for POST/API paths predictable | Implemented | `sw.js` (cache list, `CACHE_NAME: crewbiq-driver-v78`, `POST`/`/api/`/`/v1/` network-first/only rules), module pre-cache | Decomposition should not alter caching semantics before a full PWA contract test pass. |
+| Identity + auth restore | Restore from persisted token, preserve migration path, apply role-based initialization, fallback on failures | Partially implemented, stable but coupled | `core-runtime.js`, `restore-hotfix.js`, `settings-hotfix.js` | Session migration and role transitions remain high risk if startup/loader contracts are reordered. |
+| Service worker shell + offline baseline | Cache static app shell and API-safe routing; keep transport behavior for POST/API paths predictable | Implemented | `sw.js` (cache list, `CACHE_NAME: crewbiq-driver-v79`, `POST`/`/api/`/`/v1/` network-only rules), module pre-cache | Decomposition should not alter caching semantics before a full PWA contract test pass. |
 | Offline queue + sync integrity | Queue mutation-only payloads, bounded storage, retry on reconnect, preserve mutation order | Implemented in dedicated module | `offline-sync-queue.js`, `sync.js`, `pti.js`, `loads.js` | Need contract tests around queue replay + bounded eviction and offline-first transitions. |
 | Fleet/load data workflows | CRUD and read workflows preserved under orchestrator transport | Implemented through extracted modules | `core.js` bootstrapped module list, `sync.js`, `loads.js`, module-specific test coverage | No single-file architecture map yet for module load dependencies. |
-| Expenses + company/settlement | Domain logic persists existing transport contracts and rendering expectations | Implemented (including dedicated test coverage references) | `core.js`, domain modules and existing tests for projection/restore/sync coverage | Upcoming PR #94 claims workflow overlap but is draft; decomposition must account for merge interactions. |
-| OCR/document intake | File selection, base64 encode, OCR extraction via orchestrator, clear user disclosure on non-storage | Implemented and behavior-constrained in index | `index.html` upload/scan flow (`/v1/ocr/extract`, `/v1/ocr/extract/pwa`), inline “file not stored” indicators | Need explicit contract docs around file-size and failure messaging before decoupling UI. |
+| Expenses + settlement + OCR import | Domain logic persists existing transport contracts and rendering expectations | Implemented (including dedicated test coverage references) | `core.js`, domain modules, OCR review contracts, and existing tests for projection/restore/sync coverage | Upcoming PR overlaps exist and are draft; decomposition must account for merge interactions. |
+| OCR/document intake | File selection, OCR extraction via orchestrator, and clear user disclosure on non-storage | Implemented and behavior-constrained in the hotfix chain | `ocr-hotfix.js`, `ocr-invoice-review.js`, `ocr-item-alias-hotfix.js`, `ocr-service-invoice-review.js`, `index.html` scan UI hooks | Need explicit contract docs around file-size and failure messaging before decoupling UI. |
 | PTI lifecycle | PTI eligibility check, blockers, and lifecycle transitions enforced at startup | Implemented in dedicated module plus index boot gate | `pti.js`, `index.html` (`needsPTI`, `showPTIBlocker`, `boot`) | Must preserve exact show/dismiss sequencing with role/session state. |
 | Links/work links/community | CRUD of curated links, favorites, search/filter and local persistence migration | Implemented inline, not yet extracted | `index.html` (`clinks` data structure and storage handling) | No explicit module boundary yet; this is a high-priority first extraction candidate after auth/session. |
 | Settings + environment + navigation contract | Route rendering + shell state + applyRoleUI behavior remain cohesive with current app bootstrap | Implemented with heavy inline control flow | `index.html` + renderAll/module setup | High coupling means any split must preserve render order and role/UI invariants. |
@@ -36,6 +36,7 @@ Recommended first slice is an extraction of identity/session orchestration with 
 
 - Extract and lock an explicit startup contract: initialize order for token restore, role bootstrap, role-based UI, PTI gating, and first render.
 - Add/upgrade tests for:
+  - loader contract: exact `core.js` order, duplicate prevention, file existence checks, and missing script catch.
   - session token migration and restore edge cases (missing/expired token, role transition),
   - PTI gate transitions under unauthenticated/authenticated+ineligible states,
   - offline queue replay after reconnect and bounded-queue eviction.
@@ -44,10 +45,10 @@ Recommended first slice is an extraction of identity/session orchestration with 
 
 ## Safe decomposition order
 
-1. Extract auth/session and startup orchestration behind a narrow adapter (no DOM behavior changes).
-2. Extract OCR intake adapter (file pick/encode/upload/error path + payload contract).
-3. Extract work-links storage module (`clinks`) with pure helpers and migration.
-4. Extract offline queue contract boundaries for enqueue/replay/reporting states.
+1. Lock hotfix loader contract with a dedicated test and contract map.
+2. Extract auth/session and startup orchestration behind a narrow adapter (no DOM behavior changes).
+3. Extract OCR intake adapter (file pick/encode/upload/error path + payload contract).
+4. Extract work-links storage module (`clinks`) with pure helpers and migration.
 5. Re-slice remaining UI modules (PTI/fleet/loads/settings) once contracts are validated.
 
 ## Issue/PR mapping
@@ -64,10 +65,11 @@ Recommended first slice is an extraction of identity/session orchestration with 
 
 ## First slice recommendation
 
-First slice: `identity/session + startup bootstrap` extracted into a small coordinator module.
+First slice: `hotfix loader contract + startup sequencing` extracted into a small coordinator/test gate.
 
 Target behavior to preserve:
 
+- Exact `core.js` script chain order and duplicate/skip safety.
 - Token bootstrap and restore flow order.
 - Session role resolution and migration path.
 - PTI eligibility checks and block/unblock semantics.

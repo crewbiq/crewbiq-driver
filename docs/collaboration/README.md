@@ -17,6 +17,7 @@ documentation-only.
 - [WORK_LOG.md](D:/CrewBIQ/docs/collaboration/WORK_LOG.md)
 - [HANDOFF.md](D:/CrewBIQ/docs/collaboration/HANDOFF.md)
 - [CURRENT_STATUS.md](D:/CrewBIQ/docs/collaboration/CURRENT_STATUS.md)
+- [HOTFIX_LOAD_ORDER_CONTRACT.md](D:/CrewBIQ/docs/collaboration/HOTFIX_LOAD_ORDER_CONTRACT.md)
 
 ## Constraint
 
