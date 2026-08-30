@@ -42,10 +42,10 @@ Phase:
 Slice 4B - Production Integration Contract + Analytics Scope Architecture
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,7 +54,7 @@ Product truth:
 current main; Slice 4A.2 and Slice 4A.3 visual direction approved as production-integration baseline
 
 Latest implementation commit:
-8dcad94b6eaa50d14ed4479399a2756bf0d7b599
+d61623c47a2d0f5a0ae30ef6a6280676744d7b66
 
 Latest correction commit:
 NONE
@@ -63,10 +63,10 @@ Latest review commit:
 Product Owner decision in Slice 4B assignment
 
 Latest state commit:
-fc94dca7d211ef08f1a9cf70c00f994bff6c56a5
+17b70111ce18c7a17cab30bf34bce82c02fa42d3
 
 Blocking findings:
-NONE
+NONE for bounded 4B.1a; broader scopes require ACCOUNT_DRIVER_LINK, NORMALIZED_RECORD_DRIVER_ID, EFFECTIVE_DATED_DRIVER_TRUCK_ASSIGNMENT, PTI_SCOPE_AND_POLICY, DOCUMENT_EVIDENCE_MODEL, and UTILIZATION_DEFINITION
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -74,15 +74,28 @@ Queued non-blocking findings:
 - cosmetic `}function boot()` formatting artifact
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-map canonical production data and publish analytics-scope and production-UI integration contracts
+independent review of production integration and analytics-scope architecture
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
 
+
+## Slice 4B - Production Integration Contract + Analytics Scope Architecture published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: `d61623c47a2d0f5a0ae30ef6a6280676744d7b66`
+- Decision: `READY_FOR_PRODUCTION_UI_INTEGRATION`, bounded to 4B.1a Driver SELF snapshot and pure selectors with no UI integration.
+- Defined identity-versus-subject semantics, self/driver/truck/fleet scopes, stable-ID rules, time bounds, permission assumptions, effective-dated Driver/Truck assignment requirements, and shared PWA/website/SIDR/audit reuse.
+- Mapped accepted Today and Hub components to current loads, truck, Driver, PTI, fuel, service, expense, settlement, OCR, dispute, and sync evidence with READY/PARTIAL/MISSING/FUTURE_LAYER classifications.
+- Driver ranking status: NOT_READY pending stable attribution, assignment history, metric definitions, compliance/evidence inputs, and sample rules.
+- Runtime and prototype files changed: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent review of production integration and analytics-scope architecture.
 ## Slice 4A.3 - Interactive Data Visualization / Analytics Pass published
 
 - Agent: Codex
@@ -539,5 +552,6 @@ map canonical production data and publish analytics-scope and production-UI inte
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
