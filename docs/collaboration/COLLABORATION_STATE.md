@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1b - Account-to-Driver Link + Normalized Driver Attribution Contract
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,7 +54,7 @@ Product truth:
 current main; Slice 4B.1a CLOSED / ACCEPT
 
 Latest implementation commit:
-866caf346bc572dcae42d0fcb793374fd762d992
+76862ae757dd057197ad533e0c924808c093929f
 
 Latest review commit:
 c63c5df54a31044481b7dbf5619c3ac22cc1b11c
@@ -67,12 +67,13 @@ Queued non-blocking findings:
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
 - canonical workspace timeZone source remains unspecified
+- assign cross-repository ownership for future server AccountDriverLink schema/read endpoint
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-inventory identity fields and publish account/Driver, record attribution, assignment, and migration contracts without runtime changes
+independent review of identity-attribution contract and first implementation boundary
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -81,6 +82,20 @@ inventory identity fields and publish account/Driver, record attribution, assign
 
 
 
+
+## Slice 4B.1b - Account-to-Driver Link + Normalized Driver Attribution Contract published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: `76862ae757dd057197ad533e0c924808c093929f`
+- Decision: `READY_FOR_IDENTITY_ATTRIBUTION_IMPLEMENTATION`.
+- Inventoried Account/session, workspace/company, Driver, Truck, Load, PTI, fuel, expense, service, OCR/document, settlement, and dispute/exception identifier spaces and join suitability.
+- Defined server-authoritative `AccountDriverLink`, separate effective-dated `DriverTruckAssignment`, fail-closed SELF resolution, normalized Driver/Truck attribution rules, workspace boundaries, provenance, permissions, and cross-channel reuse.
+- Legacy strategy: `PROVEN`, `AMBIGUOUS`, and `UNRESOLVABLE`; only deterministic, audited, idempotent `PROVEN` records may later be backfilled.
+- Recommended first implementation: 4B.1b.1 server schema/workspace constraints/authorized read endpoint/audit events plus PWA read-only adapter; no record migration.
+- Runtime/product files changed: NONE. Persistence, UI, prototype, migrations, tests, service worker, and deploy changed/run: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent review of identity-attribution contract and first implementation boundary.
 ## Slice 4B.1a.1 - Custom Period Inclusive dateTo Correction published
 
 - Agent: Codex
@@ -626,6 +641,7 @@ inventory identity fields and publish account/Driver, record attribution, assign
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
