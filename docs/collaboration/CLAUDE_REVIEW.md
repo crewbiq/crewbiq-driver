@@ -2563,3 +2563,60 @@ Blocking findings = NONE. No product/business decision is required — the desig
 Implement the orchestrator-only **read foundation** for `DriverTruckAssignment`, addressing blockers 1–4 exactly as scoped in the discovery document: the workspace-scoped effective-dated relation schema and migration, database-enforced interval/overlap and workspace-integrity constraints (the `workspaces.legacy_owner_crewbiq_id` bridge to `fleet_driver_profiles.owner_crewbiq_id`/`trucks.owner_crewbiq_id`, exactly as already used for the workspace Driver roster endpoint), authorized current/history/`asOf` reads only, and the full required test list from the discovery document. Exclude mutations, legacy-projection dual-writes (blocker 5, `CURRENT_PROJECTION_STRATEGY_UNDEFINED`, deferred), PWA/UI integration, migration execution against production, merge, and deployment.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.3-S1 Independent Review (cross-repository) — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.3-S1 — DriverTruckAssignment Read Foundation, implemented in `crewbiq/crewbiq-orchestrator` (branch `agent/driver-truck-assignment-read`, commit `d8aae15`), the read-only foundation authorized in the just-accepted 4B.1b.3 discovery.
+**Method:** fetched every changed file directly via `gh api` (`app/routers/driver_truck_assignments.py`, `migrations/010_driver_truck_assignments.sql`, `app/services/capabilities.py`, `app/main.py`, `tests/test_driver_truck_assignments.py`, `tests/test_auth.py`); read the migration's PL/pgSQL trigger function and the router's read endpoints in full; manually traced the trigger's range-overlap boolean logic and advisory-lock keying by hand; independently reconstructed the minimal package in an isolated scratch directory and ran `pytest` against the real test file (9/9 passed, not merely trusted); checked whether the repository has any existing real-PostgreSQL integration test infrastructure that this slice should have used but didn't (it does not — confirmed the entire repo, including the pre-existing `test_migrations.py`, relies exclusively on hand-rolled fake connection objects).
+
+### Schema and trigger (`migrations/010_driver_truck_assignments.sql`)
+
+The table matches the discovery document's field contract closely: `id` (uuid), `workspace_id` (FK to `workspaces(id)`), `driver_id`/`truck_id` (FKs to `fleet_driver_profiles(driver_profile_id)`/`trucks(truck_id)` — both independently verified as genuinely `unique` columns, valid FK targets), `effective_from`/`effective_to` with a `check (effective_to is null or effective_to > effective_from)`, and `check (status <> 'closed' or effective_to is not null)` — correctly enforcing that a closed assignment must carry an end date.
+
+The `enforce_driver_truck_assignment_integrity()` trigger (before insert/update):
+
+- Resolves `workspace_owner` from `workspaces.legacy_owner_crewbiq_id` for an *active* workspace only, failing (`driver_truck_assignment_workspace_source_required`) if absent — the same bridge already verified in the S1/S5 reviews, not a new mechanism.
+- Verifies both the Driver and Truck rows belong to that same legacy owner, failing closed on mismatch — genuine workspace-integrity enforcement at the database layer, not merely at the application layer.
+- Takes two `pg_advisory_xact_lock` calls, keyed per `(workspace, driver)` and `(workspace, truck)`, **before** running the overlap checks — this correctly serializes concurrent competing inserts for the same Driver/Truck, closing the classic check-then-insert race a purely application-level precondition check would be vulnerable to.
+- Rejects any overlapping non-revoked assignment for the same Driver (any Truck) using genuine `tstzrange(...,'[)')  &&  tstzrange(...,'[)')` half-open range overlap — correct interval semantics, not a hand-rolled comparison.
+- Rejects overlapping non-revoked assignments on the same Truck **unless both** are `'team'` — I traced the boolean condition `(new.assignment_type <> 'team' or existing.assignment_type <> 'team')` by hand: this is true (a rejection match) for every combination except team+team, exactly matching the discovery document's overlap table (solo+anything rejected, team+team allowed, temporary/other conservatively rejected).
+
+### Read endpoints (`app/routers/driver_truck_assignments.py`)
+
+`_authorized_workspace_id` requires the requested workspace to be the caller's *currently active* workspace (not merely any held membership) **and** requires the new `DRIVER_TRUCK_ASSIGNMENT_READ` capability on that membership — a stricter, more conservative gate than the earlier `workspace_drivers.py` router, and appropriately so for a newly capability-gated resource. `_assignment_response` re-validates every field independently of the DB (non-empty IDs, workspace match, enum membership, a genuine positive-int version check that explicitly excludes Python `bool` via `not isinstance(version, bool)` — a subtle, correct defensive detail many implementations miss, `provenance` must be a dict, interval/closed-status consistency) — any violation fails the whole response with 502, never silently drops a bad record. `/current` and `/as-of` correctly exclude `status = 'revoked'` and apply the exact half-open `effective_from <= at < effective_to` semantics from the discovery document; `/history` correctly includes every status (revoked included) with no time filter. Duplicate assignment IDs in one response are rejected, mirroring the discipline already used in `workspace_drivers.py`.
+
+### Independent test execution
+
+Reconstructed the minimal package and ran `pytest` directly: **9/9 passed** — workspace-scoped/deterministic/read-only current reads, history/as-of filter and half-open-boundary behavior, empty result set, unauthorized/cross-workspace/missing-capability rejection before the database is ever reached, eight distinct malformed/duplicate/cross-workspace row cases failing closed with 502, schema-unavailable and invalid-filter (blank driver_id, timezone-naive `as-of`) rejection, missing/invalid session handling via the existing auth contract, correct role-to-capability mapping, and a static check that the migration contains no destructive statement (`drop table`, `delete from`, or any `alter table` on the legacy `fleet_driver_profiles`/`trucks` tables).
+
+### A real, honestly-stated gap — but a currently dormant one
+
+The trigger's overlap-rejection, advisory-locking, and workspace-integrity logic is pure PL/pgSQL — no fake in-memory connection object can execute a stored trigger, so this test suite (like every other test in this repository, confirmed by checking `test_migrations.py` and finding no `conftest.py`, Docker Compose, or testcontainers setup anywhere) can only assert that certain SQL substrings are *present* in the migration text, never that the trigger actually *behaves* correctly against a real PostgreSQL engine. I independently traced the range-overlap and boolean logic by hand and found it correct, but manual review is a materially weaker form of assurance than execution — exactly the standard this review process has held server-side work to throughout this track.
+
+Critically, however: **this slice publishes no write endpoint at all.** Only `/current`, `/history`, and `/as-of` (read-only `GET`s) exist; nothing in the live application can currently `INSERT`/`UPDATE` a row in `driver_truck_assignments`, so the trigger is dormant and unreachable through any real code path today. The risk this gap represents is therefore deferred, not present — it becomes load-bearing only once a future mutation-command slice adds a write path. This is flagged as a firm requirement for that future slice, not a defect in this one.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+NONE.
+
+### Non-blocking findings carried forward
+
+- (Carried from prior reviews) `resolveDefaultTruck` case/whitespace sensitivity; deduction-template save branch without `truckId` guard; cosmetic `}function boot()` artifact; canonical workspace `timeZone` source unspecified; `_authorized_workspace_id()`'s redundant status-default (the original `workspace_drivers.py` instance); Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific than before; account-connected user with an empty Driver roster cannot submit PTI; HISTORY append-order inconsistency; `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` relevant only to a future driver-role `SELF` UI; no live-PostgreSQL test for the `raw_payload` round-trip.
+- **New:** the `driver_truck_assignments_integrity` trigger's overlap-rejection, advisory-lock serialization, and workspace-integrity enforcement have zero behavioral test coverage — verified correct by manual trace only. **Must be closed with a genuine behavioral test (real PostgreSQL, or equivalent execution-based verification) before any future mutation-command slice that makes this trigger reachable is accepted** — not blocking this read-only slice, since no write path exists yet to invoke it.
+- Minor: `_authorized_workspace_id` here requires the requested workspace to be the caller's *active* workspace specifically, a stricter gate than the earlier `workspace_drivers.py` router (which accepts any held membership) — an inconsistency across endpoints, not a security defect (more restrictive, not less), worth reconciling for consistency in a future pass.
+- Minor: no explicit test for a user with an empty `active_workspace_id` entirely (distinct from a mismatched one) — a straightforward, low-risk code path, not exercised directly.
+
+### Applying the autonomous handoff protocol
+
+Blocking findings = NONE. No product/business decision is required — the next phase (mutation commands: create/close/revoke) is already named in `IDENTITY_ATTRIBUTION_CONTRACT.md`'s own sequence and in this discovery document's own deferral language ("Mutation capability, commands, audit integration... should follow only after the read foundation is independently accepted," which it now is). Per the binding coordination rule: `Decision gate: AUTO_CONTINUE_ALLOWED`, `Next required actor: Codex`.
+
+### Recommended next bounded action
+
+Implement the orchestrator-only mutation-command slice for `DriverTruckAssignment` (create/close/revoke), reusing the existing canonical-command conventions (idempotency key, optimistic-concurrency version check, immutable `relationship_audit_events` append, capability-gated authorization) exactly as the discovery document specifies — **and, as a firm requirement of this next slice, add genuine behavioral verification of the `driver_truck_assignments_integrity` trigger** (a real-PostgreSQL-backed test, or another execution-based mechanism — not merely static text matching) before or alongside making the trigger reachable via a live write path. Exclude legacy-projection dual-writes, PWA/UI integration, migration execution against production, merge, and deployment.
+
+Runtime/product files changed by this review: NONE. This review touched no code in either repository.
