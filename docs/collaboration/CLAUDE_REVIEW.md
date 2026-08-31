@@ -1656,3 +1656,89 @@ The task's option **(A)** — server `AccountDriverLink` implementation — is t
 
 Within `crewbiq-driver` specifically, the safest next bounded slice is **(B) — normalized `driverId`/`truckId` for NEW client records only** (matching `IDENTITY_ATTRIBUTION_CONTRACT.md`'s own `4B.1b.2` step: require normalized `workspaceId`/`driverId`/`truckId` on newly-created Loads and PTI first, no legacy backfill). This is genuinely independent of the not-yet-built server endpoint — a fleet/owner admin can already explicitly select a Driver-profile record when creating a new Load today, this slice would just require and persist that as a normalized field — and it directly unblocks both the eventual `DRIVER`-explicit-scope analytics and the eventual owner/fleet `SELF` analytics once `AccountDriverLink` also lands, without waiting on either. A narrower, independent alternative — a driver-role-only `SELF` UI proof-of-concept — remains available in parallel too, since a plain driver account's `SELF` resolution needs neither this adapter nor `AccountDriverLink` at all, but that would require UI wiring and its own dedicated review, out of scope for a documentation/contract-sequencing recommendation here.
 
+
+## Slice 4B.1b.2 Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Blocker-only review of Slice 4B.1b.2 — Normalized IDs for NEW Loads and PTI (docs commit `e8744e9`; no runtime implementation published).
+**Method:** fetched `NORMALIZED_RECORD_ID_CONTRACT.md` and `IDENTITY_ATTRIBUTION_CONTRACT.md` at `e8744e9`; independently re-derived each blocker against the actual branch-tip runtime (`5f4c08a`) rather than accepting the documents' claims — read `loads.js::saveLoad()` and `getLoadTruckSelection()` in full, `pti.js::submitPTI()` in full, grepped `core-runtime.js`/`sync.js`/`offline-sync-queue.js`/`startup-session.js`/`loads.js`/`pti.js` for `workspaceId`, grepped `index.html`/`core.js` for any reference to `account-driver-link.js`/`CrewBIQIdentityLink`, and inspected `sync.js`'s payload construction (`JSON.stringify(body)`/`JSON.stringify(payload)`) to characterize client-side serialization behavior.
+
+### 1. SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN — CONFIRMED REAL
+
+- Verified: `sync.js` serializes whole objects (`JSON.stringify(body)`, `JSON.stringify(payload)`) — client-side pass-through of extra fields is real and not in dispute.
+- What is genuinely unprovable from this repository is backend persistence and restore: the Orchestrator/backend implementation lives outside `crewbiq-driver`, so no test in this repo can demonstrate that an unknown new field survives a real store-then-restore round trip rather than being silently stripped server-side.
+- Blocks: **BOTH** Loads and PTI equally — any new field on either record type carries the same unproven-round-trip risk.
+- Must be solved: **server-side** first (the backend must actually persist and return the field); a client-only fix cannot resolve this.
+- Hard blocker or bypassable: hard blocker for a *proven* guarantee, but the smallest prerequisite is bounded and does not require the full write-domain migration to land first.
+- Smallest prerequisite slice: a real (not merely documented) backend round-trip test for one field on one record type, exercised against actual Orchestrator persistence — see Question C below.
+
+### 2. CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING — CONFIRMED REAL
+
+- Verified: `account-driver-link.js` (accepted in Slice 4B.1b.1a) has zero references anywhere in `index.html` or `core.js` — it is genuinely unwired, exactly as claimed. The server-side `AccountDriverLink` read endpoint itself also does not exist (out of this repo's scope, per the 4B.1b.1a server-implementation handoff).
+- Blocks: the **`driverId`** field specifically, for **BOTH** Loads and PTI (both require a canonical roster `driverId` per the attribution rules). Does **not** block `truckId` — Loads already has an independently proven, explicit truck selection (see below).
+- Must be solved: **both sides** — the backend endpoint must exist, and the client must wire the already-accepted adapter into a composition root with real transport. However, this blocker is narrower than it looks: it can be bypassed for a first slice by substituting an explicit, non-default UI Driver-selection step instead of waiting for `AccountDriverLink`, exactly as the contract itself notes ("or provide another explicit canonical Driver selection source").
+- Smallest prerequisite slice: either (a) server endpoint + adapter wiring, or (b) a narrower slice defining an explicit UI-driven Driver-selection context for Load/PTI creation, bypassing `AccountDriverLink` entirely for now. (b) is smaller and has no cross-repository dependency.
+
+### 3. PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING — CONFIRMED REAL, AND UNDERSTATED
+
+- Verified directly: `submitPTI()`'s constructed `entry` object (`pti.js:247-256`) has **no** `truckId` and **no** `driverId` field at all, and there is no truck- or driver-selection call anywhere in the function. This is a strictly worse starting position than Loads — `loads.js::saveLoad()` already has a mandatory, explicit `getLoadTruckSelection()` call and rejects the save if `truckSel.truckId` is empty (`loads.js:356`).
+- Blocks: **PTI only** — does not affect Loads.
+- Must be solved: **client-side** — this is a missing UI/data-capture step (no truck or driver selector exists in the PTI flow), not a transport or schema-preservation problem. Transport already preserves whatever shape is given (see Blocker 1's `sync.js` evidence).
+- Hard blocker or bypassable: hard blocker for PTI specifically (there is currently no proven identity of any kind — not even `truckId` — to attach to a new PTI record), but it does not spill over into Loads at all.
+- Smallest prerequisite slice: add an explicit, non-default Truck (and, once available, Driver) selection step to the PTI submission UI — a bounded, independently reviewable change that proves the selection context exists, before any `driverId`/`truckId` field is added to the PTI record shape.
+
+### 4. WORKSPACE_CONTEXT_NOT_UNIVERSAL — CONFIRMED REAL (scoping refinement noted)
+
+- Verified: zero occurrences of `workspaceId` anywhere in `core-runtime.js`, `sync.js`, `offline-sync-queue.js`, `startup-session.js`, `loads.js`, or `pti.js`. The only two places `workspaceId` exists in the runtime at all are `analytics.js` and `account-driver-link.js` — both pure functions that *accept* it as an injected parameter; nothing in the composition root currently produces or supplies one.
+- Blocks: **BOTH** Loads and PTI (and, as stated, effectively every write path in the app — this is the broadest of the four).
+- Must be solved: primarily **client-side integration** — the contract itself notes "Orchestrator membership can prove a workspace when present," meaning the server-side capability (authenticated membership) plausibly already exists via the auth/session layer; the missing piece is a single accepted client resolver function that reads it and threads it through the composition root for these two creation paths.
+- Hard blocker or bypassable: this is the **most narrowly bypassable** of the four. The document's "universal" framing is broader than what Slice 4B.1b.2 actually needs — a resolver scoped *only* to Load/PTI creation paths (not literally every record family in the app) is sufficient to unblock this slice and is a materially smaller undertaking than a truly universal resolver.
+- Smallest prerequisite slice: define and accept one explicit active-workspace resolver, scoped only to Load/PTI creation, derived from the existing authenticated membership context — no default/inferred fallback, no attempt to solve workspace-threading for every other record family yet.
+
+### Scoping note (non-blocking to the verdict)
+
+Blocker 4 as documented is correctly identified but framed more broadly ("universal") than the minimum needed to unblock this specific slice. This does not invalidate the blocker — it is real and confirmed — but the smallest-prerequisite framing above narrows it to just the two creation paths in scope, which changes the recommended next action (see below) without changing the BLOCKED verdict.
+
+### Answers
+
+**A. Can NEW Load normalization proceed before PTI normalization?**
+Yes. Load is blocked only by Blockers 1, 2, and 4; Blocker 3 (missing explicit attribution context) applies exclusively to PTI, since Loads already has a proven, explicit `truckId` via `getLoadTruckSelection()`. Load can be sequenced ahead of PTI once 1/2/4 (or their narrowed forms) are cleared, without waiting on PTI's additional UI gap.
+
+**B. Can `workspaceId` be safely added to some record paths before `driverId`/`truckId`?**
+Yes. `workspaceId` is proven independently of Driver/Truck identity resolution (it comes from authenticated workspace membership, not from `AccountDriverLink` or truck selection). Adding a proven `workspaceId` to new Load/PTI records has no dependency on Blockers 2 or 3 and is safe to do first — this is the recommended smallest independent first step (see Question E).
+
+**C. Is a server roundtrip contract test enough, or is actual backend implementation required first?**
+Actual backend implementation is required first. A contract test run against no real server code can only assert agreed shape, not prove persistence — it cannot demonstrate that a field is actually stored and returned rather than stripped. The blocker is specifically about proof of round-trip behavior, which requires exercising a real (even minimal) backend implementation.
+
+**D. Is PTI blocked mainly by missing explicit "performing driver" context, or by transport/schema preservation?**
+Mainly by missing explicit context — confirmed directly in `submitPTI()`, which has no truck or driver selection at all (worse than Loads, which at least has proven `truckId`). Transport/schema preservation is a separate, already-covered concern (Blocker 1) and is not what is uniquely wrong with PTI.
+
+**E. Which blocker should be removed FIRST?**
+`WORKSPACE_CONTEXT_NOT_UNIVERSAL`, narrowed to the Load/PTI creation paths only. It is the most independently resolvable of the four — no dependency on the not-yet-built `AccountDriverLink` server endpoint, no dependency on new PTI UI work, and it can be built entirely client-side from data the authenticated session should already have. Clearing it enables the safe, narrow first step identified in Question B (`workspaceId`-only writes) without touching `driverId`/`truckId` at all.
+
+### Verdict
+
+**ACCEPT_BLOCKED**
+
+All four blockers are real, verified against actual runtime code (not merely against the documents' claims), and correctly identify genuine gaps. One scoping refinement is noted for Blocker 4 (narrower than "universal" is sufficient) but does not change the verdict.
+
+### Blocking findings (confirmed)
+
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` — blocks Load and PTI equally; server-side.
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` — blocks `driverId` for Load and PTI; server+client, bypassable via explicit UI Driver selection.
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING` — blocks PTI only; client-side UI gap, worse than Loads' starting position.
+- `WORKSPACE_CONTEXT_NOT_UNIVERSAL` — blocks Load and PTI; client-side integration gap; narrower scoping recommended (Load/PTI creation only, not literally universal).
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Backend/Orchestrator `AccountDriverLink` implementation remains external (unchanged from Slice 4B.1b.1a).
+
+### Recommended next bounded action
+
+Authorize the narrowest slice that removes Blocker 4 and enables the safe step identified in Question B: define and accept an explicit active-workspace resolver scoped only to Load/PTI creation (derived from existing authenticated membership context, no default/inferred fallback), and write `workspaceId` only (no `driverId`/`truckId`) to newly-created Load/PTI records once accepted. No UI changes beyond consuming the resolver; no legacy backfill; no server roundtrip claims beyond `workspaceId` itself, which is already server-verified via membership rather than newly invented.
+
+Runtime/product files reviewed: NONE changed. This review changed no runtime, product, or persistence code.
