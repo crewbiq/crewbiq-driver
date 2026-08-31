@@ -42,19 +42,19 @@ Phase:
 Slice 4B.1b.2c-S5 - Server Normalized-ID Round-Trip Proof
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; PTI canonical attribution gracefully degrades when authority is unavailable (no Orchestrator account, failed/timed-out roster read), preserving mandatory PTI completion without fabricating IDs and matching Load's workspaceId degradation pattern; available authority remains fully fail-closed for invalid or cross-workspace selections; Load workspaceId/truckId/driverId and PTI workspaceId/truckId/driverId are both complete
+current main; orchestrator writer/restore behavior now has a published stateful proof that Load and PTI workspaceId/truckId/driverId survive PostgreSQL raw_payload round-trip, degraded records remain unattributed, and restore remains tenant-scoped
 
 Latest implementation commit:
-e6822846bba2c1140249ba50c5b5d7c11ccd022f
+1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (crewbiq/crewbiq-orchestrator)
 
 Latest correction commit:
 1948ea78dc1442a77bbc266eac9f413368be0d0a
@@ -66,7 +66,7 @@ Latest review commit:
 2c2ff1befcfd84e9fb559878878c63e882927032
 
 Blocking findings:
-- SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
+- SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - stateful writer/restore proof published, pending Claude acceptance
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
 
 Queued non-blocking findings:
@@ -82,20 +82,34 @@ Queued non-blocking findings:
 - HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only, no coordination impact
 
 Cross-repository implementation:
-crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f (ACCEPTED)
+crewbiq/crewbiq-orchestrator @ agent/normalized-id-roundtrip @ 1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (AWAITING REVIEW)
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement the bounded orchestrator persistence/restore round-trip proof for Load and PTI workspaceId/truckId/driverId, without deployment, migration, or unrelated server scope
+independent review of the orchestrator normalized-ID persistence/restore round-trip proof
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - S5 Server Normalized-ID Round-Trip Proof Publication
+
+- Repository: crewbiq/crewbiq-orchestrator
+- Branch: agent/normalized-id-roundtrip
+- Implementation commit: 1fc10575239ac55a1aefa02ba7cd55d14fbd3cab
+- Evidence: stateful behavioral tests invoke the real `_write_loads`/`_write_pti` and `_restore_loads`/`_restore_pti` paths through PostgreSQL-shaped stored rows.
+- Proven: Load and PTI `workspaceId`/`truckId`/`driverId` survive round-trip; degraded records do not gain fabricated IDs; owner-scoped restore does not leak another tenant's records.
+- Runtime files changed: NONE; existing `raw_payload` persistence/restore implementation required no correction or migration.
+- Tests: `pytest -q tests/test_normalized_id_roundtrip.py tests/test_full_pwa_restore.py tests/test_sync_repair.py tests/test_sync_retry_idempotency.py tests/test_tenant_isolation.py` -> `24 passed in 13.20s`.
+- No merge, deployment, migration, or production-data mutation.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent S5 review.
 
 ### 2026-08-31 - Codex - S4 PTI Graceful-Degradation Correction Publication
 
