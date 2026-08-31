@@ -39,10 +39,10 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.2-S1 - AccountDriverLink Server Read Foundation
+Slice 4B.2-S2 - Driver SELF Read-Only UI
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
 Codex
@@ -51,10 +51,10 @@ Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; orchestrator AccountDriverLink read foundation accepted on agent/account-driver-link-read at ac98b111753c1e1119e94d00095bd618addcc439. Empty-by-default effective-dated authoritative relation, server-derived Account self-read, Driver/Workspace membership integrity, active-link non-overlap, and genuine PostgreSQL coverage without inferred creation or backfill - all independently executed by Claude against a freshly-provisioned live PostgreSQL 16 instance, confirming every claimed rule including advisory-lock concurrency serialization. Response shape confirmed byte-for-byte compatible with the already-accepted account-driver-link.js client (camelCase, accountIdSpace=crewbiq_account), which remains uncomposed in the PWA. CANONICAL_ACCOUNT_DRIVER_LINK_SERVER_SOURCE_MISSING is resolved.
+current main; AccountDriverLink server source accepted at orchestrator ac98b111753c1e1119e94d00095bd618addcc439 with review dd0748d5470ad9f8e9f32bc6fc90e3495fe2779f. PWA may now compose canonical Account -> Driver -> current Truck reads.
 
 Latest implementation commit:
-ac98b111753c1e1119e94d00095bd618addcc439 (crewbiq/crewbiq-orchestrator @ agent/account-driver-link-read)
+PENDING
 
 Latest correction commit:
 NONE for this slice
@@ -69,10 +69,7 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-- the account_driver_links_integrity trigger enforces at-most-one-active-link per Account only, matching the originally-accepted contract's stated invariant exactly; it does not additionally prevent two different Accounts from simultaneously holding active links to the same Driver - the accepted contract never required that, so this is a design question worth a deliberate future decision if relevant, not a gap against anything promised
-- SELF UI composition follows this acceptance; legacy backfill remains queued afterward, per Product Owner sequence
-- (server-side, carried from S2/S3 of DriverTruckAssignment) CURRENT_PROJECTION_STRATEGY_UNDEFINED deferred; raw_payload round-trip lacks a live-Postgres counterpart; driver_truck_assignments.py's stricter active-workspace requirement vs workspace_drivers.py; no test for an entirely-empty active_workspace_id
-- (carried forward from prior PWA reviews) resolveDefaultTruck case/whitespace sensitivity; deduction-template save branch without truckId guard; cosmetic formatting artifact; canonical workspace timeZone source unspecified; Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific; account-connected user with empty Driver roster cannot submit PTI; HISTORY append-order inconsistency
+Legacy backfill remains queued until SELF UI acceptance; no administration/mutation UI, ranking, migration, merge, or deployment.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
@@ -81,7 +78,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-implement the subsequent bounded PWA slice exactly as scoped by DRIVER_SELF_UI_DISCOVERY.md: load and lazily compose the already-accepted account-driver-link.js adapter (currently uncomposed); map account_driver_link_read through the existing authenticated transport to the new endpoint; resolve the canonical Driver ID before calling the already-accepted DriverTruckAssignment current-read adapter; render a minimal read-only SELF state for success/not-linked/ambiguous/unauthorized/unavailable outcomes; keep all legacy screens and records unchanged. Must remain read-only - no AccountDriverLink administration UI, no assignment mutation UI, no fleet ranking, no legacy backfill, no migration, no merge, no deployment.
+load and compose accepted AccountDriverLink and DriverTruckAssignment reads, then render a minimal read-only SELF state with explicit fail-closed outcomes while preserving all legacy screens and records.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
