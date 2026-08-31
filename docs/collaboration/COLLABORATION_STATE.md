@@ -89,10 +89,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Slice 4B.1b.2c and its sub-slices (S1-S5) are complete with no open blockers. The original IDENTITY_ATTRIBUTION_CONTRACT.md's bounded implementation sequence lists three further phases not yet authorized in this session - 4B.1b.3 (effective-dated DriverTruckAssignment), 4B.1b.4 (legacy attribution/backfill tooling), and 4B.2 (a real driver-role SELF UI consuming AccountDriverLink). Decide which, if any, to authorize next.
+4B.1b.3 discovery - Effective-dated DriverTruckAssignment. This is the next phase in IDENTITY_ATTRIBUTION_CONTRACT.md's own already-accepted bounded implementation sequence (immediately after 4B.1b.2, whose sub-slices are now all closed with zero blockers), already marked READY in that contract's own readiness table - a bounded technical continuation of previously-accepted architecture, not a fresh product/business decision. Scope: a documentation-only discovery slice (mirroring the pattern used for every prior phase in this track) proposing the DriverTruckAssignment schema, team-overlap rules, and read/mutation contract, identifying any blockers before runtime work begins. No runtime, UI, migration, merge, or deployment in this slice.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1024,3 +1024,14 @@ Slice 4B.1b.2c and its sub-slices (S1-S5) are complete with no open blockers. Th
 - Next required actor: ChatGPT.
 - Next bounded action: decide which, if any, of the three further phases in IDENTITY_ATTRIBUTION_CONTRACT.md's bounded sequence to authorize next - 4B.1b.3 (effective-dated DriverTruckAssignment), 4B.1b.4 (legacy attribution/backfill tooling), or 4B.2 (a real driver-role SELF UI consuming AccountDriverLink).
 - Runtime/product files changed: NONE. This review touched no code in either repository.
+
+### 2026-08-31 — Claude — Autonomous Handoff Protocol Correction
+
+- Agent: Claude
+- Task: apply the new binding coordination rule - after an ACCEPT with Blocking findings = NONE, no product/business decision required, and no merge/deploy authorization required, CURRENT must name Codex (not ChatGPT) as next required actor with Decision gate AUTO_CONTINUE_ALLOWED and a single bounded technical slice; ChatGPT is named only under Decision gate COORDINATOR_REQUIRED with an explicit Decision required question.
+- Finding: the prior CURRENT (Slice 4B.1b.2c-S5, CLOSED/ACCEPT, Blocking findings NONE) named ChatGPT only to ask which of three already-sequenced phases to authorize next - a routine checkpoint, not a genuine blocking product decision, since IDENTITY_ATTRIBUTION_CONTRACT.md's own already-accepted bounded implementation sequence already names 4B.1b.3 (effective-dated DriverTruckAssignment) as the next phase immediately after 4B.1b.2, and that contract's own readiness table already marks it READY. This qualifies as a protocol stall under the new rule, correctable without a fresh product decision.
+- Correction applied: CURRENT's Next required actor changed from ChatGPT to Codex; Next bounded action set to a documentation-only 4B.1b.3 discovery slice (schema, team-overlap rules, read/mutation contract proposal), mirroring the discovery-first pattern used for every prior phase in this track. No runtime, UI, migration, merge, or deployment authorized by this correction.
+- This is a coordination-only correction. No product code was changed in either repository. No merge or deployment occurred.
+- Next required actor: Codex.
+- Next bounded action: 4B.1b.3 discovery slice for DriverTruckAssignment (documentation only, per above).
+- Runtime/product files changed: NONE.
