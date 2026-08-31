@@ -91,6 +91,6 @@ test('PTI attribution remains independent from the Load-specific selector helper
 
 test('app shell is cache-rotated and roster loads before Loads module', () => {
   assert.ok(html.indexOf('workspace-driver-roster.js') < html.indexOf('loads.js'));
-  assert.match(swSource, /crewbiq-driver-v92/);
+  assert.match(swSource, /crewbiq-driver-v93/);
   assert.match(swSource, /workspace-driver-roster\.js/);
 });

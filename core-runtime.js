@@ -402,6 +402,26 @@
     return jsonResponse(upstream.data, upstream.resp.status || (upstream.resp.ok ? 200 : 502));
   }
 
+  async function adaptDriverTruckAssignmentRead(payload, view) {
+    const token = getSessionToken(payload.sessionToken);
+    const workspaceId = String(payload.workspaceId || '').trim();
+    const driverId = String(payload.driverId || '').trim();
+    if (!token) return jsonResponse({ ok: false, error: 'Bearer session required' }, 401);
+    if (!workspaceId || !driverId) return jsonResponse({ ok: false, error: 'Workspace and Driver IDs required' }, 400);
+    let path = '/v1/workspaces/' + encodeURIComponent(workspaceId) + '/driver-truck-assignments/' + view;
+    const params = new URLSearchParams({ driver_id: driverId });
+    if (view === 'as-of') {
+      const effectiveAt = String(payload.effectiveAt || '').trim();
+      if (!effectiveAt) return jsonResponse({ ok: false, error: 'Effective timestamp required' }, 400);
+      params.set('at', effectiveAt);
+    }
+    path += '?' + params.toString();
+    const upstream = await orchestratorJson(path, {
+      method: 'GET', headers: authHeaders(token), cache: 'no-store',
+    });
+    return jsonResponse(upstream.data, upstream.resp.status || (upstream.resp.ok ? 200 : 502));
+  }
+
   async function adaptLogout(payload) {
     const token = getSessionToken(payload.sessionToken);
     if (!token) return jsonResponse({ ok: false, error: 'Bearer session required' }, 401);
@@ -528,6 +548,9 @@
     if (method === 'POST' && body && body.type === 'auth_restore') return adaptRestore(body);
     if (method === 'POST' && body && body.type === 'auth_logout') return adaptLogout(body);
     if (method === 'POST' && body && body.type === 'workspace_driver_roster_read') return adaptWorkspaceDriverRoster(body);
+    if (method === 'POST' && body && body.type === 'driver_truck_assignment_current_read') return adaptDriverTruckAssignmentRead(body, 'current');
+    if (method === 'POST' && body && body.type === 'driver_truck_assignment_history_read') return adaptDriverTruckAssignmentRead(body, 'history');
+    if (method === 'POST' && body && body.type === 'driver_truck_assignment_as_of_read') return adaptDriverTruckAssignmentRead(body, 'as-of');
 
     if (method === 'POST' && body && (
       body.type === 'driver_report' ||
