@@ -2676,3 +2676,53 @@ Blocking findings = NONE. No product/business decision is required. However, unl
 **Decision required:** Should the next slice be (A) a PWA-side `DriverTruckAssignment` adapter/UI (consuming the now-accepted server read/mutation foundation, mirroring the `AccountDriverLink`/workspace-Driver-roster adapter pattern), (B) `4B.1b.4` legacy attribution/backfill tooling, or (C) `4B.2` a real driver-role `SELF` UI? Each is a materially different scope and priority choice not resolved by any already-accepted document.
 
 Runtime/product files changed by this review: NONE. This review touched no code in either repository (the local Docker Postgres container used for independent verification was created and destroyed entirely within this review session and is not part of either repository).
+
+## Slice 4B.1b.3-S3 Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.3-S3 — DriverTruckAssignment PWA Read-Only Adapter (implementation commit `fb04183`), the client-side follow-up to the accepted orchestrator read/mutation foundation, per the Product Owner's priority decision (A: DriverTruckAssignment client integration, then C: Driver SELF UI, then B: legacy backfill).
+**Method:** fetched every changed file directly via `gh api` (`driver-truck-assignment.js`, `tests/driver-truck-assignment.test.mjs`, `core-runtime.js`, `index.html`, `sw.js`, and the four cache-version-only test diffs); read `driver-truck-assignment.js` in full; grepped `index.html` for any invocation of `getDriverTruckAssignmentAdapter()` beyond its own definition; independently reconstructed the changed source in an isolated scratch directory and ran `node --test` across the new test file plus five adjacent adapter/attribution test files (74/74 passed, not merely trusted).
+
+### Adapter (`driver-truck-assignment.js`)
+
+Mirrors the established `workspace-driver-roster.js`/`account-driver-link.js` pattern and, in two respects, goes further:
+
+- `normalizeAssignment()` correctly parses the real server snake_case shape verified in the S1/S2 orchestrator reviews (`workspace_id`, `driver_id`, `truck_id`, `effective_from`/`effective_to`, `assignment_type`, `status`, `version`, `provenance`), requiring every field non-empty/well-typed and rejecting anything else.
+- `validateResponse()` requires an explicit, caller-supplied `driverId` before anything else — the adapter itself performs zero identity resolution or inference; it is the caller's responsibility to have already proven that Driver ID elsewhere (e.g. via `AccountDriverLink` or an explicit selection), consistent with "no inference from unitNumber/name/account identity."
+- **New rigor beyond prior adapters:** verifies the server's claimed history ordering is genuinely monotonic (`effectiveFrom` then `id`), rejecting a response that isn't actually deterministic rather than trusting the server's claim; for `as_of` reads, requires the response's echoed `as_of` timestamp to exactly match the requested `effectiveAt`, rejecting a silent substitution; and independently re-verifies every returned assignment is genuinely effective at that timestamp rather than trusting the server's own filtering.
+- Zero current assignments → `NOT_FOUND`; more than one → `AMBIGUOUS` with a candidate count — never selects a first/default record, matching the Product Owner's explicit requirement to fail closed on ambiguity.
+- Response-level and per-record workspace/Driver mismatches both fail closed (`WORKSPACE_MISMATCH`/`DRIVER_MISMATCH`), duplicate assignment IDs are rejected, and the read function requires `sessionToken`+`workspaceId`+`driverId` before ever calling `request()` — zero requests on missing proof.
+
+### Composition and disconnection
+
+`core-runtime.js::adaptDriverTruckAssignmentRead()` maps the three semantic actions to the exact accepted orchestrator endpoints (`GET /v1/workspaces/{workspaceId}/driver-truck-assignments/{current|history|as-of}`) via the same `syncUrl` action-envelope transport every other client action already uses — not an invented mechanism. `index.html` adds `getDriverTruckAssignmentAdapter()`, a lazy composition function — grepped the full file directly and confirmed it is **never called anywhere else**; the adapter is loaded but genuinely disconnected, exactly matching the bounded-adapter-first discipline proven correct for `AccountDriverLink` and the workspace Driver roster.
+
+### No persistence, mutation, or fallback of any kind
+
+Grepped `driver-truck-assignment.js` directly: no `localStorage`/`indexedDB`/`fetch`/`XMLHttpRequest`, no `driverProfiles`/`unitNumber`/`accountId`/`crewId`/`firstDriver`/`firstTruck`/`activeTrucks` reference, no `create/close/revoke/update/delete/write/saveAssignment` function of any kind, no `assignments[0]` array-index selection anywhere — confirmed by direct read, not merely by the test's own regex assertions (which independently check the same things).
+
+### Independent test execution
+
+Reconstructed the full changed-file set and ran `node --test` across `tests/driver-truck-assignment.test.mjs` and five adjacent test files (`workspace-driver-roster`, `account-driver-link`, `workspace-attribution`, `load-driver-attribution`, `pti-attribution-context`): **74/74 passed**. Coverage for the new adapter includes module purity, a proven-effective single-current-assignment happy path, zero/multiple-current ambiguity handling, deterministic history ordering (including revoked evidence preserved, never hidden), `as_of` echo-timestamp and half-open-effective-semantics enforcement, workspace/Driver/duplicate/malformed/nondeterministic-history rejection (eight distinct malformed-field cases plus two ordering/duplicate cases), missing-proof/authorization/network/server failure structuring, transport-shape assertions against the real `core-runtime.js`, and confirmation the adapter is loaded without any UI invocation. The four cache-version test updates in adjacent files are purely mechanical (`v92`→`v93` literal), matching the new app-shell file addition.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+NONE.
+
+### Non-blocking findings carried forward
+
+All items carried unchanged from the Slice 4B.1b.3-S2 review (server-side, orchestrator-only, unaffected by this client-only slice): `CURRENT_PROJECTION_STRATEGY_UNDEFINED` deferred; `raw_payload` round-trip lacks a live-Postgres counterpart; `driver_truck_assignments.py`'s stricter active-workspace requirement vs. `workspace_drivers.py`; no test for an entirely-empty `active_workspace_id`; plus the long-standing carried-forward PWA items (`resolveDefaultTruck` sensitivity, deduction-template guard, cosmetic formatting, workspace `timeZone` source, Load-edit Driver reassignment scope, PTI toast specificity, empty-roster PTI block, HISTORY append-order inconsistency, `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` future-SELF-UI scope).
+
+### Applying the autonomous handoff protocol (per the Product Owner's explicit pre-authorization)
+
+Blocking findings = NONE. The Product Owner's own decision already specifies exactly what follows an ACCEPT here: proceed directly to Slice 4B.2 Driver SELF UI, with Codex as next actor, not a return to ChatGPT as a routine checkpoint. `Decision gate: AUTO_CONTINUE_ALLOWED`, `Next required actor: Codex`.
+
+### Recommended next bounded action
+
+Begin Slice 4B.2 — Driver SELF UI — with a discovery-first approach mirroring this track's established discipline: identify what already exists (the accepted `AccountDriverLink` adapter for Account→Driver resolution, the accepted workspace Driver roster, and this newly-accepted `DriverTruckAssignment` current-read adapter for resolving a Driver's current Truck context) and propose the smallest safe read-only UI consuming them — no default/inferred identity, no first-record fallback, fail closed on ambiguity, no migration, no legacy backfill (queued until after SELF UI is proven, per the Product Owner's stated sequence), no merge, no deployment.
+
+Runtime/product files changed by this review: NONE.
