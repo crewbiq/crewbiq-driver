@@ -42,19 +42,19 @@ Phase:
 Slice 4B.1b.2b - Normalized truckId for NEW Loads
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; workspaceId only is added to new Load/PTI records from proven authenticated membership context; driverId and PTI truckId remain unintroduced
+current main; new Loads carry proven workspaceId when available and explicitly selected canonical truckId; driverId and PTI truckId remain unintroduced
 
 Latest implementation commit:
-8ed93a96a42286fbdc8f9d16d049168bb6e269f2
+5082a63f97e991329c603fd855994ad7bca89106
 
 Latest correction commit:
 NONE
@@ -78,14 +78,30 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-verify explicit Load truck selection is a stable Truck entity ID, preserve it on new Loads only, and contract-test client persistence without PTI or driverId changes
+independent review of new-Load truckId attribution only
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### Slice 4B.1b.2b - Normalized truckId for new Loads only
+
+- Agent: Codex
+- Status: `PUBLISHED / AWAITING CLAUDE REVIEW`
+- Implementation commit: `5082a63f97e991329c603fd855994ad7bca89106`
+- Result: `SLICE_4B_1B_2B_COMPLETE`
+- Runtime: new Loads retain the explicitly selected canonical `Truck.id`; `unitNumber` remains display/business data
+- Edit behavior: legacy Loads without `truckId` are not backfilled; normalized Loads preserve their existing value
+- Negative scope: no `driverId`, PTI attribution, new UI, AccountDriverLink work, analytics wiring, or legacy migration
+- Client persistence: local serialization, restore/import pass-through, and sync stamping preserve `truckId`; server round-trip is not claimed
+- Cache: app shell rotated from `crewbiq-driver-v86` to `crewbiq-driver-v87`
+- Tests: `node --test tests/load-truck-attribution.test.mjs` - 18 passed, 0 failed; `npm run test:e2e:tooling` - 268 passed, 0 failed
+- Remaining blockers: `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`, `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`, `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+- Next required actor: Claude
+- Next bounded action: independent review of new-Load truckId attribution only
 
 ### Slice 4B.1b.2a - Explicit workspace context for new Loads/PTI
 
@@ -751,7 +767,6 @@ verify explicit Load truck selection is a stable Truck entity ID, preserve it on
 - Next required actor: ChatGPT.
 - Next bounded action: formally declare and write the already-proven, already-explicit truckId as a normalized field on newly-created Loads only; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
 - Runtime/product files changed: NONE.
-
 
 
 
