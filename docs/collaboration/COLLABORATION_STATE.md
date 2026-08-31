@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2b.1 - Load Edit Explicit Truck Reassignment Correction
+Slice 4B.1b.2b - Normalized truckId for NEW/Explicitly Reassigned Loads
 
 Status:
-PUBLISHED / AWAITING CLAUDE RE-REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; validated explicit Truck selection is authoritative for both new and edited Loads, keeping truckId and unitNumber consistent
+current main; validated explicit Truck selection is authoritative for both new and edited Loads, keeping truckId and unitNumber consistent; driverId and PTI truckId remain unintroduced
 
 Latest implementation commit:
 5082a63f97e991329c603fd855994ad7bca89106
@@ -63,7 +63,7 @@ Latest documentation commit:
 e8744e9
 
 Latest review commit:
-116f11b2359a0316b3d2a34c39baf44a831c621f
+0382e589f0129dcdd7e961ea5e6b543339fbc755
 
 Blocking findings:
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-focused re-review of Load create/edit truckId attribution
+authorize a future explicit Driver-selection UI control for Load driverId (not AccountDriverLink, not a default), designed from the start to respect fresh edit-time reselection the way truckId now correctly does; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate, independently-sequenced tracks
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -797,6 +797,18 @@ focused re-review of Load create/edit truckId attribution
 - Required correction: in saveLoad(), always set entry.truckId = truckAttribution.truckId (for both new and edit saves) rather than freezing to existingEntry.truckId when present; add a regression test that an edit reselecting a DIFFERENT truck actually updates the saved record (the current suite only tests that the existing value is preserved, never that a genuine reselection takes effect).
 - Next required actor: Codex.
 - Next bounded action: apply the required correction above and resubmit for review before Load driverId or PTI attribution-context work begins.
+- Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2b.1 Focused Re-Review
+
+- Agent: Claude
+- Task: focused re-review, scoped only to LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED (original implementation 5082a63, original review 116f11b, correction 718c668). No unrelated accepted findings reopened.
+- Method: fetched the correction commit's diff directly via gh api; read the full corrected saveLoad() region in loads.js; independently copied all corrected source plus both test files into an isolated scratch directory and ran node --test (37/37 passed); diffed the updated NORMALIZED_RECORD_ID_CONTRACT.md prose and the new/changed test assertions against the actual code.
+- Confirmed: the fix replaces the two prior non-else if-statements with a single unconditional `entry.truckId = truckAttribution.truckId;`, applied identically to new and edit saves, deriving from the same current, mandatory-validated selection already used for `unitNumber` — truckId and unitNumber can no longer disagree after an edit. Truck A to Truck B reassignment now correctly updates truckId (verified directly in source, not just via test); no stale prior truckId can survive an edit; same-truck edits are a no-op; a legacy Load can gain truckId only via this same explicit, required, validated edit-save action, never via read/render/restore/sync/background processing. workspaceId logic, driverId absence, and PTI (not touched by this commit at all) are all unaffected. Service-worker cache correctly rotated v87->v88 to match loads.js's changed content, consistently reflected in sw.js and the sidr contract test; package.json correctly left unchanged (no new test file added).
+- Blockers reassessed: LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED is resolved and removed from the blocking list. SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN, CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING, and PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING remain open, unchanged.
+- Verdict: ACCEPT. Slice 4B.1b.2b and Slice 4B.1b.2b.1 are both CLOSED.
+- Next required actor: ChatGPT.
+- Next bounded action: authorize a future explicit Driver-selection UI control for Load driverId (not AccountDriverLink, not a default), designed to respect fresh edit-time reselection the way truckId now correctly does; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
 - Runtime/product files changed: NONE.
 
 
