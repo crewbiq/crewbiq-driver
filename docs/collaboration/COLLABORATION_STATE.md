@@ -39,10 +39,10 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.3 - Effective-Dated DriverTruckAssignment Discovery
+Slice 4B.1b.3-S1 - DriverTruckAssignment Read Foundation
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
 Codex
@@ -51,10 +51,10 @@ Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; mutable Driver profile Truck fields are current projections, not historical truth. The proposed server-owned DriverTruckAssignment uses workspace-scoped half-open effective intervals, permits only team/team Truck overlap, and preserves history through close/insert or revoke commands. Every factual claim in the discovery document (no existing assignment table, legacy owner_crewbiq_id scoping on both fleet_driver_profiles and trucks, the existing relationship_audit_events/canonical_command_idempotency infrastructure, absence of an assignment capability) was independently verified against actual orchestrator schema/code, not merely trusted.
+current main; accepted discovery contract at 5c3daba6e2b979e8ed08ab67c9760e22569b3373 and independent ACCEPT review at 1271c509c3930a0f02722c1eead4d064c1b64942.
 
 Latest implementation commit:
-5c3daba6e2b979e8ed08ab67c9760e22569b3373
+PENDING (crewbiq/crewbiq-orchestrator)
 
 Latest correction commit:
 1948ea78dc1442a77bbc266eac9f413368be0d0a
@@ -69,18 +69,7 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-- resolveDefaultTruck case/whitespace sensitivity
-- deduction-template save branch without truckId guard
-- cosmetic `}function boot()` formatting artifact
-- canonical workspace timeZone source remains unspecified
-- backend/Orchestrator AccountDriverLink implementation remains external
-- orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
-- Driver reassignment during Load edit is out of scope by design - a deliberate boundary, not an oversight
-- combined PTI toast message is slightly less specific than the prior separate Truck/Driver messages - minor UX nitpick only
-- an account-connected user whose workspace has zero registered Drivers cannot submit PTI either - consistent with the already-accepted Load driverId precedent
-- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only
-- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING remains relevant only to a future driver-role SELF UI
-- no live-PostgreSQL integration test exists for the raw_payload round-trip - residual, low-risk gap
+See HISTORY; unchanged by this bounded server read-foundation slice.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
@@ -89,7 +78,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-implement the orchestrator-only READ FOUNDATION for DriverTruckAssignment, addressing the discovery document's technical prerequisites 1-4 (WORKSPACE_NATIVE_RELATION_SCHEMA_MISSING, LEGACY_ENTITY_WORKSPACE_PROOF_REQUIRED, ASSIGNMENT_CAPABILITY_NOT_DEFINED, TRANSACTIONAL_OVERLAP_ENFORCEMENT_MISSING): the workspace-scoped effective-dated relation schema/migration, database-enforced interval/overlap and workspace-integrity constraints via the existing workspaces.legacy_owner_crewbiq_id bridge, authorized current/history/asOf reads only, and the full required test list from DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md. Exclude mutations, legacy-projection dual-writes (prerequisite 5, CURRENT_PROJECTION_STRATEGY_UNDEFINED, deferred), PWA/UI integration, migration execution against production, merge, and deployment.
+implement the orchestrator-only workspace-scoped effective-dated DriverTruckAssignment schema, integrity/overlap enforcement, authorized current/history/asOf reads, and focused tests; exclude mutations, legacy projection writes, PWA/UI, production migration execution, merge, and deployment.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
