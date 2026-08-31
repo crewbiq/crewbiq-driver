@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1b.2c-S2 - Read-Only PWA Workspace Driver Roster Adapter
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -87,10 +87,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load driverId, consuming the accepted workspace-driver-roster.js adapter - show only Drivers returned by the proven, authorized roster, never a local driverProfiles fallback or first/default selection
+implement bounded composition-root wiring and a minimal explicit no-default Driver selector for new Load driverId, consuming only the accepted authorized workspace roster
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -901,4 +901,3 @@ authorize a bounded composition-root wiring plus a minimal, explicit, no-default
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load driverId, consuming the accepted adapter - show only Drivers returned by the proven, authorized roster, never a local driverProfiles fallback or first/default selection.
 - Runtime/product files changed: NONE.
-
