@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b - Account-to-Driver Link + Normalized Driver Attribution Contract
+Slice 4B.1b.1a - PWA AccountDriverLink Read-Only Adapter Contract
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4B.1a CLOSED / ACCEPT
+current main; Slice 4B.1b CLOSED / ACCEPT; server AccountDriverLink remains external source of truth
 
 Latest implementation commit:
 76862ae757dd057197ad533e0c924808c093929f
@@ -67,14 +67,12 @@ Queued non-blocking findings:
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
 - canonical workspace timeZone source remains unspecified
-- manual_admin provenance lacks an explicit reason/justification field (has who/when via attributedByAccountId/attributedAt, no reason) - add before implementation
-- the named 4B.1b.1 slice bundles server-repository work (schema/constraints/read endpoint) with client-repository work (PWA adapter) under one name across ANALYTICS_SCOPE_CONTRACT.md/ARCHITECTURE.md/PRODUCTION_UI_INTEGRATION_CONTRACT.md - resolved for the next slice below, but the docs themselves were not asked to split it
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize 4B.1b.1a - PWA AccountDriverLink read-only adapter contract, scoped to crewbiq-driver only (client-side request/response contract mapping a future read endpoint into analytics.js's existing canonical_account_driver_link proof shape; no server schema, no persistence, no endpoint, no UI wiring). The corresponding server schema/constraints/read-endpoint/audit-event work is out of scope for this repository and must be tracked in whichever repository owns the backend/Orchestrator system.
+implement and contract-test disconnected read-only AccountDriverLink client adapter plus server handoff contract
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -659,6 +657,7 @@ authorize 4B.1b.1a - PWA AccountDriverLink read-only adapter contract, scoped to
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
