@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
+Slice 4B.1b.2c-S5 - Server Normalized-ID Round-Trip Proof
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -88,10 +88,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-the client-side normalized-ID track for Slice 4B.1b.2c is substantively complete (Load and PTI workspaceId/truckId/driverId, both with correct graceful degradation). Remaining open work is SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - a real backend persistence/restore round-trip test/implementation for these fields, a separate server-side track in crewbiq/crewbiq-orchestrator, out of this repository's authority to implement or gate directly; hand off accordingly if that track is to proceed next
+implement the bounded orchestrator persistence/restore round-trip proof for Load and PTI workspaceId/truckId/driverId, without deployment, migration, or unrelated server scope
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
