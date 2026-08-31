@@ -39,10 +39,10 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.3-S3 - DriverTruckAssignment PWA Read-Only Adapter
+Slice 4B.2 - Driver SELF UI Discovery and Smallest Read-Only Integration
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
 Codex
@@ -51,10 +51,10 @@ Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; disconnected PWA read-only adapter accepted at fb04183c2432fcc7176c5476c4a71ef76fc3908c. Consumes accepted current/history/as-of server reads, requires explicit proven workspaceId and driverId, enforces half-open effective dates plus deterministic-ordering and as-of-echo checks beyond the prior adapter pattern, and fails closed on zero/multiple current assignment without fallback or inference. DriverTruckAssignment now has a complete, independently-verified server foundation AND a bounded, disconnected client read adapter; no UI consumes it yet. Product Owner priority sequence: A (this track, now client-integrated) -> C (Slice 4B.2 Driver SELF UI, next) -> B (legacy backfill, queued until SELF UI proven).
+current main; accepted S3 client adapter at fb04183c2432fcc7176c5476c4a71ef76fc3908c and independent ACCEPT review at db17e5da4d29d85b7c6352ee3648383d252083bd. Product sequence requires Driver SELF UI before legacy backfill.
 
 Latest implementation commit:
-fb04183c2432fcc7176c5476c4a71ef76fc3908c
+PENDING
 
 Latest correction commit:
 NONE for this slice
@@ -69,8 +69,7 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-- (server-side, unaffected by this client-only slice, carried from S2) CURRENT_PROJECTION_STRATEGY_UNDEFINED deferred; raw_payload round-trip lacks a live-Postgres counterpart; driver_truck_assignments.py's stricter active-workspace requirement vs workspace_drivers.py; no test for an entirely-empty active_workspace_id
-- (carried forward from prior PWA reviews) resolveDefaultTruck case/whitespace sensitivity; deduction-template save branch without truckId guard; cosmetic formatting artifact; canonical workspace timeZone source unspecified; Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific; account-connected user with empty Driver roster cannot submit PTI; HISTORY append-order inconsistency; CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING relevant only to future SELF UI
+Legacy attribution/backfill remains queued until SELF UI is proven; no ranking, mutation UI, migration, merge, or deployment.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
@@ -79,7 +78,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-begin Slice 4B.2 Driver SELF UI with a discovery-first approach: identify what already exists (accepted AccountDriverLink adapter for Account->Driver resolution, accepted workspace Driver roster, and this newly-accepted DriverTruckAssignment current-read adapter for current-Truck context) and propose the smallest safe read-only UI consuming them - no default/inferred identity, no first-record fallback, fail closed on ambiguity, no migration, no legacy backfill (queued until SELF UI is proven per Product Owner sequence), no merge, no deployment.
+discover the authoritative Account-to-Driver-to-current-Truck chain and existing SELF UI surfaces, then implement only the smallest safe read-only SELF UI if every identity source is proven; otherwise publish the exact technical prerequisite without fallback or inference.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
