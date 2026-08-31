@@ -42,16 +42,16 @@ Phase:
 Production / Deployment Readiness Validation
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; accepted driver and orchestrator work is being evaluated as an integrated deployable system. This slice authorizes evidence gathering only, not deployment, merge, production-data mutation, or legacy backfill.
+current main; deployment-readiness evidence is published without runtime changes. Accepted driver/orchestrator branch artifacts are not yet deployed as an integrated system.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
@@ -60,7 +60,7 @@ Latest correction commit:
 NONE
 
 Latest documentation commit:
-f64dc8897a183153a5f569944e3f26aad4288f60
+f4c282240cefd181e67f54ba95e411d1380c158a
 
 Latest review commit:
 908fa9aaff0e951ac743ddf749d022600ca9bfad
@@ -69,19 +69,19 @@ Latest state commit:
 publication commit containing this CURRENT block
 
 Blocking findings:
-UNDER VALIDATION
+DRIVER_CANONICAL_TEST_GATE_RED; DRIVER_CI_GATE_STALE_AND_INCOMPLETE; ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED; ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN
 
 Queued non-blocking findings:
-Legacy attribution/backfill remains explicitly queued and unauthorized.
+Staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending. Legacy attribution/backfill remains unauthorized.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-produce a deployment-readiness evidence document covering the accepted driver/orchestrator system, classify every dependency, and publish either concrete blockers or READY_FOR_STAGING_VALIDATION for Claude review.
+independently review PRODUCTION_DEPLOYMENT_READINESS.md, verify blockers B1-B4 and the deployment/smoke/rollback classifications, then publish verdict. No correction, deploy, merge, production-data write or legacy backfill is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1247,3 +1247,18 @@ Status: IN_PROGRESS
 Current owner: Codex
 Scope: documentation/evidence and narrow validation only; no deployment, merge, production-data mutation, legacy backfill, or unrelated fixes.
 Next required actor: Codex
+### 2026-08-31 - Codex - Production / Deployment Readiness Validation publication
+
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Branch: agent/pre-base44-audit
+Readiness evidence commit: f4c282240cefd181e67f54ba95e411d1380c158a
+Document: docs/collaboration/PRODUCTION_DEPLOYMENT_READINESS.md
+Verdict: BLOCKED
+Blocking findings: DRIVER_CANONICAL_TEST_GATE_RED; DRIVER_CI_GATE_STALE_AND_INCOMPLETE; ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED; ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN
+Driver evidence: aggregate tooling 316 passed / 1 failed; canonical transformed transport PASS; offline queue PASS; terminal 409 PASS; authenticated restore PASS.
+Orchestrator evidence: exact-SHA GitHub Actions run 33429494328, 314 passed, PostgreSQL 16, success.
+Read-only production evidence: current Railway OpenAPI lacks all accepted roster/assignment/AccountDriverLink routes; current GitHub Pages worker is v79 and lacks Driver SELF/AccountDriverLink modules.
+Runtime/product files changed: NONE.
+Deployment/merge/production-data mutation/legacy backfill: NONE.
+Next required actor: Claude
+Next bounded action: independent readiness review only.
