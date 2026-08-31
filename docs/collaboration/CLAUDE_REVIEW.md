@@ -1742,3 +1742,87 @@ All four blockers are real, verified against actual runtime code (not merely aga
 Authorize the narrowest slice that removes Blocker 4 and enables the safe step identified in Question B: define and accept an explicit active-workspace resolver scoped only to Load/PTI creation (derived from existing authenticated membership context, no default/inferred fallback), and write `workspaceId` only (no `driverId`/`truckId`) to newly-created Load/PTI records once accepted. No UI changes beyond consuming the resolver; no legacy backfill; no server roundtrip claims beyond `workspaceId` itself, which is already server-verified via membership rather than newly invented.
 
 Runtime/product files reviewed: NONE changed. This review changed no runtime, product, or persistence code.
+
+## Slice 4B.1b.2a Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.2a — Explicit Workspace Context for NEW Loads/PTI (implementation commit `8ed93a9`; prior blocker review `8c787f1`).
+**Method:** fetched every changed file at `8ed93a9` (`workspace-attribution.js`, `tests/workspace-attribution.test.mjs`, `loads.js`, `pti.js`, `index.html`, `sw.js`, `package.json`, `sidr-contract-resolver-integration-v1.test.mjs`, both docs) directly via `gh api`; read `workspace-attribution.js` in full; read the modified `saveLoad()`/`submitPTI()` regions of `loads.js`/`pti.js` in full via diff and full-file read; grepped `index.html` for the new module's wiring (`getWorkspaceContext`, `activeWorkspaceIdOverride`, `me.active_workspace_id`) and traced the workspace-selector UI (`onOrchWorkspaceChange`/`renderOrchestratorAccountSection`) to confirm the override is populated only from the user's own `me.memberships` `<option>` values, never free text; independently copied all changed source + the new test file into an isolated scratch directory and ran `node --test` (17/17 passed, not merely trusted); traced `sync.js::stampRecord()` to confirm `workspaceId` survives the sync-payload spread (`{...record, ...}` before selective overwrites); re-confirmed the three carried-forward blockers against the same runtime evidence used in the prior blocker review.
+
+### 1–3. Workspace resolution source, fallback absence, ambiguity handling — CONFIRMED
+
+`resolveActiveWorkspace()` requires a non-empty `sessionToken`, an object `me`, and a non-empty `activeWorkspaceId` (from `context.activeWorkspaceIdOverride` or `me.active_workspace_id`) that matches **exactly one** entry in `me.memberships[].workspace.id`. Zero matches → `workspace_unauthorized`; more than one match (duplicate membership data) → `workspace_ambiguous`, chosen over guessing. Grepped the source directly: no `[0]` indexing, no `companies`/`drivers`/`trucks` references, no role-based selection (`.roles` is read by the UI for display only, never by the resolver), no `localStorage`/`sessionStorage`/`indexedDB`. The client-side `activeWorkspaceIdOverride` is populated exclusively from `<option value="...">` entries built from the authenticated user's own `me.memberships` (`index.html` `renderOrchestratorAccountSection()`), so even that override cannot smuggle an unauthorized ID past the resolver's membership-match check.
+
+### 4–5. workspaceId written only when proven, for both Loads and PTI — CONFIRMED
+
+`loads.js::saveLoad()` calls `attributeNewRecord()` only when `!editId` (new Load); `pti.js::submitPTI()` calls it unconditionally, consistent with PTI having no edit path. In both cases, an unresolved/ambiguous/unauthorized outcome leaves `workspaceId` absent from the record (only `console.warn` is emitted) — the save is not blocked, but the field is never guessed onto the record.
+
+### 6–7. Legacy Loads/PTIs not backfilled; edits don't silently normalize — CONFIRMED
+
+`saveLoad()` only copies `existingEntry.workspaceId` forward when the field **already exists** on the record being edited (`Object.prototype.hasOwnProperty.call(existingEntry, 'workspaceId')`); it never adds `workspaceId` to a legacy record that lacks one, and attribution only runs for `!editId`. PTI has no edit path at all, so no backfill vector exists there either.
+
+### 8–10. No driverId, no truckId, no first-truck/first-driver fallback introduced — CONFIRMED
+
+`workspace-attribution.js` contains no `driverId`/`truckId` references at all (grepped directly, and asserted by the test suite itself). Loads' pre-existing `truckId` (from `getLoadTruckSelection()`, unchanged by this commit) is untouched by this slice. PTI still has no `truckId`/`driverId` field of any kind — `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING` remains exactly as before.
+
+### 11–12. Serialization/restore survival claimed only where testable; no server-roundtrip overclaim — CONFIRMED
+
+`sync.js::stampRecord()` spreads `{...record, ...}` before its selective overwrites, so `workspaceId` survives the sync-payload construction path — verified directly, not merely asserted. The updated `NORMALIZED_RECORD_ID_CONTRACT.md` explicitly states `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` "remains a blocker for broader normalization" and does not claim server-side persistence/restore proof anywhere. This is the correct, disciplined framing — client-side pass-through is real and demonstrated; server-side proof is out of this repo's reach and is not claimed.
+
+### 13. "Four realm-sensitive test corrections" — COULD NOT BE INDEPENDENTLY CONFIRMED AS STATED (informational, non-blocking)
+
+Only **one** test-mechanics correction is visible in this commit's diff: the `CACHE_NAME` literal in `sidr-contract-resolver-integration-v1.test.mjs` was bumped from `crewbiq-driver-v79` to `crewbiq-driver-v86` to match the new `sw.js` cache rotation — a pure assertion-mechanics change (matching an updated literal), not a semantic one. I found no other modified test files in this commit, and no second commit exists between the prior blocker review (`8c787f1`) and this implementation (`8ed93a9`) to diff against for additional corrections. I cannot confirm "four" corrections occurred, because GitHub only exposes the final committed diff, not any intermediate drafts Codex may have iterated through locally before pushing. This is flagged for transparency, not treated as a defect — the one correction I could verify is exactly what it claims to be.
+
+### 14. Test coverage — CONFIRMED ADEQUATE
+
+Independently re-ran `tests/workspace-attribution.test.mjs` in an isolated scratch copy: **17/17 passed**. Coverage confirmed present for: proven workspace resolution (deterministic), explicit override validated against real membership, duplicate-membership ambiguity (no guess), missing-workspace fails closed without first-membership fallback, unauthorized/out-of-membership workspace ID, missing session token, absence of first-company/first-workspace/first-driver/first-truck fallback patterns in source, legacy-record non-mutation on serialization, workspaceId surviving a local serialize/parse round trip, absence of `driverId`/`truckId` anywhere in output or source, module-load purity (no side effects, exact frozen export surface), non-mutation of session/record inputs, production wiring assertions against the real `loads.js`/`pti.js`/`index.html` source, and app-shell load-order plus cache-rotation assertions against the real `sw.js`.
+
+### 15–16. Runtime scope bounded; behavior outside workspace attribution unchanged — CONFIRMED
+
+Full diffs of `loads.js`, `pti.js`, and `index.html` show only: one new `<script>` tag, two `getWorkspaceContext` accessor wirings, and the additive attribution block inside each constructor — no other logic in either file was touched. `sw.js`/`package.json`/the sidr test were updated purely for the mechanical cache-rotation and test-registration discipline this app already requires for any new app-shell file, matching the pattern from every prior accepted slice.
+
+### Remaining blockers — reassessed
+
+- **`SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`** — still open. This slice does not attempt to prove backend persistence of `workspaceId` either; the docs correctly avoid claiming it. Still blocks any future `driverId`/`truckId` write on Load or PTI that would need the same proof.
+- **`CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`** — still open, unchanged. Still blocks `driverId` for both Load and PTI.
+- **`PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`** — still open, unchanged. `submitPTI()` still has no truck/driver selection step of any kind.
+- **`WORKSPACE_CONTEXT_NOT_UNIVERSAL`** — **RESOLVED for the Load/PTI creation paths** by this slice, matching the narrower scoping this reviewer recommended in the prior blocker review. Removed from the blocking list. (A truly universal resolver across every other record family in the app remains unbuilt but was never required for this slice.)
+
+### Answers
+
+**A. After workspaceId acceptance, can Load truckId normalization proceed safely using its existing explicit truck selection even before AccountDriverLink?**
+Yes. Load's `truckId` has always come from `getLoadTruckSelection()`, an explicit, mandatory UI selection wholly independent of `AccountDriverLink` (which only ever supplies `driverId`). Nothing about `driverId`'s pending status blocks formally declaring the already-proven `truckId` as a normalized field on new Loads.
+
+**B. Should Load driverId wait for server AccountDriverLink, or use a future explicit Driver selector?**
+Use a future explicit Driver selector as the next bounded step, rather than waiting on the not-yet-built, cross-repository `AccountDriverLink` endpoint with no committed timeline. This also better matches what Load creation actually is — an explicit dispatch/assignment decision, not a driver "who am I" self-resolution — so an explicit selector is arguably the more correct source for Load `driverId` even independent of timing. `AccountDriverLink` remains the right mechanism for driver-role `SELF` analytics, a separate concern.
+
+**C. Should PTI truckId/driverId wait for a dedicated PTI attribution-context slice?**
+Yes. PTI's gap is not a sequencing problem but a missing feature: `submitPTI()` has no truck or driver selection UI at all today. That UI/data-capture work needs its own bounded, independently reviewable slice before any `driverId`/`truckId` field can be added to the PTI record shape, and should not be conflated with Load's normalization work.
+
+**D. Is the highest-value next action now server roundtrip proof, Load truckId, or PTI context?**
+Load truckId. It is the only one of the three with zero remaining prerequisites — already proven, already explicit, no cross-repository dependency, and no new UI work required. Server roundtrip proof depends on backend work outside this repository's control; PTI context requires new UI design and implementation. Formalizing Load `truckId` as normalized is the smallest, safest, most immediately deliverable next slice.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings (preserved, minus the one resolved this slice)
+
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Backend/Orchestrator `AccountDriverLink` implementation remains external.
+- The "four realm-sensitive test corrections" claim in the review request could not be independently confirmed as stated — only one test-mechanics correction (a cache-version literal) is visible in this commit's diff (see item 13 above). Non-blocking; flagged for transparency.
+
+### Recommended next bounded action
+
+Authorize the smallest available prerequisite slice: formally declare and write the already-proven, already-explicit `truckId` as a normalized field on newly-created Loads (Slice 4B.1b.2b or equivalent) — no new UI, no server dependency, no cross-repository blocker. PTI attribution-context UI work and the `AccountDriverLink` server handoff remain separate, independently-sequenced tracks.
+
+Runtime/product files changed by this review: NONE.
