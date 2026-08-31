@@ -42,30 +42,31 @@ Phase:
 Slice 4B.1b.2b - Normalized truckId for NEW Loads
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+NEEDS FIX
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; new Loads carry proven workspaceId when available and explicitly selected canonical truckId; driverId and PTI truckId remain unintroduced
+current main; new-Load truckId CREATION path is correct, but the same commit's Load EDIT path silently discards a fresh truck reselection and never applies a normalized truckId to a legacy Load even via explicit edit-time selection
 
 Latest implementation commit:
 5082a63f97e991329c603fd855994ad7bca89106
 
 Latest correction commit:
-NONE
+NONE - fix required
 
 Latest documentation commit:
 e8744e9
 
 Latest review commit:
-e97ab0a9c5948081be833ef8f671047fca616602
+116f11b2359a0316b3d2a34c39baf44a831c621f
 
 Blocking findings:
+- LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED - new; saveLoad() edit path always freezes truckId to existingEntry.truckId once set, never applies a fresh explicit reselection, and never lets a legacy Load gain a truckId via edit even with a required, validated selection; also produces an inconsistent record where unitNumber updates but truckId does not
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -78,10 +79,10 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independent review of new-Load truckId attribution only
+fix saveLoad()'s edit-path truckId assignment so a fresh, freshly-validated truck selection is always applied (entry.truckId = truckAttribution.truckId for both new and edit saves, removing the existingEntry-freeze branch), add a regression test that an edit reselecting a DIFFERENT truck actually updates the saved record, and resubmit for review before Load driverId or PTI attribution-context work begins
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -766,6 +767,21 @@ independent review of new-Load truckId attribution only
 - Verdict: ACCEPT.
 - Next required actor: ChatGPT.
 - Next bounded action: formally declare and write the already-proven, already-explicit truckId as a normalized field on newly-created Loads only; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
+- Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2b Independent Review
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.2b — Normalized truckId for NEW Loads (implementation commit 5082a63; accepted workspace slice 8ed93a9; Claude workspace review e97ab0a).
+- Method: fetched every changed file at 5082a63 directly via gh api; read the full saveLoad() function and the new resolveNewLoadTruckAttribution() helper in loads.js, not just the diff; traced editLoad() to confirm the truck select remains live and user-editable during edit; independently copied all changed source into an isolated scratch directory and ran node --test on both the new and updated test files (35/35 passed); read the docs update to check whether the edit-time behavior was a deliberate, disclosed design choice.
+- Confirmed correct: the NEW-Load creation path — truckId comes only from the explicit Truck selection, is a stable entity ID, unitNumber is never accepted as truckId, no first/default-truck/array-position fallback exists anywhere in source, multiple-truck selection preserves the exact chosen entity, workspaceId behavior is retained, no driverId was introduced, PTI is untouched, legacy Loads are not backfilled on read, truckId survives sync.js's stampRecord() spread, no server-roundtrip proof is claimed, and the sw.js cache rotation to v87 is necessary (loads.js content changed) and correctly applied everywhere (single occurrence, matching test updated).
+- BLOCKING FINDING (new, confirmed by direct code-path tracing): saveLoad()'s edit path contains two independent (non-else) if-statements — one that freezes entry.truckId to existingEntry.truckId whenever the record already has one, and one that only ever applies a fresh truckAttribution.truckId when !editId. The result: editing a Load can never change its truckId once one exists, even though the truck <select> remains live, pre-populated, and mandatory (a missing selection still blocks any edit save with "Truck assignment required"). A user who reselects a different truck while editing will save successfully with no error, and the Load silently keeps its OLD truck. Worse, the same edit updates unitNumber from the fresh selection (line 385) while truckId stays frozen — producing an internally inconsistent record where the display field and the canonical FK disagree after the same save. A legacy Load lacking truckId also can never gain one via edit, even through an explicit, required, freshly-validated selection. This is asserted as intended by a passing test and disclosed in the docs, but passing/disclosed does not make it functionally correct — this reviewer's mandate is actual behavior, not just doc/test self-consistency.
+- Blockers reassessed: SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN, CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING, and PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING remain open, unchanged. New: LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED.
+- Answers: (A) Not yet as a whole — the creation path is safe and correct on its own, but the edit-path regression must be fixed before the slice closes. (B) Load driverId can proceed via a future explicit Driver selector (not AccountDriverLink, not a default), but must avoid replicating this edit-freeze pattern. (C) PTI attribution-context can proceed in parallel, independent of the Load fix. (D) The server roundtrip/AccountDriverLink track remains valuable but is out of this repo's control; the immediate priority here is fixing the confirmed regression before further normalization work risks repeating it.
+- Verdict: NEEDS FIX.
+- Required correction: in saveLoad(), always set entry.truckId = truckAttribution.truckId (for both new and edit saves) rather than freezing to existingEntry.truckId when present; add a regression test that an edit reselecting a DIFFERENT truck actually updates the saved record (the current suite only tests that the existing value is preserved, never that a genuine reselection takes effect).
+- Next required actor: Codex.
+- Next bounded action: apply the required correction above and resubmit for review before Load driverId or PTI attribution-context work begins.
 - Runtime/product files changed: NONE.
 
 
