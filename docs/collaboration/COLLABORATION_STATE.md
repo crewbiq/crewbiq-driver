@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,7 +54,7 @@ Product truth:
 current main; Slice 4B architecture CLOSED / ACCEPT
 
 Latest implementation commit:
-d61623c47a2d0f5a0ae30ef6a6280676744d7b66
+d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
 
 Latest review commit:
 a27bbd13604ea4eaa8a0b4a027508162ececf65e
@@ -66,19 +66,33 @@ Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-- bounded stale product/architecture documentation cleanup included in 4B.1a
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement and contract-test fail-closed Driver SELF analytics and deterministic period selectors
+independent review of SELF analytics purity, attribution, identity resolution, period semantics, and data-quality behavior
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
 
 
+
+## Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: `d9dbdf25133b4fa9e29c63145655b3e7cbc56e78`
+- Added disconnected `analytics.js`; it is not loaded by `index.html`, so production UI behavior and service-worker cache are unchanged.
+- SELF accepts only explicit authenticated-driver-partition or canonical account-to-Driver proof and ships `self_not_linked`, `self_ambiguous`, `self_unauthorized`, `invalid_scope`, and `invalid_period` failures without fallback.
+- Periods use explicit IANA timezone metadata and deterministic start-inclusive/end-exclusive local dates for today/week/month/quarter/custom.
+- Attributable load metrics and earnings/mileage series preserve real provenance IDs, exclude unproven identities, expose missing data, keep RPM unavailable, and never select a first Driver or truck.
+- Updated bounded stale product/feature/architecture documentation and added `ANALYTICS_ENGINE_CONTRACT.md`.
+- Validation: analytics 27 passed; required regression 43 passed; total 70 passed, 0 failed.
+- UI/prototype changes: NONE. Network, persistence, domain mutation, deploy, and service-worker changes: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent review of SELF analytics purity, attribution, identity resolution, period semantics, and data-quality behavior.
 ## Slice 4B - Production Integration Contract + Analytics Scope Architecture published
 
 - Agent: Codex
@@ -565,6 +579,7 @@ implement and contract-test fail-closed Driver SELF analytics and deterministic 
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
