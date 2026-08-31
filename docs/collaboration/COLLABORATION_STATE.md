@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
 
 Status:
-PUBLISHED / AWAITING CLAUDE RE-REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; PTI canonical attribution now gracefully degrades when authority is unavailable, preserving mandatory PTI completion without fabricating IDs; available authority remains fail-closed for invalid or cross-workspace selections
+current main; PTI canonical attribution gracefully degrades when authority is unavailable (no Orchestrator account, failed/timed-out roster read), preserving mandatory PTI completion without fabricating IDs and matching Load's workspaceId degradation pattern; available authority remains fully fail-closed for invalid or cross-workspace selections; Load workspaceId/truckId/driverId and PTI workspaceId/truckId/driverId are both complete
 
 Latest implementation commit:
 e6822846bba2c1140249ba50c5b5d7c11ccd022f
@@ -63,10 +63,9 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-653bf5d980306afc8790b6a6e9fb99bfde4d8a31
+2c2ff1befcfd84e9fb559878878c63e882927032
 
 Blocking findings:
-- PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT - graceful-degradation correction published, pending Claude re-review
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
 
@@ -77,7 +76,9 @@ Queued non-blocking findings:
 - canonical workspace timeZone source remains unspecified
 - backend/Orchestrator AccountDriverLink implementation remains external
 - orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
-- Driver reassignment during Load edit is out of scope by design (selector hidden entirely, unlike truckId which supports edit-time reassignment after its correction) - a deliberate boundary, not an oversight; a future slice could add it following the same live-control-must-take-effect discipline
+- Driver reassignment during Load edit is out of scope by design (selector hidden entirely, unlike truckId which supports edit-time reassignment after its correction) - a deliberate boundary, not an oversight
+- combined PTI toast message ("Valid canonical Truck and Driver selections required") is slightly less specific than the prior separate Truck/Driver messages - minor UX nitpick only
+- an account-connected user whose workspace has zero registered Drivers cannot submit PTI either - consistent with the already-accepted Load driverId precedent, not a new gap
 - HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only, no coordination impact
 
 Cross-repository implementation:
@@ -87,10 +88,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent re-review of PTI graceful degradation correction 1948ea78dc1442a77bbc266eac9f413368be0d0a
+the client-side normalized-ID track for Slice 4B.1b.2c is substantively complete (Load and PTI workspaceId/truckId/driverId, both with correct graceful degradation). Remaining open work is SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - a real backend persistence/restore round-trip test/implementation for these fields, a separate server-side track in crewbiq/crewbiq-orchestrator, out of this repository's authority to implement or gate directly; hand off accordingly if that track is to proceed next
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -980,3 +981,17 @@ independent re-review of PTI graceful degradation correction 1948ea78dc1442a77bb
 - Next required actor: Codex.
 - Next bounded action: correct pti.js so PTI submission never blocks on missing/unresolved workspace, Truck roster, or Driver roster - the odometer/checklist requirement remains, but workspaceId/truckId/driverId are written only when proven, omitted with a console.warn otherwise, mirroring loads.js's existing workspaceId-unresolved pattern exactly. Add regression tests for: no Orchestrator session at all (submission succeeds, no ids written), workspace resolved but Driver roster empty/unavailable (submission succeeds, no driverId), and the existing fully-attributed happy path continuing to work unchanged.
 - Runtime/product files changed: NONE. This decision was recorded only; monitoring resumes.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c-S4 Correction Independent Re-Review — ACCEPT
+
+- Agent: Claude
+- Task: independent re-review of the Product Owner-directed correction (commit 1948ea7) implementing option (A) graceful degrade for PTI attribution, after this reviewer's prior NEEDS FIX finding.
+- Method: fetched the full correction diff directly via gh api; read populatePTIAttributionSelectors(), the new resolvePTIAttribution(), the modified updatePTIProgress(), and the modified submitPTI() in full; independently reconstructed the changed files in an isolated scratch directory and ran node --test across all five affected test files (65/65 passed); specifically re-traced the exact failure path from the prior review against the corrected code.
+- Confirmed: a new tri-state ptiAttributionAuthority ('loading'/'available'/'unavailable') governs both the submit gate and the write path. resolvePTIAttribution('unavailable', ...) returns {ok:true, attributed:false} - a successful non-attribution result - so submitPTI() never blocks when no workspace/roster authority exists, closing the exact lockout path traced in the prior review. When unattributed, workspaceId/truckId/driverId are simply omitted with a console.warn, exactly matching loads.js's already-accepted workspaceId-unresolved pattern. When authority is 'available', all prior fail-closed checks (explicit selection required, workspace match required) remain completely unchanged - the degrade applies only to the absence of authority, never to bypassing it when present. A bounded 5-second Promise.race timeout, guarded by a stale-request-id check mirroring the Load driver-selector's own pattern, ensures the 'loading' state can never hang indefinitely.
+- New test coverage directly closes the gap this reviewer flagged in the prior review: 'unavailable authority degrades without fabricating canonical IDs' now exercises the previously-untested accountless-user path.
+- Non-blocking observations: the combined toast message is slightly less specific than the prior separate Truck/Driver messages; an account-connected user whose workspace roster is genuinely empty still cannot submit PTI, but this is consistent with the already-accepted Load driverId precedent, not a new gap from this correction.
+- Blockers reassessed: PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT is resolved and removed from the blocking list. SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN and CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING (narrowed scope, unchanged) remain open.
+- Verdict: ACCEPT. Slice 4B.1b.2c-S4 is CLOSED. The client-side normalized-ID track for Slice 4B.1b.2c (Load and PTI workspaceId/truckId/driverId) is now substantively complete.
+- Next required actor: ChatGPT.
+- Next bounded action: remaining open work is SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN, a separate server-side track in crewbiq/crewbiq-orchestrator, out of this repository's authority to implement or gate directly.
+- Runtime/product files changed: NONE.
