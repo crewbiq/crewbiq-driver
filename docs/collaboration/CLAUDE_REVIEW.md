@@ -1413,3 +1413,109 @@ None newly introduced by this correction. All previously-queued non-blocking ite
 
 Per the already-accepted `PRODUCTION_UI_INTEGRATION_CONTRACT.md`'s own bounded integration sequence (step 2, unchanged by this correction): **4B.1b — explicit account-to-Driver link contract and normalized record `driverId`**, scoped to data-model discovery and contract definition only (no UI, no persistence migration performed in the same slice) — this is the natural next step now that `SELF` resolution and period/snapshot/metric selectors for a plain driver-role account are correct and closed. This also unblocks the eventual `DRIVER` explicit-subject-id scope, since both ultimately depend on the same `NORMALIZED_RECORD_DRIVER_ID` gap this review confirmed in the Slice 4B review (fleet load records currently carry account `crewId`, not a Driver-profile `driver.id`). If the team instead wants an earlier, narrower UI proof-of-concept, a `4B.2` scoped strictly to a plain driver-role account's own `SELF` view (explicitly excluding any owner/fleet-as-driver claim) could proceed in parallel without waiting on `4B.1b`, since that specific case has no `ACCOUNT_DRIVER_LINK` dependency — but the primary recommendation follows the already-accepted sequence rather than substituting a new preference.
 
+---
+
+## Slice 4B.1b Independent Review — 2026-08-30
+
+Reviewer: Claude. Read the live `CURRENT_START`/`CURRENT_END` block first (Phase: Slice 4B.1b; Status: PUBLISHED / AWAITING CLAUDE REVIEW; implementation commit `76862ae7`). Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` plus the accepted Slice 4B.1a/4B.1a.1 analytics foundation. Confirmed `index.html` is byte-identical to the Slice 4B.1a.1 baseline (same blob SHA) — this slice changes zero runtime code, confirmed via both the commit's file list (four markdown files only) and direct SHA comparison.
+
+Method: read `IDENTITY_ATTRIBUTION_CONTRACT.md` in full (275 lines), then diffed `ANALYTICS_SCOPE_CONTRACT.md`, `PRODUCTION_UI_INTEGRATION_CONTRACT.md`, and `ARCHITECTURE.md` against their Slice 4B.1a/4B versions to confirm the new contract was integrated consistently rather than introducing contradictions. Independently re-verified two of the contract's specific runtime claims directly against source rather than trusting them: grepped `core-runtime.js` and confirmed `driverId: crewId` appears exactly where the contract says restore aliasing occurs (lines 257/264/269), and grepped `index.html` and confirmed `driver.accountId` is a locally-generated device-registry value (`generateAccountId()`/`registerAccountId()`/`resolveAccountId()`) distinct from the server `crewId`, matching the contract's classification exactly. Cross-checked the proposed `SELF`-resolution model against the actual `analytics.js` code and test suite verified in the Slice 4B.1a/4B.1a.1 reviews, not just against the contract's own prose.
+
+### VERDICT: **ACCEPT**
+
+This is a discovery/contract-only slice, and it does that job well: honest, precise, internally consistent, and correctly deferential to prior accepted work. One important, actionable observation on the proposed next-slice boundary (cross-repository ownership) is not itself a defect in this contract — the document already flags it — but this review makes explicit what the document stops short of: the named first implementation slice needs to be split along repository lines before it can actually be executed and reviewed through this repository's own process.
+
+### 1. Identity separation
+
+Confirmed clean: the contract explicitly separates Authenticated Account identity, Workspace tenancy identity, Driver roster entity identity, and Truck entity identity as four distinct concepts, and states plainly that "Names, email addresses, unit numbers, roles, current/default entities, and array position are labels or context. They are never canonical joins." No section implies `crewId == driver.id`; the opposite is stated explicitly and repeatedly — most directly: "The current comment/code path that aliases restored `driverId` to `crewId` is retained as an Account-profile compatibility alias. This contract does not reinterpret it as fleet roster `driver.id`." Independently confirmed this exact aliasing exists in `core-runtime.js` (see Method above) and that the contract's classification of it as "Legacy semantic alias, not roster Driver ID" is accurate, not glossed over.
+
+### 2. `AccountDriverLink`
+
+Reviewed the proposed shape (`id, workspaceId, accountId, driverId, status, effectiveFrom/effectiveTo, source, audit fields, provenance`) against every scenario the task listed: a driver account linked to a Driver profile is the base case; owner-op and fleet-owner accounts "use the same relation shape" (no special-casing that could introduce an inconsistent path); an Account with no Driver profile is explicitly allowed ("An Account may have no Driver link"); multiple/ambiguous links are explicitly invalid data resolving to ambiguous, and at most one active effective link may resolve per Account/workspace instant; historical link changes use effective-dated intervals that close rather than overwrite prior links, with re-linking creating a new auditable interval rather than rewriting old business records; workspace scoping is an explicit invariant ("Account, Driver, and link belong to the same workspace"). Stable IDs only — confirmed via the explicit invariant "Name, email, unit, role, roster count, truck assignment, and array position cannot create or select a link," which is more comprehensive than the task's own list (it additionally bans "roster count" and "truck assignment" as inference sources, closing gaps this reviewer wouldn't have thought to ask about).
+
+### 3. `SELF` resolution compatibility
+
+Confirmed the proposed resolution maps to the exact same three failure codes (`self_not_linked`, `self_ambiguous`, `self_unauthorized`) independently verified against real `analytics.js` code and tests in the Slice 4B.1a/4B.1a.1 reviews — no new code or fourth failure mode is introduced. Critically, the contract explicitly preserves the existing module's purity boundary: "analytics.js currently also accepts `authenticated_driver_partition`... A future adapter may emit the canonical proof only after reading an authorized `AccountDriverLink`; analytics must not query storage or infer the link itself." This is the right design — the lookup happens in a not-yet-built adapter layer, and the already-accepted, already-tested pure `resolveSelfScope()` in `analytics.js` needs no change at all to consume a `canonical_account_driver_link` proof once one exists (this proof shape already exists in the accepted `analytics.js` code, confirmed in the Slice 4B.1a review). No new fallback path of any kind is introduced anywhere in this document.
+
+### 4. `DriverTruckAssignment`
+
+Confirmed kept as a distinct concept from `AccountDriverLink`, stated explicitly: "`AccountDriverLink`... does not assign that Driver to a truck" and "`DriverTruckAssignment` records operational assignment over time. It is independent of login identity." The proposed shape is time-aware (`effectiveFrom`/`effectiveTo`), workspace-scoped, supports team drivers (`assignmentType: 'team'` plus explicit allowance for overlapping intervals "for team operation"), and supports driver changes over time via closed/superseded intervals. `driver.truckId` and `teamMateDriverId` are explicitly and correctly labeled "current configuration projections; they are not historical source of truth" — matching this reviewer's own repeated findings across the Slice 1A.1/1B/2B/3A/3B/4B reviews that no historical assignment data structure exists anywhere in the current runtime.
+
+### 5. Team driver model
+
+Independently verified the proposed model can represent one truck with two drivers over the same overlapping period without overwrite: `assignmentType: 'team'` combined with the explicit statement "Multiple Drivers may have overlapping intervals on one truck for team operation" directly supports this, while "One Driver should not have conflicting solo assignments unless explicitly reviewed" correctly distinguishes the solo case (where overlap would be a genuine conflict) from the team case (where it's expected). This is exactly the semantic distinction the task asked about.
+
+### 6. Canonical `driverId` per record type
+
+Reviewed the "Normalized record attribution" table row by row against the task's list (loads/trips, PTI, fuel, expenses, documents, exceptions, settlements, and other operational records) and found every requirement justified by the record's actual semantic nature rather than applied uniformly: `driverId` is `Required` for new loads/trips, PTI, and driver settlement/pay facts (all genuinely driver-specific events); `Optional`/`Conditional` for fuel, maintenance/service, and documents (correctly reasoned as truck-owned facts that only sometimes have a proven driver association); `Not applicable` for truck-only aggregate snapshots and account/sync events, with the explicit, important guardrail "Do not add a Driver merely because one is currently assigned" — directly closing the exact "attribute the whole truck period to whoever is currently assigned" risk this reviewer flagged as a core concern back in the original Slice 4B review. No record type was found where requiring `driverId` would be incorrect or misleading; the table's own reasoning already avoids that trap everywhere it could have occurred.
+
+### 7. Canonical `truckId` vs. `unitNumber`
+
+Confirmed the distinction is explicit and consistent with runtime reality independently verified across this entire review series: `truck.id` is classified "Canonical Truck ID," while `unitNumber` is "Display/business identifier; legacy alias" with "No primary join." This matches every prior finding about `findTruckByIdOrUnit()`/`resolveDefaultTruck()` (which accept either an ID or a unit-number string for lookup convenience, but treat `truck.id` as the actual stable key).
+
+### 8. Load/trip attribution
+
+The proposed minimum shape (`id, loadId, workspaceId, driverId, truckId, startedAt, completedAt, gross, loadedMiles, deadheadMiles, attribution:{...}`) is explicitly scoped as a future-only, analytics-safe extension — "This contract does not redesign Loads" is stated directly, and the shape only adds fields, it doesn't restructure anything existing. Current records (`id`/`loadId`/`truckId`/`crewId`/dates, all independently confirmed to exist in earlier reviews) provide enough of a foundation for new-record attribution once a normalized `driverId` field is added at creation time. No hidden ambiguity between load, trip, and settlement periods was found — Settlement is treated as its own distinct canonical truck-period identity elsewhere in the document (`snapshot id, truckId, weekKey, settlementDate`), not conflated with load/trip records.
+
+### 9. PTI attribution
+
+The proposed future PTI evidence shape (`ptiId, workspaceId, driverId, truckId, inspectedAt, timeZone, policyId, cadence, checklistVersion, odometer, result, defectIds, photoEvidenceIds, documentEvidenceIds, attribution`) is sufficient as a foundation for driver compliance (`driverId`), truck compliance (`truckId`), weekly photo PTI (`cadence` + `photoEvidenceIds`), carrier audit (`policyId` + full provenance), and photo evidence references (`photoEvidenceIds`/`documentEvidenceIds`) — without inventing how any policy actually works. `policyId`/`cadence` are correctly left as opaque placeholders for a separately-designed policy system, matching the task's explicit instruction not to invent policy implementation here.
+
+### 10. Audit / IFTA alignment
+
+Confirmed the stated chain — `Workspace -> Truck -> effective Driver assignment -> Load/Trip -> Route -> jurisdiction Miles -> Fuel -> Documents -> IFTA quarter` — is supported by this identity model without redefining it, and the document explicitly states normalized IDs do not replace raw evidence: "Neither substitutes for source documents, route facts, fuel receipts, or immutable record IDs. Document Vault IDs and hashes remain a separate evidence layer." Consistent with every finding in the Slice 4B review about the still-open Document Vault gap.
+
+### 11. Legacy attribution classification
+
+`PROVEN`/`AMBIGUOUS`/`UNRESOLVABLE` reviewed directly. Only `PROVEN` records "may eventually be backfilled by idempotent, audited tooling after dry-run review." The explicit ban list is comprehensive and matches the task's requirement precisely, and goes further than asked: "Single available Driver/truck, current assignment, matching name/email/unit, role, likely route, or array order never upgrades a record to `PROVEN`" — the "likely route" exclusion in particular is a specific, non-obvious inference path this reviewer hadn't explicitly named but is exactly the kind of plausible-seeming shortcut this contract needs to close.
+
+### 12. Provenance
+
+`attributionSource` (explicit/session/assignment/migration_proven/manual_admin) and `attributionConfidence` are reviewed. Confidence is explicitly binary, not probabilistic: "There is no probabilistic score. If evidence is not proven, canonical IDs remain null/unresolved." One genuine, specific gap found on direct inspection of the provenance shape: it carries `attributedByAccountId` (who) and `attributedAt` (when), but **no explicit `reason`/justification field** anywhere in the schema — the document states `manual_admin` "requires an authorized, audited server action," but doesn't specify that the audit record must capture *why* a human overrode an unresolved attribution. This is a real, specific, non-blocking gap the task explicitly asked to check for and classify — flagged below.
+
+### 13. Workspace boundary
+
+Confirmed every canonical relation carries `workspaceId` as a mandatory field (`AccountDriverLink`, `DriverTruckAssignment`), and the Permissions section states directly: "Cross-workspace links and joins are invalid even if raw IDs happen to match." Combined with `AnalyticsScope`'s already-accepted mandatory `workspaceId` (verified in the Slice 4B review), this structurally prevents `AnalyticsScope` from ever selecting a Driver or Truck outside an authorized workspace — every join in the chain requires a workspace match at every step.
+
+### 14. Permissions
+
+"Backend/server authorization is mandatory; UI visibility is not authorization" is stated directly and unambiguously, consistent with every prior slice's permissions language in this series (Slice 3A/3B, Slice 4B, Slice 4B.1a). "A Driver cannot arbitrarily link their Account to another Driver profile" and "An authorized workspace owner/admin may create, close, or correct links according to workspace policy" correctly place link-management authority with a server-side role check, not a client control.
+
+### 15. Cross-repository ownership — the most important finding in this review
+
+`AccountDriverLink` is explicitly described as requiring a "server-authoritative... schema and read API" (line 5). Based on this entire review series' accumulated evidence (the Bearer-session/Orchestrator transport layer established and independently verified across the Slice 1A/1B reviews), the actual database schema, non-overlap/workspace constraint enforcement, and the authorized read endpoint must live in the backend/orchestrator system — a **different repository** than `crewbiq-driver` (this repo, the PWA client). What genuinely belongs in `crewbiq-driver` is only the client-side read-only adapter contract: how the PWA calls the (not-yet-built) endpoint and shapes its response into the `canonical_account_driver_link` proof shape `analytics.js` already accepts. The document itself is honest about this gap — its own "Readiness and blockers" table states "Cross-repository ownership of the server schema/endpoint must be assigned before implementation, but it does not require changing this contract" — but neither this document nor the corresponding updates to `ARCHITECTURE.md`/`PRODUCTION_UI_INTEGRATION_CONTRACT.md` take the next step of splitting the named first slice along that boundary; all three still describe "4B.1b.1" as one bundled slice ("server schema, non-overlap/workspace constraints, authorized read endpoint, audit events, and PWA read-only adapter contract"). A slice that bundles server-repository work with client-repository work cannot actually be implemented or reviewed as a single unit through this repository's own collaboration-state process — the server half belongs in the orchestrator repository's own review cycle, which this process has no authority over.
+
+### 16. Implementation sequence
+
+The five-step sequence (`4B.1b.1` foundation → `4B.1b.2` new-record attribution → `4B.1b.3` effective-dated assignment → `4B.1b.4` legacy backfill tooling → `4B.2` UI) is a sound, safely-ordered progression in the abstract — each step correctly depends only on what the prior step actually delivers, and legacy backfill is correctly placed last, gated behind the `PROVEN`-only classification. The one required correction, per the finding above: `4B.1b.1` as named must be split before it is safe to authorize as a single implementation slice — see the next-slice decision below.
+
+### 17. Runtime grounding
+
+Independently re-verified two of this document's specific claims directly against source (see Method above), both confirmed accurate. Combined with the three claims already independently verified in the Slice 4B review (PTI record has no `driverId`/`truckId`; load records carry `crewId`, not `driver.id`; expense `owner` is a plain enum) — all of which this new document's inventory table restates consistently — nothing in the "Current identifier inventory" table was found to overstate which records can be normalized immediately. The table is, if anything, conservative: it correctly marks `PTI attribution driverId/truckId` as "Missing... Not currently joinable" rather than implying any shortcut exists.
+
+### 18. No runtime change
+
+Confirmed via the commit's file list (four markdown files: `ANALYTICS_SCOPE_CONTRACT.md`, `ARCHITECTURE.md`, `IDENTITY_ATTRIBUTION_CONTRACT.md`, `PRODUCTION_UI_INTEGRATION_CONTRACT.md`) and independently via blob-SHA comparison that `index.html` is byte-identical to the Slice 4B.1a.1 baseline. No product/runtime behavior changed.
+
+### Blocking findings
+
+None.
+
+### Non-blocking findings
+
+- `manual_admin` provenance carries `attributedByAccountId`/`attributedAt` (who/when) but no explicit `reason`/justification field in the schema itself — worth adding before this provenance shape is actually implemented, so a human override of an unresolved attribution is auditable for *why*, not just who and when.
+- The proposed "exact safest first implementation slice," `4B.1b.1`, bundles server-repository work (schema, constraints, authorized read endpoint) with client-repository work (PWA read-only adapter) under one slice name across all three updated documents, even though `IDENTITY_ATTRIBUTION_CONTRACT.md`'s own readiness table already flags that cross-repository ownership must be assigned first. See the next-slice decision below for the recommended split.
+- All previously-queued non-blocking items (`resolveDefaultTruck` case-sensitivity, unguarded deduction-template save, cosmetic `}function boot()` formatting, HISTORY typos, device-global `clinks` scoping, `links.js` maintenance-icon drift, missing-id-edit test gap, `AnalyticsScope`'s unspecified canonical `timeZone` source) remain outstanding and untouched by this slice.
+
+### Whether Slice 4B.1b is CLOSED
+
+**Yes.** As a discovery/contract-only deliverable, it is accurate, internally consistent, correctly deferential to every previously-accepted finding in this series (identity separation, no-fallback discipline, workspace scoping, permissions-not-UI-visibility), and changes zero runtime code. The one important observation above (cross-repository slice bundling) does not invalidate the contract itself — the document is honest about the gap — but it does change this review's recommendation for what gets authorized next.
+
+### Next-slice decision: **(B) a split prerequisite contract/API slice, because server-side ownership is required**
+
+The named `4B.1b.1` cannot proceed as a single slice through this repository's review process, because it bundles work that spans two repositories. The exact safest next bounded slice in `crewbiq-driver` is:
+
+**4B.1b.1a — PWA `AccountDriverLink` read-only adapter contract**: define, in this repository only, the client-side interface between a future authorized read endpoint and `analytics.js`'s existing `canonical_account_driver_link` proof shape (request/response contract, error/timeout handling as structured results consistent with `analytics.js`'s no-throw discipline, and how a returned link maps into `{proof:'canonical_account_driver_link', accountId, workspaceId, driverId, recordCrewId, currentTruckId}`). No server schema, no persistence, no endpoint implementation, no UI wiring — purely the client-side contract and, if desired, a mock-backed adapter test.
+
+The corresponding server-side half — schema, non-overlap/workspace constraints, the authorized read endpoint, and audit events — is **out of scope for this repository** and must be tracked and reviewed through whichever repository owns the backend/Orchestrator system (per this series' own accumulated evidence, not `crewbiq-driver`). This review does not have authority to assess or accept that work, and it should not be folded into a `crewbiq-driver` slice.
+
