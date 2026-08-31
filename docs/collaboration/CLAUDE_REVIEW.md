@@ -1519,3 +1519,140 @@ The named `4B.1b.1` cannot proceed as a single slice through this repository's r
 
 The corresponding server-side half — schema, non-overlap/workspace constraints, the authorized read endpoint, and audit events — is **out of scope for this repository** and must be tracked and reviewed through whichever repository owns the backend/Orchestrator system (per this series' own accumulated evidence, not `crewbiq-driver`). This review does not have authority to assess or accept that work, and it should not be folded into a `crewbiq-driver` slice.
 
+---
+
+## Slice 4B.1b.1a Independent Review — 2026-08-31
+
+Reviewer: Claude. Read the live `CURRENT_START`/`CURRENT_END` block first (Phase: Slice 4B.1b.1a; Status: PUBLISHED / AWAITING CLAUDE REVIEW; implementation commit `e5f33818`). Product truth: `main` @ `86b8b4dd7e9496833a021319167589b49f0ac418` plus the accepted Slice 4B.1a.1/4B.1b foundation. Confirmed via blob-SHA comparison that both `index.html` and `analytics.js` are byte-identical to their pre-slice state — this slice adds a genuinely new, disconnected module and changes zero existing runtime code.
+
+Method: read all 171 lines of `account-driver-link.js` directly, function by function. Grepped the whole file for every forbidden pattern (`localStorage`, `IndexedDB`, `document.`, `activeTrucks`, `Math.random()`, `fetch(`, `XMLHttpRequest`, `setItem`/`getItem`) — zero matches. Copied the module and test file into an isolated scratch directory and ran `node --test` directly: **19/19 passed**. Beyond that, wrote and ran an independent **end-to-end integration script**: fed a constructed server response through the real, unmodified `account-driver-link.js` adapter, took its actual `proof` output, and passed that directly into the real, unmodified, already-accepted `analytics.js`'s `resolveSelfScope()` — for an `owner_op`-role actor, specifically exercising the "owner also driving" case this entire contract chain exists to solve — and confirmed it resolves successfully end-to-end with the correct `subjectIdSpace:'driver_profile_id'` and the real Driver-profile ID as `subjectId`, not the account's `crewId`. This is the strongest form of compatibility verification available short of a live server. Read `ACCOUNT_DRIVER_LINK_API_CONTRACT.md` in full and checked its "SERVER IMPLEMENTATION HANDOFF" section against the same server-schema requirements this reviewer already assessed in the Slice 4B.1b review.
+
+### VERDICT: **ACCEPT**
+
+### 1. Client/server authority
+
+Confirmed the adapter never persists a canonical link anywhere client-side: no `localStorage`, `IndexedDB`, static config, driver-profile field, or session heuristic is written or read anywhere in the file (confirmed by direct grep, zero matches). The module's only actions are: build a request payload, call an injected `request()` function, validate/normalize the response, and return a structured proof or error. It never invents a second source of truth.
+
+### 2. Module boundary
+
+Confirmed pure and side-effect-free at load time: the only top-level statement is `global.CrewBIQIdentityLink = Object.freeze({...})`. `create(deps)` returns `{read}`; nothing executes until `read()` is explicitly called by a caller — confirmed both by reading and by the test `'module exports a bounded namespace without requesting on load'`, which injects a counting `request` function and asserts it is never called merely by loading/evaluating the module. No DOM reference, no Driver/Truck mutation, no auth/session mutation, no analytics mutation (confirmed `analytics.js` is untouched), and no hidden fallback of any kind — every failure path returns a structured `fail()` result, never an inferred identity.
+
+### 3. Transport consistency
+
+Confirmed the adapter does not invent a parallel networking stack: `request` is an injected dependency (matching the same DI pattern as `startup-session.js`/`links.js`), called as `request('account_driver_link_read', {sessionToken, workspaceId, accountId})` — an action-envelope string convention consistent with the existing `auth_login`/`auth_restore`-style actions this reviewer verified in `core-runtime.js` across earlier reviews in this series. The contract doc explicitly confirms this: "CrewBIQ already uses action-envelope compatibility transport in `core-runtime.js`... The adapter therefore injects [the same convention]." Auth propagation (`sessionToken`) and workspace context (`workspaceId`) are both explicit request fields. `responseEnvelope()` normalizes either a bare-data or `{status, data}` response shape before validation. Timeout/error normalization is handled by catching thrown transport errors and mapping HTTP-style `status` codes (401/403 → unauthorized, else → network_unavailable) plus separately handling a successfully-returned-but-erroneous envelope (401/403/`data.code==='unauthorized'` → unauthorized; ≥500 or falsy/failed `data` → server_error).
+
+### 4. One valid link
+
+Verified the canonical proof mapping both by reading and by the end-to-end integration test described above: a single valid, currently-effective link produces `{type, proof:'canonical_account_driver_link', workspaceId, accountId, driverId, driverProfileId: driverId, recordCrewId: accountId, linkId, effectiveFrom, effectiveTo, provenance}`. Cross-checked every field this shape needs against `analytics.js`'s actual `normalizeLink()` requirements (verified in the Slice 4B.1a review): `accountId`/`workspaceId` for the actor match, non-empty `recordCrewId`, non-empty `driverProfileId` — all present. The integration test proves this isn't just a shape match on paper; it's a genuine, working handoff between the two modules.
+
+### 5. Zero links
+
+Confirmed `if (!active.length) return fail(NOT_FOUND, ...)` — no inference of any kind, verified both by reading and by the `'zero qualifying links returns not_found'` test.
+
+### 6. Multiple active links
+
+Confirmed `if (active.length > 1) return fail(AMBIGUOUS, ...)`. The final line that extracts the single surviving candidate (`active.reduce(function(_only, candidate){ return candidate; }, null)`) only runs after `active.length` is already confirmed to be exactly 1 — this is not a sort-then-pick shortcut, and no code anywhere selects by newest/oldest/first or matches by name/email/unit. Confirmed via the `'two active links return ambiguous without choosing one'` test, which asserts the exact `candidateCount`.
+
+### 7. Workspace boundary
+
+Confirmed a genuine defense-in-depth check: both the response-envelope-level `workspaceId` AND each individual link record's own `workspaceId` must independently match the caller's expected workspace, or the request fails closed with `WORKSPACE_MISMATCH` — verified by two distinct test cases (envelope-level and per-record mismatch).
+
+### 8. Account boundary
+
+Same defense-in-depth pattern for `accountId`, plus an additional, precise check that `accountIdSpace` equals the exact expected namespace string (`crewbiq_account`) — guarding against a response that happens to reuse a matching raw ID string from a *different* identifier space (e.g., the device-local `driver.accountId` this reviewer confirmed in the Slice 4B.1b review is a completely different, non-canonical value). Confirmed via tests for both envelope-level, per-record, and wrong-namespace mismatches, all correctly failing `ACCOUNT_MISMATCH`.
+
+### 9. Effective dating
+
+Traced `isEffective()` by hand: `link.status === 'active' && Date.parse(link.effectiveFrom) <= at && (!link.effectiveTo || at < Date.parse(link.effectiveTo))`. Confirmed `effectiveFrom` is inclusive (`<=`) and `effectiveTo` is exclusive (`<`), matching `IDENTITY_ATTRIBUTION_CONTRACT.md`'s own documented semantics exactly. The test suite proves the exact boundary case precisely: `'expired effectiveTo is ignored using exclusive interval semantics'` sets `effectiveTo` to the *exact same instant* as `context.effectiveAt` and confirms the link is correctly excluded — a rigorous boundary test, not just "some time later." Future `effectiveFrom` and expired/inactive/revoked links are each independently tested and correctly excluded. Effective dating is preserved in the canonical output (`effectiveFrom`/`effectiveTo` both present in the returned `proof`).
+
+### 10. Provenance
+
+Confirmed `normalizeProvenance()` requires `source` to be one of six enumerated values, non-empty `attributedByAccountId`, and a valid ISO timestamp `attributedAt` — and, critically, `if (source === 'manual_admin' && !reason) return null;`. This directly and precisely closes the exact gap this reviewer flagged as non-blocking in the **Slice 4B.1b review** (manual_admin provenance lacking a required reason field) — now enforced as a hard validation rule that invalidates the entire response if violated, not merely a documentation note. Confirmed via two dedicated tests: `'manual_admin provenance without reason is invalid'` and `'complete manual_admin provenance is accepted and preserved'`, both passing. No manual_admin proof without a reason can silently pass as complete — confirmed by direct execution.
+
+### 11. Malformed response
+
+Confirmed `validateResponse()`'s first check rejects non-object, array-shaped, missing-`ok`, or missing/non-array-`links` responses immediately with `INVALID_RESPONSE`. Each individual link is independently validated via `normalizeLink()`, and if **any single** link fails normalization, the **entire response** is rejected — not silently filtered down to the valid subset. This is the conservative, correct choice the task asked to verify: no unpredictable throw, no silent coercion, no partial-identity acceptance. Confirmed via tests for a non-array `links` field and a link with an empty `driverId`.
+
+### 12. Server errors
+
+Confirmed structured, stable handling for unauthorized (both a thrown exception with `.status` and a returned 401/403/`data.code` response), network-unavailable (any other thrown transport error), and server_error (≥500 status or a falsy/failed `data.ok`) — all via dedicated, passing tests. Nothing throws to the caller for any of these expected failure modes.
+
+### 13. Offline
+
+Confirmed the adapter invents no stale/local source of truth: on any transport failure it returns `network_unavailable` and nothing else. The contract doc explicitly and appropriately defers the only imaginable alternative — "A future server-authoritative proof embedded in a signed restore/session response requires a separate contract and expiry policy" — meaning a future caching mechanism is anticipated but correctly not built here, and would need its own review.
+
+### 14. Analytics compatibility
+
+Confirmed via blob-SHA comparison that `analytics.js` is completely untouched by this slice — zero analytics.js changes, fully satisfying the "prefer zero changes" instruction. The independent end-to-end integration test (see Method) is the strongest possible proof that the adapter's output is genuinely, not just superficially, compatible with the existing, unmodified pure analytics engine.
+
+### 15. Input immutability
+
+Confirmed via direct reading (every function builds new object literals; `wire`, `value`, and `result` parameters are only ever read, never assigned to) and via the dedicated test `'response input is not mutated'`, which checks both a JSON-snapshot equality on the original response and reference-inequality on the nested `link`/`provenance` objects in the result — proving they were copied, not aliased, even at the nested level.
+
+### 16. Test adequacy
+
+`tests/account-driver-link.test.mjs` genuinely executes the real module via `vm.runInContext` (not string matching) and independently re-run by this reviewer in an isolated scratch directory: **19 tests, 19 passed, 0 failed**. Coverage directly maps to every item the task listed: one valid link, zero links, ambiguous links (with exact candidate count), workspace mismatch (both levels), account mismatch (both levels plus the wrong-namespace case), malformed response, inactive/future/expired links (three distinct, precise tests), manual_admin missing/complete reason, an explicit no-first-driver/no-first-truck-fallback test using decoy `drivers`/`trucks` context fields, transport failure, unauthorized (both thrown and returned forms), and a final structural test confirming the total absence of persistence/network/fallback patterns in source. The full exported-namespace shape is checked exactly (all 5 members), following the completeness discipline established since Slice 3B. No test in this suite overstates a source-pattern check as behavioral proof where behavior is actually being asserted — the one purely structural test (`'source contains no persistence...'`) is appropriately limited to exactly that kind of claim.
+
+### 17. Production disconnection
+
+Confirmed via the commit's file list (`account-driver-link.js`, `ACCOUNT_DRIVER_LINK_API_CONTRACT.md`, `package.json`, `tests/account-driver-link.test.mjs` — no `index.html`, no `sw.js`) and via blob-SHA comparison that `index.html` is unchanged. No service-worker cache rotation was made or needed, since the module isn't in the app shell. No UI or session behavior changed.
+
+### 18. API contract doc
+
+`ACCOUNT_DRIVER_LINK_API_CONTRACT.md` cleanly separates SERVER OWNS (schema/table, FK and workspace-coherence constraints, non-overlap enforcement, Bearer-derived authorization, the read endpoint, future admin-mutation API, audit trail) from PWA OWNS (the read-only adapter, request/response validation, normalization, and analytics-proof mapping) — stated directly: "This repository owns only the disconnected read-only adapter `account-driver-link.js`... It never creates a second source of truth in localStorage, IndexedDB, static configuration, profile guesses, or session heuristics."
+
+### 19. Server handoff quality
+
+The "SERVER IMPLEMENTATION HANDOFF" section is precise enough to implement without guessing: it enumerates the table/schema (with immutable relation ID, canonical FKs, status, effective interval, provenance, schema version), FK/workspace-coherence constraints, an explicit non-overlap constraint or transaction rule for one Account/workspace effective instant, Bearer-session-derived authorization with workspace-membership verification, the exact read action name (`account_driver_link_read`) with client-supplied fields explicitly demoted to "validation context, not authority," stable structured error responses with no cross-tenant detail leakage, durable audit events for every mutation type, an explicit mandatory-`reason`-for-`manual_admin` requirement (mirrored, not just documented, in the client's own validation logic), a comprehensive backend test list (zero/one/multiple effective links, interval boundaries, overlap prevention, mismatch handling, revocation, authorization, audit history), and an explicit statement that the write/admin-mutation API is a separately-approved future contract, not part of this handoff. This is implementable by a backend team without needing to ask clarifying questions.
+
+### Blocking findings
+
+None.
+
+### Non-blocking findings
+
+- All previously-queued non-blocking items (`resolveDefaultTruck` case-sensitivity, unguarded deduction-template save, cosmetic `}function boot()` formatting, HISTORY typos, device-global `clinks` scoping, `links.js` maintenance-icon drift, missing-id-edit test gap, `AnalyticsScope`'s unspecified canonical `timeZone` source) remain outstanding and untouched by this slice. The `manual_admin`-reason gap flagged in the Slice 4B.1b review is now resolved by this slice's implementation, not merely carried forward — removed from the queue.
+- The default `now()` fallback (`() => new Date().toISOString()`) is a genuine, argument-less wall-clock read — unlike `analytics.js`'s stricter no-wall-clock-ever discipline. This is a deliberate and reasonable design difference, not a defect: this adapter's entire purpose is to answer "is this link effective *right now*," a live question by nature, and the module remains fully deterministic and testable whenever a caller supplies `deps.now` or `context.effectiveAt` explicitly (which the test suite always does). Noting this distinction explicitly rather than silently treating it as equivalent to `analytics.js`'s purity bar.
+
+### Authority-boundary assessment
+
+Airtight. No canonical link data is ever persisted client-side; the server remains the sole source of truth at every step, confirmed by direct code reading, grep, and the contract doc's explicit ownership statement.
+
+### Transport assessment
+
+Correctly reuses the existing action-envelope convention via dependency injection rather than inventing a parallel stack; auth and workspace context are explicit request fields; error/timeout normalization is thorough and produces stable, structured results in every failure mode tested.
+
+### Fail-closed assessment
+
+Confirmed comprehensively: not-found, ambiguous, workspace mismatch, account mismatch, malformed response, inactive/future/expired/revoked links, and missing-reason `manual_admin` provenance all fail with a distinct, structured code. No inference from name, email, unit, role, array position, or decoy Driver/Truck arrays exists anywhere, confirmed by both behavioral tests and a structural source-absence check.
+
+### Effective-date assessment
+
+Correct inclusive-`effectiveFrom`/exclusive-`effectiveTo` semantics, matching the accepted `IDENTITY_ATTRIBUTION_CONTRACT.md` exactly, verified at the precise boundary instant via a dedicated test.
+
+### Provenance assessment
+
+Correct and now stricter than the prior slice's own contract: `manual_admin` without a `reason` is a hard validation failure, not just a documented expectation. Confidence remains binary (proven or the whole record is rejected), never probabilistic.
+
+### Analytics compatibility
+
+Verified via genuine, independently-authored end-to-end execution connecting this adapter's real output to the real, unmodified `analytics.js` — not just a shape comparison. Zero changes to `analytics.js` were needed or made.
+
+### Test adequacy
+
+Excellent — 19 genuinely-executed tests covering every item the task listed, independently re-run by this reviewer with 19/19 passing, plus this reviewer's own additional end-to-end integration script going beyond what the committed test suite covers.
+
+### Server handoff quality
+
+Precise and implementable without guessing; explicitly enumerates schema, constraints, authorization, the read contract, audit requirements, and the mandatory `manual_admin` reason field, and correctly defers the write/admin-mutation API to a separately-approved future contract.
+
+### Whether Slice 4B.1b.1a is CLOSED
+
+**Yes.** Every boundary, fail-closed path, effective-dating rule, provenance requirement, and compatibility claim was independently verified — much of it via direct execution and a from-scratch end-to-end integration test, not just reading. Zero runtime/production code changed. The one prior open gap this reviewer had flagged (`manual_admin` reason) is now resolved by actual validation logic, not just a doc update.
+
+### Exact safest next slice
+
+The task's option **(A)** — server `AccountDriverLink` implementation — is the correct critical-path dependency and the contract doc is now precise enough to hand off, but it is **not a `crewbiq-driver` slice**: this review process has no authority to gate or accept backend/Orchestrator-repository work, consistent with the Slice 4B.1b review's finding. That handoff should happen now, in parallel, through whichever repository owns the backend.
+
+Within `crewbiq-driver` specifically, the safest next bounded slice is **(B) — normalized `driverId`/`truckId` for NEW client records only** (matching `IDENTITY_ATTRIBUTION_CONTRACT.md`'s own `4B.1b.2` step: require normalized `workspaceId`/`driverId`/`truckId` on newly-created Loads and PTI first, no legacy backfill). This is genuinely independent of the not-yet-built server endpoint — a fleet/owner admin can already explicitly select a Driver-profile record when creating a new Load today, this slice would just require and persist that as a normalized field — and it directly unblocks both the eventual `DRIVER`-explicit-scope analytics and the eventual owner/fleet `SELF` analytics once `AccountDriverLink` also lands, without waiting on either. A narrower, independent alternative — a driver-role-only `SELF` UI proof-of-concept — remains available in parallel too, since a plain driver account's `SELF` resolution needs neither this adapter nor `AccountDriverLink` at all, but that would require UI wiring and its own dedicated review, out of scope for a documentation/contract-sequencing recommendation here.
+
