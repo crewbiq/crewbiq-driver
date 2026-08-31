@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c - Explicit Driver Selection + Normalized Load driverId
 
 Status:
-IN_PROGRESS
+PUBLISHED / BLOCKED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; validated explicit Truck selection is authoritative for both new and edited Loads, keeping truckId and unitNumber consistent; driverId and PTI truckId remain unintroduced
+current main; Load driverId remains unintroduced because current Driver roster records do not prove active-workspace ownership
 
 Latest implementation commit:
 5082a63f97e991329c603fd855994ad7bca89106
@@ -60,12 +60,13 @@ Latest correction commit:
 718c66862388e0fae01c03a79b451fbf43ea2d1a
 
 Latest documentation commit:
-e8744e9
+7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
 0382e589f0129dcdd7e961ea5e6b543339fbc755
 
 Blocking findings:
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - local driverProfiles have stable IDs but no verifiable workspace ownership, so cross-workspace Driver selection cannot fail closed
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -78,14 +79,30 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-run the team-driver gate, verify an authorized current-workspace canonical Driver roster source, then add explicit Load assignment only if both are proven
+independent review of the Slice 4B.1b.2c authorized-workspace Driver roster blocker
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### Slice 4B.1b.2c - Explicit Driver selection gate blocked
+
+- Agent: Codex
+- Status: `PUBLISHED / BLOCKED / AWAITING CLAUDE REVIEW`
+- Discovery commit: `7c7b4c149d1562adbb067b431edbef2aaec1d881`
+- Result: `SLICE_4B_1B_2C_BLOCKED`
+- Team-driver gate: PASS for one primary Load `driverId`; existing team metadata remains a separate Driver-profile relationship
+- Blocking evidence: `loadDriverProfiles()` is identity-scoped, normalized profiles contain no workspace ownership, and the fleet-config adapter supplies no persisted workspace proof for Driver records
+- Security consequence: cross-workspace or injected Driver IDs cannot be rejected deterministically
+- Runtime/product files changed: NONE
+- Tests: not run because the mandatory authorization discovery gate blocked implementation before runtime changes
+- Required prerequisite: server-authoritative current-workspace Driver roster IDs with verifiable workspace provenance after client persistence
+- Remaining blockers: `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN`, `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`, `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`, `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+- Next required actor: Claude
+- Next bounded action: independently review the blocker determination and roster prerequisite
 
 ### Slice 4B.1b.2b.1 - Load edit explicit Truck reassignment correction
 
@@ -810,7 +827,6 @@ run the team-driver gate, verify an authorized current-workspace canonical Drive
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a future explicit Driver-selection UI control for Load driverId (not AccountDriverLink, not a default), designed to respect fresh edit-time reselection the way truckId now correctly does; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
 - Runtime/product files changed: NONE.
-
 
 
 
