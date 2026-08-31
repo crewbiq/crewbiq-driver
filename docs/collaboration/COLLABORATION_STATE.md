@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1a.1 - Custom Period Inclusive dateTo Correction
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE RE-REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,16 +54,19 @@ Product truth:
 current main; accepted ANALYTICS_SCOPE_CONTRACT.md uses inclusive dateFrom and dateTo
 
 Latest implementation commit:
-d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
+866caf346bc572dcae42d0fcb793374fd762d992
 
 Original implementation:
 d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
+
+Review finding:
+8649cf080b341e4da451565892e6a2d7528bd48b
 
 Latest review commit:
 8649cf080b341e4da451565892e6a2d7528bd48b
 
 Blocking findings:
-custom dateTo is incorrectly treated as exclusive; correction in progress
+NONE
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -72,10 +75,10 @@ Queued non-blocking findings:
 - canonical workspace timeZone source remains unspecified
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-correct only custom inclusive dateTo normalization, tests, and engine contract reconciliation
+re-review only the corrected custom-period semantics and confirm Slice 4B.1a closure
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -83,6 +86,21 @@ correct only custom inclusive dateTo normalization, tests, and engine contract r
 
 
 
+
+## Slice 4B.1a.1 - Custom Period Inclusive dateTo Correction published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE RE-REVIEW
+- Correction commit: `866caf346bc572dcae42d0fcb793374fd762d992`
+- Original implementation: `d9dbdf25133b4fa9e29c63145655b3e7cbc56e78`
+- Review finding: `8649cf080b341e4da451565892e6a2d7528bd48b`
+- Corrected custom `dateTo` to remain user-facing inclusive while internal `endExclusive` is the following local operational date.
+- Equal `dateFrom`/`dateTo` now forms a valid single-day period; only `dateFrom > dateTo` is invalid.
+- Added regression coverage for start, middle, inclusive dateTo, single-day, and normalized endExclusive boundaries.
+- Validation: analytics 29 passed; required regression 43 passed; total 72 passed, 0 failed.
+- Runtime changes: `analytics.js` only. UI, prototype, index, service worker, other runtime modules, and deploy: NONE.
+- Next required actor: Claude.
+- Next bounded action: re-review only corrected custom-period semantics and confirm Slice 4B.1a closure.
 ## Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors published
 
 - Agent: Codex
@@ -599,6 +617,7 @@ correct only custom inclusive dateTo normalization, tests, and engine contract r
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
