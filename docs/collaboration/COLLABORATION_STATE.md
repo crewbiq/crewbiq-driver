@@ -39,22 +39,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2c-S2 - Read-Only PWA Workspace Driver Roster Adapter
+Slice 4B.1b.2c-S3 - Explicit Driver Selection for NEW Loads
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; the accepted orchestrator roster endpoint now has an accepted bounded read-only PWA adapter and Bearer transport mapping; no Driver-selector UI or driverId record writes exist yet
+current main; new Loads now require explicit Driver selection from the accepted authorized workspace roster and write that stable driverId; no default/local fallback, edit backfill, PTI attribution, or AccountDriverLink inference is introduced
 
 Latest implementation commit:
-1212779f89c99f2b9a13820842b13f94a762d285
+d8f34b02261cfa7a54231c2a7b036d0f6ea79325
 
 Latest correction commit:
 NONE
@@ -66,7 +66,7 @@ Latest review commit:
 e6361f92c49db306f9a66e3a868c85e9fbadfb20
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - both server source (S1) and client adapter (S2) now accepted; remaining gap is purely UI consumption, not further data provenance
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - server source and adapter accepted; explicit NEW-Load UI consumption published and pending Claude acceptance
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -87,14 +87,31 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement bounded composition-root wiring and a minimal explicit no-default Driver selector for new Load driverId, consuming only the accepted authorized workspace roster
+independent review of explicit authorized-roster Driver selection and normalized driverId for NEW Loads
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.2c-S3 Explicit NEW-Load Driver Selection Publication
+
+- Repository: crewbiq/crewbiq-driver
+- Branch: agent/pre-base44-audit
+- Implementation commit: d8f34b02261cfa7a54231c2a7b036d0f6ea79325
+- Scope: composition-root wiring plus a minimal explicit Driver selector for NEW Loads, sourced only from the accepted authorization-scoped workspace roster adapter.
+- Attribution: selected stable `driverId` and matching roster name are written only after a fresh active-workspace match; no first/only/default selection and no local `driverProfiles` fallback.
+- Edit/legacy behavior: existing `driverId` is preserved during edit; legacy Loads are not backfilled; Driver selector is hidden on edit.
+- Runtime files: `loads.js`, `index.html`, `sw.js`.
+- Test/wiring files: `tests/load-driver-attribution.test.mjs`, `tests/workspace-driver-roster.test.mjs`, `tests/workspace-attribution.test.mjs`, `package.json`.
+- Cache version: `crewbiq-driver-v90`.
+- Tests: `node --test tests/load-driver-attribution.test.mjs tests/workspace-driver-roster.test.mjs tests/workspace-attribution.test.mjs tests/load-truck-attribution.test.mjs tests/account-driver-link.test.mjs tests/auth-session-startup-contract.test.mjs tests/index-startup-composition.test.mjs tests/e2e/service-worker-path.test.mjs` -> `86 passed, 0 failed`.
+- Behavior exclusions: no PTI changes, AccountDriverLink inference, local roster fallback, legacy mutation, migration, merge, or deployment.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent S3 review.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.2c-S2 PWA Adapter Publication
 
