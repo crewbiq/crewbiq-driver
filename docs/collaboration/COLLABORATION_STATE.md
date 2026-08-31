@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Production / Deployment Readiness Blocker Corrections B1-B4
+Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-CLOSED / ACCEPT - AWAITING PRODUCT OWNER DEPLOY AUTHORIZATION
+IN_PROGRESS
 
 Current owner:
-ChatGPT (Product Owner)
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; B1-B4 all independently confirmed closed in both repositories, with a genuinely zero-failure canonical `pytest -q --tb=short` run (318 passed, 2 skipped, 0 failed) confirmed both locally and on live GitHub Actions for the exact fix commit. No deployment, merge, migration execution, production-data mutation, or legacy backfill occurred.
+current main; Product Owner authorized provisioning/configuration and additive migrations 010-011 only in the isolated Railway staging environment crewbiq-orchestrator-staging, followed by staging integration/smoke validation. Production deployment/migrations/data mutation, merge, legacy backfill, destructive migrations and broad refactoring remain unauthorized.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
@@ -66,19 +66,19 @@ Latest review commit:
 4320d3f4f13e378d3c9751ebbdebcfd2b7cfe925
 
 Blocking findings:
-NONE. All four (B1-B4) confirmed closed.
+NONE AT START; STAGING VALIDATION IN PROGRESS
 
 Queued non-blocking findings:
-Staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending. Legacy attribution/backfill remains explicitly deferred.
+Production deployment/migrations and legacy attribution/backfill remain explicitly unauthorized.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: all four production-readiness blockers (B1-B4) are now confirmed closed with a zero-failure canonical CI run on both repositories. Does the Product Owner authorize proceeding to the next step in the established deployment order - provisioning a staging environment and executing the additive migrations (010_driver_truck_assignments.sql, 011_account_driver_links.sql) there - or should work remain paused pending some other business consideration first? No deploy, merge, migration execution, or production-data mutation is authorized until this decision is made.
+verify staging-only target and pre-migration schema state; safety-audit and apply additive migrations 010-011 only in staging; verify schema, canonical backend/client integration, isolation, normalized-ID round-trip, Driver SELF, graceful degradation and recovery evidence; publish STAGING_VALIDATION_PASS or STAGING_VALIDATION_BLOCKED for Claude review.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1337,3 +1337,10 @@ Next bounded action: independent regression-fix review only.
 - No deploy, merge, migration execution, or production-data mutation is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 4320d3f4f13e378d3c9751ebbdebcfd2b7cfe925).
 - Runtime/product files changed by this review: NONE.
+### 2026-08-31 - Product Owner authorization / Codex start - staging validation
+
+Authorization: provision/configure isolated staging; apply additive migrations 010 and 011 in staging only; run staging integration/smoke and recovery validation.
+Prohibited: production deploy/migrations/data mutation; merge; legacy backfill; destructive migration; broad refactor.
+Verified target: Railway project happy-sparkle, environment crewbiq-orchestrator-staging, separate Postgres resource; protected GitHub staging URL matches the linked Railway service.
+Status: IN_PROGRESS
+Current owner: Codex
