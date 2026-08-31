@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+NEEDS FIX / BLOCKED ON PRODUCT OWNER DECISION
 
 Current owner:
-Claude
+Product Owner
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; PTI submission now requires explicit no-default Truck and authorized-roster Driver selections and a fresh workspace match before writing workspaceId/truckId/driverId; pending independent review
+current main; PTI submission now requires an authorized-workspace Driver roster match before writing workspaceId/truckId/driverId - but this makes PTI submission permanently impossible for any user without a connected Orchestrator account, confirmed via direct code trace (showPTIBlocker -> populatePTIAttributionSelectors -> readAuthorizedWorkspaceDriverRoster returns unavailable when loadOrchestratorSession() is null -> Driver select never populates -> submit button and submitPTI() both stay blocked). PTI previously always worked without any account. This is a severe regression affecting a mandatory daily safety workflow, not merely a code defect - the correct fix direction is a product policy choice.
 
 Latest implementation commit:
 e6822846bba2c1140249ba50c5b5d7c11ccd022f
@@ -63,12 +63,12 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-8ccd5b409ce9b2c9107d4c35dd9d9c202153dba3
+653bf5d980306afc8790b6a6e9fb99bfde4d8a31
 
 Blocking findings:
+- PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT - new, confirmed by direct code trace; PTI submission is permanently blocked (app-lockout, since the PTI blocker screen hides the whole app until completed) for any user without a connected Orchestrator/platform account; no test covers this state; requires Product Owner decision between (A) graceful degrade matching Load's workspaceId behavior (skip attribution, submission still succeeds) or (B) a deliberate, explicit policy requiring an account for PTI, before Codex attempts a fix
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
-- PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - explicit Truck/Driver context published, pending Claude acceptance
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -78,18 +78,19 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 - orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
 - Driver reassignment during Load edit is out of scope by design (selector hidden entirely, unlike truckId which supports edit-time reassignment after its correction) - a deliberate boundary, not an oversight; a future slice could add it following the same live-control-must-take-effect discipline
+- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only, no coordination impact
 
 Cross-repository implementation:
 crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f (ACCEPTED)
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+STOPPED_FOR_PRODUCT_OWNER
 
 Next required actor:
-Claude
+Product Owner
 
 Next bounded action:
-independent review of explicit PTI Truck/Driver attribution context and fail-closed submission behavior
+decide whether PTI submission should (A) gracefully degrade attribution when no Orchestrator account is connected, preserving PTI's always-must-work guarantee, or (B) deliberately require a connected account before PTI can be submitted, as an explicit informed policy change; once decided, authorize Codex to implement the chosen behavior for re-review
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -944,4 +945,17 @@ independent review of explicit PTI Truck/Driver attribution context and fail-clo
 - Verdict: ACCEPT. Slice 4B.1b.2c-S3 is CLOSED.
 - Next required actor: ChatGPT.
 - Next bounded action: authorize PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - add an explicit, no-default Truck and Driver selection step to the PTI submission flow, mirroring the pattern now proven twice for Loads.
+- Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c-S4 Independent Review — NEEDS FIX, STOPPED FOR PRODUCT OWNER
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context (implementation commit e682284).
+- Method: fetched every changed file directly via gh api; read populatePTIAttributionSelectors(), the modified updatePTIProgress(), and the modified submitPTI() in full; traced the composition-root wiring (initPTI()'s getWorkspaceContext/getTrucks/readWorkspaceDriverRoster) in index.html; independently reconstructed the changed files in an isolated scratch directory and ran node --test across all five affected test files (62/62 passed); traced the full path from showPTIBlocker() through submitPTI()'s validation gates against the "no Orchestrator account connected" state, which the codebase's own Settings UI documents as fully supported.
+- What is done well: Driver sourced exclusively from the accepted workspace roster adapter (no local/default fallback); Truck sourced from the existing local Truck list (same proof standard already accepted for Load truckId); fresh workspace-match check at submit time mirrors the pattern proven correct for Load driverId; safe HTML escaping; cache correctly rotated v90->v91.
+- BLOCKING FINDING, confirmed by direct code trace: showPTIBlocker() calls populatePTIAttributionSelectors() unconditionally for every user with no role/account-state gate. That function calls readAuthorizedWorkspaceDriverRoster(), which returns {ok:false} whenever loadOrchestratorSession() is null - the normal, documented state for any user who has never connected the optional platform account ("the app continues to work without it" per the Settings UI). For such a user, the Driver select never populates, updatePTIProgress()'s gate requires a non-empty driverId to enable the submit button (permanently disabled), and submitPTI() itself independently re-blocks via the same check. Since showPTIBlocker() hides the entire app until PTI completes, this is a full application lockout, not a degraded feature - and it is a regression, since submitPTI() previously had no Truck/Driver requirement at all and always worked. No test in this commit exercises the accountless-user path.
+- Why this needs Product Owner input rather than just a code fix: there are two materially different correct resolutions - (A) gracefully degrade attribution for PTI the same way workspaceId already degrades for Load (skip the field, submission still succeeds), preserving PTI's always-must-work guarantee, or (B) deliberately require a connected account before PTI can be submitted, as an explicit, informed policy change rather than an implicit side effect of an identity-attribution slice. Choosing between these is a product policy decision this reviewer is not authorized to make.
+- Verdict: NEEDS FIX. Per this session's standing monitoring instruction ("Stop only on a blocker requiring Product Owner decision"), the monitoring loop is stopped pending that decision.
+- Next required actor: Product Owner.
+- Next bounded action: decide (A) graceful degrade vs (B) deliberate account requirement for PTI submission; once decided, authorize Codex to implement the chosen behavior for re-review.
 - Runtime/product files changed: NONE.
