@@ -83,7 +83,7 @@ test('new Load attribution does not add driverId', () => {
 
 test('PTI attribution does not reuse the Load-specific Truck resolver', () => {
   assert.doesNotMatch(ptiSource, /resolveNewLoadTruckAttribution/);
-  assert.match(functionSource(ptiSource, 'function submitPTI()'), /truckId: truck\.id/);
+  assert.match(functionSource(ptiSource, 'function submitPTI()'), /entry\.truckId = attribution\.truckId/);
 });
 
 test('legacy Load without truckId remains unchanged on read', () => {

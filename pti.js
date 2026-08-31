@@ -75,6 +75,8 @@
   let ptiState = {};
   let ptiTrucks = [];
   let ptiDrivers = [];
+  let ptiAttributionAuthority = 'unavailable';
+  let ptiAttributionRequestId = 0;
 
   function init(opts) {
     _get.driver    = opts.getDriver;
@@ -164,8 +166,10 @@
   }
 
   async function populatePTIAttributionSelectors() {
+    const requestId = ++ptiAttributionRequestId;
     const truckSelect = document.getElementById('ptiTruckSelect');
     const driverSelect = document.getElementById('ptiDriverSelect');
+    ptiAttributionAuthority = 'loading';
     ptiTrucks = (_get.trucks() || []).filter(truck => truck && truck.active !== false && String(truck.id || '').trim());
     truckSelect.innerHTML = '<option value="" selected disabled>Truck assignment required</option>' + ptiTrucks.map(truck =>
       `<option value="${_escHtml(truck.id)}">${_escHtml(truck.unitNumber ? 'Unit ' + truck.unitNumber : truck.id)}</option>`
@@ -174,14 +178,23 @@
     driverSelect.innerHTML = '<option value="" selected disabled>Loading authorized Drivers...</option>';
     ptiDrivers = [];
     if (typeof _get.workspaceDriverRoster !== 'function') {
+      ptiAttributionAuthority = 'unavailable';
       driverSelect.innerHTML = '<option value="" selected disabled>Authorized Driver roster unavailable</option>';
+      updatePTIProgress();
       return;
     }
-    const result = await _get.workspaceDriverRoster();
+    const result = await Promise.race([
+      _get.workspaceDriverRoster(),
+      new Promise(resolve => setTimeout(() => resolve({ ok: false, code: 'roster_timeout' }), 5000)),
+    ]);
+    if (requestId !== ptiAttributionRequestId) return;
     if (!result || result.ok !== true || !Array.isArray(result.drivers)) {
+      ptiAttributionAuthority = 'unavailable';
       driverSelect.innerHTML = '<option value="" selected disabled>Authorized Driver roster unavailable</option>';
+      updatePTIProgress();
       return;
     }
+    ptiAttributionAuthority = 'available';
     ptiDrivers = result.drivers.map(driver => ({ ...driver }));
     driverSelect.innerHTML = '<option value="" selected disabled>Driver assignment required</option>' + ptiDrivers.map(driver =>
       `<option value="${_escHtml(driver.driverId)}">${_escHtml(driver.name)}</option>`
@@ -261,7 +274,19 @@
     const odoVal = (document.getElementById('ptiOdometer') || { value: '' }).value || '';
     const truckId = String((document.getElementById('ptiTruckSelect') || { value: '' }).value || '').trim();
     const driverId = String((document.getElementById('ptiDriverSelect') || { value: '' }).value || '').trim();
-    document.getElementById('ptiSubmitBtn').disabled = !(checked === total && total > 0 && odoVal.trim().length > 0 && truckId && driverId);
+    const attributionReady = ptiAttributionAuthority === 'unavailable' ||
+      (ptiAttributionAuthority === 'available' && truckId && driverId);
+    document.getElementById('ptiSubmitBtn').disabled = !(checked === total && total > 0 && odoVal.trim().length > 0 && attributionReady);
+  }
+
+  function resolvePTIAttribution(authority, selection, workspaceResolution) {
+    if (authority === 'unavailable') return { ok: true, attributed: false };
+    if (authority !== 'available') return { ok: false, code: 'attribution_pending' };
+    const truck = selection && selection.truck;
+    const driver = selection && selection.driver;
+    if (!truck || !driver || !workspaceResolution || workspaceResolution.ok !== true) return { ok: false, code: 'invalid_selection' };
+    if (driver.workspaceId !== workspaceResolution.workspaceId) return { ok: false, code: 'workspace_mismatch' };
+    return { ok: true, attributed: true, workspaceId: workspaceResolution.workspaceId, truckId: truck.id, driverId: driver.driverId };
   }
 
   // ── SUBMIT PTI ─────────────────────────────────────────────────────────────
@@ -278,10 +303,8 @@
     const workspaceResolution = global.CrewBIQWorkspaceAttribution
       ? global.CrewBIQWorkspaceAttribution.resolveActiveWorkspace(_get.workspaceContext())
       : { ok: false };
-    if (!truck) return _toast('Truck assignment required', 'err');
-    if (!selectedDriver || !workspaceResolution.ok || selectedDriver.workspaceId !== workspaceResolution.workspaceId) {
-      return _toast('Driver assignment required', 'err');
-    }
+    const attribution = resolvePTIAttribution(ptiAttributionAuthority, { truck, driver: selectedDriver }, workspaceResolution);
+    if (!attribution.ok) return _toast(attribution.code === 'attribution_pending' ? 'Canonical attribution is still loading' : 'Valid canonical Truck and Driver selections required', 'err');
 
     const driver    = _get.driver();
     const isMonday  = new Date().getDay() === 1;
@@ -300,10 +323,14 @@
       passed:    failed.length === 0,
       failCount: failed.length,
       type:      useWeekly ? 'weekly' : 'daily',
-      workspaceId: workspaceResolution.workspaceId,
-      truckId: truck.id,
-      driverId: selectedDriver.driverId,
     };
+    if (attribution.attributed) {
+      entry.workspaceId = attribution.workspaceId;
+      entry.truckId = attribution.truckId;
+      entry.driverId = attribution.driverId;
+    } else {
+      console.warn('[CrewBIQ PTI] canonical attribution unavailable; PTI saved without workspaceId/truckId/driverId');
+    }
 
     // Write back via setter — updates index.html's let ptiLog
     const ptiLog = _get.ptiLog();
@@ -443,6 +470,7 @@
     showPTIBlocker,
     forcePTI,
     submitPTI,
+    resolvePTIAttribution,
     // Checklist interaction (called from HTML onclick)
     togglePTIItem,
     markFail,

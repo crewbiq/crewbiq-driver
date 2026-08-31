@@ -86,11 +86,11 @@ test('new Load only: edit preserves existing driverId and never backfills legacy
 
 test('PTI attribution remains independent from the Load-specific selector helper', () => {
   assert.doesNotMatch(ptiSource, /loadDriverSelect|resolveNewLoadDriverAttribution/);
-  assert.match(functionSource(ptiSource, 'function submitPTI()'), /driverId: selectedDriver\.driverId/);
+  assert.match(functionSource(ptiSource, 'function submitPTI()'), /entry\.driverId = attribution\.driverId/);
 });
 
 test('app shell is cache-rotated and roster loads before Loads module', () => {
   assert.ok(html.indexOf('workspace-driver-roster.js') < html.indexOf('loads.js'));
-  assert.match(swSource, /crewbiq-driver-v91/);
+  assert.match(swSource, /crewbiq-driver-v92/);
   assert.match(swSource, /workspace-driver-roster\.js/);
 });

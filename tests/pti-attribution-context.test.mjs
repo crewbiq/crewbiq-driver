@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../pti.js', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+
+function loadApi() {
+  const window = { CrewBIQCore: { events: { on() {}, emit() {} }, toast() {} } };
+  vm.runInNewContext(source, { window, console, Date, Object, Array, String, Number, Promise, setTimeout }, { filename: 'pti.js' });
+  return window.CrewBIQPTI;
+}
+
+const api = loadApi();
 
 function fn(signature) {
   const start = source.indexOf(signature);
@@ -35,10 +44,9 @@ test('PTI submit validates selected canonical IDs and fresh workspace before wri
   assert.match(submit, /ptiTrucks\.find/);
   assert.match(submit, /ptiDrivers\.find/);
   assert.match(submit, /resolveActiveWorkspace\(_get\.workspaceContext\(\)\)/);
-  assert.match(submit, /selectedDriver\.workspaceId !== workspaceResolution\.workspaceId/);
-  assert.match(submit, /workspaceId: workspaceResolution\.workspaceId/);
-  assert.match(submit, /truckId: truck\.id/);
-  assert.match(submit, /driverId: selectedDriver\.driverId/);
+  assert.match(source, /driver\.workspaceId !== workspaceResolution\.workspaceId/);
+  assert.match(submit, /resolvePTIAttribution\(ptiAttributionAuthority/);
+  assert.match(submit, /entry\.workspaceId = attribution\.workspaceId/);
 });
 
 test('PTI has no AccountDriverLink inference or local roster fallback', () => {
@@ -51,6 +59,26 @@ test('composition passes only canonical Truck IDs and accepted workspace roster 
 });
 
 test('cache-first PTI runtime is rotated', () => {
-  assert.match(sw, /crewbiq-driver-v91/);
+  assert.match(sw, /crewbiq-driver-v92/);
   assert.match(sw, /\/pti\.js/);
+});
+
+test('unavailable authority degrades without fabricating canonical IDs', () => {
+  assert.deepEqual(JSON.parse(JSON.stringify(api.resolvePTIAttribution('unavailable', {}, { ok: false }))), { ok: true, attributed: false });
+  assert.match(submit, /canonical attribution unavailable/);
+});
+
+test('available authority accepts only explicit workspace-matched proof', () => {
+  const selection = { truck: { id: 'truck-1' }, driver: { driverId: 'driver-1', workspaceId: 'workspace-1' } };
+  assert.deepEqual(JSON.parse(JSON.stringify(api.resolvePTIAttribution('available', selection, { ok: true, workspaceId: 'workspace-1' }))), {
+    ok: true, attributed: true, workspaceId: 'workspace-1', truckId: 'truck-1', driverId: 'driver-1',
+  });
+  assert.equal(api.resolvePTIAttribution('available', selection, { ok: true, workspaceId: 'other' }).code, 'workspace_mismatch');
+  assert.equal(api.resolvePTIAttribution('available', {}, { ok: true, workspaceId: 'workspace-1' }).code, 'invalid_selection');
+});
+
+test('loading authority cannot bypass validation and bounded timeout enables degradation', () => {
+  assert.equal(api.resolvePTIAttribution('loading', {}, { ok: false }).code, 'attribution_pending');
+  assert.match(populate, /Promise\.race/);
+  assert.match(populate, /roster_timeout/);
 });
