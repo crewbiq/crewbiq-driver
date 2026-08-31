@@ -39,25 +39,25 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Production / Deployment Readiness Validation
+Production / Deployment Readiness Blocker Corrections B1-B4
 
 Status:
-BLOCKED / REVIEWED - CORRECTIONS AUTHORIZED
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; deployment-readiness evidence independently verified as accurate. Claude cloned both full repositories, ran the exact aggregate driver test command (confirmed 316 passed/1 failed matching B1 exactly), read the actual CORS/health source in the orchestrator (confirmed B3/B4 exactly, including a discovery that an unused healthcheck() function in app/db/connection.py already provides most of the DB-connectivity check B4 needs), and made live read-only GET requests to the actual production Railway service and published GitHub Pages site (confirmed zero of the six accepted routes are live in production; published PWA cache is v79 with neither driver-self.js nor account-driver-link.js). Accepted driver/orchestrator branch artifacts are not yet deployed as an integrated system.
+current main; bounded readiness corrections are published in both repositories. No deployment, merge, migration execution, production-data mutation, or legacy backfill occurred.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
 
 Latest correction commit:
-NONE
+driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator fc9246251241933b1221bd57d72c66777f287aa7 on agent/account-driver-link-read
 
 Latest documentation commit:
 f4c282240cefd181e67f54ba95e411d1380c158a
@@ -66,21 +66,19 @@ Latest review commit:
 3109b6b45dac4a232ca1bd5e6c64e6426fe3770d
 
 Blocking findings:
-DRIVER_CANONICAL_TEST_GATE_RED (B1) - confirmed via independent full test run; ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN (B4) - confirmed via direct source read, a ready-made unused healthcheck() function exists in app/db/connection.py as a likely fast closure path; DRIVER_CI_GATE_STALE_AND_INCOMPLETE (B2) - confirmed via direct workflow file read (hardcoded v85 assertion, 5 canonical modules missing from path filters); ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED (B3) - confirmed via direct source read (wildcard CORS with literal "tighten before production" comment)
+B1-B4 CORRECTIONS PUBLISHED / PENDING INDEPENDENT REVIEW
 
 Queued non-blocking findings:
-- staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending after B1-B4 close
-- legacy attribution/backfill remains explicitly deferred per Product Owner decision, unaffected by this readiness slice
-- (server-side/PWA items carried from prior HISTORY entries, unchanged)
+Staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending. Legacy attribution/backfill remains explicitly deferred.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-close B1-B4 exactly as scoped: (B1) reconcile sidr-contract-resolver-integration-v1.test.mjs's cache-version assertion with v94 without weakening its one-version/cache-shell check, obtain a zero-failure aggregate test:e2e:tooling run; (B2) update .github/workflows/pwa-auth-contract.yml's cache assertion to v94 and add the five omitted canonical modules/tests to its path filters and execution steps; (B3) introduce a fail-closed, environment-driven CORS origin allowlist in crewbiq-orchestrator's app/main.py rejecting wildcard origins in production, with allowed/denied-origin tests; (B4) wire the existing healthcheck() function (or equivalent) into /health or a dedicated readiness endpoint that fails when DB connectivity or required migrations are absent. No deploy, merge, production-data mutation, migration execution, or legacy backfill authorized. Bring corrections back for independent review before any further deployment-order step.
+independently review driver correction 75e2bb8ecb99730e21d1f5dc12862a422b324a17 and orchestrator correction fc9246251241933b1221bd57d72c66777f287aa7; verify B1-B4 closure and publish verdict. No deploy, merge, migration execution, production-data write or legacy backfill is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1276,3 +1274,20 @@ Next bounded action: independent readiness review only.
 - Applying the autonomous handoff protocol: all four blockers are narrow, well-specified technical corrections with no ambiguity requiring further product input. Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex.
 - Next bounded action: close B1-B4 exactly as scoped in the document; bring corrections back for independent review before any further deployment-order step. No deploy, merge, production-data mutation, migration execution, or legacy backfill authorized.
 - Runtime/product files changed: NONE. This review touched no code in either repository (both repository clones were created and deleted entirely within this review session; production/GitHub Pages requests were read-only GETs with no credentials submitted and no state changed).
+### 2026-08-31 - Codex - Production readiness blocker corrections B1-B4
+
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Driver branch: agent/pre-base44-audit
+Driver correction: 75e2bb8ecb99730e21d1f5dc12862a422b324a17
+Driver files: .github/workflows/pwa-auth-contract.yml; sidr-contract-resolver-integration-v1.test.mjs
+Driver result: npm run test:e2e:tooling - 317 passed, 0 failed.
+Orchestrator branch: agent/account-driver-link-read
+Orchestrator correction: fc9246251241933b1221bd57d72c66777f287aa7
+Orchestrator files: .env.example; app/config.py; app/db/connection.py; app/main.py; tests/test_deployment_readiness.py
+Orchestrator result: focused readiness/auth/migration/normalized-ID/roster/assignment/link suite - 71 passed, 0 failed.
+B1: protected exact-one cache assertion reconciled to accepted v94.
+B2: existing workflow cache assertion reconciled to v94; five canonical modules/tests added to both path filters and execution.
+B3: environment-driven explicit CORS origin allowlist; wildcard rejected; production requires HTTPS and at least one origin; allowed/denied preflight covered.
+B4: dedicated /ready returns 503 unless DB is enabled/connected and migrations 010/011 are recorded as applied; /health remains liveness; no migration execution occurs in readiness.
+Deployment/merge/migration execution/production-data mutation/legacy backfill: NONE.
+Next required actor: Claude
