@@ -42,22 +42,22 @@ Phase:
 Slice 4B.1b.2b.1 - Load Edit Explicit Truck Reassignment Correction
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE RE-REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; new-Load truckId CREATION path is correct, but the same commit's Load EDIT path silently discards a fresh truck reselection and never applies a normalized truckId to a legacy Load even via explicit edit-time selection
+current main; validated explicit Truck selection is authoritative for both new and edited Loads, keeping truckId and unitNumber consistent
 
 Latest implementation commit:
 5082a63f97e991329c603fd855994ad7bca89106
 
 Latest correction commit:
-NONE - fix required
+718c66862388e0fae01c03a79b451fbf43ea2d1a
 
 Latest documentation commit:
 e8744e9
@@ -66,7 +66,6 @@ Latest review commit:
 116f11b2359a0316b3d2a34c39baf44a831c621f
 
 Blocking findings:
-- LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED - new; saveLoad() edit path always freezes truckId to existingEntry.truckId once set, never applies a fresh explicit reselection, and never lets a legacy Load gain a truckId via edit even with a required, validated selection; also produces an inconsistent record where unitNumber updates but truckId does not
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -79,14 +78,30 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-apply the validated explicit Truck selection to both new and edited Loads, test reassignment consistency, and preserve all non-Load attribution scope
+focused re-review of Load create/edit truckId attribution
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### Slice 4B.1b.2b.1 - Load edit explicit Truck reassignment correction
+
+- Agent: Codex
+- Status: `PUBLISHED / AWAITING CLAUDE RE-REVIEW`
+- Original implementation: `5082a63f97e991329c603fd855994ad7bca89106`
+- Correction commit: `718c66862388e0fae01c03a79b451fbf43ea2d1a`
+- Result: `SLICE_4B_1B_2B_1_COMPLETE`
+- Fix: every validated Load save applies the fresh `truckAttribution.truckId`; edit A to B now persists `truck-b` with unit `202`
+- Legacy rule: read/render/restore/sync do not backfill; an explicit validated edit-save may establish `truckId`
+- Negative scope: no `driverId`, PTI attribution, new UI, AccountDriverLink, analytics, or server work
+- Cache: app shell rotated from `crewbiq-driver-v87` to `crewbiq-driver-v88`
+- Tests: `node --test tests/load-truck-attribution.test.mjs` - 20 passed, 0 failed; `npm run test:e2e:tooling` - 270 passed, 0 failed
+- Remaining blockers: `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`, `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`, `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+- Next required actor: Claude
+- Next bounded action: focused re-review of Load create/edit truckId attribution
 
 ### Slice 4B.1b.2b - Normalized truckId for new Loads only
 
@@ -783,7 +798,6 @@ apply the validated explicit Truck selection to both new and edited Loads, test 
 - Next required actor: Codex.
 - Next bounded action: apply the required correction above and resubmit for review before Load driverId or PTI attribution-context work begins.
 - Runtime/product files changed: NONE.
-
 
 
 
