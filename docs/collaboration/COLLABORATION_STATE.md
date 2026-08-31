@@ -42,22 +42,22 @@ Phase:
 Production / Deployment Readiness Blocker Corrections B1-B4
 
 Status:
-NEEDS FIX / B1-B3 CLOSED, B4 REGRESSION FOUND
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; B1-B3 corrections verified closed in both repositories. B4's new /ready + deployment_readiness() design is sound but its healthcheck() contract change broke a pre-existing orchestrator test, confirmed failing on live CI. No deployment, merge, migration execution, production-data mutation, or legacy backfill occurred.
+current main; B1-B3 remain closed and the bounded B4 healthcheck contract regression fix is published with a zero-failure full orchestrator suite and green exact-SHA GitHub Actions. No deployment, merge, migration execution, production-data mutation, or legacy backfill occurred.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
 
 Latest correction commit:
-driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17 (CLOSED); orchestrator fc9246251241933b1221bd57d72c66777f287aa7 on agent/account-driver-link-read (B3 CLOSED, B4 REGRESSION)
+driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator f00532a3437e14354748ef23a7827687797baa4f on agent/account-driver-link-read
 
 Latest documentation commit:
 f4c282240cefd181e67f54ba95e411d1380c158a
@@ -66,7 +66,7 @@ Latest review commit:
 44cb286bba99c5242f6dfa838b40f35588699d16
 
 Blocking findings:
-ORCHESTRATOR_HEALTHCHECK_CONTRACT_REGRESSION - app/db/connection.py healthcheck() disabled-DB return shape changed, breaking tests/test_db_phase1.py::test_db_helpers_noop_when_disabled. Confirmed via full canonical `pytest -q --tb=short` run (1 failed/317 passed/2 skipped) AND via live GitHub Actions check-runs for commit fc9246251241933b1221bd57d72c66777f287aa7 (pytest: failure), versus prior commit ac98b1117 (pytest: success).
+ORCHESTRATOR_HEALTHCHECK_CONTRACT_REGRESSION - CORRECTION PUBLISHED / PENDING INDEPENDENT REVIEW
 
 Queued non-blocking findings:
 Staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending. Legacy attribution/backfill remains explicitly deferred.
@@ -75,10 +75,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Fix the healthcheck()/test_db_phase1.py contract mismatch in crewbiq-orchestrator: either (1) keep healthcheck()'s prior return contract unchanged and have deployment_readiness() independently determine not-ready-when-disabled without relying on healthcheck()'s ok field for that meaning, or (2) keep the new healthcheck() semantics and update test_db_phase1.py's stale assertion to match, since it would then be a deliberate documented change. Either way, do not weaken any test. Completion requires a genuinely full `pytest -q --tb=short` run with zero failures AND the live GitHub Actions check run for the fix commit showing success. No deploy, merge, migration execution, or scope broadening authorized.
+independently review orchestrator fix f00532a3437e14354748ef23a7827687797baa4f, confirm the legacy disabled-DB healthcheck contract and fail-closed deployment_readiness behavior both hold, and publish verdict. No deploy, merge, migration execution, production-data write or legacy backfill is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1307,3 +1307,18 @@ Next required actor: Claude
 - Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: fix the healthcheck()/test_db_phase1.py mismatch per above, then confirm a genuinely full `pytest -q --tb=short` zero-failure run AND a live GitHub Actions `success` check run for the fix commit before republishing for review. No deploy, merge, migration execution, or scope broadening authorized.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 44cb286bba99c5242f6dfa838b40f35588699d16).
 - Runtime/product files changed by this review: NONE.
+### 2026-08-31 - Codex - ORCHESTRATOR_HEALTHCHECK_CONTRACT_REGRESSION correction
+
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Orchestrator repository: crewbiq/crewbiq-orchestrator
+Branch: agent/account-driver-link-read
+Correction commit: f00532a3437e14354748ef23a7827687797baa4f
+Changed file: app/db/connection.py
+Correction: restored the pre-existing disabled-DB healthcheck() return contract while deployment_readiness() independently requires db_enabled() and connected=true before migration checks.
+Full local command: pytest -q --tb=short
+Full local result: 318 passed, 2 skipped, 0 failed in 18.62s.
+Live GitHub Actions: run 33446780273 on exact correction SHA; pytest job success.
+Driver/runtime files changed: NONE.
+Deployment/merge/migration execution/production-data mutation/legacy backfill: NONE.
+Next required actor: Claude
+Next bounded action: independent regression-fix review only.
