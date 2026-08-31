@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c-S1 - Read-Only Workspace Driver Roster Server Action
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; the orchestrator read-only workspace Driver roster prerequisite is published, while client Driver selection and driverId normalization remain unimplemented pending independent review
+current main; the orchestrator read-only workspace Driver roster endpoint is accepted (GET /v1/workspaces/{workspaceId}/drivers, snake_case response); client Driver selection and driverId normalization remain unimplemented pending a bounded PWA adapter slice
 
 Latest implementation commit:
 412c39d94f357dcbf04f356fc9b210deb84abb8f (crewbiq/crewbiq-orchestrator)
@@ -63,10 +63,10 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-96569e179dc07f92f9589629d90f904c92c4f8ca
+5470951bb8596f0986dde0ba41534b6f87f34fd8
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - server prerequisite published, pending Claude acceptance
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - resolved at the server layer; genuine workspace-scoped source confirmed via workspaces.legacy_owner_crewbiq_id's unique constraint bridging to fleet_driver_profiles.owner_crewbiq_id (schema-verified, not an inference); client-side blocker narrows to: PWA has not yet consumed this endpoint
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -78,18 +78,19 @@ Queued non-blocking findings:
 - canonical workspace timeZone source remains unspecified
 - backend/Orchestrator AccountDriverLink implementation remains external
 - a proven-workspace-only Driver selector built without a migration path would hide nearly the entire existing driver roster from selection - future Driver-selector UI work must sequence after or alongside a migration/backfill plan, not treat filtering alone as sufficient
+- orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
 
 Cross-repository implementation:
-crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f
+crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f (ACCEPTED)
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent review of the orchestrator workspace Driver roster implementation
+authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspaces/{workspaceId}/drivers, mirroring account-driver-link.js exactly - validate response shape, fail closed on any workspace mismatch or malformed entry, no fallback, no UI wiring, no driverId writes yet
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -858,6 +859,20 @@ independent review of the orchestrator workspace Driver roster implementation
 - Next required actor: ChatGPT.
 - Next bounded action: hand off a request for a server-side read-only workspace Driver roster endpoint/action (contract above) to whichever repository owns the backend/Orchestrator, out of this repository's authority; do not begin client-side Driver-selector UI, driverId normalization, or legacy-roster migration until it (or equivalent accepted provenance) exists.
 - Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c-S1 Independent Review (cross-repository)
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.2c-S1 - Read-Only Workspace Driver Roster Server Action, implemented in crewbiq/crewbiq-orchestrator (branch agent/workspace-driver-roster-read, commit 412c39d).
+- Method: fetched the full implementation diff directly via gh api against crewbiq/crewbiq-orchestrator; read app/routers/workspace_drivers.py in full; traced current_user/authenticate_token (app/routers/auth.py, app/services/auth_service.py) to confirm reuse of the existing Bearer-session mechanism; read the workspaces/fleet_driver_profiles schema migrations directly to verify the workspace-to-Driver bridging is genuine, not an inference; reconstructed the minimal importable package in an isolated scratch directory and independently ran pytest against the real test file (8/8 passed); compared db_enabled()/get_pool()/to_regclass() usage against the existing fleet.py router to confirm the pattern is reused, not invented.
+- Key finding: fleet_driver_profiles has no workspace_id column; the endpoint bridges via workspaces.legacy_owner_crewbiq_id -> fleet_driver_profiles.owner_crewbiq_id. Independently verified in migrations/007_identity_workspace.sql that legacy_owner_crewbiq_id carries a database-enforced UNIQUE constraint, making this bridge schema-guaranteed and leak-proof rather than an inference. Codex's decision not to stop with COORDINATOR_REQUIRED is independently confirmed correct.
+- Confirmed: authorization requires exactly one active membership matching the requested workspace (403 on none, 409 on ambiguous, database never reached for unauthorized/cross-workspace requests); memberships are derived fresh from a live DB join on every request, never cached; driver_profile_id carries a table-wide unique constraint (stable canonical driverId); malformed records (empty id/name, non-bool is_active, bad timestamp type, active+terminated_at contradiction, duplicate ids) all fail closed with 502 rather than silently dropping; no writes anywhere (test double's execute() raises if ever called, asserted across every test); no migration file, no admin mutation route, no deployment change; response correctly uses the project's real snake_case convention rather than the task prompt's illustrative camelCase pseudocode - the correct judgment call, called out explicitly.
+- Non-blocking observation: _authorized_workspace_id()'s status-defaults-to-active fallback is redundant given current data (already pre-filtered to active-only) but harmless; not a defect.
+- Blockers reassessed: AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN is resolved at the server layer; the client-side blocker narrows to "PWA has not yet consumed this endpoint." SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN, CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING, and PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING remain open, unrelated to this slice.
+- Verdict: ACCEPT. Slice 4B.1b.2c-S1 is CLOSED.
+- Next required actor: ChatGPT.
+- Next bounded action: authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspaces/{workspaceId}/drivers, mirroring account-driver-link.js exactly - validate response shape, fail closed on any workspace mismatch or malformed entry, no fallback, no UI wiring, no driverId writes yet.
+- Runtime/product files changed: NONE. This review touched no code in either repository.
 
 
 
