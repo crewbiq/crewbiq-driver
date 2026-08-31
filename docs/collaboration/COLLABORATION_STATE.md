@@ -39,22 +39,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.3-S2 - DriverTruckAssignment Mutation Commands
+Slice 4B.1b.3-S3 - DriverTruckAssignment PWA Read-Only Adapter
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; orchestrator mutation commands accepted on agent/driver-truck-assignment-mutations at c4ac01d1b106a9570b24df0ffacec7855aaee57e. Create/close/revoke are server-workspace and actor scoped, manage-capability gated, idempotent, optimistic-concurrency checked, audit-appending, and preserve historical rows. The integrity trigger's overlap/workspace/concurrency behavior was independently executed by Claude against a separately-provisioned live PostgreSQL 16 instance (not just read), confirming every claimed rule including genuine advisory-lock-based concurrency serialization. DriverTruckAssignment now has a complete, verified server foundation (read + mutate); no PWA/UI consumption exists yet.
+current main; Product Owner selected A first, then C, then B. Accepted orchestrator read/mutation foundation is authoritative; this bounded slice starts with discovery and may add only the smallest safe PWA read-only adapter consuming accepted current/history/as-of reads.
 
 Latest implementation commit:
-c4ac01d1b106a9570b24df0ffacec7855aaee57e (crewbiq/crewbiq-orchestrator @ agent/driver-truck-assignment-mutations)
+PENDING
 
 Latest correction commit:
 NONE for this slice
@@ -69,27 +69,28 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-- CURRENT_PROJECTION_STRATEGY_UNDEFINED remains the one deliberately-deferred item from the original discovery (legacy dual-write projection strategy) - correctly out of scope, not part of this slice
-- the raw_payload round-trip test from Slice 4B.1b.2c-S5 still has no live-Postgres counterpart, unlike this slice, which sets a strong precedent for closing that kind of gap - worth revisiting now that CI Postgres infrastructure exists
-- driver_truck_assignments.py's stricter active-workspace requirement vs workspace_drivers.py's looser membership check - inconsistency across endpoints, not a defect
-- no explicit test for an entirely-empty active_workspace_id
-- (carried forward from prior reviews) resolveDefaultTruck case/whitespace sensitivity; deduction-template save branch without truckId guard; cosmetic formatting artifact; canonical workspace timeZone source unspecified; Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific; account-connected user with empty Driver roster cannot submit PTI; HISTORY append-order inconsistency; CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING relevant only to future SELF UI
+Slice 4B.2 Driver SELF UI follows accepted client integration; legacy attribution/backfill remains queued after SELF UI. No ranking, migration, deploy, or merge.
 
 Decision gate:
-COORDINATOR_REQUIRED
-
-Decision required:
-Should the next slice be (A) a PWA-side DriverTruckAssignment adapter/UI consuming the now-accepted server read/mutation foundation, mirroring the AccountDriverLink/workspace-Driver-roster adapter pattern, (B) 4B.1b.4 legacy attribution/backfill tooling, or (C) 4B.2 a real driver-role SELF UI? Each is a materially different scope/priority choice not resolved by any already-accepted document - this is a genuine product-sequencing decision, not a bounded technical continuation with an already-specified next step.
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-decide which of (A)/(B)/(C) above to authorize next; once decided, hand off to Codex with a single bounded technical slice per the autonomous handoff protocol.
+discover existing PWA transport/adapter conventions and implement the smallest read-only DriverTruckAssignment adapter against accepted server endpoints, with effective-dated fail-closed semantics and no first-record or inferred identity fallback.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Product Owner - DriverTruckAssignment Client Priority Decision
+
+- Selected sequence: A (DriverTruckAssignment client integration), then C (Driver SELF UI), then B (legacy attribution/backfill tooling).
+- Constraint: canonical server remains authoritative; prove the new assignment path before any backfill.
+- First bounded action: discovery plus smallest safe read-only PWA adapter; no broad UI mutation, fallback, ranking, migration, merge, or deployment.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Codex
 
 ### 2026-08-31 - Codex - Slice 4B.1b.3-S2 DriverTruckAssignment Mutation Commands Publication
 
