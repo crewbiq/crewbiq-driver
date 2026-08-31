@@ -92,14 +92,32 @@ test('legacy Load without truckId remains unchanged on read', () => {
   assert.equal('truckId' in legacy, false);
 });
 
-test('editing legacy Load does not silently backfill truckId', () => {
-  assert.match(saveLoadSource, /if \(existingEntry && Object\.prototype\.hasOwnProperty\.call\(existingEntry, 'truckId'\)\)/);
-  assert.match(saveLoadSource, /if \(!editId\) entry\.truckId = truckAttribution\.truckId;/);
+test('edit Truck A to Truck B applies fresh truckId and matching unitNumber', () => {
+  const existing = { id: 'load-1', truckId: 'truck-a', unitNumber: '101' };
+  const selection = { truckId: 'truck-b', unitNumber: '202' };
+  const attribution = api.resolveNewLoadTruckAttribution(selection);
+  const saved = { ...existing, unitNumber: selection.unitNumber, truckId: attribution.truckId };
+  assert.deepEqual(saved, { id: 'load-1', truckId: 'truck-b', unitNumber: '202' });
+  assert.match(saveLoadSource, /entry\.truckId = truckAttribution\.truckId;/);
+  assert.doesNotMatch(saveLoadSource, /entry\.truckId = existingEntry\.truckId/);
   assert.doesNotMatch(saveLoadSource, /truckId:\s*truckSel\.truckId/);
 });
 
-test('editing a normalized Load preserves its existing truckId', () => {
-  assert.match(saveLoadSource, /entry\.truckId = existingEntry\.truckId;/);
+test('no stale truckId survives explicit reassignment', () => {
+  assert.doesNotMatch(saveLoadSource, /existingEntry[^\n]*truckId|truckId[^\n]*existingEntry/);
+});
+
+test('same-Truck edit retains the validated canonical id', () => {
+  assert.equal(api.resolveNewLoadTruckAttribution({ truckId: 'truck-a', unitNumber: '101' }).truckId, 'truck-a');
+});
+
+test('legacy Load gains truckId only through explicit validated edit save', () => {
+  const legacy = { id: 'load-old', unitNumber: 'legacy-unit' };
+  const attribution = api.resolveNewLoadTruckAttribution({ truckId: 'truck-b', unitNumber: '202' });
+  const saved = { ...legacy, unitNumber: '202', truckId: attribution.truckId };
+  assert.equal(saved.truckId, 'truck-b');
+  assert.equal(saved.unitNumber, '202');
+  assert.equal('truckId' in legacy, false);
 });
 
 test('truckId survives local serialization', () => {

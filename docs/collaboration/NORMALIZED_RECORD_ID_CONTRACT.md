@@ -6,7 +6,7 @@ Status: `WORKSPACE_ONLY_IMPLEMENTED / AWAITING REVIEW`
 
 New Loads now retain the stable canonical `Truck.id` returned by the existing explicit Load truck selection. `unitNumber` remains a separate business/display identifier and is never accepted by the normalized attribution helper as `truckId`. Missing or invalid canonical selection fails closed through the existing "Truck assignment required" behavior.
 
-This is new-record-only normalization. Editing a legacy Load without `truckId` does not add the field; editing a normalized Load preserves its existing `truckId`. PTI attribution and `driverId` are unchanged. Client object serialization, restore/import pass-through, and sync record stamping preserve the field, but server round-trip remains unproven.
+Creation and explicit edit saves use the same validated selection. On edit, the freshly selected canonical Truck is authoritative, so `truckId` and `unitNumber` remain consistent when a Load is reassigned. A legacy Load may gain `truckId` only through this explicit, validated edit-save event; reading, rendering, restoring, syncing, or background processing never backfills it. PTI attribution and `driverId` are unchanged. Client object serialization, restore/import pass-through, and sync record stamping preserve the field, but server round-trip remains unproven.
 
 | Record | workspaceId | truckId | driverId |
 | --- | --- | --- | --- |

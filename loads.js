@@ -392,10 +392,7 @@
     if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'workspaceId')) {
       entry.workspaceId = existingEntry.workspaceId;
     }
-    if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'truckId')) {
-      entry.truckId = existingEntry.truckId;
-    }
-    if (!editId) entry.truckId = truckAttribution.truckId;
+    entry.truckId = truckAttribution.truckId;
     if (!editId && global.CrewBIQWorkspaceAttribution) {
       const attribution = global.CrewBIQWorkspaceAttribution.attributeNewRecord(entry, _get.workspaceContext());
       entry = attribution.record;

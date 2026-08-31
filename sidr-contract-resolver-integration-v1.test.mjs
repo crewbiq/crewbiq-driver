@@ -67,7 +67,7 @@ test('protected bridge delegates once and fails closed when the module is absent
 });
 
 test('protected app shell and tooling source recognize the extracted module', () => {
-  assert.equal((sw.match(/const CACHE_NAME = 'crewbiq-driver-v87';/g) || []).length, 1);
+  assert.equal((sw.match(/const CACHE_NAME = 'crewbiq-driver-v88';/g) || []).length, 1);
   assert.equal(
     (sw.match(/'\/crewbiq-driver\/fleet-load-resolution\.js'/g) || []).length,
     1,
