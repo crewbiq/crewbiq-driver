@@ -2378,3 +2378,66 @@ I do not have the authority or the product context to choose between these, and 
 **STOP for Product Owner decision.** Do not authorize further PTI, Load `driverId`/`truckId`, or roster-consuming work until a Product Owner decides how PTI submission should behave for a user with no connected Orchestrator account: (A) gracefully degrade (skip attribution, submission still succeeds) or (B) deliberately require an account (an explicit, informed policy change, not an implicit side effect). Once decided, Codex should implement the chosen behavior and this slice should be re-reviewed before it can close.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.2c-S4 Correction Independent Re-Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent re-review of the Product Owner-directed correction (commit `1948ea7`) to Slice 4B.1b.2c-S4, implementing option (A) — graceful degrade for PTI attribution — after this reviewer's prior `NEEDS FIX` finding that PTI submission was permanently blocked for any user without a connected Orchestrator account.
+**Method:** fetched the full correction diff directly via `gh api`; read the corrected `populatePTIAttributionSelectors()`, the new `resolvePTIAttribution()`, the modified `updatePTIProgress()`, and the modified `submitPTI()` in full; independently reconstructed the changed files in an isolated scratch directory and ran `node --test` across all five affected test files (65/65 passed, not merely trusted); specifically re-traced the exact failure path from the prior review (`showPTIBlocker → populatePTIAttributionSelectors → readAuthorizedWorkspaceDriverRoster returns unavailable when `loadOrchestratorSession()` is `null``) against the corrected code to confirm it no longer blocks submission.
+
+### The fix, traced end-to-end
+
+A new tri-state `ptiAttributionAuthority` (`'loading'` / `'available'` / `'unavailable'`) now governs both the submit-button gate and the actual write path:
+
+- `resolvePTIAttribution('unavailable', ...)` returns `{ ok: true, attributed: false }` — a **successful** non-attribution result. Confirmed directly in source and by the new test `'unavailable authority degrades without fabricating canonical IDs'`.
+- In `submitPTI()`, `if (!attribution.ok) return _toast(...)` only blocks when `attribution.ok` is `false` — which happens for `'loading'` (mid-flight) or `'available'`-but-invalid-selection, **never** for `'unavailable'`. This directly closes the exact lockout path I traced in the prior review: a user with no Orchestrator session now reaches `ptiAttributionAuthority = 'unavailable'` (after the roster call fails or the adapter is absent) and `resolvePTIAttribution` lets the submission through.
+- When `attribution.attributed` is `false`, the entry is built with `workspaceId`/`truckId`/`driverId` simply omitted, paired with `console.warn('[CrewBIQ PTI] canonical attribution unavailable; PTI saved without workspaceId/truckId/driverId')` — verified directly in source, and it is the exact pattern already established and accepted for Load's `workspaceId` in `loads.js` (skip the field, warn, never block), matching the Product Owner's explicit instruction to mirror that behavior.
+- `updatePTIProgress()`'s new gate — `attributionReady = authority === 'unavailable' || (authority === 'available' && truckId && driverId)` — restores the pre-regression odometer/checklist-only gate for `'unavailable'`, while correctly **preserving** the no-default-selection requirement whenever a roster genuinely is available (an account-connected user still cannot skip an explicit Truck/Driver selection — the graceful degrade applies only to the *absence* of authority, not to bypassing it when present, exactly as intended).
+
+### The `'loading'` state and bounded timeout
+
+`populatePTIAttributionSelectors()` now races the roster fetch against a 5-second timeout (`Promise.race([_get.workspaceDriverRoster(), new Promise(resolve => setTimeout(() => resolve({ok:false, code:'roster_timeout'}), 5000))])`), and a `ptiAttributionRequestId` counter (mirroring the same pattern already used in the Load driver-selector) discards a stale, slower resolution if the PTI blocker was reopened before the first call settled. This means the *worst case* for any user is a maximum 5-second wait before the state resolves to `'unavailable'` and submission becomes possible — not an indefinite hang. `resolvePTIAttribution('loading', ...)` independently returns `{ok:false, code:'attribution_pending'}` as defense-in-depth, in case a race allowed a submit attempt before the button's own disabled state caught up — correctly still blocking only the brief loading window, not the resolved-unavailable state.
+
+### Fail-closed behavior preserved for the available case
+
+Confirmed via the new test `'available authority accepts only explicit workspace-matched proof'`: when authority is `'available'`, `resolvePTIAttribution` still rejects a missing selection (`invalid_selection`) and a workspace-mismatched Driver (`workspace_mismatch`) exactly as before this correction — the fail-closed discipline for users who *do* have a connected, resolvable workspace is completely unchanged. No `AccountDriverLink`/`loadDriverProfiles`/first-item/default-selection pattern was introduced anywhere (re-confirmed via grep, matching the pre-existing test `'PTI has no AccountDriverLink inference or local roster fallback'`).
+
+### Independent test execution
+
+Reconstructed the full changed-file set in an isolated scratch directory and ran `node --test` across `tests/pti-attribution-context.test.mjs` and the four adjacent affected test files together: **65/65 passed.** The new test suite specifically closes the coverage gap this reviewer flagged in the prior review — `'unavailable authority degrades without fabricating canonical IDs'` directly exercises the previously-untested accountless-user path. The two pre-existing Load test files' PTI-related assertions were updated only to match the refactored `entry.driverId = attribution.driverId` / `entry.truckId = attribution.truckId` assignment syntax — mechanical, not a weakening. Service-worker cache correctly rotated `v91 → v92`.
+
+### Non-blocking observations
+
+- The combined toast message for the `'available'`-but-invalid-selection case ("Valid canonical Truck and Driver selections required") is slightly less specific than the prior separate "Truck assignment required"/"Driver assignment required" messages. Minor UX regression, not functional; not worth another correction cycle on its own.
+- A user who *does* have a connected Orchestrator account, but whose workspace's Driver roster is genuinely empty (zero registered drivers), will still have `attributionReady` permanently false for the Driver field, since `driverSelect.disabled = !ptiDrivers.length` never enables with zero drivers. This is **consistent with the already-accepted Load `driverId` precedent** (Slice 4B.1b.2c-S3, which has the same requirement for Load creation) — it is not the regression this correction was scoped to fix (that was specifically about *no session at all*, not an available-but-empty roster), so it is noted here for completeness but not treated as a new blocking finding.
+- The `setTimeout` inside the `Promise.race` is never explicitly cleared after the race settles — harmless for a one-shot UI population call, but a minor cleanliness nitpick.
+
+### Verdict
+
+**ACCEPT**
+
+This correction precisely implements the Product Owner's chosen direction (A): PTI submission is restored to always succeeding for a user with no workspace/roster authority, while every fail-closed guarantee for users who *do* have authority is completely unchanged. The bounded 5-second timeout is a thoughtful addition beyond the literal request, preventing an indefinite "loading" hang without reintroducing any guessing.
+
+### Blocking findings (reassessed)
+
+- `PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT` — **resolved.** Confirmed via direct trace and independent test execution that PTI submission now always succeeds regardless of Orchestrator/workspace account state, with attribution written only when genuinely proven. Removed from the blocking list.
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` (carried forward, unrelated to this correction)
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` (carried forward, narrowed scope unchanged from the prior review)
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Orchestrator's `_authorized_workspace_id()` redundant status-default (server-side, prior review).
+- Driver reassignment during Load edit remains out of scope by design (carried forward from Slice 4B.1b.2c-S3).
+- Combined PTI toast message is slightly less specific than before (this review, informational).
+- An account-connected user whose workspace has zero registered Drivers cannot submit PTI either — consistent with the already-accepted Load `driverId` precedent, not a new gap (this review, informational).
+- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) — documentation-hygiene observation only.
+
+### Recommended next bounded action
+
+With Load `workspaceId`/`truckId`/`driverId` and PTI `workspaceId`/`truckId`/`driverId` (both with correct graceful degradation) now complete and accepted, the client-side normalized-ID track for Slice 4B.1b.2c is substantively finished. Remaining open work is `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` — a real backend persistence/restore round-trip test/implementation, which remains a separate, server-side, cross-repository track (backend/Orchestrator), out of this repository's authority to implement or gate directly.
+
+Runtime/product files changed by this review: NONE.
