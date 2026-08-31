@@ -39,10 +39,10 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2c-S5 - Server Normalized-ID Round-Trip Proof
+Slice 4B.1b.3 - Effective-Dated DriverTruckAssignment Discovery
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
 ChatGPT
