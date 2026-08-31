@@ -2441,3 +2441,68 @@ This correction precisely implements the Product Owner's chosen direction (A): P
 With Load `workspaceId`/`truckId`/`driverId` and PTI `workspaceId`/`truckId`/`driverId` (both with correct graceful degradation) now complete and accepted, the client-side normalized-ID track for Slice 4B.1b.2c is substantively finished. Remaining open work is `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` — a real backend persistence/restore round-trip test/implementation, which remains a separate, server-side, cross-repository track (backend/Orchestrator), out of this repository's authority to implement or gate directly.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.2c-S5 Independent Review (cross-repository) — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.2c-S5 — Server Normalized-ID Round-Trip Proof, implemented in `crewbiq/crewbiq-orchestrator` (branch `agent/normalized-id-roundtrip`, commit `1fc1057`), addressing the long-standing `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` blocker.
+**Method:** fetched the full diff directly via `gh api` (only `tests/test_normalized_id_roundtrip.py` was added — no runtime file was changed); read the new test file in full; read the real, unmodified `_write_loads`/`_write_pti` (`app/services/sync_writer.py`) and `_restore_loads`/`_restore_pti` (`app/routers/restore.py`) functions in full to independently verify whether the new test's fake in-memory connection accurately reflects the real SQL structure, and whether the actual persistence/restore logic could silently drop unknown fields; reconstructed the minimal package in an isolated scratch directory and independently ran `pytest` against the real test file (3/3 passed, not merely trusted); confirmed the four other regression test files cited in the publication (`test_full_pwa_restore.py`, `test_sync_repair.py`, `test_sync_retry_idempotency.py`, `test_tenant_isolation.py`) exist as pre-existing, unmodified files.
+
+### The central question: is this genuine proof, or still "just a contract test"?
+
+This reviewer's own prior answer to "is a server roundtrip contract test enough" (Slice 4B.1b.2 blocker review) was: "Actual backend implementation is required first... requires exercising a real (even minimal) backend implementation." The commit here adds **only a test file** — no runtime code changed — so the first question is whether this is a real proof or merely a well-written mock asserting an agreed shape with nothing real behind it.
+
+It is genuine, verified proof of the application-level logic, with one honest caveat. Independently read the real, production `_write_loads`/`_write_pti`:
+
+```python
+await conn.execute("""insert into driver_loads (... raw_payload) values (... $22::jsonb)""", ..., json.dumps(load))
+```
+
+The **entire** `load`/`pti` dict — not a hand-picked subset of named fields — is serialized whole into a genuine `jsonb` column via `json.dumps(load)`. This means any field present on the object, known or not, including `workspaceId`/`truckId`/`driverId`, is written verbatim. And the real, production `_restore_loads`/`_restore_pti`:
+
+```python
+payload = _json_object(data.get("raw_payload"))
+payload.update({ "id": ..., "loadId": ..., "status": ..., ... })  # explicit, curated overrides only
+```
+
+Restoration starts from the **whole decoded payload** as the base object and only overlays a deliberately curated set of authoritative mutable columns (status, pickup/delivery, numeric fields, etc.) for freshness — `workspaceId`/`truckId`/`driverId` are **not** in that override list, so they pass through completely untouched from the original payload. This is a generic pass-through mechanism, not a fixed-column reconstruction that could silently drop new fields — verified by reading the actual code, not inferred from the test.
+
+The new test's fake `RoundTripConn.execute()`/`fetch()` was cross-checked against the real SQL column lists and positional argument counts (22 columns for `driver_loads`, 15 for `pti_log`) — the fake's `args[21]`/`args[14]` → `raw_payload` mapping is correct and matches the real parameterized query exactly. Because the test imports and calls the **actual, unmodified** `_write_loads`/`_write_pti`/`_restore_loads`/`_restore_pti` functions (not stubs or reimplementations), this test genuinely exercises the real application logic's encode/decode round-trip — the part of the system most likely to contain a bug (e.g., a hand-curated restore function that forgets a field).
+
+### What is *not* proven, honestly stated
+
+This test does not touch a live PostgreSQL instance — the connection is an in-memory Python fake, not a real database. It therefore cannot catch a genuinely database-level issue (e.g., an actual schema mismatch, a `raw_payload` column that isn't really `jsonb` in a deployed environment, or an asyncpg-specific JSON codec quirk). This is a real, residual gap, but a materially smaller one than what originally justified the blocker: `jsonb` round-tripping an arbitrary JSON object is extremely standard, well-established Postgres/asyncpg behavior, not a novel or fragile mechanism, and the part of the system that previously had **zero** proof (the application's own encode/decode logic) is now directly and verifiably correct.
+
+### Independent test execution
+
+Reconstructed the minimal importable package (`app/routers/{restore,auth,fleet}.py`, `app/services/{sync_writer,auth_service,capabilities}.py`, `app/db/connection.py`, `app/config.py`) in an isolated scratch directory and ran `pytest` directly against the real test file: **3/3 passed** — `test_normalized_workspace_truck_driver_ids_round_trip_for_load_and_pti`, `test_degraded_records_round_trip_without_fabricated_ids` (confirms a record with no `workspaceId`/`truckId`/`driverId` at write time gains none of them on restore — no fabrication), and `test_round_trip_restore_is_tenant_scoped` (confirms `OWNER-A`'s restore never returns `OWNER-B`'s records, even when both carry normalized IDs). Confirmed the four other cited regression test files exist as pre-existing, unmodified files in the repository.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings (reassessed)
+
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` — **resolved.** The real, unmodified persistence and restore functions are verified, via direct code reading and independent test execution, to genuinely and generically round-trip `workspaceId`/`truckId`/`driverId` (and any other field) through a `jsonb raw_payload` column, without fabricating IDs for degraded records and without leaking across tenants. The one honest caveat — no live-Postgres integration test — is a small, well-understood residual, not the "we have no idea if this works" gap that originally justified the blocker.
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` — unchanged from the prior review's narrowed scope (relevant only to future driver-role `SELF` UI work, not to Load/PTI `driverId`, which is fully bypassed via the explicit-selector pattern).
+
+No blocking findings remain open for the Slice 4B.1b.2c track as scoped by this session.
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Orchestrator's `_authorized_workspace_id()` redundant status-default.
+- Driver reassignment during Load edit remains out of scope by design.
+- Combined PTI toast message is slightly less specific than before.
+- An account-connected user whose workspace has zero registered Drivers cannot submit PTI either — consistent with the already-accepted Load `driverId` precedent.
+- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) — documentation-hygiene observation only.
+- No live-PostgreSQL integration test exists for the `raw_payload` round-trip — a residual, low-risk gap (this review), worth closing eventually with a real database fixture but not blocking given standard `jsonb` behavior and the now-verified application-level correctness.
+
+### Recommended next bounded action
+
+The client- and server-side normalized-ID work scoped in this session (Slice 4B.1b.2c and its sub-slices S1–S5) is now substantively complete: Load and PTI `workspaceId`/`truckId`/`driverId`, with correct graceful degradation and a verified server round-trip. The original `IDENTITY_ATTRIBUTION_CONTRACT.md`'s bounded implementation sequence lists three further phases not yet authorized in this session — `4B.1b.3` (effective-dated `DriverTruckAssignment`), `4B.1b.4` (legacy attribution/backfill tooling), and `4B.2` (a real driver-role `SELF` UI consuming `AccountDriverLink`). Which of these to pursue next is a product-sequencing decision for ChatGPT/Product Owner, not something this review presumes to select.
+
+Runtime/product files changed by this review: NONE. This review touched no code in either repository.
