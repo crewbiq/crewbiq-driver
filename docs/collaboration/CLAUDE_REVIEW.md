@@ -2025,3 +2025,111 @@ The correction is precise, minimal, and directly resolves the confirmed defect w
 With Load `truckId` (creation and edit-time reassignment) now fully closed, the safest next step is a future explicit Driver-selection UI control for Load `driverId` (not `AccountDriverLink`, not a default), designed from the start to respect fresh edit-time reselection the way `truckId` now correctly does. PTI attribution-context UI work and the `AccountDriverLink` server handoff remain separate, independently-sequenced tracks.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.2c Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Review whether the client can safely construct an authorized Driver roster for the active workspace from current data (docs commit `7c7b4c1`), and whether `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN` is real and correctly scoped. No implementation, no UI, no `driverId` added.
+**Method:** fetched the documentation diff directly via `gh api`; independently traced every current data source named in the mission against branch-tip runtime (`fafc330`) rather than trusting the docs — read `normalizeDriverProfileRecord()` and `loadDriverProfiles()`/`saveDriverProfiles()` in full (`index.html:4816-4893`); traced `scopedLoad`/`scopedSave` to confirm their storage key is derived from local device/account identity, not workspace; read `restoreFleetConfigFromOrchestrator()` and the `/v1/fleet/config` action adapter in `core-runtime.js` in full; grepped the entire repo tree for any driver/fleet/team/roster-related file or endpoint; confirmed the only existing canonical/workspace-scoped read endpoint (`/v1/canonical/company-truck`, capability `canonical.company_truck.reconcile`) is Company/Truck-only by name and by response shape; re-read `account-driver-link.js` and `IDENTITY_ATTRIBUTION_CONTRACT.md`'s `DriverTruckAssignment` section to verify the expected distinctions in items 11-12.
+
+### Data sources verified
+
+- **`driverProfiles`** — `normalizeDriverProfileRecord()` (`index.html:4816`) has no `workspaceId`/`workspace_id` field of any kind, confirmed by full read of every field it normalizes (pay, rate, team, CDL, contact, active/terminated — no workspace anywhere). `loadDriverProfiles()`/`saveDriverProfiles()` use `scopedLoad`/`scopedSave`, whose key (`dataKey(k)`) is derived from the local device/account identity partition (the same `ownerKey`/ `getDriverIdentityKey()` mechanism used for `loads`/`ptiLog`), not from any workspace/membership concept. **Confirmed: driver profiles are locally identity-scoped, not workspace-scoped.**
+- **Authenticated membership context** — exists (`me.memberships[].workspace.id`, used by `workspace-attribution.js`/`account-driver-link.js`) but has no join key to `driverProfiles` at all; nothing in the codebase cross-references them.
+- **Crew/account data** — `driver.crewId` is Account identity (confirmed in the accepted `IDENTITY_ATTRIBUTION_CONTRACT.md`), not workspace identity, and not present on `driverProfiles` records as a workspace proof either.
+- **Workspace/company context** — local `company.id` exists as a separate concept but nothing links `driverProfiles` to it.
+- **Restore payload** — `restoreFleetConfigFromOrchestrator()` (`index.html:1940`) calls `/v1/fleet/config?crewbiq_id=...`, keyed only by legacy `crewbiq_id` (Account identity), authenticated via a shared `X-CrewBIQ-Secret` header or a public fallback — no `workspace_id` parameter, no membership check, no workspace tag on the returned `driver_profiles` at all.
+- **Server/Orchestrator responses** — `core-runtime.js:363` calls the same `/v1/fleet/config` GET (Bearer-session variant) and passes `fleetResult.data.driver_profiles` straight through into `ownerData.driverProfiles` with zero workspace attribution added at any point.
+- **Existing driver-management APIs/actions** — none beyond the above; no dedicated driver-roster endpoint exists in the repo.
+- **Team/fleet roster transport** — the only workspace-scoped canonical read endpoint that exists at all, `/v1/canonical/company-truck` (`ORCHESTRATOR_CANONICAL_READ_CAPABILITY = 'canonical.company_truck.reconcile'`), returns `companies`/`companyCandidates`/`trucks`/`truckCandidates` only — verified by reading `normalizeOrchestratorCanonicalRead()` in full. No driver field of any kind is present in its response shape or its capability name.
+
+**Conclusion on provable relationship to `workspaceId`:** none exists anywhere in current code, storage, or transport. Local driver-profile records are effectively global/unscoped with respect to workspace — they are scoped only to the local device/account identity partition, a materially different (and much weaker) concept.
+
+### Answers
+
+**1. Is `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN` a real hard blocker?**
+Yes, confirmed real by direct code tracing, not merely by trusting the docs.
+
+**2. Can current membership/session data deterministically filter local `driverProfiles` to one workspace?**
+No. There is no join key between the two at all; any filtering would require an inference (e.g., "user only has one membership, so assume all their local drivers belong to it"), which the accepted identity discipline explicitly forbids.
+
+**3. Is there any existing canonical server response/action that already returns Drivers scoped to the active workspace?**
+No. The only canonical/workspace-scoped read endpoint is Company/Truck-only by design (confirmed by both its capability name and its response shape).
+
+**4. If yes, can the PWA consume that existing source without new backend work?**
+N/A — answer to 3 is no.
+
+**5. If no, is the safest prerequisite a new server-side read-only workspace-driver-roster endpoint/action?**
+Yes — this is the correct category of next step, matching the docs' own conclusion, and matching the smallest-prerequisite pattern already used successfully for `AccountDriverLink`.
+
+**6. Could new Driver profiles be normalized with `workspaceId` first, while legacy profiles remain unresolved?**
+Yes, technically — this would mirror the exact pattern already accepted for Load/PTI `workspaceId` (Slice 4B.1b.2a): tag newly-created driver profiles with a proven `workspaceId` via the same `CrewBIQWorkspaceAttribution.attributeNewRecord` composition, leaving legacy profiles unresolved.
+
+**7. Would that be sufficient for future Load `driverId` selection for NEW Drivers only, or would mixed legacy/new roster still make the selector unsafe?**
+Not sufficient on its own. A Driver selector that mixes proven-workspace and unproven-legacy profiles without differentiating them would still risk offering an unscoped profile as if it were workspace-proven. (6) is necessary but must be paired with (8)'s filtering to be safe.
+
+**8. Can the UI safely show only profiles with proven `workspaceId` and hide legacy unscoped profiles?**
+Yes, technically and safely — this is the same "only ever offer/write what's proven" discipline already applied to Load/PTI `workspaceId` and `truckId`.
+
+**9. Would doing so create unacceptable product behavior because existing Drivers disappear from selection?**
+Yes — and this is a genuine, serious concern, not a purely technical one. Because `workspaceId` has never been written to any driver profile before this point, essentially the entire real-world existing driver roster for every current user would be legacy/unscoped. A proven-only filter applied today would hide almost all real drivers from the selector, making Load `driverId` assignment practically unusable for existing fleets until they rebuild their roster from scratch. This is a rollout-blocking product problem that must be solved by a migration path (Question 10), not merely accepted as a side effect of correctness.
+
+**10. Is there a safer admin normalization/migration path for existing `driverProfiles` that is deterministic?**
+Potentially, yes — but only if it is genuinely evidence-based, not inferred. Two candidate PROVEN sources: (a) an explicit, authenticated, audited admin/owner confirmation of a specific Driver's workspace membership at a point in time (analogous to `manual_admin` provenance already accepted for `AccountDriverLink`, requiring a non-empty reason and an authenticated actor — never a bulk auto-accept); or (b) a deterministic match against a server-side authoritative workspace-driver source of truth, once one exists (see Question 5/13). Neither should be built purely client-side, since a local device unilaterally "declaring" workspace ownership for records other devices/users might also touch would reintroduce exactly the kind of ungoverned inference this discipline forbids.
+
+**11. Does `AccountDriverLink` solve this blocker?**
+No, confirmed. `account-driver-link.js`'s `read()` resolves exactly one Account→Driver link for the calling account — a single-record "who am I" resolution, never a roster enumeration. It cannot answer "which Drivers exist in this workspace" for any account other than the caller's own, and was never designed to.
+
+**12. Does `DriverTruckAssignment` solve this blocker?**
+No, only partially confirmed as the task's framing anticipated — and arguably not even partially, on inspection. Per `IDENTITY_ATTRIBUTION_CONTRACT.md`, `DriverTruckAssignment` presupposes canonical Driver entities that are *already* workspace-scoped as its own precondition; it has no mechanism to establish that scoping. It depends on this blocker being solved first, not the reverse.
+
+**13. Which prerequisite should happen FIRST?**
+
+**(B) — server-side workspace Driver roster read endpoint/action.**
+
+Reasoning: (A) alone only helps newly-created drivers going forward and leaves the existing roster — the overwhelming majority of real usage — unresolved and hidden from selection (Question 9's rollout problem). (C) migration/backfill's own determinism criteria (Question 10) fundamentally depend on having an authoritative concept of "workspace roster" to backfill *against*; without a server source of truth, a purely local/manual migration risks becoming exactly the kind of ungoverned, unauditable process this discipline exists to prevent. (B) is the only option that can eventually unblock both new-driver selection and a real, evidence-based (C) migration later, and it mirrors the exact bounded-server-adapter pattern already successfully used for `AccountDriverLink`.
+
+**14. Smallest response contract needed by the PWA (for B):**
+
+An authenticated, read-only action (e.g. `workspace_driver_roster_read`):
+
+- Request: `{sessionToken, workspaceId}`.
+- Response: `{ok: true, workspaceId, drivers: [{driverId, workspaceId, name, status: 'active'|'inactive'|'terminated', effectiveFrom, effectiveTo}]}`.
+- Validation rules mirroring `account-driver-link.js`: every returned driver's `workspaceId` must match the requested/authorized workspace; the response itself must assert workspace match; any malformed entry invalidates the whole response (no silent partial-list drop); stable structured error codes (e.g. `workspace_driver_roster_unauthorized`, `workspace_driver_roster_invalid_response`).
+- Read-only — no mutation capability in this minimal contract, matching every prior accepted read adapter.
+- The PWA never invents roster members from name/email/`crewId`/role/Truck assignment; those remain forbidden substitutes exactly as before.
+
+**15. What would count as PROVEN for legacy Driver profile workspace ownership (if C):**
+
+Only: (a) an explicit, authenticated, audited admin/owner action confirming one specific Driver belongs to one specific workspace, carrying an actor, timestamp, and reason (mirroring `manual_admin` provenance); or (b) a deterministic match against the server-side authoritative roster from (B), once it exists. Never proven by: single-membership inference ("the user only has one workspace, so it must be that one"), name/email/role/Truck-assignment matching, or any automatic default — even a single-workspace user's profile could predate any workspace concept and have genuinely unknown historical ownership without explicit evidence.
+
+### Verdict
+
+**ACCEPT_BLOCKED**
+
+The single blocker `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN` is real, correctly scoped, and verified against actual runtime/storage/transport code rather than merely against the docs' own claims.
+
+### Blocking findings (preserved, unchanged)
+
+- `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN`
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Backend/Orchestrator `AccountDriverLink` implementation remains external.
+
+### New observation (informational, non-blocking)
+
+A proven-workspace-only Driver selector, if built today without a migration path, would hide nearly the entire real-world existing driver roster from selection (Question 9) — this is a genuine rollout/adoption risk for whatever future slice implements the Driver selector UI, separate from the correctness of the blocker itself. Whoever designs that future UI slice should sequence it after — or explicitly alongside — a migration/backfill plan (Question 10), not treat "hide unscoped profiles" as a self-contained final answer.
+
+### Recommended next bounded action
+
+Hand off, in parallel with continued PWA-scoped work: request a server-side, read-only workspace Driver roster endpoint/action (contract per Question 14) from whichever repository owns the backend/Orchestrator — out of this repository's authority to implement or gate, exactly as with the `AccountDriverLink` server piece. Do not begin client-side Driver-selector UI work, `driverId` normalization, or any legacy-roster migration until that endpoint (or equivalent accepted provenance) exists.
+
+Runtime/product files changed by this review: NONE.
