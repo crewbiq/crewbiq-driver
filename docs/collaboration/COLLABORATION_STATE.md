@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c-S3 - Explicit Driver Selection for NEW Loads
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; new Loads now require explicit Driver selection from the accepted authorized workspace roster and write that stable driverId; no default/local fallback, edit backfill, PTI attribution, or AccountDriverLink inference is introduced
+current main; new Loads now require explicit Driver selection from the accepted authorized workspace roster and write that stable driverId, with a fresh workspace-match check at save time; Driver selector is hidden (not overridden) during edit; no default/local fallback, edit backfill, PTI attribution, or AccountDriverLink inference exists
 
 Latest implementation commit:
 d8f34b02261cfa7a54231c2a7b036d0f6ea79325
@@ -63,13 +63,12 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-e6361f92c49db306f9a66e3a868c85e9fbadfb20
+8ccd5b409ce9b2c9107d4c35dd9d9c202153dba3
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - server source and adapter accepted; explicit NEW-Load UI consumption published and pending Claude acceptance
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
-- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
-- PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
+- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - resolved for Load via the explicit-selector bypass; narrows to PTI's own future driver attribution and any future driver-role SELF UI work
+- PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -78,7 +77,7 @@ Queued non-blocking findings:
 - canonical workspace timeZone source remains unspecified
 - backend/Orchestrator AccountDriverLink implementation remains external
 - orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
-- superseded: the "proven-workspace-only selector would hide the existing roster" concern is substantially mitigated - saveDriverProfiles() already syncs to the server's fleet_driver_profiles table the new endpoint reads from, so the roster reflects real already-synced drivers, not an empty/filtered set
+- Driver reassignment during Load edit is out of scope by design (selector hidden entirely, unlike truckId which supports edit-time reassignment after its correction) - a deliberate boundary, not an oversight; a future slice could add it following the same live-control-must-take-effect discipline
 
 Cross-repository implementation:
 crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f (ACCEPTED)
@@ -87,10 +86,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent review of explicit authorized-roster Driver selection and normalized driverId for NEW Loads
+authorize PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - add an explicit, no-default Truck and Driver selection step to the PTI submission flow, mirroring the pattern now proven twice for Loads (explicit selection UI, workspace-freshness check at save time, fail-closed placeholders, no local-roster fallback)
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -917,4 +916,18 @@ independent review of explicit authorized-roster Driver selection and normalized
 - Verdict: ACCEPT. Slice 4B.1b.2c-S2 is CLOSED.
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load driverId, consuming the accepted adapter - show only Drivers returned by the proven, authorized roster, never a local driverProfiles fallback or first/default selection.
+- Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c-S3 Independent Review
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.2c-S3 - Explicit Driver Selection for NEW Loads (implementation commit d8f34b0), consuming the accepted workspace Driver roster adapter (S2) to write a proven driverId on newly-created Loads.
+- Method: fetched every changed file directly via gh api; read resolveNewLoadDriverAttribution()/getLoadDriverSelection()/populateLoadDriverSelect()/hideLoadDriverSelect() and the modified saveLoad()/editLoad() in loads.js in full; read the composition-root wiring (getWorkspaceDriverRosterAdapter(), readAuthorizedWorkspaceDriverRoster()) in index.html in full; independently reconstructed the changed files in an isolated scratch directory and ran node --test across the new and both updated test files (36/36 passed); specifically re-examined the edit path against the exact regression class found and corrected in the earlier truckId slice (4B.1b.2b -> 4B.1b.2b.1).
+- Key finding: the driverId edit-path code has the same shape as the earlier buggy truckId code (freezes to existingEntry.driverId, never applies a fresh selection on edit) - but this does NOT repeat that bug, because editLoad() calls hideLoadDriverSelect() and never calls populateLoadDriverSelect(), so there is no live, visible Driver control during edit at all. Freezing to the existing value is correct here since there is no competing user action being silently discarded, unlike the earlier truckId case where the truck selector stayed live and mandatory during edit.
+- Confirmed: resolveNewLoadDriverAttribution() requires non-empty driverId/workspaceId/name plus a fresh workspaceResolution match (recomputed at save time via CrewBIQWorkspaceAttribution.resolveActiveWorkspace, independent of when the roster was fetched) - closes a real race where the active workspace could change between opening the form and saving. No array-index/only-item/local-driverProfiles fallback anywhere. PTI untouched. Transport reuses the existing syncUrl action-envelope pattern and the already-accepted workspace resolver, not an invented mechanism. Rendering uses the established _escHtml() helper. Fail-closed UI placeholders for every failure mode (loading/unavailable/empty/required). Cache correctly rotated v89->v90.
+- Non-blocking observation: HISTORY entries in this file are being appended in two different orders - Codex inserts new entries immediately below HISTORY_START (most-recent-first), while Claude has consistently appended at the end of the file (oldest-first) across every prior slice. Not a coordination problem (CURRENT remains authoritative per this file's own rule), but flagged for documentation-hygiene awareness.
+- Blockers reassessed: AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN is fully resolved for Load (server, adapter, and UI all accepted) and removed from the blocking list. CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING is resolved for Load via the anticipated explicit-selector bypass; narrows to PTI's own future driver attribution and any future driver-role SELF UI work. SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN and PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING remain open, unrelated to this slice.
+- Verdict: ACCEPT. Slice 4B.1b.2c-S3 is CLOSED.
+- Next required actor: ChatGPT.
+- Next bounded action: authorize PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - add an explicit, no-default Truck and Driver selection step to the PTI submission flow, mirroring the pattern now proven twice for Loads.
 - Runtime/product files changed: NONE.
