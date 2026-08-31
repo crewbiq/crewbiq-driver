@@ -42,16 +42,16 @@ Phase:
 Production / Deployment Readiness Validation
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+BLOCKED / REVIEWED - CORRECTIONS AUTHORIZED
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; deployment-readiness evidence is published without runtime changes. Accepted driver/orchestrator branch artifacts are not yet deployed as an integrated system.
+current main; deployment-readiness evidence independently verified as accurate. Claude cloned both full repositories, ran the exact aggregate driver test command (confirmed 316 passed/1 failed matching B1 exactly), read the actual CORS/health source in the orchestrator (confirmed B3/B4 exactly, including a discovery that an unused healthcheck() function in app/db/connection.py already provides most of the DB-connectivity check B4 needs), and made live read-only GET requests to the actual production Railway service and published GitHub Pages site (confirmed zero of the six accepted routes are live in production; published PWA cache is v79 with neither driver-self.js nor account-driver-link.js). Accepted driver/orchestrator branch artifacts are not yet deployed as an integrated system.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
@@ -63,25 +63,24 @@ Latest documentation commit:
 f4c282240cefd181e67f54ba95e411d1380c158a
 
 Latest review commit:
-908fa9aaff0e951ac743ddf749d022600ca9bfad
-
-Latest state commit:
-publication commit containing this CURRENT block
+3109b6b45dac4a232ca1bd5e6c64e6426fe3770d
 
 Blocking findings:
-DRIVER_CANONICAL_TEST_GATE_RED; DRIVER_CI_GATE_STALE_AND_INCOMPLETE; ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED; ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN
+DRIVER_CANONICAL_TEST_GATE_RED (B1) - confirmed via independent full test run; ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN (B4) - confirmed via direct source read, a ready-made unused healthcheck() function exists in app/db/connection.py as a likely fast closure path; DRIVER_CI_GATE_STALE_AND_INCOMPLETE (B2) - confirmed via direct workflow file read (hardcoded v85 assertion, 5 canonical modules missing from path filters); ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED (B3) - confirmed via direct source read (wildcard CORS with literal "tighten before production" comment)
 
 Queued non-blocking findings:
-Staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending. Legacy attribution/backfill remains unauthorized.
+- staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending after B1-B4 close
+- legacy attribution/backfill remains explicitly deferred per Product Owner decision, unaffected by this readiness slice
+- (server-side/PWA items carried from prior HISTORY entries, unchanged)
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independently review PRODUCTION_DEPLOYMENT_READINESS.md, verify blockers B1-B4 and the deployment/smoke/rollback classifications, then publish verdict. No correction, deploy, merge, production-data write or legacy backfill is authorized.
+close B1-B4 exactly as scoped: (B1) reconcile sidr-contract-resolver-integration-v1.test.mjs's cache-version assertion with v94 without weakening its one-version/cache-shell check, obtain a zero-failure aggregate test:e2e:tooling run; (B2) update .github/workflows/pwa-auth-contract.yml's cache assertion to v94 and add the five omitted canonical modules/tests to its path filters and execution steps; (B3) introduce a fail-closed, environment-driven CORS origin allowlist in crewbiq-orchestrator's app/main.py rejecting wildcard origins in production, with allowed/denied-origin tests; (B4) wire the existing healthcheck() function (or equivalent) into /health or a dedicated readiness endpoint that fails when DB connectivity or required migrations are absent. No deploy, merge, production-data mutation, migration execution, or legacy backfill authorized. Bring corrections back for independent review before any further deployment-order step.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1262,3 +1261,18 @@ Runtime/product files changed: NONE.
 Deployment/merge/production-data mutation/legacy backfill: NONE.
 Next required actor: Claude
 Next bounded action: independent readiness review only.
+
+### 2026-08-31 — Claude — Production/Deployment Readiness Independent Review — ACCEPT (assessment), BLOCKED (status confirmed)
+
+- Agent: Claude
+- Task: independent review of PRODUCTION_DEPLOYMENT_READINESS.md (commit f4c28224), evaluating the accepted driver/orchestrator work as an integrated deployable system.
+- Method: cloned the complete crewbiq-driver repository at the accepted branch tip and ran the exact aggregate test:e2e:tooling command myself (not merely trusted); cloned the complete crewbiq-orchestrator repository and read the actual CORS and /health source directly; made live, read-only HTTP GET requests to the actual production Railway service and the actual published GitHub Pages site.
+- B1 confirmed exactly: independent full test run produced 316 passed, 1 failed, with the single failure being sidr-contract-resolver-integration-v1.test.mjs's stale v88 cache-version assertion against the real v94 sw.js.
+- B2 confirmed exactly: .github/workflows/pwa-auth-contract.yml hard-asserts crewbiq-driver-v85 via grep, and its path filters (both pull_request and push triggers) list none of workspace-attribution.js, workspace-driver-roster.js, driver-truck-assignment.js, account-driver-link.js, or driver-self.js.
+- B3 confirmed exactly: app/main.py contains allow_origins=['*'] with the literal comment "tighten before production", plus allow_credentials=True, allow_methods=['*'], allow_headers=['*'].
+- B4 confirmed, with a useful addition: /health returns ok:true unconditionally with no DB check; .env.example defaults CREWBIQ_DB_ENABLED=false; and a ready-made, currently-unused healthcheck() function already exists in app/db/connection.py, likely making this the fastest of the four blockers to close.
+- Production observations independently reproduced via live read-only requests: Railway /health matches exactly; its /openapi.json exposes 35 paths with zero matching roster/driver-truck-assignment/account-driver-link; the actual published GitHub Pages sw.js is crewbiq-driver-v79 with no driver-self.js or account-driver-link.js reference.
+- Verdict: ACCEPT of the readiness assessment itself (accurate, honest, correctly reasoned) - overall deployment status remains, correctly, BLOCKED pending B1-B4 closure. This is not a claim the system is ready to deploy.
+- Applying the autonomous handoff protocol: all four blockers are narrow, well-specified technical corrections with no ambiguity requiring further product input. Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex.
+- Next bounded action: close B1-B4 exactly as scoped in the document; bring corrections back for independent review before any further deployment-order step. No deploy, merge, production-data mutation, migration execution, or legacy backfill authorized.
+- Runtime/product files changed: NONE. This review touched no code in either repository (both repository clones were created and deleted entirely within this review session; production/GitHub Pages requests were read-only GETs with no credentials submitted and no state changed).
