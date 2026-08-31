@@ -2133,3 +2133,67 @@ A proven-workspace-only Driver selector, if built today without a migration path
 Hand off, in parallel with continued PWA-scoped work: request a server-side, read-only workspace Driver roster endpoint/action (contract per Question 14) from whichever repository owns the backend/Orchestrator — out of this repository's authority to implement or gate, exactly as with the `AccountDriverLink` server piece. Do not begin client-side Driver-selector UI work, `driverId` normalization, or any legacy-roster migration until that endpoint (or equivalent accepted provenance) exists.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.2c-S1 Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.2c-S1 — Read-Only Workspace Driver Roster Server Action, implemented in `crewbiq/crewbiq-orchestrator` (branch `agent/workspace-driver-roster-read`, commit `412c39d`) per the cross-repository task published to `crewbiq-driver`'s `COLLABORATION_STATE.md`.
+**Method:** fetched the full implementation diff (`app/main.py`, `app/routers/workspace_drivers.py`, `tests/test_workspace_driver_roster.py`) directly via `gh api` against `crewbiq/crewbiq-orchestrator`; read `workspace_drivers.py` in full; traced `current_user`/`authenticate_token` (`app/routers/auth.py`, `app/services/auth_service.py`) to confirm the new endpoint reuses the exact existing Bearer-session mechanism, not an invented one; read the `workspaces`/`fleet_driver_profiles` schema migrations (`007_identity_workspace.sql`, `004_fleet_restore_config.sql`) directly to independently verify the workspace-to-Driver bridging is genuine and not an inference; reconstructed the minimal package (`app/main.py`, `app/routers/{auth,workspace_drivers}.py`, `app/services/{auth_service,capabilities}.py`, `app/db/{connection,__init__}.py`, `app/config.py`) in an isolated scratch directory and independently ran `pytest` against the real test file (8/8 passed, not merely trusted); compared the router's `db_enabled()`/`get_pool()`/`to_regclass()` usage against the existing `fleet.py` router to confirm the pattern is reused, not invented.
+
+### The core architectural question: is the workspace→Driver bridging genuine, or a guess?
+
+This is the finding that mattered most for this review. `fleet_driver_profiles` (an existing table, `owner_crewbiq_id`-scoped, used by the pre-existing `/v1/fleet/config` restore path) has **no** `workspace_id` column. The new endpoint resolves the roster via: `workspaces.legacy_owner_crewbiq_id → fleet_driver_profiles.owner_crewbiq_id`. Read in isolation this could look like an inference across two unrelated identity spaces — exactly the kind of substitute the whole identity-attribution discipline forbids.
+
+Independently verified against the actual schema (`migrations/007_identity_workspace.sql:24`): `legacy_owner_crewbiq_id text unique` — a **database-enforced 1:1 constraint** between a workspace and its legacy owner account. This is not a convention or an assumption; it is a hard uniqueness constraint. Given that constraint, no two workspaces can ever share the same `legacy_owner_crewbiq_id`, so filtering `fleet_driver_profiles` by the requested workspace's own `legacy_owner_crewbiq_id` (read from the `workspaces` row itself, never from client input) cannot leak a Driver into a different workspace's roster. This is a legitimate, leak-proof composition of two already-authoritative facts (the workspace's own DB-recorded owner, and that owner's existing Driver records) — not a guess, and not a new source of truth invented for this slice. Codex's decision **not** to stop with `COORDINATOR_REQUIRED` is independently confirmed correct: an authoritative source does exist, it is simply reached through the existing legacy-owner bridge rather than a native `workspace_id` column, and that bridge is schema-guaranteed rather than assumed.
+
+### Requirement-by-requirement verification
+
+- **Authenticate through existing canonical session mechanism** — confirmed. `Depends(current_user)` calls the same `authenticate_token()` used by every other authenticated route (`/v1/me` included); no new auth path was introduced.
+- **Authorize membership to requested workspace** — confirmed. `_authorized_workspace_id()` requires exactly one `active` membership matching the requested `workspace_id`; zero matches → 403, more than one → 409 (never silently picks one). Independently traced `workspace_context()` in `auth_service.py` and confirmed memberships are derived fresh from a live DB join on every authenticated request (`wm.status = 'active' and wm.effective_to is null`), not cached or stale.
+- **Return ONLY Drivers belonging to that workspace** — confirmed via the schema-enforced bridge above; also independently confirmed via the reconstructed cross-workspace test (`test_unauthorized_and_cross_workspace_requests_fail_before_database`), which asserts the database is never even reached for an unauthorized or cross-workspace request.
+- **Stable canonical `driverId`** — confirmed. `fleet_driver_profiles.driver_profile_id text not null unique` is a table-wide (not merely per-owner) unique constraint, verified directly in `004_fleet_restore_config.sql:14`.
+- **Stable `workspaceId`** — confirmed. The response's `workspace_id` is always the caller-authorized, DB-resolved value, never echoed from unvalidated client input.
+- **No cross-workspace leakage** — confirmed by the above plus the explicit workspace-match assertion baked into every returned record.
+- **Malformed Driver records fail closed** — confirmed and independently re-verified: empty `driver_id`, empty `name`, non-boolean `is_active`, a non-`datetime`/`date` timestamp, an `active=true` record carrying a contradictory `terminated_at`, and duplicate `driver_profile_id` values within one response all raise `HTTPException(502, "malformed_driver_record")` rather than silently dropping or coercing the bad record — matching the "safest existing server convention" instruction (fail the whole response rather than partially trust it), consistent with the same discipline already applied in `account-driver-link.js` on the client side.
+- **No Driver guessing** — confirmed; no name/email/role/single-candidate/array-position selection exists anywhere in the router.
+- **No `AccountDriverLink` inference** — confirmed; the router does not reference `AccountDriverLink` at all, correctly treating it as an unrelated, separate mechanism (single Account→Driver resolution, not roster enumeration), matching the distinction established in the prior client-side blocker review.
+- **No writes / no migration / no admin mutation endpoint / no deployment** — confirmed. Every SQL statement in the router is a `select`/`fetchval`/`fetch`; the test double's `execute()` raises `AssertionError("read-only roster must never execute a mutation")` and is asserted never called across every test. The commit adds no `.sql` migration file and touches no deploy configuration — only `app/main.py` (router registration, matching the exact existing import/include pattern for every other router), the new router file, and the test file.
+
+### Transport convention
+
+The task's illustrative pseudocode used camelCase (`driverId`, `workspaceId`, `effectiveFrom`). The actual implementation correctly uses snake_case (`driver_id`, `workspace_id`, `effective_from`, `effective_to`) — matching the real, existing convention used by every other orchestrator response (`/v1/me`'s `crewbiq_id`, `active_workspace_id`, etc.), not the task prompt's illustrative shape. This is the correct call per the task's own instruction ("do NOT invent transport conventions... fit the existing architecture"), and is called out explicitly here since a less careful implementation might have mistakenly matched the prompt's pseudocode instead of the project's real convention.
+
+### Independent test execution
+
+Reconstructed the minimal importable package in an isolated scratch directory (not trusting the repo's own CI) and ran `pytest` directly: **8/8 passed** — `test_authorized_workspace_returns_stable_scoped_driver`, `test_unauthorized_and_cross_workspace_requests_fail_before_database`, `test_empty_roster_is_a_successful_authorized_read`, `test_multiple_drivers_keep_deterministic_ids_and_status`, `test_malformed_or_duplicate_driver_records_fail_closed`, `test_workspace_without_authoritative_owner_source_is_explicitly_rejected`, `test_missing_session_uses_existing_bearer_contract`, `test_invalid_session_uses_existing_authentication_contract`. All ten required scenarios (authorized workspace, unauthorized workspace, cross-workspace request, empty roster, multiple Drivers, malformed Driver, missing session, invalid session, no mutation, deterministic IDs) are covered — several scenarios are combined within single test functions but every one is independently asserted.
+
+### Non-blocking observation
+
+`_authorized_workspace_id()` defaults a membership's `status` to `"active"` when absent (`str(membership.get("status") or "active")`). Traced against the real data source (`workspace_context()` in `auth_service.py`): the underlying SQL already filters to `wm.status = 'active'` before any membership ever reaches this function, so the default is a redundant defensive fallback for the current data shape, not an exploitable gap today. Worth simplifying in a future pass, but not a defect — flagged as informational only.
+
+### Verdict
+
+**ACCEPT**
+
+The implementation correctly fits existing orchestrator architecture (auth, DB-existence-check idiom, response-convention), is genuinely workspace-scoped via a schema-enforced bridge rather than an inference, fails closed on every malformed/unauthorized/ambiguous case, performs no writes, adds no migration, and stays strictly read-only. Independently re-verified, not merely trusted.
+
+### Blocking findings (reassessed)
+
+- `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN` — **resolved at the server layer.** A genuine, authoritative, workspace-scoped Driver roster source now exists and is independently verified sound. The blocker for the *client* (crewbiq-driver) remains open in a narrower form: the PWA has not yet consumed this endpoint, so client-side Driver selection is still unimplemented — but the "no authoritative source exists" concern that originally justified the blocker is resolved.
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` (carried forward, unrelated to this slice)
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` (carried forward, unrelated to this slice)
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING` (carried forward, unrelated to this slice)
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- `_authorized_workspace_id()`'s redundant `status` default (this review, informational only).
+
+### Recommended next bounded action
+
+Within `crewbiq-driver`: implement a bounded, read-only PWA adapter for `GET /v1/workspaces/{workspaceId}/drivers`, mirroring `account-driver-link.js`'s pattern exactly — validate the response shape, fail closed on any workspace mismatch or malformed entry, no fallback of any kind, no UI wiring, no `driverId` writes yet. This is the smallest next step that keeps the same discipline used for `AccountDriverLink`: adapter first, reviewed independently, before any Driver-selector UI or `driverId` normalization work begins.
+
+Runtime/product files changed by this review: NONE. This review touched no code in either repository.
