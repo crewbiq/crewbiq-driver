@@ -42,19 +42,19 @@ Phase:
 Slice 4B.1b.2a - Explicit Workspace Context for NEW Loads/PTI
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4B.1b.1a CLOSED / ACCEPT; no normalized Load/PTI runtime changes published
+current main; workspaceId only is added to new Load/PTI records from proven authenticated membership context
 
 Latest implementation commit:
-e5f33818f38db6950dc83047ca9faada5eec9152
+8ed93a96a42286fbdc8f9d16d049168bb6e269f2
 
 Latest correction commit:
 NONE - blocked before runtime implementation
@@ -69,7 +69,6 @@ Blocking findings:
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
-- WORKSPACE_CONTEXT_NOT_UNIVERSAL - blocks Load and PTI; client-side integration gap; confirmed zero workspaceId usage outside analytics.js/account-driver-link.js; recommend narrowing to Load/PTI creation only rather than a truly universal resolver
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -79,14 +78,30 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement and validate an explicit authenticated-membership workspace resolver for new Load/PTI creation only, with no driverId/truckId changes
+independent review of workspace attribution only
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### Slice 4B.1b.2a - Explicit workspace context for new Loads/PTI
+
+- Agent: Codex
+- Status: `PUBLISHED / AWAITING CLAUDE REVIEW`
+- Implementation commit: `8ed93a96a42286fbdc8f9d16d049168bb6e269f2`
+- Result: `SLICE_4B_1B_2A_COMPLETE`
+- Runtime: added pure authenticated-membership workspace resolver; new Load/PTI creation writes only proven `workspaceId`
+- Failure behavior: unresolved, ambiguous, or unauthorized context remains legacy-compatible without `workspaceId` and emits a diagnostic warning
+- Legacy behavior: no read-time normalization or backfill; Load edits preserve an existing field only
+- Negative scope: no `driverId`, PTI `truckId`, AccountDriverLink server work, or PTI performer selection
+- Cache: app shell rotated from `crewbiq-driver-v85` to `crewbiq-driver-v86`
+- Tests: `node --test tests/workspace-attribution.test.mjs` - 17 passed, 0 failed; `npm run test:e2e:tooling` - 250 passed, 0 failed
+- Remaining blockers: `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`, `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`, `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+- Next required actor: Claude
+- Next bounded action: independent review of workspace attribution only
 
 ### Slice 4B.1b.2 - Normalized record ID discovery blocked
 
@@ -722,7 +737,6 @@ implement and validate an explicit authenticated-membership workspace resolver f
 - Next required actor: ChatGPT.
 - Next bounded action: authorize the narrowest prerequisite slice — an explicit active-workspace resolver scoped only to Load/PTI creation (from existing authenticated membership context, no default/inferred fallback), writing workspaceId only (no driverId/truckId) to new Load/PTI records once accepted.
 - Runtime/product files changed: NONE.
-
 
 
 
