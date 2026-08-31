@@ -42,19 +42,19 @@ Phase:
 Slice 4B.1b.3-S3 - DriverTruckAssignment PWA Read-Only Adapter
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Product Owner selected A first, then C, then B. Accepted orchestrator read/mutation foundation is authoritative; this bounded slice starts with discovery and may add only the smallest safe PWA read-only adapter consuming accepted current/history/as-of reads.
+current main; disconnected PWA read-only adapter published at fb04183c2432fcc7176c5476c4a71ef76fc3908c. It consumes accepted current/history/as-of server reads, requires explicit proven workspaceId and driverId, enforces half-open effective dates, and fails closed on zero/multiple current assignment without fallback or inference.
 
 Latest implementation commit:
-PENDING
+fb04183c2432fcc7176c5476c4a71ef76fc3908c
 
 Latest correction commit:
 NONE for this slice
@@ -69,20 +69,38 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-Slice 4B.2 Driver SELF UI follows accepted client integration; legacy attribution/backfill remains queued after SELF UI. No ranking, migration, deploy, or merge.
+Slice 4B.2 Driver SELF UI follows accepted client integration; legacy attribution/backfill remains queued after SELF UI. No adapter invocation/UI mutation, ranking, migration, deploy, or merge occurred.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-discover existing PWA transport/adapter conventions and implement the smallest read-only DriverTruckAssignment adapter against accepted server endpoints, with effective-dated fail-closed semantics and no first-record or inferred identity fallback.
+independently review Slice 4B.1b.3-S3 commit fb04183c2432fcc7176c5476c4a71ef76fc3908c for strict server shape, effective-date semantics, ambiguity failure, transport isolation, disconnection, and cache rotation; after ACCEPT with no blockers hand directly to Codex for Slice 4B.2 Driver SELF UI.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.3-S3 DriverTruckAssignment PWA Read-Only Adapter Publication
+
+- Repository/branch: crewbiq/crewbiq-driver @ agent/pre-base44-audit
+- Implementation commit: fb04183c2432fcc7176c5476c4a71ef76fc3908c
+- Runtime files: `driver-truck-assignment.js`, `core-runtime.js`, `index.html`, `sw.js`.
+- Composition: disconnected lazy adapter only; no load-time request or UI invocation.
+- Reads: accepted orchestrator `current`, `history`, and `as-of` GET endpoints through existing authenticated semantic-action transport.
+- Proof requirements: explicit session token, canonical workspaceId, and proven driverId; no Account/name/unitNumber/local profile/Truck inference.
+- Effective behavior: strict server snake_case shape, workspace/Driver consistency, stable IDs, positive version, half-open intervals, deterministic history, zero current = NOT_FOUND, multiple current = AMBIGUOUS, never first-record selection.
+- Persistence/mutations: NONE; no local storage, direct network in adapter, assignment command, legacy mutation, backfill, analytics ranking, or UI.
+- Cache: `crewbiq-driver-v93`; new adapter is in app shell.
+- Test/wiring files: `tests/driver-truck-assignment.test.mjs`, `package.json`, and four cache-version contract updates.
+- Regression command: `node --test tests/driver-truck-assignment.test.mjs tests/workspace-driver-roster.test.mjs tests/account-driver-link.test.mjs tests/workspace-attribution.test.mjs tests/load-driver-attribution.test.mjs tests/pti-attribution-context.test.mjs tests/auth-session-startup-contract.test.mjs tests/index-startup-composition.test.mjs tests/e2e/service-worker-path.test.mjs` -> `85 passed, 0 failed`.
+- Merge, deployment, migration, and production-data mutation: NONE.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent S3 review; on ACCEPT hand directly to Codex for Slice 4B.2 Driver SELF UI.
 
 ### 2026-08-31 - Product Owner - DriverTruckAssignment Client Priority Decision
 
