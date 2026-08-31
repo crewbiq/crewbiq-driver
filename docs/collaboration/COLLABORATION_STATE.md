@@ -42,61 +42,67 @@ Phase:
 Slice 4B.1b.3 - Effective-Dated DriverTruckAssignment Discovery
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-ChatGPT
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; orchestrator's real, unmodified _write_loads/_write_pti and _restore_loads/_restore_pti functions are verified (direct code read plus independent test execution) to genuinely round-trip Load and PTI workspaceId/truckId/driverId through a generic jsonb raw_payload pass-through, without fabricating IDs for degraded records and without cross-tenant leakage. The client- and server-side normalized-ID track (Slice 4B.1b.2c and its sub-slices S1-S5) is now substantively complete.
+current main; mutable Driver profile Truck fields are current projections, not historical truth. The proposed server-owned DriverTruckAssignment uses workspace-scoped half-open effective intervals, permits only team/team Truck overlap, and preserves history through close/insert or revoke commands.
 
 Latest implementation commit:
-1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (crewbiq/crewbiq-orchestrator)
+5c3daba6e2b979e8ed08ab67c9760e22569b3373
 
 Latest correction commit:
 1948ea78dc1442a77bbc266eac9f413368be0d0a
 
 Latest documentation commit:
-7c7b4c149d1562adbb067b431edbef2aaec1d881
+5c3daba6e2b979e8ed08ab67c9760e22569b3373
 
 Latest review commit:
 9f447a942eefb7bcb5583a1af5e4ccb5270bdc2e
 
 Blocking findings:
-NONE
+- WORKSPACE_NATIVE_RELATION_SCHEMA_MISSING
+- LEGACY_ENTITY_WORKSPACE_PROOF_REQUIRED
+- ASSIGNMENT_CAPABILITY_NOT_DEFINED
+- TRANSACTIONAL_OVERLAP_ENFORCEMENT_MISSING
+- CURRENT_PROJECTION_STRATEGY_UNDEFINED
 
 Queued non-blocking findings:
-- resolveDefaultTruck case/whitespace sensitivity
-- deduction-template save branch without truckId guard
-- cosmetic `}function boot()` formatting artifact
-- canonical workspace timeZone source remains unspecified
-- backend/Orchestrator AccountDriverLink implementation remains external
-- orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
-- Driver reassignment during Load edit is out of scope by design (selector hidden entirely, unlike truckId which supports edit-time reassignment after its correction) - a deliberate boundary, not an oversight
-- combined PTI toast message ("Valid canonical Truck and Driver selections required") is slightly less specific than the prior separate Truck/Driver messages - minor UX nitpick only
-- an account-connected user whose workspace has zero registered Drivers cannot submit PTI either - consistent with the already-accepted Load driverId precedent, not a new gap
-- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only, no coordination impact
-- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING remains relevant only to a future driver-role SELF UI (not Load/PTI driverId, which is fully bypassed via the explicit-selector pattern) - tracked as a future consideration, not a current blocker
-- no live-PostgreSQL integration test exists for the raw_payload round-trip - a residual, low-risk gap given standard jsonb behavior and now-verified application-level correctness; worth closing eventually with a real database fixture
-
-Cross-repository implementation:
-crewbiq/crewbiq-orchestrator @ agent/normalized-id-roundtrip @ 1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (ACCEPTED)
+See prior HISTORY; no queued finding was changed by this docs-only discovery.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-4B.1b.3 discovery - Effective-dated DriverTruckAssignment. This is the next phase in IDENTITY_ATTRIBUTION_CONTRACT.md's own already-accepted bounded implementation sequence (immediately after 4B.1b.2, whose sub-slices are now all closed with zero blockers), already marked READY in that contract's own readiness table - a bounded technical continuation of previously-accepted architecture, not a fresh product/business decision. Scope: a documentation-only discovery slice (mirroring the pattern used for every prior phase in this track) proposing the DriverTruckAssignment schema, team-overlap rules, and read/mutation contract, identifying any blockers before runtime work begins. No runtime, UI, migration, merge, or deployment in this slice.
+independently review DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md and either accept the bounded server-foundation recommendation or identify exact blocking corrections.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.3 DriverTruckAssignment Discovery Publication
+
+- Repository: crewbiq/crewbiq-driver
+- Branch: agent/pre-base44-audit
+- Implementation commit: 5c3daba6e2b979e8ed08ab67c9760e22569b3373
+- Deliverable: `docs/collaboration/DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md`.
+- Contract: server-owned workspace-scoped relation, half-open effective intervals, same-Driver overlap rejection, solo/mixed Truck overlap rejection, team/team overlap allowance, deterministic authorized reads, and audit-preserving future commands.
+- Server conventions preserved: active-membership capabilities, idempotency, optimistic concurrency, immutable relationship audit events, and fail-closed workspace proof through the existing canonical-to-legacy owner bridge.
+- Runtime readiness: `NOT_READY_FOR_DRIVER_TRUCK_ASSIGNMENT_RUNTIME`; five bounded technical prerequisites are recorded in CURRENT and the discovery document.
+- Runtime/product files changed: NONE.
+- Tests: not run; documentation/coordination-only slice with no executable behavior change.
+- No migration, merge, deployment, or production-data mutation.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent 4B.1b.3 discovery review.
 
 ### 2026-08-31 - Codex - S5 Server Normalized-ID Round-Trip Proof Publication
 
