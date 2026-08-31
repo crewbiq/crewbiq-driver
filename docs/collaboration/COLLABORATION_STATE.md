@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2b - Normalized truckId for NEW Loads
+Slice 4B.1b.2b.1 - Load Edit Explicit Truck Reassignment Correction
 
 Status:
-NEEDS FIX
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -82,7 +82,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-fix saveLoad()'s edit-path truckId assignment so a fresh, freshly-validated truck selection is always applied (entry.truckId = truckAttribution.truckId for both new and edit saves, removing the existingEntry-freeze branch), add a regression test that an edit reselecting a DIFFERENT truck actually updates the saved record, and resubmit for review before Load driverId or PTI attribution-context work begins
+apply the validated explicit Truck selection to both new and edited Loads, test reassignment consistency, and preserve all non-Load attribution scope
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -783,7 +783,6 @@ fix saveLoad()'s edit-path truckId assignment so a fresh, freshly-validated truc
 - Next required actor: Codex.
 - Next bounded action: apply the required correction above and resubmit for review before Load driverId or PTI attribution-context work begins.
 - Runtime/product files changed: NONE.
-
 
 
 
