@@ -42,16 +42,16 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-IN_PROGRESS
+STAGING_VALIDATION_BLOCKED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Product Owner authorized provisioning/configuration and additive migrations 010-011 only in the isolated Railway staging environment crewbiq-orchestrator-staging, followed by staging integration/smoke validation. Production deployment/migrations/data mutation, merge, legacy backfill, destructive migrations and broad refactoring remain unauthorized.
+current main; staging-only provisioning and additive migrations 010-011 were authorized and completed. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
@@ -60,25 +60,25 @@ Latest correction commit:
 driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator f00532a3437e14354748ef23a7827687797baa4f on agent/account-driver-link-read
 
 Latest documentation commit:
-f4c282240cefd181e67f54ba95e411d1380c158a
+this STAGING_VALIDATION_BLOCKED publication at branch tip; evidence document docs/collaboration/STAGING_VALIDATION_EVIDENCE.md
 
 Latest review commit:
 4320d3f4f13e378d3c9751ebbdebcfd2b7cfe925
 
 Blocking findings:
-NONE AT START; STAGING VALIDATION IN PROGRESS
+STAGING_DRIVER_CRUD_RATE_MISMATCH; STAGING_LOAD_CREATION_NOT_COMPLETED; STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 
 Queued non-blocking findings:
-Production deployment/migrations and legacy attribution/backfill remain explicitly unauthorized.
+Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation and offline retry passed staging validation; production and legacy backfill remain unauthorized.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+REVIEW_REQUIRED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-verify staging-only target and pre-migration schema state; safety-audit and apply additive migrations 010-011 only in staging; verify schema, canonical backend/client integration, isolation, normalized-ID round-trip, Driver SELF, graceful degradation and recovery evidence; publish STAGING_VALIDATION_PASS or STAGING_VALIDATION_BLOCKED for Claude review.
+independently review STAGING_VALIDATION_EVIDENCE.md and classify each blocker as runtime, fixture/test drift, or missing bounded staging coverage; no implementation, production action, merge, destructive rollback or legacy backfill.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1344,3 +1344,22 @@ Prohibited: production deploy/migrations/data mutation; merge; legacy backfill; 
 Verified target: Railway project happy-sparkle, environment crewbiq-orchestrator-staging, separate Postgres resource; protected GitHub staging URL matches the linked Railway service.
 Status: IN_PROGRESS
 Current owner: Codex
+
+### 2026-08-31 - Codex - Staging validation publication
+
+Status: STAGING_VALIDATION_BLOCKED / AWAITING CLAUDE REVIEW
+Driver branch: agent/pre-base44-audit
+Driver staging artifact: state tip 996ac660df602d7cbaed5df1a7dfa69ee651022d; accepted runtime b151d7d6d0b27545a0819d71f5b1468d215c710c; Railway deployment c098fbb6-dd98-4b19-b954-41988cdb258c; cache crewbiq-driver-v94.
+Orchestrator branch: agent/account-driver-link-read
+Orchestrator staging artifact: f00532a3437e14354748ef23a7827687797baa4f; Railway deployment fb0f4104-9f72-4193-9ecb-254edab2ac49.
+Migrations: staging-only 010 and 011 applied; both ledger rows applied; schema/constraints/indexes/triggers verified; safe re-run applied zero files; /ready HTTP 200 with no missing migrations.
+Backend: full pytest -q --tb=short -> 318 passed, 2 skipped, 0 failed.
+Integration: GitHub Actions run 33450671715; harness passed; authenticated missions 14 passed, 3 failed.
+Passed staging evidence: auth/login/logout, clean restore, tenant isolation, exact CORS allow/deny, offline idempotent retry, disputes, expenses, legacy fallback suppression and fleet/deduction journeys.
+Blocking findings: STAGING_DRIVER_CRUD_RATE_MISMATCH; STAGING_LOAD_CREATION_NOT_COMPLETED; STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED.
+Recovery: application artifacts can be redeployed by exact prior SHA; migrations are additive and retained; no destructive rollback executed; failed cleanup must use exact manifest-owned IDs only.
+Evidence: docs/collaboration/STAGING_VALIDATION_EVIDENCE.md.
+Production deployment/migrations/data mutation, merge, destructive rollback and legacy backfill: NONE.
+Decision gate: REVIEW_REQUIRED
+Next required actor: Claude
+Next bounded action: independent staging evidence review and blocker classification only.
