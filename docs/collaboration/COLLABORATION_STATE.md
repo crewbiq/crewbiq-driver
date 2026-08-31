@@ -39,25 +39,25 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2c - Explicit Driver Selection + Normalized Load driverId
+Slice 4B.1b.2c-S1 - Read-Only Workspace Driver Roster Server Action
 
 Status:
-BLOCKED / REVIEWED
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-ChatGPT
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Load driverId remains unintroduced because current Driver roster records do not prove active-workspace ownership; local driverProfiles are confirmed identity-scoped, not workspace-scoped, with no existing server response attaching workspace proof to any Driver
+current main; the orchestrator read-only workspace Driver roster prerequisite is published, while client Driver selection and driverId normalization remain unimplemented pending independent review
 
 Latest implementation commit:
-5082a63f97e991329c603fd855994ad7bca89106
+412c39d94f357dcbf04f356fc9b210deb84abb8f (crewbiq/crewbiq-orchestrator)
 
 Latest correction commit:
-718c66862388e0fae01c03a79b451fbf43ea2d1a
+NONE
 
 Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
@@ -66,7 +66,7 @@ Latest review commit:
 96569e179dc07f92f9589629d90f904c92c4f8ca
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - confirmed real by direct code trace; local driverProfiles have stable IDs but no verifiable workspace ownership anywhere in storage or transport, so cross-workspace Driver selection cannot fail closed
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - server prerequisite published, pending Claude acceptance
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -79,15 +79,33 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 - a proven-workspace-only Driver selector built without a migration path would hide nearly the entire existing driver roster from selection - future Driver-selector UI work must sequence after or alongside a migration/backfill plan, not treat filtering alone as sufficient
 
+Cross-repository implementation:
+crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f
+
+Decision gate:
+AUTO_CONTINUE_ALLOWED
+
 Next required actor:
-ChatGPT
+Claude
 
 Next bounded action:
-hand off, in parallel with continued PWA-scoped work, a request for a server-side read-only workspace Driver roster endpoint/action (workspace_driver_roster_read: {sessionToken, workspaceId} -> {ok, workspaceId, drivers:[{driverId, workspaceId, name, status, effectiveFrom, effectiveTo}]}, fail-closed on any workspace mismatch or malformed entry) to whichever repository owns the backend/Orchestrator - out of this repository's authority to implement or gate; do not begin client-side Driver-selector UI, driverId normalization, or legacy-roster migration until that endpoint or equivalent accepted provenance exists
+independent review of the orchestrator workspace Driver roster implementation
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.2c-S1 Server Prerequisite Publication
+
+- Repository: crewbiq/crewbiq-orchestrator
+- Branch: agent/workspace-driver-roster-read
+- Implementation commit: 412c39d94f357dcbf04f356fc9b210deb84abb8f
+- Action: `GET /v1/workspaces/{workspace_id}/drivers`
+- Scope: authenticated, membership-authorized, read-only workspace Driver roster using the canonical workspace-to-legacy-owner bridge and `fleet_driver_profiles`; no writes, migration, AccountDriverLink inference, client changes, or deployment.
+- Tests: `pytest -q tests/test_workspace_driver_roster.py tests/test_auth.py tests/test_tenant_isolation.py` -> `44 passed in 3.21s`.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent orchestrator implementation review.
 
 ### Slice 4B.1b.2c - Explicit Driver selection gate blocked
 
@@ -840,7 +858,6 @@ hand off, in parallel with continued PWA-scoped work, a request for a server-sid
 - Next required actor: ChatGPT.
 - Next bounded action: hand off a request for a server-side read-only workspace Driver roster endpoint/action (contract above) to whichever repository owns the backend/Orchestrator, out of this repository's authority; do not begin client-side Driver-selector UI, driverId normalization, or legacy-roster migration until it (or equivalent accepted provenance) exists.
 - Runtime/product files changed: NONE.
-
 
 
 
