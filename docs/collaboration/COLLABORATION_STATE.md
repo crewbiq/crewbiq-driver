@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c-S5 - Server Normalized-ID Round-Trip Proof
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; orchestrator writer/restore behavior now has a published stateful proof that Load and PTI workspaceId/truckId/driverId survive PostgreSQL raw_payload round-trip, degraded records remain unattributed, and restore remains tenant-scoped
+current main; orchestrator's real, unmodified _write_loads/_write_pti and _restore_loads/_restore_pti functions are verified (direct code read plus independent test execution) to genuinely round-trip Load and PTI workspaceId/truckId/driverId through a generic jsonb raw_payload pass-through, without fabricating IDs for degraded records and without cross-tenant leakage. The client- and server-side normalized-ID track (Slice 4B.1b.2c and its sub-slices S1-S5) is now substantively complete.
 
 Latest implementation commit:
 1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (crewbiq/crewbiq-orchestrator)
@@ -63,11 +63,10 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-2c2ff1befcfd84e9fb559878878c63e882927032
+9f447a942eefb7bcb5583a1af5e4ccb5270bdc2e
 
 Blocking findings:
-- SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - stateful writer/restore proof published, pending Claude acceptance
-- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
+NONE
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -80,18 +79,20 @@ Queued non-blocking findings:
 - combined PTI toast message ("Valid canonical Truck and Driver selections required") is slightly less specific than the prior separate Truck/Driver messages - minor UX nitpick only
 - an account-connected user whose workspace has zero registered Drivers cannot submit PTI either - consistent with the already-accepted Load driverId precedent, not a new gap
 - HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only, no coordination impact
+- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING remains relevant only to a future driver-role SELF UI (not Load/PTI driverId, which is fully bypassed via the explicit-selector pattern) - tracked as a future consideration, not a current blocker
+- no live-PostgreSQL integration test exists for the raw_payload round-trip - a residual, low-risk gap given standard jsonb behavior and now-verified application-level correctness; worth closing eventually with a real database fixture
 
 Cross-repository implementation:
-crewbiq/crewbiq-orchestrator @ agent/normalized-id-roundtrip @ 1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (AWAITING REVIEW)
+crewbiq/crewbiq-orchestrator @ agent/normalized-id-roundtrip @ 1fc10575239ac55a1aefa02ba7cd55d14fbd3cab (ACCEPTED)
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent review of the orchestrator normalized-ID persistence/restore round-trip proof
+Slice 4B.1b.2c and its sub-slices (S1-S5) are complete with no open blockers. The original IDENTITY_ATTRIBUTION_CONTRACT.md's bounded implementation sequence lists three further phases not yet authorized in this session - 4B.1b.3 (effective-dated DriverTruckAssignment), 4B.1b.4 (legacy attribution/backfill tooling), and 4B.2 (a real driver-role SELF UI consuming AccountDriverLink). Decide which, if any, to authorize next.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1009,3 +1010,17 @@ independent review of the orchestrator normalized-ID persistence/restore round-t
 - Next required actor: ChatGPT.
 - Next bounded action: remaining open work is SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN, a separate server-side track in crewbiq/crewbiq-orchestrator, out of this repository's authority to implement or gate directly.
 - Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c-S5 Independent Review (cross-repository) — ACCEPT
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.2c-S5 - Server Normalized-ID Round-Trip Proof, implemented in crewbiq/crewbiq-orchestrator (commit 1fc1057), addressing SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN.
+- Method: fetched the full diff directly via gh api (only tests/test_normalized_id_roundtrip.py was added, no runtime file changed); read the real, unmodified _write_loads/_write_pti (sync_writer.py) and _restore_loads/_restore_pti (restore.py) functions in full to independently verify whether the new test's fake connection accurately reflects the real SQL structure and whether the actual logic could silently drop unknown fields; reconstructed the minimal package in an isolated scratch directory and independently ran pytest (3/3 passed); confirmed the four other regression test files cited in the publication exist as pre-existing, unmodified files.
+- Key finding: verified directly in source that _write_loads/_write_pti serialize the ENTIRE load/pti dict via json.dumps(load) into a genuine jsonb raw_payload column (not a hand-picked subset of fields), and _restore_loads/_restore_pti start reconstruction from that full decoded payload as the base object, only overlaying a deliberately curated set of authoritative mutable columns (status, pickup/delivery, numeric fields) - workspaceId/truckId/driverId are not in that override list, so they pass through completely untouched. This is a generic pass-through mechanism verified by reading the actual code, not inferred from the test. The new test's fake in-memory connection was cross-checked against the real SQL column lists/positional argument counts and confirmed accurate, and it calls the real, unmodified functions - so this is genuine proof of the application-level round-trip logic, not merely a contract test asserting an agreed shape.
+- Honest caveat stated: no live-PostgreSQL instance is touched by this test (an in-memory Python fake stands in for the connection), so genuine database-level behavior (schema mismatches, JSON codec quirks) remains unverified - a real but materially smaller residual gap than what originally justified the blocker, since jsonb round-tripping arbitrary JSON is standard, well-established behavior and the previously-zero-proof application-level logic is now directly verified correct.
+- Confirmed via independent test execution: a record written with no workspaceId/truckId/driverId gains none on restore (no fabrication), and OWNER-A's restore never returns OWNER-B's records even when both carry normalized IDs (tenant isolation preserved).
+- Blockers reassessed: SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN is resolved and removed from the blocking list. CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING remains open only as a future consideration for driver-role SELF UI work, not a current blocker. No blocking findings remain open for the Slice 4B.1b.2c track as scoped this session.
+- Verdict: ACCEPT. Slice 4B.1b.2c-S5 is CLOSED. The client- and server-side normalized-ID track (Slice 4B.1b.2c, sub-slices S1-S5) is now substantively complete.
+- Next required actor: ChatGPT.
+- Next bounded action: decide which, if any, of the three further phases in IDENTITY_ATTRIBUTION_CONTRACT.md's bounded sequence to authorize next - 4B.1b.3 (effective-dated DriverTruckAssignment), 4B.1b.4 (legacy attribution/backfill tooling), or 4B.2 (a real driver-role SELF UI consuming AccountDriverLink).
+- Runtime/product files changed: NONE. This review touched no code in either repository.
