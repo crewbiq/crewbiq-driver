@@ -39,10 +39,10 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors
+Slice 4B.1a.1 - Custom Period Inclusive dateTo Correction
 
 Status:
-NEEDS FIX
+IN_PROGRESS
 
 Current owner:
 Codex
@@ -51,29 +51,31 @@ Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4B architecture CLOSED / ACCEPT
+current main; accepted ANALYTICS_SCOPE_CONTRACT.md uses inclusive dateFrom and dateTo
 
 Latest implementation commit:
+d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
+
+Original implementation:
 d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
 
 Latest review commit:
 8649cf080b341e4da451565892e6a2d7528bd48b
 
 Blocking findings:
-- analytics.js resolvePeriod() custom-period branch treats dateTo as exclusive (endExclusive = dateTo directly), silently contradicting the already-accepted ANALYTICS_SCOPE_CONTRACT.md's explicit "dateFrom and dateTo are inclusive local operational dates." Confirmed reproducible via direct execution: a load dated on the requested dateTo is silently dropped with no trace in excludedRecords/dataQuality, and a single-day custom range (dateFrom === dateTo) is incorrectly rejected as invalid_period. ANALYTICS_ENGINE_CONTRACT.md's custom-period bullet matches the code but was never reconciled against the prior accepted contract.
+custom dateTo is incorrectly treated as exclusive; correction in progress
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-- AnalyticsScope's canonical timeZone source (workspace vs device-local) is unspecified - non-blocking, left as a period-resolver implementation detail
-- tests/analytics.test.mjs's custom-period test encodes the implementation's (incorrect) exclusive-dateTo convention rather than the accepted contract's inclusive one - will need updating alongside the fix
+- canonical workspace timeZone source remains unspecified
 
 Next required actor:
 Codex
 
 Next bounded action:
-land Slice 4B.1a.1 - correct resolvePeriod()'s custom-period branch to treat dateTo as inclusive (endExclusive = addDays(dateTo, 1)), allow dateFrom === dateTo as a valid single-day range, correct ANALYTICS_ENGINE_CONTRACT.md's custom-period bullet to match ANALYTICS_SCOPE_CONTRACT.md, and update/add tests proving the last day of a custom range is included. No other change, no UI, no new scope type. Then return to Claude for re-review.
+correct only custom inclusive dateTo normalization, tests, and engine contract reconciliation
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -597,6 +599,7 @@ land Slice 4B.1a.1 - correct resolvePeriod()'s custom-period branch to treat dat
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
