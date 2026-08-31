@@ -42,22 +42,22 @@ Phase:
 Slice 4B.1b.3-S1 - DriverTruckAssignment Read Foundation
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; accepted discovery contract at 5c3daba6e2b979e8ed08ab67c9760e22569b3373 and independent ACCEPT review at 1271c509c3930a0f02722c1eead4d064c1b64942.
+current main; orchestrator read foundation published on agent/driver-truck-assignment-read at d8aae153f65228906f467bd141fa62651b56dc14. It adds the workspace-scoped effective-dated relation, DB-enforced workspace/interval/team-overlap invariants, server-derived read capability, and current/history/as-of reads only.
 
 Latest implementation commit:
-PENDING (crewbiq/crewbiq-orchestrator)
+d8aae153f65228906f467bd141fa62651b56dc14 (crewbiq/crewbiq-orchestrator @ agent/driver-truck-assignment-read)
 
 Latest correction commit:
-1948ea78dc1442a77bbc266eac9f413368be0d0a
+NONE for this slice
 
 Latest documentation commit:
 5c3daba6e2b979e8ed08ab67c9760e22569b3373
@@ -69,20 +69,36 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-See HISTORY; unchanged by this bounded server read-foundation slice.
+CURRENT_PROJECTION_STRATEGY_UNDEFINED remains intentionally deferred; mutations, audit command integration, legacy projections, PWA/UI, migration execution, merge, and deployment remain out of scope.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement the orchestrator-only workspace-scoped effective-dated DriverTruckAssignment schema, integrity/overlap enforcement, authorized current/history/asOf reads, and focused tests; exclude mutations, legacy projection writes, PWA/UI, production migration execution, merge, and deployment.
+independently review orchestrator branch agent/driver-truck-assignment-read commit d8aae153f65228906f467bd141fa62651b56dc14, including schema concurrency/workspace invariants, read authorization/shape, and focused regressions.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.3-S1 DriverTruckAssignment Read Foundation Publication
+
+- Repository: crewbiq/crewbiq-orchestrator
+- Branch: agent/driver-truck-assignment-read
+- Implementation commit: d8aae153f65228906f467bd141fa62651b56dc14
+- Runtime files: `app/routers/driver_truck_assignments.py`, `app/services/capabilities.py`, `app/main.py`.
+- Schema: `migrations/010_driver_truck_assignments.sql`; additive only and not executed against production.
+- Tests: `tests/test_driver_truck_assignments.py`, plus the exact capability expectation in `tests/test_auth.py`.
+- Read contract: authorized current/history/as-of endpoints; stable IDs, UTC timestamps, deterministic ordering, malformed/cross-workspace rows fail closed, no internal Account ID exposure.
+- DB contract: canonical Workspace bridge validates Driver/Truck ownership; half-open intervals; same-Driver overlaps rejected; solo/mixed Truck overlaps rejected; team/team overlap allowed; advisory transaction locks serialize competing rows.
+- Regression command: `pytest -q tests/test_driver_truck_assignments.py tests/test_workspace_driver_roster.py tests/test_canonical_registry.py tests/test_canonical_claims.py tests/test_auth.py tests/test_tenant_isolation.py` -> `68 passed in 2.83s`.
+- Mutation endpoints, legacy projection writes, PWA/UI changes, AccountDriverLink inference, production migration execution, merge, deployment, and production-data mutation: NONE.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent cross-repository S1 review.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.3 DriverTruckAssignment Discovery Publication
 
