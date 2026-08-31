@@ -2253,3 +2253,70 @@ The Slice 4B.1b.2c blocker review (this reviewer, prior turn) flagged that a pro
 Authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load `driverId`, consuming the now-accepted `workspace-driver-roster.js` adapter — showing only Drivers returned by the proven, authorized roster (never a local `driverProfiles` fallback, never a first/default selection). This is the natural next slice now that both the server source and the client adapter are independently verified sound, and the earlier migration concern is substantially de-risked. `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` and PTI attribution-context remain separate, independently-sequenced tracks.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.2c-S3 Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.2c-S3 — Explicit Driver Selection for NEW Loads (implementation commit `d8f34b0`), consuming the accepted workspace Driver roster adapter (Slice 4B.1b.2c-S2) to write a proven `driverId` on newly-created Loads.
+**Method:** fetched every changed file directly via `gh api` (`loads.js`, `index.html`, `sw.js`, `package.json`, `tests/load-driver-attribution.test.mjs`, `tests/workspace-driver-roster.test.mjs`, `tests/workspace-attribution.test.mjs`); read the full `resolveNewLoadDriverAttribution()`, `getLoadDriverSelection()`, `populateLoadDriverSelect()`, `hideLoadDriverSelect()`, and the modified `saveLoad()`/`editLoad()` in `loads.js`; read the composition-root wiring (`getWorkspaceDriverRosterAdapter()`, `readAuthorizedWorkspaceDriverRoster()`) in `index.html` in full; independently reconstructed the changed files in an isolated scratch directory and ran `node --test` across the new and both updated test files (36/36 passed, not merely trusted); specifically re-examined the edit path against the exact regression class found and corrected in the earlier truckId slice (4B.1b.2b → 4B.1b.2b.1).
+
+### The question that mattered most: does this repeat the truckId edit-path regression?
+
+The prior truckId slice shipped with a bug where the edit path unconditionally froze `entry.truckId` to `existingEntry.truckId`, silently discarding a live, mandatory truck reselection the UI still invited during edit. The `driverId` code here has the *same shape* — `if (existingEntry && hasOwnProperty(...,'driverId')) entry.driverId = existingEntry.driverId;` followed by a `!editId`-gated fresh-attribution branch that never runs during edit — which would be the identical bug **if** a live Driver control were still shown during edit.
+
+It is not. `editLoad()` calls `hideLoadDriverSelect()` (confirmed directly in the diff and by full read of `editLoad()`), which hides the row, clears and disables the `<select>`, and bumps `_driverRosterRequestId` to invalidate any in-flight roster fetch. `populateLoadDriverSelect()` — the only function that ever repopulates the selector — is never called from `editLoad()` (confirmed by direct read and by the test `assert.doesNotMatch(editSource, /populateLoadDriverSelect/)`). Since there is no live, visible, or interactive Driver control during edit at all, freezing `entry.driverId` to the existing value is the **correct** behavior here, not a silent override of a real user action — the class of bug from the truckId slice does not reproduce, because the design deliberately removes the competing UI action instead of leaving it in place and then ignoring it.
+
+### Attribution correctness
+
+`resolveNewLoadDriverAttribution(selection, workspaceResolution)` requires non-empty `driverId`/`workspaceId`/`name` on the selection, **and** requires `workspaceResolution.ok === true` and `workspaceResolution.workspaceId === selection.workspaceId` — an explicit freshness check against the currently-resolved active workspace, not merely trusting whatever workspace the roster happened to be fetched under. In `saveLoad()`, `workspaceResolution` is computed via a fresh call to `CrewBIQWorkspaceAttribution.resolveActiveWorkspace(_get.workspaceContext())` at save time — independent of, and later than, the fetch that originally populated the dropdown. This closes a real race: if a user's active workspace changed between opening the Load form and clicking Save, the mismatch check fails closed (`driver_workspace_mismatch`) rather than silently attributing the Load to a driver from a now-stale workspace. Verified directly in source and confirmed by the test `'missing, malformed, and cross-workspace Driver selections fail closed'`.
+
+### No fallback, no local roster, no PTI leakage
+
+Grepped `populateLoadDriverSelect()`, `getLoadDriverSelection()`, and the composition-root functions directly: no array-index selection (`[0]`), no `length === 1`/only-item shortcut, no reference to `loadDriverProfiles`/`driverProfiles` (the legacy identity-scoped local roster) anywhere — the selector's entire data source is `_workspaceDrivers`, populated exclusively from the accepted `workspace-driver-roster.js` adapter's response. `pti.js` is untouched by this commit (confirmed via the file list and directly grepped — no `workspaceDriverRoster`/`loadDriverSelect`/`resolveNewLoadDriverAttribution` reference, and `submitPTI()` still has no `driverId` field).
+
+### Transport and rendering
+
+`getWorkspaceDriverRosterAdapter()` composes `CrewBIQWorkspaceDriverRoster.create({request})`, where `request` POSTs a `workspace_driver_roster_read` action envelope through the same existing `syncUrl`-based transport every other client action already uses (login/restore/logout, etc.) — not an invented transport. `readAuthorizedWorkspaceDriverRoster()` correctly reuses the already-accepted `CrewBIQWorkspaceAttribution.resolveActiveWorkspace()` to derive `workspaceId` fresh, fails closed if session/resolver/adapter/resolution is missing or unresolved. `populateLoadDriverSelect()` renders each `<option>` through `_escHtml()` (the same established escaping helper used elsewhere in this file) for both the `driverId` value and the `name` display text — no injection risk. A `_driverRosterRequestId` counter guards against a stale, slower async roster fetch clobbering a newer one — a correct defensive pattern for async UI population.
+
+### Fail-closed UI states
+
+`populateLoadDriverSelect()` shows an explicit, disabled, non-selectable placeholder option for each failure mode — "Loading authorized Drivers...", "Authorized Driver roster unavailable" (missing adapter or failed/malformed response), "No authorized Drivers available" (empty roster), "Driver assignment required" (a real roster exists but nothing is yet selected) — never silently leaving a selectable-but-wrong option, and `saveLoad()`'s `if (!editId && !driverAttribution.ok) return _toast('Driver assignment required', 'err')` blocks the save entirely until a valid, workspace-matched selection exists.
+
+### Independent test execution
+
+Reconstructed the full changed-file set (`loads.js`, `index.html`, `sw.js`, `pti.js`, `core-runtime.js`, `workspace-driver-roster.js`, `workspace-attribution.js`) in an isolated scratch directory and ran `node --test` across `tests/load-driver-attribution.test.mjs`, `tests/workspace-driver-roster.test.mjs`, and `tests/workspace-attribution.test.mjs` together: **36/36 passed**. The one test-file update outside the new test (`workspace-driver-roster.test.mjs`'s `'adapter is loaded, lazily composed, and cache shell is rotated'`) is a legitimate, expected evolution — it still asserts `CrewBIQWorkspaceDriverRoster.read(` is never called directly from raw HTML markup, and adds an assertion that the lazy composition function now exists — not a weakened check, since the whole point of this slice is that the adapter is now genuinely composed (it could no longer assert "never composed" without contradicting the slice's own purpose).
+
+### Service-worker cache rotation
+
+`loads.js`/`index.html` changed content again; `CACHE_NAME` correctly rotated `v89 → v90`, matching the updated test assertions in all three affected test files.
+
+### Verdict
+
+**ACCEPT**
+
+This is a careful, well-executed implementation that explicitly avoids the exact regression class caught in the prior truckId correction by removing the competing live UI control during edit entirely, rather than accepting the risk of silently ignoring it. The workspace-freshness double-check at save time is a genuinely good defensive addition beyond what was strictly required.
+
+### Blocking findings (reassessed)
+
+- `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN` — **fully resolved for Load.** Server source (S1), client adapter (S2), and now UI consumption (S3) are all accepted end-to-end. Removed from the blocking list.
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` — **resolved for Load specifically**, via the anticipated bypass (an explicit UI Driver-selection source, exactly as the original blocker review allowed for). This blocker's remaining scope narrows to: PTI's own future driver attribution, and any future driver-role `SELF` UI work that genuinely needs `AccountDriverLink` (a materially different feature from Load `driverId` assignment) — carried forward under that narrower scope.
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` (carried forward, unrelated to this slice — still applies to `workspaceId`/`truckId`/`driverId` alike, since none of them have a proven backend round-trip test)
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING` (carried forward, unrelated to this slice — PTI still has no truck or driver selection of any kind)
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Orchestrator's `_authorized_workspace_id()` redundant status-default (server-side, prior review).
+
+### New observation (informational, non-blocking)
+
+Driver reassignment during Load edit is currently out of scope by design (the selector is hidden entirely) — unlike `truckId`, which after its correction supports edit-time reassignment. This is a deliberate, correctly-implemented scope boundary for this slice, not an oversight, but a future slice may want to add an explicit Driver-reassignment capability during edit, analogous to what truckId now has — if and when that is desired, it should be designed from the start to keep the live-control-implies-must-take-effect discipline this review has now checked twice.
+
+### Recommended next bounded action
+
+With Load `workspaceId`, `truckId`, and `driverId` (for new records) now all complete and accepted, the highest-value remaining client-side track is `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`: add an explicit, no-default Truck and Driver selection step to the PTI submission flow, mirroring the pattern now proven twice for Loads (explicit selection UI, workspace-freshness check at save time, fail-closed placeholders, no local-roster fallback). `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` remains a separate, server-side, cross-repository track.
+
+Runtime/product files changed by this review: NONE.
