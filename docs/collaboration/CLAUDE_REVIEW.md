@@ -2766,3 +2766,59 @@ Blocking findings exist, but the document itself correctly characterizes the blo
 Implement the orchestrator-only `AccountDriverLink` read foundation exactly as scoped in the discovery document: an additive, workspace-scoped, effective-dated relation schema; server-derived Account identity from the Bearer session; active-Workspace-membership authorization; database-enforced same-workspace integrity and non-overlap constraints; an authenticated read endpoint compatible with the existing `account_driver_link_read` semantic action; comprehensive zero/one/multiple/boundary/malformed/revoked/unauthorized/cross-workspace test coverage; and — as a firm requirement, following the precedent set and personally verified in the `DriverTruckAssignment` mutation slice — genuine PostgreSQL execution coverage for the relation's constraints, not merely static text matching. No admin mutation endpoint, no inferred link creation, no migration/backfill, no merge, no deployment.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.2-S1 Independent Review (cross-repository) — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.2-S1 — AccountDriverLink Server Read Foundation, implemented in `crewbiq/crewbiq-orchestrator` (branch `agent/account-driver-link-read`, commit `ac98b11`), the server prerequisite identified by the Slice 4B.2 discovery.
+**Method:** fetched every changed file directly via `gh`/curl; read the full migration/trigger, router, and capability changes; **stood up a fresh PostgreSQL 16 instance in a new local Docker container, ran the actual repository migrations (all 11) against it, and independently executed `tests/test_account_driver_links_postgres.py` myself** — not merely reading it; independently reconstructed and ran the mock-based `tests/test_account_driver_links.py` (6/6 passed); cross-checked the response shape byte-for-byte against the already-accepted client validator (`account-driver-link.js`, accepted in Slice 4B.1b.1a) to confirm genuine compatibility, not just a plausible-looking contract.
+
+### Gold-standard verification, again
+
+Following the precedent from the `DriverTruckAssignment` mutation slice, I did not accept the new `tests/test_account_driver_links_postgres.py` on its own word. I provisioned a fresh Postgres 16 container, ran all 11 migrations against it, and executed the test directly. **It passed.** This independently confirms, by direct observation:
+
+- Two non-overlapping active links for the same Account (different Drivers, adjacent time ranges) succeed.
+- An overlapping active link for the same Account correctly raises `account_driver_link_active_overlap`.
+- A link to a Driver belonging to a different legacy owner correctly raises `account_driver_link_driver_workspace_mismatch`.
+- A link for an Account with no active membership in the target workspace correctly raises `account_driver_link_account_workspace_mismatch` — this check is a genuinely thorough join through `auth_users → person_accounts → persons (active) → workspace_memberships (active, open-ended)`, not a superficial existence check.
+- A `manual_admin`-sourced link with a blank reason correctly raises a database check-constraint violation.
+- **A genuine concurrency test**: a held transaction inserting an active link for an Account is observed to genuinely block a concurrent second connection's competing insert for the same Account (`not competing.done()` after 200ms) until the first commits — confirming the `pg_advisory_xact_lock` (scoped per workspace+account) actually serializes competing transactions, not merely that the SQL text mentions it.
+
+### Schema and capability design
+
+`account_driver_links` matches the field contract from the long-accepted `IDENTITY_ATTRIBUTION_CONTRACT.md`/`ACCOUNT_DRIVER_LINK_API_CONTRACT.md` closely: `account_id`/`attributed_by_account_id` are FKs to `auth_users(crewbiq_id)` (the correct canonical Account identity, consistent with every prior review in this track), `driver_id` is an FK to `fleet_driver_profiles(driver_profile_id)`, `provenance_source` is a checked enum matching the exact six accepted sources, and a check constraint requires a non-blank `reason` specifically when `provenance_source = 'manual_admin'` — enforcing at the database level a rule this track's client-side code has enforced since Slice 4B.1b.1a. `app/services/capabilities.py` correctly grants the new `ACCOUNT_DRIVER_LINK_READ` capability to the plain `"driver"` role in addition to `owner_op`/`fleet`/`fleet_admin` — a deliberate, correct distinction from `DRIVER_TRUCK_ASSIGNMENT_READ`/`MANAGE` and the company/truck capabilities (fleet-management concerns), since `AccountDriverLink` exists specifically so an ordinary driver can resolve "who am I" — reflecting genuine understanding of the feature's purpose, not a copy-pasted capability set.
+
+### Response contract genuinely matches the pre-existing accepted client
+
+This mattered more here than in any prior orchestrator slice: `account-driver-link.js` was accepted back in Slice 4B.1b.1a with a camelCase response contract (`workspaceId`, `accountId`, `accountIdSpace`, and each link's `linkId`/`workspaceId`/`accountId`/`driverId`/`status`/`effectiveFrom`/`effectiveTo`/`provenance.{source,attributedByAccountId,attributedAt,reason}`) — deliberately different from the snake_case convention every *later* orchestrator slice in this track (`workspace_drivers.py`, `driver_truck_assignments.py`) correctly adopted. I compared this new endpoint's response construction field-by-field against my own record of the accepted client validator's exact field reads, including the `ACCOUNT_ID_SPACE = 'crewbiq_account'` constant, and confirmed an exact match — the endpoint was built to match the *actual pre-existing client code*, not the newer server-side convention that would have silently broken compatibility with an already-accepted adapter. `_link_response()` also independently re-verifies `driver_owner === workspace_owner` (a redundant, defense-in-depth check beyond the trigger's own INSERT-time verification) and requires a genuine positive, non-boolean integer `schema_version`.
+
+### Server correctly defers "which link is effective" to the already-accepted client logic
+
+Unlike `DriverTruckAssignment`'s `/current` endpoint (which resolves NOT_FOUND/AMBIGUOUS server-side), this endpoint returns the full link list for the Account — including zero, one, or many, any status — without server-side selection. This is the *correct* design, not an oversight: the already-accepted `account-driver-link.js` client validator already performs its own effective-link counting and NOT_FOUND/AMBIGUOUS resolution; duplicating that logic server-side would be redundant and risk drifting from the accepted client contract. Confirmed via the mock test `'zero_and_multiple_links_are_returned_without_server_selection'`.
+
+### Independent test execution
+
+- **Real PostgreSQL**: 1/1 passed, executed against a freshly-provisioned, locally-run Postgres 16 instance (separate from CI, separate from the earlier `DriverTruckAssignment` verification).
+- **Mock-based command/read tests** (`tests/test_account_driver_links.py`): 6/6 passed — authorized read-only history return, zero/multiple links without server selection, cross-workspace/missing-capability/missing-account-ID rejection before any database access, nine distinct malformed/duplicate/cross-boundary row cases failing closed with 502, schema-unavailable and authentication-failure handling via the existing contract, and capability-to-role mapping confirming `driver` alongside the fleet roles.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+NONE. `CANONICAL_ACCOUNT_DRIVER_LINK_SERVER_SOURCE_MISSING` (from the Slice 4B.2 discovery review) is resolved.
+
+### Non-blocking findings carried forward
+
+All items unchanged from the Slice 4B.2 discovery review (server-side items carried from `DriverTruckAssignment`; long-standing PWA items). One new observation: the trigger only enforces at-most-one-active-link *per Account*, matching the originally-accepted contract's stated invariant exactly — it does not additionally prevent two different Accounts from simultaneously holding active links to the *same* Driver. The accepted contract never specified that as a requirement (unlike `DriverTruckAssignment`, which explicitly required both Driver-side and Truck-side uniqueness), so this is not a gap against anything actually promised — flagged only as a design question worth a deliberate decision if it ever becomes relevant, not a defect.
+
+### Applying the autonomous handoff protocol
+
+Blocking findings = NONE. The Product Owner's own sequence already named SELF UI as the next major phase (C), and the Slice 4B.2 discovery already specified this server slice as its own bounded prerequisite and named the subsequent PWA composition slice precisely. No fresh product/business decision is required. `Decision gate: AUTO_CONTINUE_ALLOWED`, `Next required actor: Codex`.
+
+### Recommended next bounded action
+
+Implement the subsequent bounded PWA slice exactly as scoped by the Slice 4B.2 discovery document: load and lazily compose the already-accepted `account-driver-link.js` adapter (currently genuinely uncomposed); map `account_driver_link_read` through the existing authenticated transport to this new endpoint; resolve the canonical Driver ID before calling the already-accepted `DriverTruckAssignment` current-read adapter; render a minimal read-only SELF state for success/not-linked/ambiguous/unauthorized/unavailable outcomes; keep all legacy screens and records unchanged. That slice must remain read-only — no `AccountDriverLink` administration UI, no assignment mutation UI, no fleet ranking, no legacy backfill, no migration, no merge, no deployment.
+
+Runtime/product files changed by this review: NONE. This review touched no code in either repository (the local Docker Postgres container used for verification was created and destroyed entirely within this review session).
