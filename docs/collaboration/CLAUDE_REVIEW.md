@@ -2726,3 +2726,43 @@ Blocking findings = NONE. The Product Owner's own decision already specifies exa
 Begin Slice 4B.2 — Driver SELF UI — with a discovery-first approach mirroring this track's established discipline: identify what already exists (the accepted `AccountDriverLink` adapter for Account→Driver resolution, the accepted workspace Driver roster, and this newly-accepted `DriverTruckAssignment` current-read adapter for resolving a Driver's current Truck context) and propose the smallest safe read-only UI consuming them — no default/inferred identity, no first-record fallback, fail closed on ambiguity, no migration, no legacy backfill (queued until after SELF UI is proven, per the Product Owner's stated sequence), no merge, no deployment.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.2 Discovery Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.2 — Driver SELF UI Discovery (commit `f64dc88`), the first bounded step in the Product Owner's second priority (C: Driver SELF UI), following the now-accepted DriverTruckAssignment client integration (A).
+**Method:** fetched `DRIVER_SELF_UI_DISCOVERY.md` and confirmed via the commit diff it is the only file changed; independently verified the document's central factual claim — that no `AccountDriverLink` server source exists anywhere in `crewbiq-orchestrator` — by searching the full repository tree (`main` branch) and, critically, enumerating and checking **every one of the repository's ~30 active branches** (not just `main`, since this whole cross-repo track has consistently kept each accepted slice unmerged on its own feature branch) for any `account_driver`/`account-driver`/`AccountDriverLink`-named file; independently confirmed `account-driver-link.js` is genuinely not loaded via any `<script>` tag in the current `index.html` (fetched directly, not assumed).
+
+### The claim that mattered most: does the server source genuinely not exist?
+
+This is the crux of the whole discovery. `AccountDriverLink` was specified in `ACCOUNT_DRIVER_LINK_API_CONTRACT.md` and its PWA-side adapter (`account-driver-link.js`) was accepted all the way back in Slice 4B.1b.1a — but I confirmed at the time (and it remains true today) that the *server-side* endpoint was explicitly deferred as a "SERVER IMPLEMENTATION HANDOFF" and, as far as I can trace through every subsequent orchestrator-side slice reviewed since (workspace Driver roster, `DriverTruckAssignment` read/mutation), never actually picked up. Given how easy it would be for a discovery document to simply be wrong or stale about something like this, I did not accept the claim on its word: I listed every branch in `crewbiq-orchestrator` (`agent/*`, `feat/*`, `fix/*` — roughly 30 in total, including the accepted-but-still-unmerged `agent/driver-truck-assignment-read` and `agent/driver-truck-assignment-mutations`) and grepped each for any `AccountDriverLink`-related path. None exists, anywhere. I also independently fetched the current `index.html` and confirmed `account-driver-link.js` is not referenced by any `<script>` tag — it has never been composed into the running application at all, exactly as the document states.
+
+### Evidence chain and reasoning
+
+The required chain (`Account → Workspace → AccountDriverLink → roster Driver → DriverTruckAssignment → current Truck`) is a correct, faithful synthesis of every identity distinction this entire track has enforced: it correctly identifies that neither the accepted workspace Driver roster nor the accepted `DriverTruckAssignment` foundation can substitute for the missing Account→Driver link — resolving "which Driver is this authenticated Account" is a fundamentally different question from "which Drivers exist in this workspace" or "who is currently assigned to which Truck," and no combination of the latter two can answer the former without an explicit, unproven inference (first/only record, name/email match, reinterpreting `crewId` as roster `driverId`) that this entire track has consistently forbidden. The document explicitly and correctly frames the blocker as "a bounded technical prerequisite, not a new product-policy decision" — the Product Owner already decided SELF UI comes next; this discovery has not silently reopened that choice, it has correctly identified what must exist first to build it safely.
+
+### Proposed next slice is properly scoped and consistent with recent precedent
+
+The "Smallest safe next bounded slice" — an orchestrator-only `AccountDriverLink` read foundation using the *already-accepted* `ACCOUNT_DRIVER_LINK_API_CONTRACT.md` handoff, requiring "genuine PostgreSQL execution coverage for relation constraints" — correctly generalizes the lesson from the `DriverTruckAssignment` mutation slice (4B.1b.3-S2), where I personally verified real trigger behavior against a live Postgres instance rather than accepting static text matching. Explicitly stated: "An empty authoritative relation is a valid `self_not_linked` result. This slice must not auto-create a link from existing profile similarity" — correctly preserving the fail-closed discipline. The document also correctly scopes what comes *after* server acceptance (compose the already-accepted client adapter, resolve Driver ID before calling `DriverTruckAssignment`, render minimal read-only SELF states) as a separate, later PWA slice — not bundled into this one.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+- `CANONICAL_ACCOUNT_DRIVER_LINK_SERVER_SOURCE_MISSING` — confirmed genuine by independent, repository-wide (all-branches) verification. This blocks Slice 4B.2 runtime work, not the discovery slice itself (which is correctly documentation-only and is being accepted here).
+
+### Non-blocking findings carried forward
+
+All items unchanged from the Slice 4B.1b.3-S3 review (unaffected by this documentation-only discovery): server-side `CURRENT_PROJECTION_STRATEGY_UNDEFINED` deferral, `raw_payload` round-trip's missing live-Postgres counterpart, `driver_truck_assignments.py`'s stricter workspace-activity requirement vs. `workspace_drivers.py`, missing empty-`active_workspace_id` test, plus the long-standing carried-forward PWA items.
+
+### Applying the autonomous handoff protocol
+
+Blocking findings exist, but the document itself correctly characterizes the blocker as a bounded technical prerequisite already covered by previously-accepted architecture (`ACCOUNT_DRIVER_LINK_API_CONTRACT.md`'s own server handoff, written and accepted in Slice 4B.1b.1a) — not a fresh product/business decision. The Product Owner's own priority sequence already put SELF UI next; this discovery has not reopened that. Per the binding coordination rule: `Decision gate: AUTO_CONTINUE_ALLOWED`, `Next required actor: Codex`.
+
+### Recommended next bounded action
+
+Implement the orchestrator-only `AccountDriverLink` read foundation exactly as scoped in the discovery document: an additive, workspace-scoped, effective-dated relation schema; server-derived Account identity from the Bearer session; active-Workspace-membership authorization; database-enforced same-workspace integrity and non-overlap constraints; an authenticated read endpoint compatible with the existing `account_driver_link_read` semantic action; comprehensive zero/one/multiple/boundary/malformed/revoked/unauthorized/cross-workspace test coverage; and — as a firm requirement, following the precedent set and personally verified in the `DriverTruckAssignment` mutation slice — genuine PostgreSQL execution coverage for the relation's constraints, not merely static text matching. No admin mutation endpoint, no inferred link creation, no migration/backfill, no merge, no deployment.
+
+Runtime/product files changed by this review: NONE.
