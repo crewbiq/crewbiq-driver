@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2a - Explicit Workspace Context for NEW Loads/PTI
+Slice 4B.1b.2b - Normalized truckId for NEW Loads
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize the smallest available prerequisite slice - formally declare and write the already-proven, already-explicit truckId as a normalized field on newly-created Loads only (no new UI, no server dependency, no cross-repository blocker); PTI attribution-context UI work and the AccountDriverLink server handoff remain separate, independently-sequenced tracks
+verify explicit Load truck selection is a stable Truck entity ID, preserve it on new Loads only, and contract-test client persistence without PTI or driverId changes
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -751,7 +751,6 @@ authorize the smallest available prerequisite slice - formally declare and write
 - Next required actor: ChatGPT.
 - Next bounded action: formally declare and write the already-proven, already-explicit truckId as a normalized field on newly-created Loads only; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
 - Runtime/product files changed: NONE.
-
 
 
 
