@@ -42,19 +42,19 @@ Phase:
 Slice 4B.1b.3-S2 - DriverTruckAssignment Mutation Commands
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; S1 read foundation accepted at orchestrator d8aae153f65228906f467bd141fa62651b56dc14 with independent review e572cd1641fa0d180f74e8a9ada3f92bbdb82aad. The DB trigger must receive genuine execution-based PostgreSQL verification before any mutation endpoint is published.
+current main; orchestrator mutation commands published on agent/driver-truck-assignment-mutations at c4ac01d1b106a9570b24df0ffacec7855aaee57e. Create/close/revoke are server-workspace and actor scoped, manage-capability gated, idempotent, optimistic-concurrency checked, audit-appending, and preserve historical rows. PostgreSQL trigger behavior is now execution-tested.
 
 Latest implementation commit:
-PENDING (crewbiq/crewbiq-orchestrator)
+c4ac01d1b106a9570b24df0ffacec7855aaee57e (crewbiq/crewbiq-orchestrator @ agent/driver-truck-assignment-mutations)
 
 Latest correction commit:
 NONE for this slice
@@ -69,20 +69,37 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-Legacy projection writes, PWA/UI integration, production migration execution, merge, and deployment remain excluded.
+CURRENT_PROJECTION_STRATEGY_UNDEFINED remains deferred; legacy projection writes, PWA/UI integration, production migration execution, merge, and deployment remain excluded.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement capability-gated create/close/revoke commands with idempotency, optimistic concurrency, immutable audit events, and genuine execution-based PostgreSQL trigger tests; exclude projections, PWA/UI, production migration execution, merge, and deployment.
+independently review orchestrator branch agent/driver-truck-assignment-mutations commit c4ac01d1b106a9570b24df0ffacec7855aaee57e, including command authorization/idempotency/version/audit semantics and genuine PostgreSQL trigger coverage.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.3-S2 DriverTruckAssignment Mutation Commands Publication
+
+- Repository: crewbiq/crewbiq-orchestrator
+- Branch: agent/driver-truck-assignment-mutations
+- Implementation commit: c4ac01d1b106a9570b24df0ffacec7855aaee57e
+- Runtime files: `app/routers/driver_truck_assignments.py`, `app/services/capabilities.py`.
+- Commands: create, close, revoke only; no update/delete/backfill endpoint.
+- Security: canonical active Workspace and actor from session; server-derived `canonical.driver_truck_assignment.manage`; extra fields forbidden; cross-workspace paths fail before DB access.
+- Integrity: required idempotency key, durable response replay/conflict rules, expected-version checks for close/revoke, mandatory reason for close/revoke, immutable relationship audit append, no historical delete.
+- Genuine PostgreSQL coverage: CI now provides PostgreSQL 16 and `CREWBIQ_TEST_DATABASE_URL`; `tests/test_driver_truck_assignments_postgres.py` executes migrations and verifies workspace mismatch, half-open boundaries, Driver/Truck conflicts, team/team overlap, and concurrent advisory-lock serialization.
+- Local regression command: PostgreSQL-backed assignment integration + command/read/workspace/canonical/auth/tenant suites -> `74 passed in 4.50s`.
+- Test/CI files: `.github/workflows/tests.yml`, `tests/test_driver_truck_assignment_commands.py`, `tests/test_driver_truck_assignments_postgres.py`, `tests/test_auth.py`.
+- Legacy projection writes, PWA/UI changes, production migration execution, merge, deployment, and production-data mutation: NONE.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent cross-repository S2 review.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.3-S1 DriverTruckAssignment Read Foundation Publication
 
