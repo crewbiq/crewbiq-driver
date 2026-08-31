@@ -39,50 +39,67 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.2 - Driver SELF UI Discovery and Smallest Read-Only Integration
+Slice 4B.2 - Driver SELF UI Discovery
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; accepted S3 client adapter at fb04183c2432fcc7176c5476c4a71ef76fc3908c and independent ACCEPT review at db17e5da4d29d85b7c6352ee3648383d252083bd. Product sequence requires Driver SELF UI before legacy backfill.
+current main; discovery published at f64dc8897a183153a5f569944e3f26aad4288f60. Accepted SELF, roster, and DriverTruckAssignment client foundations exist, but the orchestrator has no canonical AccountDriverLink table/read endpoint; UI runtime cannot safely resolve authenticated Account to roster Driver without prohibited inference.
 
 Latest implementation commit:
-PENDING
+f64dc8897a183153a5f569944e3f26aad4288f60 (documentation-only discovery)
 
 Latest correction commit:
 NONE for this slice
 
 Latest documentation commit:
-5c3daba6e2b979e8ed08ab67c9760e22569b3373
+f64dc8897a183153a5f569944e3f26aad4288f60
 
 Latest review commit:
 db17e5da4d29d85b7c6352ee3648383d252083bd
 
 Blocking findings:
-NONE
+CANONICAL_ACCOUNT_DRIVER_LINK_SERVER_SOURCE_MISSING
 
 Queued non-blocking findings:
-Legacy attribution/backfill remains queued until SELF UI is proven; no ranking, mutation UI, migration, merge, or deployment.
+Legacy attribution/backfill remains queued after SELF UI; no ranking, mutation UI, migration, merge, or deployment.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-discover the authoritative Account-to-Driver-to-current-Truck chain and existing SELF UI surfaces, then implement only the smallest safe read-only SELF UI if every identity source is proven; otherwise publish the exact technical prerequisite without fallback or inference.
+independently review DRIVER_SELF_UI_DISCOVERY.md and the verified absence of an orchestrator AccountDriverLink source; on ACCEPT hand directly to Codex for the orchestrator-only AccountDriverLink read foundation defined by the existing API contract.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.2 Driver SELF UI Discovery Publication
+
+- Repository/branch: crewbiq/crewbiq-driver @ agent/pre-base44-audit
+- Discovery commit: f64dc8897a183153a5f569944e3f26aad4288f60
+- Deliverable: `docs/collaboration/DRIVER_SELF_UI_DISCOVERY.md`.
+- Proven chain: Account -> Workspace -> AccountDriverLink -> roster Driver -> DriverTruckAssignment -> current Truck.
+- Accepted foundations: pure SELF analytics, disconnected AccountDriverLink validator, workspace roster adapter, DriverTruckAssignment adapter and server relation.
+- Blocking evidence: current orchestrator contains no AccountDriverLink table, migration, router, endpoint, or tests; client contract forbids local simulation.
+- Result: `NOT_READY_FOR_SELF_UI_RUNTIME`; blocker `CANONICAL_ACCOUNT_DRIVER_LINK_SERVER_SOURCE_MISSING`.
+- Safest next slice: orchestrator-only effective-dated AccountDriverLink schema and authenticated read endpoint with genuine PostgreSQL constraint tests; no mutation endpoint or inferred population.
+- Runtime/product files changed: NONE.
+- Tests: not run; documentation/discovery-only slice.
+- UI, adapter invocation, local fallback, legacy mutation/backfill, migration execution, ranking, merge, deployment, and production-data mutation: NONE.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent discovery review, then direct Codex handoff for server read foundation if accepted.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.3-S3 DriverTruckAssignment PWA Read-Only Adapter Publication
 
