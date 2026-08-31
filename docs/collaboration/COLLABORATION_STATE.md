@@ -59,6 +59,9 @@ e5f33818f38db6950dc83047ca9faada5eec9152
 Latest correction commit:
 NONE - blocked before runtime implementation
 
+Latest documentation commit:
+e8744e9
+
 Latest review commit:
 f83c0c017ceb19b3650c0f0a3abc09909ee61837
 
@@ -89,6 +92,7 @@ independent review of Slice 4B.1b.2 blocker determination and required attributi
 
 - Agent: Codex
 - Result: `SLICE_4B_1B_2_BLOCKED`
+- Publication commit: `e8744e9`
 - Runtime files changed: NONE
 - Creation paths inventoried: `loads.js::saveLoad()` and `pti.js::submitPTI()`
 - Reason: canonical Driver/PTI attribution context and backend round-trip persistence are not proven; guessing and legacy alias normalization are forbidden
