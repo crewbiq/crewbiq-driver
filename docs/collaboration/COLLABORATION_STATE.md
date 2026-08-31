@@ -39,22 +39,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2c-S3 - Explicit Driver Selection for NEW Loads
+Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; new Loads now require explicit Driver selection from the accepted authorized workspace roster and write that stable driverId, with a fresh workspace-match check at save time; Driver selector is hidden (not overridden) during edit; no default/local fallback, edit backfill, PTI attribution, or AccountDriverLink inference exists
+current main; PTI submission now requires explicit no-default Truck and authorized-roster Driver selections and a fresh workspace match before writing workspaceId/truckId/driverId; pending independent review
 
 Latest implementation commit:
-d8f34b02261cfa7a54231c2a7b036d0f6ea79325
+e6822846bba2c1140249ba50c5b5d7c11ccd022f
 
 Latest correction commit:
 NONE
@@ -67,8 +67,8 @@ Latest review commit:
 
 Blocking findings:
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
-- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - resolved for Load via the explicit-selector bypass; narrows to PTI's own future driver attribution and any future driver-role SELF UI work
-- PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all
+- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
+- PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - explicit Truck/Driver context published, pending Claude acceptance
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -86,14 +86,28 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement explicit no-default Truck and authorized-roster Driver selection for PTI submission with a fresh workspace check and no local fallback
+independent review of explicit PTI Truck/Driver attribution context and fail-closed submission behavior
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.2c-S4 Explicit PTI Attribution Publication
+
+- Branch: agent/pre-base44-audit
+- Implementation commit: e6822846bba2c1140249ba50c5b5d7c11ccd022f
+- Scope: explicit no-default Truck and authorized workspace Driver selectors for PTI; fresh workspace verification at submit; new PTIs receive proven `workspaceId`, `truckId`, and `driverId`.
+- Runtime files: `pti.js`, `index.html`, `sw.js`.
+- Tests/wiring: `tests/pti-attribution-context.test.mjs`, four adjacent attribution contracts, and `package.json`.
+- Cache version: `crewbiq-driver-v91`.
+- Tests: targeted PTI/Load/workspace/roster/auth/startup/service-worker set -> `92 passed, 0 failed`.
+- Exclusions: no default/first selection, local Driver fallback, AccountDriverLink inference, legacy mutation, migration, merge, or deployment.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent S4 review.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.2c-S3 Explicit NEW-Load Driver Selection Publication
 
