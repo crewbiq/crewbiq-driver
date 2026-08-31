@@ -42,22 +42,22 @@ Phase:
 Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE RE-REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; PTI submission is currently permanently blocked for any user without a connected Orchestrator account (confirmed regression, see Claude review 653bf5d). Product Owner has decided the fix direction: (A) graceful degrade, matching Load's workspaceId behavior - PTI submission must always succeed regardless of account/workspace state; workspaceId/truckId/driverId are written only when proven, otherwise the fields are simply omitted (with a console.warn, mirroring loads.js's existing workspaceId-unresolved pattern), never blocking the save.
+current main; PTI canonical attribution now gracefully degrades when authority is unavailable, preserving mandatory PTI completion without fabricating IDs; available authority remains fail-closed for invalid or cross-workspace selections
 
 Latest implementation commit:
 e6822846bba2c1140249ba50c5b5d7c11ccd022f
 
 Latest correction commit:
-NONE - correction pending
+1948ea78dc1442a77bbc266eac9f413368be0d0a
 
 Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
@@ -66,7 +66,7 @@ Latest review commit:
 653bf5d980306afc8790b6a6e9fb99bfde4d8a31
 
 Blocking findings:
-- PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT - confirmed regression; Product Owner has selected fix direction (A) graceful degrade; awaiting Codex implementation and Claude re-review before this can close
+- PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT - graceful-degradation correction published, pending Claude re-review
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
 
@@ -87,14 +87,27 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-correct pti.js so PTI submission never blocks on missing/unresolved workspace, Truck roster, or Driver roster: the odometer/checklist requirement remains, but workspaceId/truckId/driverId are written only when a proof exists (fresh workspace resolution ok, an explicit Truck selection present, an explicit Driver selection present and workspace-matched) - if any is missing/unresolved, omit that field and log a console.warn exactly as loads.js already does for workspaceId, and let the PTI submission succeed regardless. Add regression tests for: no Orchestrator session at all (submission succeeds, no workspaceId/truckId/driverId written), workspace resolved but Driver roster empty/unavailable (submission succeeds, no driverId), and the existing fully-attributed happy path continuing to work unchanged. No migration, no merge, no deployment.
+independent re-review of PTI graceful degradation correction 1948ea78dc1442a77bbc266eac9f413368be0d0a
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - S4 PTI Graceful-Degradation Correction Publication
+
+- Correction commit: 1948ea78dc1442a77bbc266eac9f413368be0d0a
+- Binding decision: Product Owner option A, graceful degradation.
+- Behavior: unavailable canonical authority permits PTI completion with `workspaceId`/`truckId`/`driverId` omitted and an explicit warning; no IDs are guessed or inferred.
+- Authority distinction: loading waits up to a bounded timeout; available authority still rejects missing, invalid, or cross-workspace selections.
+- Cache version: `crewbiq-driver-v92`.
+- Tests: complete S4 plus PTI/auth/startup/offline/service-worker regressions -> `123 passed, 0 failed`.
+- Runtime files: `pti.js`, `sw.js`; no merge, deployment, migration, or production-data mutation.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent correction re-review.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.2c-S4 Explicit PTI Attribution Publication
 
