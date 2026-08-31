@@ -30,7 +30,11 @@
 - `pti.js`: PTI readiness and lifecycle helper.
 - `fleet-load-resolution.js`: truck/load matching for dispute settlement behavior.
 - `sw.js`: service worker app-shell cache and network policy.
-- `index.html`: startup flow, page routing, modal/render glue, and many inline handlers not yet fully extracted.
+- `startup-session.js`: accepted startup/session ordering, restore completion, PTI routing, app visibility, and delayed initial pull.
+- `links.js`: accepted Links storage/migration, URL policy, rendering, CRUD/favorite, and modal runtime.
+- `navigation-model.js`: accepted role/menu/page metadata and pure navigation lookup helpers; no routing or authorization ownership.
+- `analytics.js`: independently tested, side-effect-free Driver SELF scope, period, snapshot, metric, and series selectors; intentionally not loaded by production UI in Slice 4B.1a.
+- `index.html`: compatibility composition shell, page routing, modal/render glue, and remaining inline domain handlers.
 
 ## Verified hotfix loader chain
 
@@ -79,3 +83,11 @@ Slice 2A adds contracts only. The proposed future links.js boundary would own st
 links.js is the global-compatible dependency-injected owner of Links state, clinks storage/migration, URL safety, rendering, CRUD/favorite, and modal behavior. It loads after startup-session.js outside the core.js hotfix chain and is cached in the service-worker app shell.
 
 index.html remains shell/composition owner: page-community markup/CSS/static controls, role/route wiring, Marketplace mapping, module construction, and compatibility shims.
+
+## Slice 3B navigation model
+
+`navigation-model.js` owns `ROLE_CONFIG`, `FUNCTION_GROUPS`, role rank, page/primary metadata, and pure lookup helpers. `index.html` remains the single router and DOM composition owner, while `core-runtime.js` retains the independent authorization guard around the effective role setter.
+
+## Slice 4B.1a analytics foundation
+
+`analytics.js` is a global-compatible pure-read module with no load-time behavior beyond namespace export. It validates fail-closed Driver SELF proofs, resolves explicit-timezone date bounds, creates attributable load snapshots, and derives bounded metrics and daily series with provenance/data-quality metadata. It is not loaded by `index.html`; no service-worker cache rotation or UI behavior change is required.

@@ -1,6 +1,6 @@
 # CrewBIQ PRODUCT CONTRACT (Canonical)
 
-**Scope:** Canonical product requirements and invariants for `crewbiq/crewbiq-driver` as of `2026-08-30` for Slice 0b documentation reconciliation.  
+**Scope:** Canonical product requirements and invariants for the current accepted collaboration baseline through Slice 4B.  
 **Source precedence:** See [`DOCUMENTATION_AUTHORITY.md`](./DOCUMENTATION_AUTHORITY.md).  
 **Branch:** `agent/pre-base44-audit`.
 
@@ -8,7 +8,7 @@
 
 - **One canonical identity/data layer** for CrewBIQ users, crews, fleets, loads, expenses, and settings.
 - **Role/workspace/capability visibility model** governs what can be viewed/edited by each actor.
-- **No auth/session extraction work starts yet** outside this Slice.
+- Auth/session startup coordination has been extracted to `startup-session.js` and accepted; transport, persistence, and domain behavior remain in their established owners.
 - **All frontend decompositions must preserve existing business behavior** until explicit handoff artifacts are updated and verified.
 
 ## 2) Core functional invariants
@@ -43,14 +43,14 @@
 
 ## 5) UI and portal status
 
-- Existing monolithic `index.html` is accepted as technical debt and must be preserved for compatibility until a sanctioned decomposition plan is approved.
-- Links remains active through technical container `page-community` + `renderCommunity()` and must not be removed until Links has safe extraction and contract tests.
+- `index.html` remains the compatibility composition shell and significant technical debt, while accepted bounded extractions now own startup/session coordination (`startup-session.js`), Links runtime (`links.js`), and navigation data (`navigation-model.js`).
+- Links remains active through technical container `page-community` + `renderCommunity()`; its storage/render runtime is extracted to `links.js` and protected by contract tests.
 - Marketplace/Truckpedia/community-style concepts are **explicitly separated** as legacy shell vs future concept:
   - **Legacy UI shell:** keep as deprecated/deferred.
   - **Future ecosystem concepts:** not deprecation-only; still pending strategic decision and product sequencing.
 
-## 6) Explicitly out-of-contract in this slice
+## 6) Explicitly out-of-contract without a separately approved slice
 
 - No direct UI refresh to Base44 as mandatory architecture.
 - No assumption that open issues with earlier experimental intent are current requirements.
-- No new runtime behavior changes or decomposition changes are part of this docs-only slice.
+- No broad runtime replacement or unreviewed decomposition follows from this contract.
