@@ -91,3 +91,7 @@ index.html remains shell/composition owner: page-community markup/CSS/static con
 ## Slice 4B.1a analytics foundation
 
 `analytics.js` is a global-compatible pure-read module with no load-time behavior beyond namespace export. It validates fail-closed Driver SELF proofs, resolves explicit-timezone date bounds, creates attributable load snapshots, and derives bounded metrics and daily series with provenance/data-quality metadata. It is not loaded by `index.html`; no service-worker cache rotation or UI behavior change is required.
+
+## Slice 4B.1b identity-attribution boundary
+
+`IDENTITY_ATTRIBUTION_CONTRACT.md` defines two future server-owned relations without adding runtime code: `AccountDriverLink` maps authenticated Account identity to a workspace Driver entity, while `DriverTruckAssignment` maps that Driver to one or more Trucks over effective time. Current account `crewId`, local device `accountId`, roster `driver.id`, and `truck.id` remain separate namespaces. The next implementation boundary is a server-authoritative AccountDriverLink schema/read API plus a PWA read-only adapter; record writes, assignment persistence, and legacy migration remain separate slices.

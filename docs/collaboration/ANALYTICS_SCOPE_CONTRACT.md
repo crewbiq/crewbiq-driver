@@ -181,3 +181,9 @@ Current load miles and truck-linked fuel are useful foundations, but route/juris
 | Cross-surface PWA/website reuse | `READY` as architecture | Both must call the same scope/permission/selector contracts. |
 
 Blocking data gaps for broad scope/ranking are `ACCOUNT_DRIVER_LINK`, `EFFECTIVE_DATED_DRIVER_TRUCK_ASSIGNMENT`, `NORMALIZED_RECORD_DRIVER_ID`, and `SCOPED_PTI_ENTITY_IDS`.
+
+## Slice 4B.1b identity refinement
+
+`IDENTITY_ATTRIBUTION_CONTRACT.md` defines the canonical resolution behind these placeholders. `AccountDriverLink` joins the authenticated server Account ID to one roster Driver ID inside a workspace and is distinct from `DriverTruckAssignment`, which relates a Driver to Trucks over effective time. Canonical `driverId` always means roster Driver profile ID; current account `crewId`, restored account-profile `driverId`, local `accountId`, names, email, and unit numbers must not be reinterpreted as that ID.
+
+The existing analytics `authenticated_driver_partition` proof remains valid for a plain driver's own account-scoped records without claiming a roster Driver ID. Owner/fleet SELF and future DRIVER scope require an authorized canonical link and continue to fail `self_not_linked`, `self_ambiguous`, or `self_unauthorized` until one is available.

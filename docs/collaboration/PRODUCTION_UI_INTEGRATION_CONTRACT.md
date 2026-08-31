@@ -177,3 +177,7 @@ There is no blocker to 4B.1a. Broader production scope is blocked by:
 - `UTILIZATION_DEFINITION`: available capacity and movement semantics are not approved.
 
 Every implementation slice must preserve production hashes outside its allowed files, run existing startup/navigation/domain contracts, and add selector fixtures for zero data, ambiguous identity, unauthorized scope, mixed trucks/drivers, assignment changes, period boundaries, and double-count prevention.
+
+## Slice 4B.1b identity dependency
+
+Production owner/fleet SELF and selected-Driver integration must consume a server-authoritative `AccountDriverLink`; they may not match account and roster records by email/name or treat current account `crewId` as roster `driverId`. Historical Driver/Truck analytics separately depends on effective-dated `DriverTruckAssignment`. The accepted first identity implementation boundary is 4B.1b.1 server schema, authorization, read endpoint, and PWA read-only adapter, with no business-record migration.
