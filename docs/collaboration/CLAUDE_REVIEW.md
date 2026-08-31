@@ -2506,3 +2506,60 @@ No blocking findings remain open for the Slice 4B.1b.2c track as scoped by this 
 The client- and server-side normalized-ID work scoped in this session (Slice 4B.1b.2c and its sub-slices S1–S5) is now substantively complete: Load and PTI `workspaceId`/`truckId`/`driverId`, with correct graceful degradation and a verified server round-trip. The original `IDENTITY_ATTRIBUTION_CONTRACT.md`'s bounded implementation sequence lists three further phases not yet authorized in this session — `4B.1b.3` (effective-dated `DriverTruckAssignment`), `4B.1b.4` (legacy attribution/backfill tooling), and `4B.2` (a real driver-role `SELF` UI consuming `AccountDriverLink`). Which of these to pursue next is a product-sequencing decision for ChatGPT/Product Owner, not something this review presumes to select.
 
 Runtime/product files changed by this review: NONE. This review touched no code in either repository.
+
+## Slice 4B.1b.3 Discovery Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.3 — Effective-Dated `DriverTruckAssignment` Discovery (implementation commit `5c3daba`), a documentation-only slice proposing the schema, workspace-integrity, overlap, read, and mutation contract for a future server-owned Driver-to-Truck assignment relation.
+**Method:** fetched the discovery document (`DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md`) and confirmed via the commit diff that it is the *only* file changed (no runtime, migration, or test file touched); independently re-verified every factual claim against actual `crewbiq-orchestrator` schema and code rather than trusting the document — checked `trucks` and `fleet_driver_profiles` table definitions directly for `owner_crewbiq_id`/`workspace_id` columns, checked `migrations/009_canonical_claim_approval.sql` for the claimed existing idempotency/audit-event infrastructure, checked `app/services/capabilities.py` for the claimed absence of a `DriverTruckAssignment` capability, and confirmed no migration file defines an assignment table anywhere in the repo.
+
+### Factual claims verified against real code, not merely trusted
+
+- **"The orchestrator has no dedicated Driver-to-Truck assignment relation"** — confirmed; no such table exists in any migration file (`001` through `009`).
+- **"`fleet_driver_profiles.truck_id` and `team_driver` are mutable current-configuration fields... cannot prove who was assigned to a Truck at an earlier time"** — confirmed directly against the schema (`migrations/004_fleet_restore_config.sql`): both are plain mutable columns with no interval/history tracking.
+- **"Legacy Driver and Truck rows are scoped by `owner_crewbiq_id`, while canonical authorization is scoped by `workspaces.id`"** — confirmed for *both* tables: `fleet_driver_profiles.owner_crewbiq_id` (verified in the prior S1 review) and, newly verified here, `trucks.owner_crewbiq_id text not null` (`migrations/002_business.sql:164`) alongside `trucks.truck_id text not null unique` (`:163`) — neither table has any `workspace_id` column.
+- **"`workspaces.legacy_owner_crewbiq_id` to the legacy Driver/Truck owner key"** bridge — confirmed as the same schema-enforced-unique bridge independently verified in the Slice 4B.1b.2c-S1 review (`legacy_owner_crewbiq_id text unique`).
+- **"Existing canonical relationship commands derive capabilities from active workspace membership, require idempotency keys, and append immutable relationship audit events"** — confirmed as a genuinely *existing* pattern, not an invented one: `migrations/009_canonical_claim_approval.sql` defines `relationship_audit_events` (with a DB trigger, `reject_relationship_audit_mutation()`, that rejects any `UPDATE`/`DELETE` — a real, enforced immutability guarantee) and `canonical_command_idempotency` (a durable `unique(workspace_id, actor_auth_user_id, idempotency_key)` table), both already built for the Company/Truck canonical-claim workflow. The proposal correctly reuses this existing infrastructure rather than inventing a parallel mechanism.
+- **`ASSIGNMENT_CAPABILITY_NOT_DEFINED`** — confirmed: `app/services/capabilities.py` defines only `canonical.company_truck.{reconcile,claim,approve}`; no Driver/Truck-assignment capability exists.
+
+Every blocker the document lists (`WORKSPACE_NATIVE_RELATION_SCHEMA_MISSING`, `LEGACY_ENTITY_WORKSPACE_PROOF_REQUIRED`, `ASSIGNMENT_CAPABILITY_NOT_DEFINED`, `TRANSACTIONAL_OVERLAP_ENFORCEMENT_MISSING`, `CURRENT_PROJECTION_STRATEGY_UNDEFINED`) is a genuine, verified gap — none is fabricated, and none was already solved elsewhere in the codebase.
+
+### Design soundness
+
+The proposed contract is consistent with every discipline established across this entire identity-attribution track: canonical `driverId`/`truckId` "never inferred from Account, Crew, Truck, or display name" and "never selected by list order"; workspace proof derived server-side from the authenticated session, with client-supplied `workspaceId` only ever narrowing, never granting, access; half-open `[effectiveFrom, effectiveTo)` intervals (matching the same interval semantics already accepted for `AccountDriverLink`); explicit, sensible overlap rules (same-Driver-different-Truck rejected; same-Truck solo+other rejected; same-Truck team+team allowed — the one case the business genuinely needs); a conservative default-deny for `temporary`/`other` overlap absent a future explicit product decision; idempotent replay vs. conflicting-payload rejection; optimistic-concurrency versioning; immutable audit events; and an explicit refusal to authorize any dual-write/legacy-projection strategy until "atomicity, rebuild, and drift handling are specified" — correctly recognizing that as a separate, later decision rather than quietly bundling it in now. The "Required tests for a future implementation" list is comprehensive and appropriately mirrors the test coverage discipline already proven across every prior accepted slice in this track (authorized/unauthorized reads, cross-workspace rejection, boundary conditions, malformed-row fail-closed, idempotency, concurrency, audit, no-mutation-on-failure).
+
+### Scope discipline
+
+Confirmed via the single-file diff: no runtime, migration, UI, merge, or deployment change of any kind. The document's own "Safest next bounded slice" section correctly limits the *next* step to an orchestrator-only **read-only foundation** (schema, interval/workspace-integrity enforcement, authorized current/history/`asOf` reads, and tests) — explicitly excluding mutations, legacy-projection writes, PWA/UI integration, migration, merge, and deployment from that next slice, deferring mutation capability and commands until after the read foundation is independently accepted. This is the same incremental, read-before-write discipline already proven correct across `AccountDriverLink` and the workspace Driver roster adapter.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+NONE.
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Orchestrator's `_authorized_workspace_id()` redundant status-default.
+- Driver reassignment during Load edit remains out of scope by design.
+- Combined PTI toast message is slightly less specific than before.
+- An account-connected user whose workspace has zero registered Drivers cannot submit PTI either — consistent with the already-accepted Load `driverId` precedent.
+- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) — documentation-hygiene observation only.
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` remains relevant only to a future driver-role `SELF` UI.
+- No live-PostgreSQL integration test exists for the `raw_payload` round-trip — a residual, low-risk gap (unchanged from the prior review).
+
+### Applying the autonomous handoff protocol
+
+Blocking findings = NONE. No product/business decision is required — the design is a bounded technical continuation of already-accepted architecture (`IDENTITY_ATTRIBUTION_CONTRACT.md`'s own named next phase), and the document's own "Safest next bounded slice" section already specifies the exact next step precisely. Per the binding coordination rule, this sets `Decision gate: AUTO_CONTINUE_ALLOWED` and `Next required actor: Codex` — not a ChatGPT coordination checkpoint.
+
+### Recommended next bounded action
+
+Implement the orchestrator-only **read foundation** for `DriverTruckAssignment`, addressing blockers 1–4 exactly as scoped in the discovery document: the workspace-scoped effective-dated relation schema and migration, database-enforced interval/overlap and workspace-integrity constraints (the `workspaces.legacy_owner_crewbiq_id` bridge to `fleet_driver_profiles.owner_crewbiq_id`/`trucks.owner_crewbiq_id`, exactly as already used for the workspace Driver roster endpoint), authorized current/history/`asOf` reads only, and the full required test list from the discovery document. Exclude mutations, legacy-projection dual-writes (blocker 5, `CURRENT_PROJECTION_STRATEGY_UNDEFINED`, deferred), PWA/UI integration, migration execution against production, merge, and deployment.
+
+Runtime/product files changed by this review: NONE.
