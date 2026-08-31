@@ -39,22 +39,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2c-S1 - Read-Only Workspace Driver Roster Server Action
+Slice 4B.1b.2c-S2 - Read-Only PWA Workspace Driver Roster Adapter
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; the orchestrator read-only workspace Driver roster endpoint is accepted (GET /v1/workspaces/{workspaceId}/drivers, snake_case response); client Driver selection and driverId normalization remain unimplemented pending a bounded PWA adapter slice
+current main; the accepted orchestrator roster endpoint now has a bounded read-only PWA adapter and Bearer transport mapping; no Driver-selector UI or driverId record writes exist
 
 Latest implementation commit:
-412c39d94f357dcbf04f356fc9b210deb84abb8f (crewbiq/crewbiq-orchestrator)
+1212779f89c99f2b9a13820842b13f94a762d285
 
 Latest correction commit:
 NONE
@@ -66,7 +66,7 @@ Latest review commit:
 5470951bb8596f0986dde0ba41534b6f87f34fd8
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - resolved at the server layer; genuine workspace-scoped source confirmed via workspaces.legacy_owner_crewbiq_id's unique constraint bridging to fleet_driver_profiles.owner_crewbiq_id (schema-verified, not an inference); client-side blocker narrows to: PWA has not yet consumed this endpoint
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - server layer accepted; bounded PWA adapter published and pending Claude acceptance, with no UI consumption yet
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -87,14 +87,29 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement the bounded read-only PWA adapter for GET /v1/workspaces/{workspaceId}/drivers; validate shape and workspace ownership fail-closed, with no UI wiring or driverId writes
+independent review of the read-only PWA workspace Driver roster adapter and transport mapping
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.1b.2c-S2 PWA Adapter Publication
+
+- Repository: crewbiq/crewbiq-driver
+- Branch: agent/pre-base44-audit
+- Implementation commit: 1212779f89c99f2b9a13820842b13f94a762d285
+- Scope: read-only `workspace_driver_roster_read` adapter plus existing transport mapping to authenticated `GET /v1/workspaces/{workspaceId}/drivers`; strict snake_case shape normalization; whole-response failure on workspace mismatch, malformed entry, or duplicate Driver ID.
+- Runtime files: `workspace-driver-roster.js`, `core-runtime.js`, `index.html`, `sw.js`.
+- Test/wiring files: `tests/workspace-driver-roster.test.mjs`, `tests/workspace-attribution.test.mjs`, `package.json`.
+- Cache version: `crewbiq-driver-v89`.
+- Tests: `node --test tests/workspace-driver-roster.test.mjs tests/account-driver-link.test.mjs tests/workspace-attribution.test.mjs tests/auth-session-startup-contract.test.mjs tests/index-startup-composition.test.mjs tests/e2e/service-worker-path.test.mjs` -> `58 passed, 0 failed`.
+- Behavior exclusions: no UI invocation, driverId/truckId write, local persistence, legacy mutation, AccountDriverLink inference, migration, merge, or deployment.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent adapter and transport review.
 
 ### 2026-08-31 - Codex - Slice 4B.1b.2c-S1 Server Prerequisite Publication
 
@@ -873,5 +888,4 @@ implement the bounded read-only PWA adapter for GET /v1/workspaces/{workspaceId}
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspaces/{workspaceId}/drivers, mirroring account-driver-link.js exactly - validate response shape, fail closed on any workspace mismatch or malformed entry, no fallback, no UI wiring, no driverId writes yet.
 - Runtime/product files changed: NONE. This review touched no code in either repository.
-
 
