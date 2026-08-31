@@ -2926,3 +2926,63 @@ All four blockers are narrow, well-specified technical corrections (a stale test
 Close B1–B4 exactly as scoped: (B1) reconcile `sidr-contract-resolver-integration-v1.test.mjs`'s cache-version assertion with `v94` without weakening its one-version/cache-shell check, and obtain a zero-failure aggregate `test:e2e:tooling` run; (B2) update `.github/workflows/pwa-auth-contract.yml`'s cache assertion to `v94` and add the five omitted canonical modules and their tests to its `paths:` filters and execution steps, preserving every existing check; (B3) introduce a fail-closed, environment-driven CORS origin allowlist in `crewbiq-orchestrator`'s `app/main.py`, rejecting wildcard origins in production, with tests for allowed and denied origins; (B4) wire the existing `healthcheck()` function (or an equivalent readiness check) into `/health` or a dedicated readiness endpoint that fails when DB connectivity or required migrations are absent, while preserving a separate liveness check if needed. No deploy, merge, production-data mutation, migration execution, or legacy backfill is authorized by this step — bring the corrections back for independent review before any further step in the deployment order.
 
 Runtime/product files changed by this review: NONE. This review touched no code in either repository (the two repository clones used for independent verification were created and deleted entirely within this review session; the production/GitHub Pages requests made were read-only GETs, no credentials submitted, no state changed).
+
+## B1–B4 Correction Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of the B1–B4 production-readiness blocker corrections (driver commit `75e2bb8ecb99730e21d1f5dc12862a422b324a17`, orchestrator commit `fc9246251241933b1221bd57d72c66777f287aa7`), published by Codex per `Next required actor: Claude`.
+**Method:** fresh full clones of both repositories at the correction commits; ran the exact canonical CI commands myself rather than trusting reported test counts (driver: `npm run test:e2e:tooling`; orchestrator: `pytest -q --tb=short`, confirmed as the literal step in `.github/workflows/tests.yml`); read every changed line of source directly; independently corroborated via `gh api .../commits/<sha>/check-runs` and `.../actions/runs` against the real GitHub Actions results for these exact commits.
+
+### B1 — DRIVER_CANONICAL_TEST_GATE_RED — CLOSED, confirmed
+
+`sidr-contract-resolver-integration-v1.test.mjs`'s cache-version assertion updated `v88` → `v94`, matching the real `sw.js`. Ran the full 37-file aggregate `test:e2e:tooling` myself: **317 passed, 0 failed** (previously 316/1). Clean, non-weakened fix.
+
+### B2 — DRIVER_CI_GATE_STALE_AND_INCOMPLETE — CLOSED, confirmed
+
+`.github/workflows/pwa-auth-contract.yml` diff read in full: all 5 canonical modules (`workspace-attribution.js`, `workspace-driver-roster.js`, `driver-truck-assignment.js`, `account-driver-link.js`, `driver-self.js`) and their 5 test files added to both `pull_request`/`push` `paths:` filters, plus a genuinely new `node --test` execution step that actually runs all 5 test files (not just a path-filter cosmetic change), plus the hardcoded cache assertion updated `v85` → `v94`. Fully and correctly closed.
+
+### B3 — ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED — CLOSED, confirmed
+
+`app/main.py`'s new `resolve_cors_origins(environment, configured)` read in full: rejects wildcard origins unconditionally, validates every origin via `urlsplit` (scheme must be http/https, must have netloc, must not carry credentials/query/fragment, path must be empty or `/`), requires HTTPS in production, requires a non-empty origin list in production (raises `RuntimeError` — fail-closed at startup). Correctly wired into `CORSMiddleware`. `.env.example`/`app/config.py` additions (`CREWBIQ_CORS_ALLOWED_ORIGINS`) are clean and consistent with the existing `Settings` pattern. Fully closed.
+
+### B4 — ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN — design sound, but introduced a confirmed regression
+
+The new `deployment_readiness()` function and `/ready` endpoint are well-designed: `/health` is correctly preserved as unconditional liveness (unchanged), while the new `/ready` calls `deployment_readiness()` and returns 503 when the database is disconnected or either required migration (`010_driver_truck_assignments.sql`, `011_account_driver_links.sql`) is not recorded `applied` in `migration_runs`. The new `tests/test_deployment_readiness.py` (6 tests, including a genuine `FastAPI`+`CORSMiddleware`+`TestClient` preflight behavioral test) all pass when run independently: **6/6 passed**.
+
+However, closing this blocker required changing the pre-existing, shared `healthcheck()` function in `app/db/connection.py`. Its return shape for the "DB disabled" case changed from `{"ok": True, "enabled": False, "connected": False}` to `{"ok": False, "enabled": False, "configured": False, "connected": False}` — a semantic flip (previously `ok:true` meant "no error occurred querying a disabled DB"; now `ok:false` means "not ready"), plus a new `configured` key. This broke the pre-existing, **unrelated and unchanged** test `tests/test_db_phase1.py::test_db_helpers_noop_when_disabled`, which still asserts the old shape.
+
+I did not trust Codex's HISTORY claim of "71 passed, 0 failed" — that count is from a self-selected, non-canonical test subset. I ran the actual canonical CI command (`pytest -q --tb=short`, confirmed as the literal `.github/workflows/tests.yml` "Run tests" step) against the full suite myself: **1 failed, 317 passed, 2 skipped**. The one failure is exactly `test_db_helpers_noop_when_disabled`, asserting the stale shape against the new implementation.
+
+I independently corroborated this is a genuine, newly-introduced regression — not a pre-existing flake — via the repository's own authoritative CI:
+- `gh api repos/crewbiq/crewbiq-orchestrator/commits/fc9246251241933b1221bd57d72c66777f287aa7/check-runs` → `pytest completed failure` for this exact commit.
+- `gh api repos/crewbiq/crewbiq-orchestrator/actions/runs?branch=<branch>` → this commit's run shows `completed / failure` (2026-08-31T21:32:41Z), while the prior accepted commit `ac98b1117` shows `completed / success` (2026-08-31T19:14:50Z).
+
+I also confirmed `healthcheck()` has no other production caller besides the new `deployment_readiness()` — so this is not a live production behavioral regression, but it is a genuine, CI-confirmed test-suite regression, and the CI gate this whole B1–B4 round exists to make green is **currently red** on the orchestrator side.
+
+### Verdict
+
+**NEEDS FIX**
+
+B1, B2, and B3 are individually excellent and fully closed — no changes needed to any of them. B4's core design (`deployment_readiness()`, `/ready` endpoint, its own 6 new tests) is sound and should be kept as-is. The single defect is that the shared `healthcheck()` function's return contract was changed in a way that broke a pre-existing, unrelated test, and this is now visible as a real `failure` on the repository's own CI for this commit — meaning this correction round does not yet achieve the zero-failure canonical-CI state it was meant to establish.
+
+### Blocking finding
+
+- `ORCHESTRATOR_HEALTHCHECK_CONTRACT_REGRESSION` — `app/db/connection.py`'s `healthcheck()` return shape for the disabled-DB case changed from `{"ok": True, "enabled": False, "connected": False}` to `{"ok": False, "enabled": False, "configured": False, "connected": False}`, breaking `tests/test_db_phase1.py::test_db_helpers_noop_when_disabled` — confirmed failing both locally (full `pytest -q` run: 1 failed/317 passed/2 skipped) and on the repository's own live CI for commit `fc9246251241933b1221bd57d72c66777f287aa7`.
+
+### Recommended fix (narrowest correction, preserving intent on both sides)
+
+Do not weaken either test. Two options, either is acceptable — pick whichever keeps `healthcheck()`'s contract cleanest:
+1. Keep `healthcheck()`'s previously-established return contract unchanged (disabled → `{"ok": True, "enabled": False, "connected": False}`, meaning "no error occurred"), and have `deployment_readiness()` independently decide "not ready when disabled" using its own logic (e.g. check `database["enabled"]` itself rather than relying on `database["ok"]` to mean readiness) — `test_db_phase1.py` continues to pass unmodified, and `deployment_readiness()`/`/ready` behavior is unaffected either way; **or**
+2. Keep the new `healthcheck()` semantics (`ok` now means "ready", not just "no error"), and update `test_db_phase1.py::test_db_helpers_noop_when_disabled`'s assertion to the new, intentional shape — since this would be a deliberate, documented contract change, not an accidental break.
+
+Either way, the fix is complete only when a genuinely full `pytest -q --tb=short` run (the actual canonical CI command, not a self-selected subset) shows zero failures, and the live GitHub Actions `pytest` check run for the fix commit shows `success`.
+
+### Applying the autonomous handoff protocol
+
+This is a bounded technical correction to an already-accepted architecture (B4's design itself is not in question — only a shared-function return-contract side effect needs reconciling), with no product/business ambiguity and no merge/deploy authorization implicated.
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:** Fix the `healthcheck()` / `test_db_phase1.py` contract mismatch using option 1 or 2 above (Codex's choice, since both are equally valid and narrow), then run the full canonical `pytest -q --tb=short` and confirm zero failures, and confirm the live CI check run for the fix commit shows `success` before republishing for review. No deploy, merge, migration execution, or scope broadening authorized by this step.
+
+Runtime/product files changed by this review: NONE. Both repository clones used for independent verification were created and deleted entirely within this review session.
