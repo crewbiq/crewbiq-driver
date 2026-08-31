@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.1a - PWA AccountDriverLink Read-Only Adapter Contract
+Slice 4B.1b.2 - Normalized IDs for NEW Loads and PTI
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; server AccountDriverLink remains external source of truth; client adapter is disconnected/read-only
+current main; Slice 4B.1b.1a CLOSED / ACCEPT; server AccountDriverLink remains pending externally
 
 Latest implementation commit:
 e5f33818f38db6950dc83047ca9faada5eec9152
@@ -60,21 +60,20 @@ Latest review commit:
 f83c0c017ceb19b3650c0f0a3abc09909ee61837
 
 Blocking findings:
-NONE
+NONE pending creation-path and server round-trip discovery
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
 - canonical workspace timeZone source remains unspecified
-- backend/Orchestrator owner must implement server AccountDriverLink schema, authorization, read route, constraints, and audit trail (contract doc is now precise enough to hand off)
-- account-driver-link.js's default now() fallback reads the wall clock (deliberate, reasonable given the module's live "is this effective right now" purpose; always overridable via deps.now/context.effectiveAt in tests)
+- backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-in parallel: (1) hand off server AccountDriverLink schema/endpoint/constraints/audit implementation to whichever repository owns the backend/Orchestrator system (out of scope for crewbiq-driver review); (2) within crewbiq-driver, authorize 4B.1b.2 - normalized workspaceId/driverId/truckId for newly-created Loads and PTI records only, no legacy backfill - independent of the server AccountDriverLink work
+inventory every new Load/PTI constructor and verify normalized IDs survive local, sync, restore, and server compatibility before implementation
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -690,6 +689,7 @@ in parallel: (1) hand off server AccountDriverLink schema/endpoint/constraints/a
 - Next required actor: ChatGPT.
 - Next bounded action: in parallel — (1) hand off server AccountDriverLink implementation to the backend/Orchestrator repository's own review process (out of crewbiq-driver scope); (2) within crewbiq-driver, authorize Slice 4B.1b.2 — normalized workspaceId/driverId/truckId for newly-created Loads and PTI records only, no legacy backfill — per IDENTITY_ATTRIBUTION_CONTRACT.md's own 4B.1b.2 step, independent of the server-side AccountDriverLink work.
 - Runtime/product files changed: NONE.
+
 
 
 
