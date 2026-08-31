@@ -3025,3 +3025,58 @@ This ACCEPT closes out the entire bounded technical-correction round with no blo
 No deploy, merge, migration execution, or production-data mutation is authorized by this review itself.
 
 Runtime/product files changed by this review: NONE. The repository clone and Python virtual environment used for independent verification were created entirely within this review session under the scratchpad directory.
+
+## Staging Validation Evidence Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independently review `docs/collaboration/STAGING_VALIDATION_EVIDENCE.md` and classify each of the four `STAGING_VALIDATION_BLOCKED` findings as runtime defect, fixture/test drift, or missing bounded staging coverage.
+**Method:** fetched the live GitHub Actions run `33450671715` directly (`gh api .../actions/runs/33450671715` and its job logs) rather than trusting the document's summarized counts; confirmed job-level result (`staging-journeys: failure`, `harness: success`) and read the exact assertion failures verbatim from the raw log; fetched and read the actual E2E spec source (`tests/e2e/staging-load-lifecycle.spec.mjs`, `tests/e2e/staging-pti-lifecycle.spec.mjs`, `tests/e2e/staging-fleet-integrity.spec.mjs`) and the current `loads.js` to check each failure against the real accepted code path, not just the narrative.
+
+### Corroboration of the raw evidence
+
+Confirmed via `gh api repos/crewbiq/crewbiq-driver/actions/runs/33450671715` (conclusion `failure`, head_sha `996ac660df602d7cbaed5df1a7dfa69ee651022d`) and its job logs: `DRIVER-CRUD-01` failed with `Expected: 0.91, Received: 0.65`; `LOAD-01` failed with `Expected: truthy, Received: undefined`; `PTI-01` failed with `Expected: >0, Received: 0`. These match the evidence document's claims exactly — not fabricated or mischaracterized.
+
+### STAGING_LOAD_CREATION_NOT_COMPLETED — classified: FIXTURE/TEST DRIFT (confirmed root cause)
+
+Read `loads.js`'s current `saveLoad()`: line 425-426 requires `resolveNewLoadTruckAttribution(truckSel)` to resolve `ok:true` before any record is created, returning a toast (`'Truck assignment required'`) and no thrown error, no local record, no sync call otherwise; line 430-433 imposes the same requirement for driver attribution on new (non-edit) Loads. This is intentional, accepted, fail-closed design from earlier slices (mandatory canonical Truck/Driver attribution for new Loads) — not a regression.
+
+`staging-load-lifecycle.spec.mjs`'s `LOAD-01` never interacts with a truck or driver selector at all — it only fills `#loadId`, `#loadedMiles`, `#grossInput`, `#pickupDate`, `#pickupLocation`, `#deliveryLocation` and clicks Add Load directly. With a synthetic driver identity carrying no registered truck/driver assignment, both attribution resolvers necessarily return `{ok:false}`, `saveLoad()` silently no-ops with a toast, and the test's subsequent `expect(localMatch && localMatch.id).toBeTruthy()` correctly fails on `undefined` — exactly reproducing the observed failure. This is the mission fixture never having been updated for the mandatory-attribution requirement, not a runtime defect in the accepted architecture.
+
+### STAGING_DRIVER_CRUD_RATE_MISMATCH — classified: LIKELY FIXTURE/TEST-ISOLATION DRIFT, not conclusively provable as runtime
+
+Read `staging-fleet-integrity.spec.mjs`'s `DRIVER-CRUD-01`: it operates on `config.fleetA.activeDriverProfileIds[0]` — a shared, manifest-owned driver profile reused across every "fleet" role mission in the same protected run (the log shows it ran last, as `[6/6]`, in the same browser context immediately after `DEDUCTION-PERIOD-01`, `DEDUCTION-WEEK-OFF-01`, `DEVICE-01`, `EDIT-01`, `RESTORE-02` — all on the same fleet identity). The failing assertion (`expect(cpmProfile[0].rate).toBe(0.91)`, line 516) is the very first check after the test's own UI edit sets the rate to `0.91` — meaning either this run's own write did not take effect, or the restore read returned a stale/contaminated value from a still-settling earlier state. The test's own cleanup path (lines 621-632) does spread the original pre-test snapshot back on teardown, but that snapshot is only as clean as whatever a possibly-incomplete prior run left behind — consistent with the evidence document's own characterization ("reproducible; cleanup was incomplete").
+
+I cannot conclusively rule out a genuine driver-form persistence defect from static reading alone — this requires a live, isolated re-run to distinguish "shared-identity cross-run contamination" from "the driver-form save path itself is flaky." Given the shared-identity pattern is the same one implicated in the PTI-01 finding below, cross-run identity contamination is the more likely explanation, but this needs a bounded diagnostic re-run to confirm, not a code fix guess.
+
+### STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD — classified: NEEDS BOUNDED DIAGNOSIS (genuine internal inconsistency, cause unproven)
+
+Read `staging-pti-lifecycle.spec.mjs`'s `PTI-01` in full: the test explicitly anticipates and branches on a "gate already satisfied" same-day-record case (lines 136-150, 175-177) — a deliberate, non-buggy design in the test itself. The actual failure shows the app took the `gate-already-satisfied-same-day` branch (implying `needsPTI()` found an existing today record during `boot()`), yet the explicit `restorePwa()` call moments later found **zero** PTI records for today — a direct contradiction between what the boot-time gate decision implied and what the authenticated restore endpoint actually returned.
+
+This is a real, unresolved inconsistency, not obviously explainable as either a clean runtime defect or clean fixture drift from static code reading alone. Two plausible explanations, both requiring live diagnosis to distinguish: (a) the same shared-identity cross-run contamination pattern as `DRIVER-CRUD-01` — a stale local/session artifact from an earlier run satisfied the client-side gate check without a corresponding server-side record actually existing for today; or (b) a genuine date-boundary mismatch between `needsPTI()`'s "today" computation and the `/restore` endpoint's PTI-by-date query (e.g. UTC vs local, or a different date source). This finding should not be waved away as fixture drift without confirming which of these it is.
+
+### CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED — classified: MISSING BOUNDED STAGING COVERAGE (confirmed)
+
+Confirmed via the live job log's `mission_start` events: the full protected mission list is `AUTH-01, AUTH-02, RESTORE-01, LEGACY-01, LOAD-01, PTI-01, EXPENSES-01, DISPUTE-01, DISPUTE-DELETE-01, DEVICE-01, EDIT-01, RESTORE-02, DRIVER-CRUD-01, DEDUCTION-PERIOD-01, DEDUCTION-WEEK-OFF-01` — genuinely no roster/DriverTruckAssignment/AccountDriverLink/Driver-SELF journey exists in this suite. This is an honest, accurate coverage gap, not a functional failure of accepted code — matches the evidence document's own characterization exactly.
+
+### Verdict
+
+**STAGING_VALIDATION_BLOCKED confirmed** (agreeing with Codex's own verdict) — none of the four findings can be waved away as already resolved, but their underlying causes differ meaningfully from what a first read suggests:
+
+- `STAGING_LOAD_CREATION_NOT_COMPLETED`: confirmed fixture/test drift, root cause identified precisely — the mission needs updating, not the code.
+- `STAGING_DRIVER_CRUD_RATE_MISMATCH` and `STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD`: both plausibly trace to the same shared-identity, cross-run test-isolation pattern, but neither can be conclusively cleared as "just fixture drift" without an isolated re-run — a genuine runtime defect in the driver-form save path or the PTI date-boundary logic remains possible and must be ruled out, not assumed away.
+- `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED`: confirmed coverage gap, not a functional failure.
+
+### Applying the autonomous handoff protocol
+
+This is a bounded technical continuation — diagnosing test-isolation vs. runtime-defect for two ambiguous findings, and adding a missing selection step to one mission fixture — with no product/business ambiguity and no merge/deploy/production authorization implicated.
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:**
+1. Update `LOAD-01` (`tests/e2e/staging-load-lifecycle.spec.mjs`) to perform an explicit canonical truck and driver selection before clicking Add Load, matching the accepted mandatory-attribution requirement in `loads.js`'s `saveLoad()`; re-run and confirm it passes.
+2. Re-run `DRIVER-CRUD-01` and `PTI-01` in isolation using a freshly-provisioned driver identity/profile that has not been touched by any other mission in this or a prior run (not the shared `config.fleetA` identity), to determine whether the rate mismatch and the missing-today-PTI-record are cross-run identity contamination (a test-infrastructure fix) or genuine defects in the driver-form save path / PTI date-boundary logic (a runtime fix). Report which it is with evidence, do not assume.
+3. Track `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` as a known, explicit coverage gap — adding roster/DriverTruckAssignment/AccountDriverLink/SELF staging journeys is a legitimate follow-up but should not block closing the other three findings if they are independently resolved.
+
+No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this review.
+
+Runtime/product files changed by this review: NONE. All verification was read-only (GitHub Actions API/log fetches, raw source reads).
