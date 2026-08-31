@@ -118,10 +118,11 @@ test('transport maps only the semantic action to authenticated read-only GET', (
   assert.match(coreSource, /body\.type === 'workspace_driver_roster_read'\) return adaptWorkspaceDriverRoster\(body\)/);
 });
 
-test('adapter is loaded without UI invocation and cache shell is rotated', () => {
+test('adapter is loaded, lazily composed, and cache shell is rotated', () => {
   assert.match(html, /<script src="workspace-driver-roster\.js\?v=20260831-slice4b1b2c-s2-v1"><\/script>/);
-  assert.doesNotMatch(html, /CrewBIQWorkspaceDriverRoster\.(read|create)\(/);
-  assert.match(swSource, /crewbiq-driver-v89/);
+  assert.match(html, /function getWorkspaceDriverRosterAdapter\(\)/);
+  assert.doesNotMatch(html, /CrewBIQWorkspaceDriverRoster\.read\(/);
+  assert.match(swSource, /crewbiq-driver-v90/);
   assert.match(swSource, /workspace-driver-roster\.js/);
 });
 

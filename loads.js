@@ -47,13 +47,15 @@
 
   // ── ACCESSORS ──────────────────────────────────────────────────────────────
 
-  let _get = { driver: null, loads: null, ptiLog: null, workspaceContext: null };
+  let _get = { driver: null, loads: null, ptiLog: null, workspaceContext: null, workspaceDriverRoster: null };
   let _set = { loads: null };
   let _saveAll   = null;
   let _doSync    = null;
   let _renderAll = null;
   let _showPage  = null;
   let _ready = false;
+  let _workspaceDrivers = [];
+  let _driverRosterRequestId = 0;
 
   // ── SORT HELPER ───────────────────────────────────────────────
   // Always newest pickup date first. Called every time loads are written.
@@ -73,6 +75,7 @@
     _set.loads   = (v) => _rawSetLoads(_sortLoads(v));
     _get.ptiLog  = opts.getPtiLog || (() => []);
     _get.workspaceContext = opts.getWorkspaceContext || (() => null);
+    _get.workspaceDriverRoster = opts.readWorkspaceDriverRoster || null;
     _saveAll     = opts.saveAll;
     _doSync      = opts.doSync;
     _renderAll   = opts.renderAll;
@@ -182,6 +185,63 @@
     return truckId
       ? { ok: true, truckId }
       : { ok: false, code: 'truck_not_resolved' };
+  }
+
+  function resolveNewLoadDriverAttribution(selection, workspaceResolution) {
+    const driverId = String((selection && selection.driverId) || '').trim();
+    const workspaceId = String((selection && selection.workspaceId) || '').trim();
+    const name = String((selection && selection.name) || '').trim();
+    if (!driverId || !workspaceId || !name) return { ok: false, code: 'driver_not_resolved' };
+    if (!workspaceResolution || workspaceResolution.ok !== true || workspaceResolution.workspaceId !== workspaceId) {
+      return { ok: false, code: 'driver_workspace_mismatch' };
+    }
+    return { ok: true, driverId, workspaceId, name };
+  }
+
+  function getLoadDriverSelection() {
+    const select = document.getElementById('loadDriverSelect');
+    const selectedId = String((select && select.value) || '').trim();
+    const driver = _workspaceDrivers.find(candidate => candidate.driverId === selectedId) || null;
+    return driver ? { ...driver } : null;
+  }
+
+  function hideLoadDriverSelect() {
+    _driverRosterRequestId += 1;
+    _workspaceDrivers = [];
+    const row = document.getElementById('loadDriverRow');
+    const select = document.getElementById('loadDriverSelect');
+    if (row) row.style.display = 'none';
+    if (select) { select.innerHTML = ''; select.disabled = true; }
+  }
+
+  async function populateLoadDriverSelect() {
+    const requestId = ++_driverRosterRequestId;
+    const row = document.getElementById('loadDriverRow');
+    const select = document.getElementById('loadDriverSelect');
+    if (!row || !select) return;
+    row.style.display = '';
+    select.disabled = true;
+    select.innerHTML = '<option value="" selected disabled>Loading authorized Drivers...</option>';
+    _workspaceDrivers = [];
+    if (typeof _get.workspaceDriverRoster !== 'function') {
+      select.innerHTML = '<option value="" selected disabled>Authorized Driver roster unavailable</option>';
+      return;
+    }
+    const result = await _get.workspaceDriverRoster();
+    if (requestId !== _driverRosterRequestId) return;
+    if (!result || result.ok !== true || !Array.isArray(result.drivers)) {
+      select.innerHTML = '<option value="" selected disabled>Authorized Driver roster unavailable</option>';
+      return;
+    }
+    _workspaceDrivers = result.drivers.map(driver => ({ ...driver }));
+    if (!_workspaceDrivers.length) {
+      select.innerHTML = '<option value="" selected disabled>No authorized Drivers available</option>';
+      return;
+    }
+    select.innerHTML = '<option value="" selected disabled>Driver assignment required</option>' + _workspaceDrivers.map(driver =>
+      `<option value="${_escHtml(driver.driverId)}">${_escHtml(driver.name)}</option>`
+    ).join('');
+    select.disabled = false;
   }
 
   function populateLoadTruckSelect(preferred = '') {
@@ -339,6 +399,7 @@
     if (det) det.value = '';
     if (lay) lay.value = '';
     populateLoadTruckSelect();
+    populateLoadDriverSelect();
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -363,6 +424,13 @@
     const truckSel  = getLoadTruckSelection();
     const truckAttribution = resolveNewLoadTruckAttribution(truckSel);
     if (!truckAttribution.ok) return _toast('Truck assignment required', 'err');
+    const workspaceResolution = global.CrewBIQWorkspaceAttribution
+      ? global.CrewBIQWorkspaceAttribution.resolveActiveWorkspace(_get.workspaceContext())
+      : { ok: false, code: 'workspace_not_resolved' };
+    const driverAttribution = !editId
+      ? resolveNewLoadDriverAttribution(getLoadDriverSelection(), workspaceResolution)
+      : null;
+    if (!editId && !driverAttribution.ok) return _toast('Driver assignment required', 'err');
     if (!editId && loads.find(x => x.loadId === loadId)) return _toast('Load ID already exists', 'err');
     if (!editId) {
       const sameDate = loads.filter(x => x.pickup === pickupVal);
@@ -393,6 +461,13 @@
       entry.workspaceId = existingEntry.workspaceId;
     }
     entry.truckId = truckAttribution.truckId;
+    if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'driverId')) {
+      entry.driverId = existingEntry.driverId;
+    }
+    if (!editId) {
+      entry.driverId = driverAttribution.driverId;
+      entry.driverName = driverAttribution.name;
+    }
     if (!editId && global.CrewBIQWorkspaceAttribution) {
       const attribution = global.CrewBIQWorkspaceAttribution.attributeNewRecord(entry, _get.workspaceContext());
       entry = attribution.record;
@@ -431,6 +506,7 @@
     if (det) det.value = x.detention ? x.detention.toFixed(2) : '';
     if (lay) lay.value = x.layover   ? x.layover.toFixed(2)   : '';
     populateLoadTruckSelect(x.truckId || x.unitNumber || '');
+    hideLoadDriverSelect();
     document.getElementById('saveLoadBtn').textContent     = 'Save Changes';
     document.getElementById('cancelEditBtn').style.display = 'block';
     calcPreview();
@@ -1277,6 +1353,7 @@
     version: '0.4.0',
     init,
     resolveNewLoadTruckAttribution,
+    resolveNewLoadDriverAttribution,
     assignUnresolvedLoad,
     calcDriverPay, calcDriverPayWith, recalcLoadsFrom,
     maskGross, calcPreview, getWeekLoads,
