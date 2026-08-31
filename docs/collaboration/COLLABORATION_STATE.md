@@ -42,19 +42,19 @@ Phase:
 Slice 4B.1b.1a - PWA AccountDriverLink Read-Only Adapter Contract
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4B.1b CLOSED / ACCEPT; server AccountDriverLink remains external source of truth
+current main; server AccountDriverLink remains external source of truth; client adapter is disconnected/read-only
 
 Latest implementation commit:
-76862ae757dd057197ad533e0c924808c093929f
+e5f33818f38db6950dc83047ca9faada5eec9152
 
 Latest review commit:
 d09d2b6ee6ce1d904e3be18d95fa728ba75819ad
@@ -67,12 +67,13 @@ Queued non-blocking findings:
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
 - canonical workspace timeZone source remains unspecified
+- backend/Orchestrator owner must implement server AccountDriverLink schema, authorization, read route, constraints, and audit trail
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement and contract-test disconnected read-only AccountDriverLink client adapter plus server handoff contract
+independent review of client adapter boundary and server handoff contract
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -82,6 +83,20 @@ implement and contract-test disconnected read-only AccountDriverLink client adap
 
 
 
+
+## Slice 4B.1b.1a - PWA AccountDriverLink Read-Only Adapter Contract published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Implementation commit: `e5f33818f38db6950dc83047ca9faada5eec9152`
+- Added disconnected `account-driver-link.js` with injected `account_driver_link_read` transport, no load-time request, direct fetch, or persistence.
+- Validates canonical Account namespace, workspace/account consistency, complete provenance, effective intervals, zero/multiple links, and server/transport failures before emitting an analytics-compatible canonical proof.
+- `manual_admin` requires actor, timestamp, and non-empty reason. Offline behavior fails closed with no stale local proof.
+- Added `ACCOUNT_DRIVER_LINK_API_CONTRACT.md` with explicit server source-of-truth responsibilities and SERVER IMPLEMENTATION HANDOFF.
+- Validation: adapter 19 passed; required regressions 64 passed; total 83 passed, 0 failed.
+- Production behavior changes: NONE. Index, service worker, analytics, UI, prototype, records, server persistence, migration, and deploy: NONE.
+- Next required actor: Claude.
+- Next bounded action: independent review of client adapter boundary and server handoff contract.
 ## Slice 4B.1b - Account-to-Driver Link + Normalized Driver Attribution Contract published
 
 - Agent: Codex
@@ -657,6 +672,7 @@ implement and contract-test disconnected read-only AccountDriverLink client adap
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
