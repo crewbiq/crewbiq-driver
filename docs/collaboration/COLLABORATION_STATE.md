@@ -39,24 +39,21 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1a — Driver SELF Analytics Snapshot + Pure Period Selectors
+Slice 4B.1b - Account-to-Driver Link + Normalized Driver Attribution Contract
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; accepted ANALYTICS_SCOPE_CONTRACT.md uses inclusive dateFrom and dateTo
+current main; Slice 4B.1a CLOSED / ACCEPT
 
 Latest implementation commit:
-d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
-
-Latest correction commit:
 866caf346bc572dcae42d0fcb793374fd762d992
 
 Latest review commit:
@@ -72,10 +69,10 @@ Queued non-blocking findings:
 - canonical workspace timeZone source remains unspecified
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize 4B.1b - explicit account-to-Driver link contract and normalized record driverId, scoped to data-model discovery/contract definition only (no UI, no persistence migration in the same slice); a parallel narrower 4B.2 scoped strictly to a plain driver-role account's own SELF view (no owner/fleet-as-driver claim) is an acceptable alternative first UI proof-of-concept since it has no ACCOUNT_DRIVER_LINK dependency
+inventory identity fields and publish account/Driver, record attribution, assignment, and migration contracts without runtime changes
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -629,6 +626,7 @@ authorize 4B.1b - explicit account-to-Driver link contract and normalized record
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
