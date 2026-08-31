@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1b.2c-S3 - Explicit Driver Selection for NEW Loads
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -86,10 +86,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - add an explicit, no-default Truck and Driver selection step to the PTI submission flow, mirroring the pattern now proven twice for Loads (explicit selection UI, workspace-freshness check at save time, fail-closed placeholders, no local-roster fallback)
+implement explicit no-default Truck and authorized-roster Driver selection for PTI submission with a fresh workspace check and no local fallback
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
