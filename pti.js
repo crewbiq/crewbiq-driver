@@ -66,7 +66,7 @@
 
   // ── ACCESSORS ──────────────────────────────────────────────────────────────
 
-  let _get = { driver: null, ptiLog: null, ptiCustom: null };
+  let _get = { driver: null, ptiLog: null, ptiCustom: null, workspaceContext: null };
   let _set = { ptiLog: null, ptiCustom: null };
   let _saveAll = null;
   let _ready = false;
@@ -79,6 +79,7 @@
     _get.ptiLog    = opts.getPtiLog;
     _set.ptiLog    = opts.setPtiLog;
     _get.ptiCustom = opts.getPtiCustom;
+    _get.workspaceContext = opts.getWorkspaceContext || (() => null);
     _set.ptiCustom = opts.setPtiCustom;
     _saveAll       = opts.saveAll;
     _ready = true;
@@ -244,7 +245,7 @@
     const failed    = allItems.filter(x => ptiState[x.id] === 'fail');
     const issues    = document.getElementById('ptiIssueText').value.trim();
 
-    const entry = {
+    let entry = {
       id:        'pti_' + Date.now(),
       date:      _today(),
       odometer:  odo,
@@ -254,6 +255,13 @@
       failCount: failed.length,
       type:      useWeekly ? 'weekly' : 'daily',
     };
+    if (global.CrewBIQWorkspaceAttribution) {
+      const attribution = global.CrewBIQWorkspaceAttribution.attributeNewRecord(entry, _get.workspaceContext());
+      entry = attribution.record;
+      if (!attribution.resolution.ok) {
+        console.warn('[CrewBIQ PTI] workspace attribution skipped:', attribution.resolution.code);
+      }
+    }
 
     // Write back via setter — updates index.html's let ptiLog
     const ptiLog = _get.ptiLog();

@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.84
+ * CrewBIQ Driver — Service Worker v1.0.86
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v85';
+const CACHE_NAME = 'crewbiq-driver-v86';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
@@ -45,6 +45,7 @@ const APP_SHELL = [
   '/crewbiq-driver/service-invoice-legacy-upgrade.js',
   '/crewbiq-driver/dispute-tombstone-hotfix.js',
   '/crewbiq-driver/sync.js',
+  '/crewbiq-driver/workspace-attribution.js',
   '/crewbiq-driver/pti.js',
   '/crewbiq-driver/loads.js',
   '/crewbiq-driver/startup-session.js',

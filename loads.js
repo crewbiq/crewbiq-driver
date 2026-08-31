@@ -47,7 +47,7 @@
 
   // ── ACCESSORS ──────────────────────────────────────────────────────────────
 
-  let _get = { driver: null, loads: null, ptiLog: null };
+  let _get = { driver: null, loads: null, ptiLog: null, workspaceContext: null };
   let _set = { loads: null };
   let _saveAll   = null;
   let _doSync    = null;
@@ -72,6 +72,7 @@
     const _rawSetLoads = opts.setLoads;
     _set.loads   = (v) => _rawSetLoads(_sortLoads(v));
     _get.ptiLog  = opts.getPtiLog || (() => []);
+    _get.workspaceContext = opts.getWorkspaceContext || (() => null);
     _saveAll     = opts.saveAll;
     _doSync      = opts.doSync;
     _renderAll   = opts.renderAll;
@@ -365,7 +366,7 @@
       }
     }
     const existingEntry = editId ? loads.find(x => x.id === editId) : null;
-    const entry = {
+    let entry = {
       id: editId || ('l_' + Date.now()), loadId, gross,
       loadedMiles: loaded, deadMiles: dead, totalMiles: total,
       driverPay: pay, detention, layover,
@@ -381,6 +382,16 @@
       adjAmount: (existingEntry && existingEntry.adjAmount) || 0,
       synced: false,
     };
+    if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'workspaceId')) {
+      entry.workspaceId = existingEntry.workspaceId;
+    }
+    if (!editId && global.CrewBIQWorkspaceAttribution) {
+      const attribution = global.CrewBIQWorkspaceAttribution.attributeNewRecord(entry, _get.workspaceContext());
+      entry = attribution.record;
+      if (!attribution.resolution.ok) {
+        console.warn('[CrewBIQ Loads] workspace attribution skipped:', attribution.resolution.code);
+      }
+    }
     let updated = editId ? loads.map(x => x.id === editId ? entry : x) : [...loads, entry];
     _set.loads(updated); // setLoads wrapper auto-sorts
     _saveAll();

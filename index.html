@@ -11,6 +11,7 @@
   <title>CrewBIQ Driver</title>
   <script src="core.js?v=20260715-disputes-sync-v1"></script>
   <script src="sync.js?v=20260715-disputes-sync-v1"></script>
+  <script src="workspace-attribution.js?v=20260831-slice4b1b2a-v1"></script>
   <script src="pti.js?v=20260617-pg-pwa"></script>
   <script src="loads.js?v=20260715-bol-load-fields-v1"></script>
   <script src="fleet-load-resolution.js?v=20260730-issue20-v1"></script>
@@ -1597,6 +1598,7 @@ function initPTI(){
     getPtiCustom: () => ptiCustom,
     setPtiCustom: (v) => { ptiCustom = v; },
     saveAll:      saveAll,
+    getWorkspaceContext: () => loadOrchestratorSession(),
   });
 }
 function initLoads(){
@@ -1609,6 +1611,7 @@ function initLoads(){
     doSync:     () => doSync(),
     renderAll:  () => renderAll(),
     showPage:   (name) => showPage(name),
+    getWorkspaceContext: () => loadOrchestratorSession(),
   });
 }
 function saveAll(){

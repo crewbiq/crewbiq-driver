@@ -1,6 +1,16 @@
 # Normalized Record ID Contract - Slice 4B.1b.2 Discovery
 
-Status: `BLOCKED`
+Status: `WORKSPACE_ONLY_IMPLEMENTED / AWAITING REVIEW`
+
+## Slice 4B.1b.2a workspace-only implementation
+
+The first bounded prerequisite now writes only `workspaceId` to newly-created Load and PTI records when an authenticated Orchestrator session proves one explicit active workspace membership.
+
+The source is the scoped Orchestrator session created from `/v1/me`: a non-empty `sessionToken`, `me.active_workspace_id` or an explicit `activeWorkspaceIdOverride`, and exactly one matching entry in `me.memberships[].workspace.id`. The resolver receives this session as an injected creation-path context. It does not read localStorage, enumerate companies, or select the first membership.
+
+Failure is legacy-compatible and fail-closed for normalized attribution: creation continues without `workspaceId`, and the creation module emits an explicit diagnostic warning. This avoids inventing tenancy while preserving the existing offline/local workflow. Existing records are never normalized on read; Load edits preserve an already-present `workspaceId` but do not add one to legacy records.
+
+`driverId` and PTI `truckId` remain outside this slice. `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`, `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`, and `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING` remain blockers for broader normalization.
 
 ## Scope
 

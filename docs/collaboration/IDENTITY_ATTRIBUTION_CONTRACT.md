@@ -279,3 +279,7 @@ No blocker prevents 4B.1b.1. Cross-repository ownership of the server schema/end
 Slice 4B.1b.2 is `BLOCKED` before runtime implementation. The current repository does not prove backend round-trip persistence for normalized Load/PTI fields, the canonical AccountDriverLink read path remains disconnected, and PTI creation has no explicit stable Truck plus roster Driver attribution context.
 
 The accepted identity distinctions remain mandatory: `crewId` is not a roster `Driver.id`, email/name matching is not identity proof, and first/default-truck selection is forbidden. See `NORMALIZED_RECORD_ID_CONTRACT.md` for the creation-path inventory, evidence boundary, and bounded prerequisites.
+
+### Slice 4B.1b.2a workspace-only status
+
+Explicit workspace attribution is implemented for new Load/PTI creation only. It requires an authenticated Orchestrator token plus an explicit active workspace ID that matches exactly one returned membership. Unresolved, ambiguous, or unauthorized context produces no `workspaceId`; no first-item/default fallback exists. Driver and PTI Truck attribution remain blocked and unchanged.
