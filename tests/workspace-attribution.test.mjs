@@ -106,10 +106,11 @@ test('resolver and attribution do not mutate session or record inputs', () => {
   assert.notEqual(result.record, record);
 });
 
-test('Load and PTI constructors are wired to workspace-only attribution', () => {
+test('Load and PTI constructors both require canonical workspace resolution', () => {
   assert.match(loadsSource, /if \(!editId && global\.CrewBIQWorkspaceAttribution\)/);
   assert.match(loadsSource, /attributeNewRecord\(entry, _get\.workspaceContext\(\)\)/);
-  assert.match(ptiSource, /attributeNewRecord\(entry, _get\.workspaceContext\(\)\)/);
+  assert.match(ptiSource, /resolveActiveWorkspace\(_get\.workspaceContext\(\)\)/);
+  assert.match(ptiSource, /workspaceId: workspaceResolution\.workspaceId/);
   assert.match(html, /getWorkspaceContext: \(\) => loadOrchestratorSession\(\)/);
 });
 
@@ -120,6 +121,6 @@ test('editing preserves an existing workspaceId but does not backfill a legacy L
 
 test('new resolver is loaded before constructors and cache-rotated in the app shell', () => {
   assert.ok(html.indexOf('workspace-attribution.js') < html.indexOf('pti.js'));
-  assert.match(swSource, /crewbiq-driver-v90/);
+  assert.match(swSource, /crewbiq-driver-v91/);
   assert.match(swSource, /workspace-attribution\.js/);
 });

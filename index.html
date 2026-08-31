@@ -422,6 +422,8 @@
 
   <!-- ODOMETER -->
   <div class="pti-odo-card">
+    <div class="sfield"><div class="slabel">Truck *</div><select id="ptiTruckSelect" onchange="updatePTIProgress()"><option value="" selected disabled>Truck assignment required</option></select></div>
+    <div class="sfield"><div class="slabel">Driver *</div><select id="ptiDriverSelect" onchange="updatePTIProgress()" disabled><option value="" selected disabled>Driver assignment required</option></select></div>
     <div class="pti-odo-label">📍 Odometer Reading *</div>
     <input type="number" id="ptiOdometer" placeholder="e.g. 485000" style="margin-top:4px">
     <div class="muted" style="margin-top:6px;font-size:11px">Required — used for maintenance tracking</div>
@@ -1604,6 +1606,8 @@ function initPTI(){
     setPtiCustom: (v) => { ptiCustom = v; },
     saveAll:      saveAll,
     getWorkspaceContext: () => loadOrchestratorSession(),
+    getTrucks: () => loadTrucks(),
+    readWorkspaceDriverRoster: () => readAuthorizedWorkspaceDriverRoster(),
   });
 }
 function initLoads(){
