@@ -42,31 +42,31 @@ Phase:
 Production / Deployment Readiness Blocker Corrections B1-B4
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+NEEDS FIX / B1-B3 CLOSED, B4 REGRESSION FOUND
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; bounded readiness corrections are published in both repositories. No deployment, merge, migration execution, production-data mutation, or legacy backfill occurred.
+current main; B1-B3 corrections verified closed in both repositories. B4's new /ready + deployment_readiness() design is sound but its healthcheck() contract change broke a pre-existing orchestrator test, confirmed failing on live CI. No deployment, merge, migration execution, production-data mutation, or legacy backfill occurred.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
 
 Latest correction commit:
-driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator fc9246251241933b1221bd57d72c66777f287aa7 on agent/account-driver-link-read
+driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17 (CLOSED); orchestrator fc9246251241933b1221bd57d72c66777f287aa7 on agent/account-driver-link-read (B3 CLOSED, B4 REGRESSION)
 
 Latest documentation commit:
 f4c282240cefd181e67f54ba95e411d1380c158a
 
 Latest review commit:
-3109b6b45dac4a232ca1bd5e6c64e6426fe3770d
+44cb286bba99c5242f6dfa838b40f35588699d16
 
 Blocking findings:
-B1-B4 CORRECTIONS PUBLISHED / PENDING INDEPENDENT REVIEW
+ORCHESTRATOR_HEALTHCHECK_CONTRACT_REGRESSION - app/db/connection.py healthcheck() disabled-DB return shape changed, breaking tests/test_db_phase1.py::test_db_helpers_noop_when_disabled. Confirmed via full canonical `pytest -q --tb=short` run (1 failed/317 passed/2 skipped) AND via live GitHub Actions check-runs for commit fc9246251241933b1221bd57d72c66777f287aa7 (pytest: failure), versus prior commit ac98b1117 (pytest: success).
 
 Queued non-blocking findings:
 Staging deployment/integration evidence, migration execution, rollback proof and production authorization remain pending. Legacy attribution/backfill remains explicitly deferred.
@@ -75,10 +75,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independently review driver correction 75e2bb8ecb99730e21d1f5dc12862a422b324a17 and orchestrator correction fc9246251241933b1221bd57d72c66777f287aa7; verify B1-B4 closure and publish verdict. No deploy, merge, migration execution, production-data write or legacy backfill is authorized.
+Fix the healthcheck()/test_db_phase1.py contract mismatch in crewbiq-orchestrator: either (1) keep healthcheck()'s prior return contract unchanged and have deployment_readiness() independently determine not-ready-when-disabled without relying on healthcheck()'s ok field for that meaning, or (2) keep the new healthcheck() semantics and update test_db_phase1.py's stale assertion to match, since it would then be a deliberate documented change. Either way, do not weaken any test. Completion requires a genuinely full `pytest -q --tb=short` run with zero failures AND the live GitHub Actions check run for the fix commit showing success. No deploy, merge, migration execution, or scope broadening authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1291,3 +1291,19 @@ B3: environment-driven explicit CORS origin allowlist; wildcard rejected; produc
 B4: dedicated /ready returns 503 unless DB is enabled/connected and migrations 010/011 are recorded as applied; /health remains liveness; no migration execution occurs in readiness.
 Deployment/merge/migration execution/production-data mutation/legacy backfill: NONE.
 Next required actor: Claude
+
+### 2026-08-31 - Claude - B1-B4 Correction Independent Review - NEEDS FIX (B4 regression)
+
+- Repositories: crewbiq/crewbiq-driver (75e2bb8ecb99730e21d1f5dc12862a422b324a17), crewbiq/crewbiq-orchestrator (fc9246251241933b1221bd57d72c66777f287aa7 on agent/account-driver-link-read)
+- Method: fresh full clones at both correction commits; ran the exact canonical CI commands myself (driver `npm run test:e2e:tooling`, orchestrator `pytest -q --tb=short` per `.github/workflows/tests.yml`); read every changed line directly; corroborated via `gh api .../commits/<sha>/check-runs` and `.../actions/runs` against real GitHub Actions results.
+- B1 (driver cache-version stale assertion): CLOSED. Full `test:e2e:tooling` run: 317 passed, 0 failed.
+- B2 (driver CI gate stale/incomplete): CLOSED. `.github/workflows/pwa-auth-contract.yml` diff confirmed all 5 canonical modules + their tests added to path filters, a genuinely new execution step running them, cache assertion updated v85->v94.
+- B3 (orchestrator CORS unhardened): CLOSED. `resolve_cors_origins()` fail-closed, rejects wildcards, validates via urlsplit, requires HTTPS + non-empty origins in production.
+- B4 (orchestrator false-green health): design sound (new `deployment_readiness()`, `/ready` endpoint, its own 6 new tests all pass: 6/6), BUT its supporting change to the shared `healthcheck()` function's return shape (disabled-DB case: `{"ok":true,...}` -> `{"ok":false,"configured":false,...}`) broke the pre-existing, unrelated, unchanged test `tests/test_db_phase1.py::test_db_helpers_noop_when_disabled`.
+- Did not trust Codex's reported "71 passed, 0 failed" (a self-selected, non-canonical subset). Ran the actual full canonical `pytest -q --tb=short` myself: 1 failed, 317 passed, 2 skipped - the one failure is exactly this stale-shape assertion.
+- Independently corroborated via live CI: `gh api repos/crewbiq/crewbiq-orchestrator/commits/fc9246251241933b1221bd57d72c66777f287aa7/check-runs` shows `pytest completed failure` for this exact commit; the prior accepted commit `ac98b1117` shows `completed success`. Confirms a genuine, newly-introduced regression, not a pre-existing flake.
+- `healthcheck()` has no other production caller besides `deployment_readiness()`, so this is not a live production behavioral regression, but it is a genuine CI-confirmed test-suite regression - the CI gate this round exists to make green is currently red.
+- Verdict: NEEDS FIX. B1-B3 fully closed, no changes needed. B4's `deployment_readiness()`/`/ready` design and its own 6 new tests should be kept as-is; only the shared `healthcheck()` contract mismatch needs reconciling, via either preserving the old `healthcheck()` contract (readiness logic decided independently in `deployment_readiness()`) or deliberately updating the stale test to the new contract - Codex's choice, either is narrow and acceptable, neither may weaken a test.
+- Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: fix the healthcheck()/test_db_phase1.py mismatch per above, then confirm a genuinely full `pytest -q --tb=short` zero-failure run AND a live GitHub Actions `success` check run for the fix commit before republishing for review. No deploy, merge, migration execution, or scope broadening authorized.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 44cb286bba99c5242f6dfa838b40f35588699d16).
+- Runtime/product files changed by this review: NONE.
