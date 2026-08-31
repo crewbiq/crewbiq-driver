@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1a.1 - Custom Period Inclusive dateTo Correction
+Slice 4B.1a — Driver SELF Analytics Snapshot + Pure Period Selectors
 
 Status:
-PUBLISHED / AWAITING CLAUDE RE-REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -54,16 +54,13 @@ Product truth:
 current main; accepted ANALYTICS_SCOPE_CONTRACT.md uses inclusive dateFrom and dateTo
 
 Latest implementation commit:
-866caf346bc572dcae42d0fcb793374fd762d992
-
-Original implementation:
 d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
 
-Review finding:
-8649cf080b341e4da451565892e6a2d7528bd48b
+Latest correction commit:
+866caf346bc572dcae42d0fcb793374fd762d992
 
 Latest review commit:
-8649cf080b341e4da451565892e6a2d7528bd48b
+c63c5df54a31044481b7dbf5619c3ac22cc1b11c
 
 Blocking findings:
 NONE
@@ -75,10 +72,10 @@ Queued non-blocking findings:
 - canonical workspace timeZone source remains unspecified
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-re-review only the corrected custom-period semantics and confirm Slice 4B.1a closure
+authorize 4B.1b - explicit account-to-Driver link contract and normalized record driverId, scoped to data-model discovery/contract definition only (no UI, no persistence migration in the same slice); a parallel narrower 4B.2 scoped strictly to a plain driver-role account's own SELF view (no owner/fleet-as-driver claim) is an acceptable alternative first UI proof-of-concept since it has no ACCOUNT_DRIVER_LINK dependency
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -101,6 +98,21 @@ re-review only the corrected custom-period semantics and confirm Slice 4B.1a clo
 - Runtime changes: `analytics.js` only. UI, prototype, index, service worker, other runtime modules, and deploy: NONE.
 - Next required actor: Claude.
 - Next bounded action: re-review only corrected custom-period semantics and confirm Slice 4B.1a closure.
+
+### 2026-08-30 — Claude — Slice 4B.1a.1 Focused Re-Review
+
+- Agent: Claude
+- Task: Slice 4B.1a.1 Focused Re-Review
+- Verdict: ACCEPT
+- Reviewed correction commit: `866caf346bc572dcae42d0fcb793374fd762d992` (original implementation `d9dbdf25133b4fa9e29c63145655b3e7cbc56e78`)
+- Review commit SHA: `c63c5df54a31044481b7dbf5619c3ac22cc1b11c` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: diffed `analytics.js`/`ANALYTICS_ENGINE_CONTRACT.md`/`tests/analytics.test.mjs` against the pre-correction state (three lines, one bullet, one renamed + two new tests); independently re-executed the corrected `resolvePeriod()`/`createAnalyticsSnapshot()` via `node:vm` against single-day, inverted, and multi-day boundary cases; copied the corrected module+tests into an isolated scratch directory and ran `node --test` directly — 29/29 passed, 0 failed, including every previously-accepted `SELF`/purity/attribution/gross/mileage/RPM/current-truck/immutability test unchanged; confirmed `index.html` byte-identical to the Slice 4B.1a baseline and that only the three documented files were touched.
+- Blocking findings: NONE.
+- Confirmed via direct execution: `dateFrom === dateTo` now valid (single-day range); `dateFrom > dateTo` correctly `invalid_period`; a four-load boundary test proves records on `dateFrom`, mid-range, and `dateTo` are included while the day immediately after `dateTo` is excluded; `ANALYTICS_ENGINE_CONTRACT.md`'s custom-period bullet now agrees with the already-accepted `ANALYTICS_SCOPE_CONTRACT.md`'s inclusive-dates convention; the old test encoding the wrong exclusive-`dateTo` convention is gone, replaced by a corrected version plus two new dedicated boundary tests; no timezone/local-date code was touched, so no regression risk there; no unrelated runtime/UI/service-worker/prototype change occurred.
+- Slice 4B.1a (and 4B.1a.1): CLOSED
+- Next required actor: ChatGPT
+- Next bounded action: authorize 4B.1b — explicit account-to-Driver link contract and normalized record `driverId` (data-model discovery/contract only, no UI, no persistence migration in the same slice) — per the already-accepted `PRODUCTION_UI_INTEGRATION_CONTRACT.md`'s bounded integration sequence. A parallel, narrower `4B.2` scoped strictly to a plain driver-role account's own `SELF` view (excluding any owner/fleet-as-driver claim) is an acceptable alternative first UI proof-of-concept, since that specific case has no `ACCOUNT_DRIVER_LINK` dependency.
+
 ## Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors published
 
 - Agent: Codex
