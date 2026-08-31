@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c - Explicit Driver Selection + Normalized Load driverId
 
 Status:
-PUBLISHED / BLOCKED / AWAITING CLAUDE REVIEW
+BLOCKED / REVIEWED
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Load driverId remains unintroduced because current Driver roster records do not prove active-workspace ownership
+current main; Load driverId remains unintroduced because current Driver roster records do not prove active-workspace ownership; local driverProfiles are confirmed identity-scoped, not workspace-scoped, with no existing server response attaching workspace proof to any Driver
 
 Latest implementation commit:
 5082a63f97e991329c603fd855994ad7bca89106
@@ -63,10 +63,10 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-0382e589f0129dcdd7e961ea5e6b543339fbc755
+96569e179dc07f92f9589629d90f904c92c4f8ca
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - local driverProfiles have stable IDs but no verifiable workspace ownership, so cross-workspace Driver selection cannot fail closed
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - confirmed real by direct code trace; local driverProfiles have stable IDs but no verifiable workspace ownership anywhere in storage or transport, so cross-workspace Driver selection cannot fail closed
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -77,12 +77,13 @@ Queued non-blocking findings:
 - cosmetic `}function boot()` formatting artifact
 - canonical workspace timeZone source remains unspecified
 - backend/Orchestrator AccountDriverLink implementation remains external
+- a proven-workspace-only Driver selector built without a migration path would hide nearly the entire existing driver roster from selection - future Driver-selector UI work must sequence after or alongside a migration/backfill plan, not treat filtering alone as sufficient
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent review of the Slice 4B.1b.2c authorized-workspace Driver roster blocker
+hand off, in parallel with continued PWA-scoped work, a request for a server-side read-only workspace Driver roster endpoint/action (workspace_driver_roster_read: {sessionToken, workspaceId} -> {ok, workspaceId, drivers:[{driverId, workspaceId, name, status, effectiveFrom, effectiveTo}]}, fail-closed on any workspace mismatch or malformed entry) to whichever repository owns the backend/Orchestrator - out of this repository's authority to implement or gate; do not begin client-side Driver-selector UI, driverId normalization, or legacy-roster migration until that endpoint or equivalent accepted provenance exists
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -826,6 +827,18 @@ independent review of the Slice 4B.1b.2c authorized-workspace Driver roster bloc
 - Verdict: ACCEPT. Slice 4B.1b.2b and Slice 4B.1b.2b.1 are both CLOSED.
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a future explicit Driver-selection UI control for Load driverId (not AccountDriverLink, not a default), designed to respect fresh edit-time reselection the way truckId now correctly does; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
+- Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c Independent Review
+
+- Agent: Claude
+- Task: reviewed whether the client can safely construct an authorized Driver roster for the active workspace from current data (docs commit 7c7b4c1), and whether AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN is real and correctly scoped. No implementation, UI, or driverId added.
+- Method: fetched the documentation diff directly via gh api; independently traced every current data source against branch-tip runtime rather than trusting the docs — read normalizeDriverProfileRecord()/loadDriverProfiles()/saveDriverProfiles() in full, traced scopedLoad/scopedSave to confirm their key derives from local device/account identity not workspace, read restoreFleetConfigFromOrchestrator() and the /v1/fleet/config action adapter in core-runtime.js in full, grepped the whole repo tree for any driver/fleet/team/roster file or endpoint, confirmed the only existing canonical/workspace-scoped read endpoint (/v1/canonical/company-truck) is Company/Truck-only by name and response shape, and re-read account-driver-link.js and the DriverTruckAssignment section of IDENTITY_ATTRIBUTION_CONTRACT.md to verify the expected distinctions.
+- Confirmed: local driverProfiles carry no workspaceId field of any kind and are scoped only by local device/account identity; no membership/session data can deterministically filter them without inference; no existing server response (including the Company/Truck-only canonical endpoint and the legacy crewbiq_id-keyed /v1/fleet/config adapter) attaches workspace ownership to any Driver; AccountDriverLink resolves one Account-to-Driver link only, never a roster enumeration; DriverTruckAssignment presupposes workspace-scoped Driver entities as its own precondition and cannot establish that scoping itself.
+- Answers: (1) real hard blocker, confirmed. (2) no deterministic filter exists. (3) no existing scoped-Driver server response exists. (5) yes, a new server-side read-only roster endpoint is the correct next-step category. (6) yes, new Driver profiles could be workspace-tagged client-side going forward. (7) not sufficient alone — must pair with (8) UI filtering. (8) yes, technically safe to show only proven-workspace profiles. (9) yes, a real product risk — virtually the entire existing driver roster would disappear from selection since workspaceId was never written to any profile before now; this must be solved by a migration path, not accepted as-is. (10) yes, via explicit audited admin confirmation or a deterministic match against a future server source of truth — never by inference. (11) AccountDriverLink does not solve this (single-record link, not roster enumeration). (12) DriverTruckAssignment does not solve this either (depends on this blocker being solved first). (13) (B) server-side workspace Driver roster read endpoint/action should happen FIRST — it is the only option that unblocks both new-driver selection and a future evidence-based migration, and it mirrors the AccountDriverLink adapter pattern already accepted. (14) minimal contract: workspace_driver_roster_read({sessionToken, workspaceId}) -> {ok, workspaceId, drivers:[{driverId, workspaceId, name, status, effectiveFrom, effectiveTo}]}, fail-closed on any workspace mismatch or malformed entry, read-only. (15) PROVEN legacy evidence requires an explicit audited admin action or a deterministic match against the future server roster, never inference from single-membership/name/email/role/truck assignment.
+- Verdict: ACCEPT_BLOCKED. Blocker list is real and correctly scoped.
+- Next required actor: ChatGPT.
+- Next bounded action: hand off a request for a server-side read-only workspace Driver roster endpoint/action (contract above) to whichever repository owns the backend/Orchestrator, out of this repository's authority; do not begin client-side Driver-selector UI, driverId normalization, or legacy-roster migration until it (or equivalent accepted provenance) exists.
 - Runtime/product files changed: NONE.
 
 
