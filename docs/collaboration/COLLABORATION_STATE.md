@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.2-S2 - Driver SELF Read-Only UI
+Production / Deployment Readiness Validation
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Driver SELF read-only canonical composition is independently accepted. Legacy screens and records remain unchanged.
+current main; accepted driver and orchestrator work is being evaluated as an integrated deployable system. This slice authorizes evidence gathering only, not deployment, merge, production-data mutation, or legacy backfill.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
@@ -69,22 +69,19 @@ Latest state commit:
 publication commit containing this CURRENT block
 
 Blocking findings:
-NONE
+UNDER VALIDATION
 
 Queued non-blocking findings:
-Legacy attribution/backfill remains queued pending the product-risk decision below; no merge or deployment has occurred.
+Legacy attribution/backfill remains explicitly queued and unauthorized.
 
 Decision gate:
-COORDINATOR_REQUIRED
-
-Decision required:
-Does "Driver SELF UI proven" mean independent-review acceptance, allowing legacy backfill discovery now, or must it first receive production/deployment validation?
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-obtain and record the Product Owner decision; do not begin legacy backfill discovery before that decision.
+produce a deployment-readiness evidence document covering the accepted driver/orchestrator system, classify every dependency, and publish either concrete blockers or READY_FOR_STAGING_VALIDATION for Claude review.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1243,3 +1240,10 @@ Runtime/product files changed by this reconciliation: NONE.
 - Decision gate: COORDINATOR_REQUIRED. Next required actor: ChatGPT.
 - Decision required: does Slice 4B.2-S2's ACCEPT satisfy "SELF UI proven" for authorizing legacy backfill discovery, or is production/deployment validation required first?
 - Runtime/product files changed: NONE.
+### 2026-08-31 - Product Owner decision / Codex state start - Production readiness validation
+
+Decision: do not begin legacy attribution/backfill discovery. Validate accepted CrewBIQ work as an integrated deployable system first.
+Status: IN_PROGRESS
+Current owner: Codex
+Scope: documentation/evidence and narrow validation only; no deployment, merge, production-data mutation, legacy backfill, or unrelated fixes.
+Next required actor: Codex
