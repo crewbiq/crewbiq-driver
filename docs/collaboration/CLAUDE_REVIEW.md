@@ -2822,3 +2822,50 @@ Blocking findings = NONE. The Product Owner's own sequence already named SELF UI
 Implement the subsequent bounded PWA slice exactly as scoped by the Slice 4B.2 discovery document: load and lazily compose the already-accepted `account-driver-link.js` adapter (currently genuinely uncomposed); map `account_driver_link_read` through the existing authenticated transport to this new endpoint; resolve the canonical Driver ID before calling the already-accepted `DriverTruckAssignment` current-read adapter; render a minimal read-only SELF state for success/not-linked/ambiguous/unauthorized/unavailable outcomes; keep all legacy screens and records unchanged. That slice must remain read-only — no `AccountDriverLink` administration UI, no assignment mutation UI, no fleet ranking, no legacy backfill, no migration, no merge, no deployment.
 
 Runtime/product files changed by this review: NONE. This review touched no code in either repository (the local Docker Postgres container used for verification was created and destroyed entirely within this review session).
+
+## Slice 4B.2-S2 Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.2-S2 — Driver SELF Read-Only UI (implementation commit `b151d7d`), the PWA composition slice completing the Product Owner's second priority (C: Driver SELF UI), chaining the newly-accepted `AccountDriverLink` server foundation and the already-accepted `DriverTruckAssignment` current-read adapter.
+**Method:** fetched every changed file directly via `gh`; read the new `driver-self.js` module in full; independently verified its error-code and success-shape assumptions against the *actual, unmodified* `account-driver-link.js` and `driver-truck-assignment.js` source (not assumed) to confirm genuine compatibility; read the full composition wiring in `index.html` (`getAccountDriverLinkAdapter`, `getDriverSelfReader`, `canonicalOrchestratorAccountId`, `renderDriverSelfState`, `refreshDriverSelfCard`) and the `core-runtime.js` transport addition; independently reconstructed the changed source in an isolated scratch directory and ran `node --test` across the new test file plus six adjacent adapter/attribution test files (83/83 passed).
+
+### `driver-self.js` — pure composition logic, verified against real adapter shapes
+
+The new module is dependency-injected (`readAccountDriverLink`, `readCurrentAssignment` supplied by the caller) and contains no persistence, network, or fallback of any kind. I did not take its error-code handling on faith: I fetched the actual `account-driver-link.js` and confirmed its real error codes (`account_driver_link_not_found`, `account_driver_link_ambiguous`, `account_driver_link_unauthorized`) and success shape (`{ok:true, link, proof:{workspaceId, accountId, driverId, ...}}`) match exactly what `driver-self.js`'s substring-based `failedState()`/`linkFrom()` helpers expect. Same for `driver-truck-assignment.js`'s `{ok:true, assignment}` shape and its `driver_truck_assignment_not_found` code. The chain fails closed at every step: a not-found/ambiguous/unauthorized `AccountDriverLink` result never even calls the assignment reader; a resolved link whose `workspaceId`/`accountId` don't match the request is treated as `ambiguous` (defense-in-depth beyond the adapter's own validation); a resolved Driver with no *current* Truck assignment is correctly treated as `success` with an empty `truckId` (a legitimate business state, not a failure) — but a genuinely malformed or cross-workspace/cross-driver assignment result is still `ambiguous`. No first-Driver, first-Truck, or array-index selection exists anywhere in the file.
+
+### Composition wiring — canonical identity, correct triggers, no mutation surface
+
+`canonicalOrchestratorAccountId(session)` reads only `session.me.crewbiq_id`/`crewbiqId` — the canonical Account ID established throughout this entire track — never the forbidden device-local `driver.accountId` (confirmed directly and via the test `'index uses only authenticated canonical account identity and read-only controls'`, which explicitly asserts the function's own source contains no `driver.accountId` reference within 300 characters). `refreshDriverSelfCard()` re-resolves the active workspace fresh via the already-accepted `CrewBIQWorkspaceAttribution.resolveActiveWorkspace()` on every call (never a cached/stale value), fails closed to `unavailable`/`unauthorized` when session/workspace/reader preconditions aren't met, and uses a request-deduplication key that correctly discards a stale in-flight response if the context changed before it resolved (preventing a race where an old request's result could overwrite a newer context's rendered state). It is wired at sensible points: login completion, workspace switch, navigation to the home page, the general `renderAll()` refresh, and explicitly re-rendered to `unavailable` on disconnect (never left showing a stale success state). The new `driverSelfCard` UI element contains no `<input>`/`<select>`/`<textarea>` and no `onclick` handler other than its own refresh button — confirmed both by direct read and by the test's explicit regex assertion — a genuinely read-only surface, matching the slice's mandate.
+
+### Transport and cache
+
+`core-runtime.js::adaptAccountDriverLinkRead()` maps to the exact accepted endpoint (`GET /v1/workspaces/{workspaceId}/account-driver-link`) verified and accepted in Slice 4B.2-S1, via the same `syncUrl` action-envelope transport every other adapter uses. Notably, the Account ID is never sent as a request parameter — the server derives it from the Bearer session itself, consistent with the S1 review's confirmation that the server never trusts a client-supplied Account ID. `sw.js` cache correctly rotated `v93 → v94`, with both `account-driver-link.js` (finally composed into the live app for the first time since its acceptance in Slice 4B.1b.1a) and the new `driver-self.js` added to `APP_SHELL`.
+
+### No interference with legacy behavior
+
+Confirmed the pre-existing `currentAssignmentLabel()` and related legacy Driver/Truck display logic are completely untouched by this diff — the new `driverSelfCard` is a purely additive UI element alongside existing screens, not a replacement.
+
+### Independent test execution
+
+Reconstructed the full changed-file set (including the real, unmodified `account-driver-link.js` and `driver-truck-assignment.js`) and ran `node --test` across `tests/driver-self-ui.test.mjs` and six adjacent test files: **83/83 passed**. Notably, one test in the new suite (`'composes the accepted adapters using their production return shapes'`) exercises the *actual* `CrewBIQIdentityLink`/`CrewBIQDriverTruckAssignment` modules together with `driver-self.js` — genuine end-to-end composition verification, not merely mocked interfaces. Coverage includes the full success chain, not-linked (assignment reader never called), ambiguous link (assignment reader never called), cross-workspace/mismatched link, unauthorized/unavailable propagation, and ambiguous/cross-workspace current-assignment handling.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+NONE.
+
+### Non-blocking findings carried forward
+
+All items unchanged from the Slice 4B.2-S1 review (server-side items carried from earlier `DriverTruckAssignment`/`AccountDriverLink` work; long-standing PWA items — see prior HISTORY entries).
+
+### A genuine question before proceeding to legacy backfill (B)
+
+This slice completes the Product Owner's second priority (C). The stated sequence was: "Legacy backfill remains queued until after Driver SELF UI is proven." I want to flag, rather than assume, what "proven" means here before treating Slice 4B.2-S2's ACCEPT as sufficient to begin backfill discovery: every slice across this entire cross-repository track — including this one — has explicitly excluded merge and deployment. Nothing in this track has yet run in an actual production environment or been observed under real usage. Legacy backfill (B) is meaningfully higher-risk than every purely-additive slice reviewed so far, since it touches existing legacy data rather than only adding new, disconnected capability.
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Decision required:** Does "Driver SELF UI proven" mean independent-review acceptance (satisfied now, by this ACCEPT) — in which case legacy backfill discovery (B) may begin — or does it require actual production/deployment validation of the SELF UI first, which has not yet occurred anywhere in this track? This is a product-risk-tolerance decision for irreversible-leaning legacy-data work, not a bounded technical continuation with an already-specified answer.
+
+Runtime/product files changed by this review: NONE.
