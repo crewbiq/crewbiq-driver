@@ -42,7 +42,7 @@ Phase:
 Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
 
 Status:
-PRODUCT OWNER DECISION RECORDED / AWAITING CODEX CORRECTION
+IN_PROGRESS
 
 Current owner:
 Codex
