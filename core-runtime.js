@@ -402,6 +402,17 @@
     return jsonResponse(upstream.data, upstream.resp.status || (upstream.resp.ok ? 200 : 502));
   }
 
+  async function adaptAccountDriverLinkRead(payload) {
+    const token = getSessionToken(payload.sessionToken);
+    const workspaceId = String(payload.workspaceId || '').trim();
+    if (!token) return jsonResponse({ ok: false, error: 'Bearer session required' }, 401);
+    if (!workspaceId) return jsonResponse({ ok: false, error: 'Workspace ID required' }, 400);
+    const upstream = await orchestratorJson('/v1/workspaces/' + encodeURIComponent(workspaceId) + '/account-driver-link', {
+      method: 'GET', headers: authHeaders(token), cache: 'no-store',
+    });
+    return jsonResponse(upstream.data, upstream.resp.status || (upstream.resp.ok ? 200 : 502));
+  }
+
   async function adaptDriverTruckAssignmentRead(payload, view) {
     const token = getSessionToken(payload.sessionToken);
     const workspaceId = String(payload.workspaceId || '').trim();
@@ -548,6 +559,7 @@
     if (method === 'POST' && body && body.type === 'auth_restore') return adaptRestore(body);
     if (method === 'POST' && body && body.type === 'auth_logout') return adaptLogout(body);
     if (method === 'POST' && body && body.type === 'workspace_driver_roster_read') return adaptWorkspaceDriverRoster(body);
+    if (method === 'POST' && body && body.type === 'account_driver_link_read') return adaptAccountDriverLinkRead(body);
     if (method === 'POST' && body && body.type === 'driver_truck_assignment_current_read') return adaptDriverTruckAssignmentRead(body, 'current');
     if (method === 'POST' && body && body.type === 'driver_truck_assignment_history_read') return adaptDriverTruckAssignmentRead(body, 'history');
     if (method === 'POST' && body && body.type === 'driver_truck_assignment_as_of_read') return adaptDriverTruckAssignmentRead(body, 'as-of');

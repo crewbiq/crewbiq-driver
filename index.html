@@ -14,6 +14,8 @@
   <script src="workspace-attribution.js?v=20260831-slice4b1b2a-v1"></script>
   <script src="workspace-driver-roster.js?v=20260831-slice4b1b2c-s2-v1"></script>
   <script src="driver-truck-assignment.js?v=20260831-slice4b1b3-s3-v1"></script>
+  <script src="account-driver-link.js?v=20260831-slice4b2-s2-v1"></script>
+  <script src="driver-self.js?v=20260831-slice4b2-s2-v1"></script>
   <script src="pti.js?v=20260617-pg-pwa"></script>
   <script src="loads.js?v=20260715-bol-load-fields-v1"></script>
   <script src="fleet-load-resolution.js?v=20260730-issue20-v1"></script>
@@ -481,6 +483,17 @@
       <div class="stat-card"><div class="label">Gross</div><div class="stat-val" id="homeGross">$0.00</div></div>
       <div class="stat-card"><div class="label">Loaded mi</div><div class="stat-val" id="homeLoadedMi">0</div></div>
       <div class="stat-card"><div class="label">Dead mi</div><div class="stat-val" id="homeDeadMi">0</div></div>
+    </div>
+
+    <div class="card" id="driverSelfCard" style="margin-top:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div>
+          <div class="label">Driver SELF</div>
+          <div id="driverSelfStatus" style="font-size:14px;font-weight:800;margin-top:4px">Canonical assignment unavailable</div>
+          <div class="muted" id="driverSelfDetail" style="font-size:11px;margin-top:4px">Connect a CrewBIQ platform account to view verified assignment context.</div>
+        </div>
+        <button class="btn ghost" type="button" onclick="refreshDriverSelfCard(true)" style="margin-left:auto;padding:8px 10px">Refresh</button>
+      </div>
     </div>
 
     <div class="sync-row" style="margin-top:16px">
@@ -1853,6 +1866,87 @@ function getDriverTruckAssignmentAdapter(){
   }
   return driverTruckAssignmentAdapter;
 }
+let accountDriverLinkAdapter = null;
+function getAccountDriverLinkAdapter(){
+  if(!accountDriverLinkAdapter && window.CrewBIQIdentityLink){
+    accountDriverLinkAdapter = window.CrewBIQIdentityLink.create({
+      request: async function(action, payload){
+        if(action !== 'account_driver_link_read') throw new Error('Unsupported AccountDriverLink action');
+        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        if(!syncUrl) throw new Error('Sync URL is required');
+        const resp=await fetch(syncUrl, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
+          cache:'no-store',
+          redirect:'follow'
+        });
+        const responseText=await resp.text();
+        let data={};
+        try{ data=JSON.parse(responseText); }catch(e){ data={ok:false}; }
+        return {status:resp.status, data:data};
+      }
+    });
+  }
+  return accountDriverLinkAdapter;
+}
+let driverSelfReader = null;
+let driverSelfRequestKey = '';
+let driverSelfRequest = null;
+function getDriverSelfReader(){
+  const linkAdapter=getAccountDriverLinkAdapter();
+  const assignmentAdapter=getDriverTruckAssignmentAdapter();
+  if(!driverSelfReader && window.CrewBIQDriverSelf && linkAdapter && assignmentAdapter){
+    driverSelfReader=window.CrewBIQDriverSelf.create({
+      readAccountDriverLink:(payload)=>linkAdapter.read(payload),
+      readCurrentAssignment:(payload)=>assignmentAdapter.readCurrent(payload),
+    });
+  }
+  return driverSelfReader;
+}
+function canonicalOrchestratorAccountId(session){
+  const me=(session&&session.me) || {};
+  return String(me.crewbiq_id || me.crewbiqId || '').trim();
+}
+function renderDriverSelfState(state){
+  const status=document.getElementById('driverSelfStatus');
+  const detail=document.getElementById('driverSelfDetail');
+  if(!status || !detail) return;
+  const value=state || {status:'unavailable'};
+  if(value.status==='success'){
+    status.textContent=value.truckId ? 'Verified current assignment' : 'Verified Driver; no current Truck assignment';
+    detail.textContent='Driver '+value.driverId+(value.truckId ? ' / Truck '+value.truckId : '')+' / Workspace '+value.workspaceId;
+  }else if(value.status==='not_linked'){
+    status.textContent='Account is not linked to a Driver';
+    detail.textContent='No canonical Driver identity is effective for this workspace.';
+  }else if(value.status==='ambiguous'){
+    status.textContent='Canonical assignment is ambiguous';
+    detail.textContent='CrewBIQ cannot safely choose a Driver or Truck. No fallback was used.';
+  }else if(value.status==='unauthorized'){
+    status.textContent='Canonical assignment is unauthorized';
+    detail.textContent='The connected account cannot read Driver SELF context for this workspace.';
+  }else{
+    status.textContent='Canonical assignment unavailable';
+    detail.textContent='Legacy CrewBIQ screens remain available; no Driver or Truck identity was inferred.';
+  }
+}
+function refreshDriverSelfCard(force){
+  const session=loadOrchestratorSession();
+  const resolver=window.CrewBIQWorkspaceAttribution;
+  const reader=getDriverSelfReader();
+  if(!session || !session.sessionToken || !resolver || !reader){ renderDriverSelfState({status:'unavailable'}); return Promise.resolve(); }
+  const workspace=resolver.resolveActiveWorkspace(session);
+  const accountId=canonicalOrchestratorAccountId(session);
+  if(!workspace.ok || !accountId){ renderDriverSelfState({status:workspace.code==='workspace_unauthorized'?'unauthorized':'unavailable'}); return Promise.resolve(); }
+  const key=[session.sessionToken,workspace.workspaceId,accountId].join('|');
+  if(!force && driverSelfRequest && driverSelfRequestKey===key) return driverSelfRequest;
+  driverSelfRequestKey=key;
+  renderDriverSelfState({status:'unavailable'});
+  driverSelfRequest=reader.read({sessionToken:session.sessionToken, workspaceId:workspace.workspaceId, accountId, effectiveAt:new Date().toISOString()})
+    .then(function(state){ if(driverSelfRequestKey===key) renderDriverSelfState(state); return state; })
+    .catch(function(){ if(driverSelfRequestKey===key) renderDriverSelfState({status:'unavailable'}); });
+  return driverSelfRequest;
+}
 function currentAssignmentLabel(){
   const a=(driver&&driver.currentAssignment) || {};
   const parts=[a.company || driver?.company || '', a.unitNumber ? 'Unit '+a.unitNumber : (driver?.unitNumber ? 'Unit '+driver.unitNumber : ''), a.truckName || driver?.truckName || '', a.plate || driver?.plate || ''].filter(Boolean);
@@ -2304,6 +2398,7 @@ async function orchestratorFinishLogin(sessionToken){
   saveOrchestratorSession({sessionToken: sessionToken, me: meResult.me, activeWorkspaceIdOverride: ''});
   await refreshOrchestratorCanonicalRead(sessionToken, meResult.me);
   renderOrchestratorAccountSection();
+  refreshDriverSelfCard(true);
   toast('Orchestrator account connected');
 }
 async function refreshOrchestratorCanonicalRead(sessionToken, me){
@@ -2349,6 +2444,7 @@ function onOrchWorkspaceChange(){
   session.activeWorkspaceIdOverride = select.value;
   saveOrchestratorSession(session);
   renderOrchestratorAccountSection();
+  refreshDriverSelfCard(true);
 }
 async function onOrchDisconnectClick(){
   var session = loadOrchestratorSession();
@@ -2356,6 +2452,7 @@ async function onOrchDisconnectClick(){
   clearOrchestratorSession();
   clearOrchestratorCanonicalRead();
   renderOrchestratorAccountSection();
+  renderDriverSelfState({status:'unavailable'});
   toast('Orchestrator account disconnected');
 }
 
@@ -2643,7 +2740,7 @@ function showPage(name, btn, options){
   var primaryPage = primaryDestinationForPage(name);
   if(btn && btn.dataset.page) btn.classList.add('active');
   else if(primaryPage){ var _nb=document.querySelector(`.navbtn[data-page="${primaryPage}"]`); if(_nb && _nb.style.display !== 'none') _nb.classList.add('active'); };
-  if(name==='home') renderHome();
+  if(name==='home'){ renderHome(); refreshDriverSelfCard(false); }
   if(name==='pti') renderPTIPage();
   if(name==='stats'){ renderStats(); renderFleetStats(); }
   if(name==='settings') renderSettingsPage(true);
@@ -2874,6 +2971,7 @@ function renderRealNetCard(){
 
 function renderAll(){
   renderHome();
+  refreshDriverSelfCard(false);
   renderLoadPage();
   renderPTIPage();
   renderStats();

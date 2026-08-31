@@ -171,7 +171,7 @@ test('adapter is loaded, lazily composed, disconnected, and cache-rotated', () =
   assert.match(html, /<script src="driver-truck-assignment\.js\?v=20260831-slice4b1b3-s3-v1"><\/script>/);
   assert.match(html, /function getDriverTruckAssignmentAdapter\(\)/);
   assert.doesNotMatch(html, /getDriverTruckAssignmentAdapter\(\)\.(readCurrent|readHistory|readAsOf)/);
-  assert.match(swSource, /crewbiq-driver-v93/);
+  assert.match(swSource, /crewbiq-driver-v94/);
   assert.match(swSource, /driver-truck-assignment\.js/);
 });
 
@@ -185,4 +185,3 @@ test('adapter has no persistence, direct network, mutation, identity inference, 
     /assignments\s*\[\s*0\s*\]/,
   ]) assert.doesNotMatch(source, pattern);
 });
-
