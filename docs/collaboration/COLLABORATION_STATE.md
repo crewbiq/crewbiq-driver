@@ -42,22 +42,22 @@ Phase:
 Slice 4B.1b.2c-S4 - Explicit PTI Attribution Context
 
 Status:
-NEEDS FIX / BLOCKED ON PRODUCT OWNER DECISION
+PRODUCT OWNER DECISION RECORDED / AWAITING CODEX CORRECTION
 
 Current owner:
-Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; PTI submission now requires an authorized-workspace Driver roster match before writing workspaceId/truckId/driverId - but this makes PTI submission permanently impossible for any user without a connected Orchestrator account, confirmed via direct code trace (showPTIBlocker -> populatePTIAttributionSelectors -> readAuthorizedWorkspaceDriverRoster returns unavailable when loadOrchestratorSession() is null -> Driver select never populates -> submit button and submitPTI() both stay blocked). PTI previously always worked without any account. This is a severe regression affecting a mandatory daily safety workflow, not merely a code defect - the correct fix direction is a product policy choice.
+current main; PTI submission is currently permanently blocked for any user without a connected Orchestrator account (confirmed regression, see Claude review 653bf5d). Product Owner has decided the fix direction: (A) graceful degrade, matching Load's workspaceId behavior - PTI submission must always succeed regardless of account/workspace state; workspaceId/truckId/driverId are written only when proven, otherwise the fields are simply omitted (with a console.warn, mirroring loads.js's existing workspaceId-unresolved pattern), never blocking the save.
 
 Latest implementation commit:
 e6822846bba2c1140249ba50c5b5d7c11ccd022f
 
 Latest correction commit:
-NONE
+NONE - correction pending
 
 Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
@@ -66,7 +66,7 @@ Latest review commit:
 653bf5d980306afc8790b6a6e9fb99bfde4d8a31
 
 Blocking findings:
-- PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT - new, confirmed by direct code trace; PTI submission is permanently blocked (app-lockout, since the PTI blocker screen hides the whole app until completed) for any user without a connected Orchestrator/platform account; no test covers this state; requires Product Owner decision between (A) graceful degrade matching Load's workspaceId behavior (skip attribution, submission still succeeds) or (B) a deliberate, explicit policy requiring an account for PTI, before Codex attempts a fix
+- PTI_SUBMISSION_LOCKOUT_WITHOUT_WORKSPACE_ACCOUNT - confirmed regression; Product Owner has selected fix direction (A) graceful degrade; awaiting Codex implementation and Claude re-review before this can close
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - bypassed for Load and PTI by explicit authorized-roster selection; remains relevant only to future driver-role SELF UI work
 
@@ -84,13 +84,13 @@ Cross-repository implementation:
 crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f (ACCEPTED)
 
 Decision gate:
-STOPPED_FOR_PRODUCT_OWNER
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Product Owner
+Codex
 
 Next bounded action:
-decide whether PTI submission should (A) gracefully degrade attribution when no Orchestrator account is connected, preserving PTI's always-must-work guarantee, or (B) deliberately require a connected account before PTI can be submitted, as an explicit informed policy change; once decided, authorize Codex to implement the chosen behavior for re-review
+correct pti.js so PTI submission never blocks on missing/unresolved workspace, Truck roster, or Driver roster: the odometer/checklist requirement remains, but workspaceId/truckId/driverId are written only when a proof exists (fresh workspace resolution ok, an explicit Truck selection present, an explicit Driver selection present and workspace-matched) - if any is missing/unresolved, omit that field and log a console.warn exactly as loads.js already does for workspaceId, and let the PTI submission succeed regardless. Add regression tests for: no Orchestrator session at all (submission succeeds, no workspaceId/truckId/driverId written), workspace resolved but Driver roster empty/unavailable (submission succeeds, no driverId), and the existing fully-attributed happy path continuing to work unchanged. No migration, no merge, no deployment.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -959,3 +959,11 @@ decide whether PTI submission should (A) gracefully degrade attribution when no 
 - Next required actor: Product Owner.
 - Next bounded action: decide (A) graceful degrade vs (B) deliberate account requirement for PTI submission; once decided, authorize Codex to implement the chosen behavior for re-review.
 - Runtime/product files changed: NONE.
+
+### 2026-08-31 — Product Owner Decision — Slice 4B.1b.2c-S4 PTI Attribution Fix Direction
+
+- Decision: (A) graceful degrade, matching Load's workspaceId behavior. PTI submission must always succeed regardless of Orchestrator/workspace account state; workspaceId/truckId/driverId are written only when proven (fresh workspace resolution ok, explicit Truck selection present, explicit Driver selection present and workspace-matched), otherwise the field is simply omitted with a console.warn, never blocking the save.
+- Rationale: PTI is a mandatory daily safety workflow that must always be completable, unlike Load creation where an Orchestrator/workspace account is a more reasonable expectation.
+- Next required actor: Codex.
+- Next bounded action: correct pti.js so PTI submission never blocks on missing/unresolved workspace, Truck roster, or Driver roster - the odometer/checklist requirement remains, but workspaceId/truckId/driverId are written only when proven, omitted with a console.warn otherwise, mirroring loads.js's existing workspaceId-unresolved pattern exactly. Add regression tests for: no Orchestrator session at all (submission succeeds, no ids written), workspace resolved but Driver roster empty/unavailable (submission succeeds, no driverId), and the existing fully-attributed happy path continuing to work unchanged.
+- Runtime/product files changed: NONE. This decision was recorded only; monitoring resumes.
