@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2 - Normalized IDs for NEW Loads and PTI
+Slice 4B.1b.2a - Explicit Workspace Context for NEW Loads/PTI
 
 Status:
-BLOCKED / REVIEWED
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -79,10 +79,10 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize the narrowest prerequisite slice: define and accept an explicit active-workspace resolver scoped only to Load/PTI creation (from existing authenticated membership context, no default/inferred fallback), and write workspaceId only (no driverId/truckId) to newly-created Load/PTI records once accepted - removes WORKSPACE_CONTEXT_NOT_UNIVERSAL first, independent of the AccountDriverLink server work and PTI UI work
+implement and validate an explicit authenticated-membership workspace resolver for new Load/PTI creation only, with no driverId/truckId changes
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -722,7 +722,6 @@ authorize the narrowest prerequisite slice: define and accept an explicit active
 - Next required actor: ChatGPT.
 - Next bounded action: authorize the narrowest prerequisite slice — an explicit active-workspace resolver scoped only to Load/PTI creation (from existing authenticated membership context, no default/inferred fallback), writing workspaceId only (no driverId/truckId) to new Load/PTI records once accepted.
 - Runtime/product files changed: NONE.
-
 
 
 
