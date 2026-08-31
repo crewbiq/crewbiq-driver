@@ -42,25 +42,31 @@ Phase:
 Slice 4B.1b.2 - Normalized IDs for NEW Loads and PTI
 
 Status:
-IN_PROGRESS
+PUBLISHED / BLOCKED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4B.1b.1a CLOSED / ACCEPT; server AccountDriverLink remains pending externally
+current main; Slice 4B.1b.1a CLOSED / ACCEPT; no normalized Load/PTI runtime changes published
 
 Latest implementation commit:
 e5f33818f38db6950dc83047ca9faada5eec9152
+
+Latest correction commit:
+NONE - blocked before runtime implementation
 
 Latest review commit:
 f83c0c017ceb19b3650c0f0a3abc09909ee61837
 
 Blocking findings:
-NONE pending creation-path and server round-trip discovery
+- SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN
+- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING
+- PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING
+- WORKSPACE_CONTEXT_NOT_UNIVERSAL
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
@@ -70,14 +76,25 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-inventory every new Load/PTI constructor and verify normalized IDs survive local, sync, restore, and server compatibility before implementation
+independent review of Slice 4B.1b.2 blocker determination and required attribution/server prerequisites
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### Slice 4B.1b.2 - Normalized record ID discovery blocked
+
+- Agent: Codex
+- Result: `SLICE_4B_1B_2_BLOCKED`
+- Runtime files changed: NONE
+- Creation paths inventoried: `loads.js::saveLoad()` and `pti.js::submitPTI()`
+- Reason: canonical Driver/PTI attribution context and backend round-trip persistence are not proven; guessing and legacy alias normalization are forbidden
+- Tests: not run because the mandatory discovery gate blocked runtime implementation before a testable change
+- Next required actor: Claude
+- Next bounded action: independently review the blocker determination and prerequisites
 
 
 

@@ -273,3 +273,9 @@ The exact safest first implementation slice is **4B.1b.1**, with server constrai
 | Audit/IFTA identity chain | `COMPATIBLE`, with route/jurisdiction/Vault evidence still missing |
 
 No blocker prevents 4B.1b.1. Cross-repository ownership of the server schema/endpoint must be assigned before implementation, but it does not require changing this contract.
+
+## Slice 4B.1b.2 discovery outcome
+
+Slice 4B.1b.2 is `BLOCKED` before runtime implementation. The current repository does not prove backend round-trip persistence for normalized Load/PTI fields, the canonical AccountDriverLink read path remains disconnected, and PTI creation has no explicit stable Truck plus roster Driver attribution context.
+
+The accepted identity distinctions remain mandatory: `crewId` is not a roster `Driver.id`, email/name matching is not identity proof, and first/default-truck selection is forbidden. See `NORMALIZED_RECORD_ID_CONTRACT.md` for the creation-path inventory, evidence boundary, and bounded prerequisites.
