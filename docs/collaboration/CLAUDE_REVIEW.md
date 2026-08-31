@@ -1347,3 +1347,69 @@ Given the one blocking finding, the safest next step is **not** any of A/B/C as 
 
 A bounded **4B.1a.1 — custom-period inclusive-`dateTo` correction**: fix `resolvePeriod()`'s `custom` branch to convert the accepted-contract's inclusive `dateTo` into the internal exclusive `endExclusive` boundary (`addDays(dateTo, 1)`), relax the validation to accept `dateFrom === dateTo` as a valid single-day range, correct `ANALYTICS_ENGINE_CONTRACT.md`'s custom-period bullet to match `ANALYTICS_SCOPE_CONTRACT.md`, and update the one test currently encoding the wrong convention plus add a boundary test proving the *last* day of a custom range is now included. No other change, no UI, no new scope type.
 
+---
+
+## Slice 4B.1a.1 Focused Re-Review — 2026-08-30
+
+Reviewer: Claude. Read the live `CURRENT_START`/`CURRENT_END` block first (Phase: Slice 4B.1a.1; Status: PUBLISHED / AWAITING CLAUDE RE-REVIEW; correction commit `866caf34`). Scope of this review is deliberately narrow, per the task's instruction: the custom-period correction only, not a re-litigation of the prior slice's already-accepted findings.
+
+Method: diffed `analytics.js`, `ANALYTICS_ENGINE_CONTRACT.md`, and `tests/analytics.test.mjs` directly against the previously-reviewed Slice 4B.1a state to see the exact, complete change surface (three lines in `analytics.js`, one bullet in the contract doc, one renamed test plus two new tests). Independently re-executed the corrected `resolvePeriod()`/`createAnalyticsSnapshot()` via `node:vm` against constructed inputs — not just reading the diff — covering single-day ranges, an inverted range, a normal multi-day inclusive range, and explicit boundary loads on `dateFrom`, `dateTo`, and the day immediately after `dateTo`. Copied the corrected module and test file into an isolated scratch directory and ran `node --test` directly to confirm the full suite (including every previously-accepted `SELF`/purity/attribution/gross/mileage/RPM/current-truck/immutability test) still passes unchanged. Confirmed `index.html` remains byte-identical to the Slice 4B.1a baseline via blob-SHA comparison, and confirmed via the commit's file list that only `analytics.js`, `ANALYTICS_ENGINE_CONTRACT.md`, and `tests/analytics.test.mjs` were touched — no `sw.js`, `package.json`, or prototype file.
+
+### VERDICT: **ACCEPT**
+
+### 1–2. User-facing inclusive dates / internal normalized boundaries
+
+Confirmed via direct diff and re-execution: the `custom` branch now computes `endExclusive = addDays(text(request.dateTo), 1)` after validation, so a caller-supplied inclusive `dateTo` is correctly converted to the internal half-open boundary. `startInclusive` remains `dateFrom` directly (already correct pre-fix). Re-executed `resolvePeriod({dateFrom:'2026-03-01', dateTo:'2026-03-15', ...})` and got `startInclusive:'2026-03-01', endExclusive:'2026-03-16'` — exactly the expected conversion.
+
+### 3. `dateFrom === dateTo` is valid
+
+Confirmed both by diff (validation changed from `startInclusive >= endExclusive` to `startInclusive > endExclusive`) and by direct execution: `resolvePeriod({dateFrom:'2026-03-15', dateTo:'2026-03-15', ...})` now returns `ok:true` with `startInclusive:'2026-03-15', endExclusive:'2026-03-16'` — a correct single-day range.
+
+### 4. `dateFrom > dateTo` returns `invalid_period`
+
+Confirmed via direct execution: `resolvePeriod({dateFrom:'2026-03-16', dateTo:'2026-03-15', ...})` returns `{ok:false, code:'invalid_period', ...}`.
+
+### 5–7. Boundary record inclusion/exclusion
+
+Independently constructed a snapshot with four loads dated `2026-02-28` (before `dateFrom`), `2026-03-01` (on `dateFrom`), and — separately, matching the new dedicated test's own construction — loads on `dateFrom`, mid-range, exactly on `dateTo`, and the day immediately after `dateTo`, for a range `dateFrom:'2026-08-28', dateTo:'2026-08-30'`. Result: `['start', 'middle', 'date-to']` included, `'end-exclusive'` (dated `2026-08-31`) correctly excluded and the out-of-range loads before `dateFrom` correctly absent. This directly proves items 5, 6, and 7 via genuine execution, not just reading the new test.
+
+### 8. Timezone / local-date consistency
+
+Confirmed via the diff that `validTimeZone()`, the `referenceDate`-based `today`/`week`/`month`/`quarter` branches, and every other function in the file are byte-identical to the pre-correction version — the only lines touched are the two inside the `custom` branch. No timezone-handling regression is possible because no timezone-handling code was touched.
+
+### 9. `ANALYTICS_ENGINE_CONTRACT.md` now agrees with `ANALYTICS_SCOPE_CONTRACT.md`
+
+Confirmed via direct diff: the custom-period bullet now reads "Custom accepts user-facing `dateFrom` and `dateTo` as inclusive local operational dates, allows a single-day range, and normalizes internal `endExclusive` to the start of the local day following `dateTo`; only `dateFrom > dateTo` is invalid" — this is now fully consistent with the already-accepted `ANALYTICS_SCOPE_CONTRACT.md`'s "`dateFrom` and `dateTo` are inclusive local operational dates," closing the cross-document inconsistency this review's prior pass found.
+
+### 10. Old exclusive-`dateTo` test corrected
+
+Confirmed: the test previously named `'custom range preserves explicit end-exclusive bounds'` (which encoded the old, incorrect convention) is gone, replaced by `'custom range normalizes inclusive dateTo to the following end-exclusive day'` using `dateFrom:'2026-08-01', dateTo:'2026-08-31'` and asserting `endExclusive:'2026-09-01'` — correctly reflecting the fixed conversion, not the old bug.
+
+### 11. Dedicated boundary tests
+
+Confirmed three real, distinct tests exist and were executed successfully: `'single-day custom range is valid and includes that local operational date'` (asserts the resolved bounds **and** runs a full `createAnalyticsSnapshot()` proving a same-day load is included), `'custom range includes start and inclusive dateTo but excludes normalized endExclusive'` (the four-load boundary test described above), and the retained `'invalid custom and unsupported periods return invalid_period'` (still covers the inverted-range case). This is precisely the dedicated coverage requested, not a repurposed generic test.
+
+### 12. No unrelated changes
+
+Confirmed via the commit's file list (`analytics.js`, `docs/collaboration/ANALYTICS_ENGINE_CONTRACT.md`, `tests/analytics.test.mjs` — nothing else) and via blob-SHA comparison that `index.html` remains byte-identical to the pre-correction state. No `sw.js`, `package.json`, or `prototype/` file was touched — the module remains disconnected from production exactly as before.
+
+### 13. Regression check via genuine execution
+
+Copied the corrected `analytics.js` and `tests/analytics.test.mjs` into an isolated scratch directory and ran `node --test` directly (not just read the file): **29 tests, 29 passed, 0 failed** — up from 27 in the pre-correction suite (the two new boundary tests), with every previously-accepted test (`SELF` success/no-link/ambiguous/unauthorized/no-fallback, week/month/quarter boundaries, timezone validation, attribution exclusion, gross/mileage correctness including the red-herring-field test, series provenance, RPM/current-truck non-fabrication, input immutability, and the structural purity check) passing unchanged. No regression to previously-accepted `SELF`/purity/attribution behavior.
+
+### Blocking findings
+
+None.
+
+### Non-blocking findings
+
+None newly introduced by this correction. All previously-queued non-blocking items (`resolveDefaultTruck` case-sensitivity, unguarded deduction-template save, cosmetic `}function boot()` formatting, HISTORY typos, device-global `clinks` scoping, `links.js` maintenance-icon drift, missing-id-edit test gap, `AnalyticsScope`'s unspecified canonical `timeZone` source) remain outstanding, unresolved, and untouched by this narrow correction.
+
+### Whether Slice 4B.1a (and 4B.1a.1) is CLOSED
+
+**Yes.** The single blocking finding from the prior review — the custom-period `dateTo` inclusive/exclusive contract inconsistency — is fixed precisely, minimally, and correctly: confirmed by diff, by independent re-execution against constructed boundary cases, and by running the full corrected test suite from scratch. All previously-accepted `SELF`-resolution, purity, attribution, gross/mileage/RPM/current-truck, series/provenance, data-quality, immutability, and error-contract findings from the Slice 4B.1a review are preserved and re-confirmed unaffected. The module remains fully disconnected from production.
+
+### Recommended exact next bounded production slice
+
+Per the already-accepted `PRODUCTION_UI_INTEGRATION_CONTRACT.md`'s own bounded integration sequence (step 2, unchanged by this correction): **4B.1b — explicit account-to-Driver link contract and normalized record `driverId`**, scoped to data-model discovery and contract definition only (no UI, no persistence migration performed in the same slice) — this is the natural next step now that `SELF` resolution and period/snapshot/metric selectors for a plain driver-role account are correct and closed. This also unblocks the eventual `DRIVER` explicit-subject-id scope, since both ultimately depend on the same `NORMALIZED_RECORD_DRIVER_ID` gap this review confirmed in the Slice 4B review (fleet load records currently carry account `crewId`, not a Driver-profile `driver.id`). If the team instead wants an earlier, narrower UI proof-of-concept, a `4B.2` scoped strictly to a plain driver-role account's own `SELF` view (explicitly excluding any owner/fleet-as-driver claim) could proceed in parallel without waiting on `4B.1b`, since that specific case has no `ACCOUNT_DRIVER_LINK` dependency — but the primary recommendation follows the already-accepted sequence rather than substituting a new preference.
+
