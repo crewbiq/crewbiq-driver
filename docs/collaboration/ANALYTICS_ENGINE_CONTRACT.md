@@ -31,7 +31,7 @@ The second form preserves the distinction between fleet `driver_profile_id` and 
 - Non-custom periods require an explicit local `referenceDate`; the resolver does not read the wall clock.
 - Week means ISO-style Monday through next Monday and reports `calendar:'iso_week_monday'`.
 - Month and quarter are calendar boundaries.
-- Custom treats `dateFrom` as inclusive and `dateTo` as exclusive and requires valid `dateFrom < dateTo`.
+- Custom accepts user-facing `dateFrom` and `dateTo` as inclusive local operational dates, allows a single-day range, and normalizes internal `endExclusive` to the start of the local day following `dateTo`; only `dateFrom > dateTo` is invalid.
 
 This does not invent a workspace timezone setting. A future composition layer must pass an authorized workspace timezone or explicitly approved fallback.
 

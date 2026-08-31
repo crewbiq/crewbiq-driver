@@ -53,12 +53,13 @@
     if (period === 'custom') {
       startInclusive = text(request.dateFrom);
       endExclusive = text(request.dateTo);
-      if (!validDate(startInclusive) || !validDate(endExclusive) || startInclusive >= endExclusive) {
-        return fail(ERROR_CODES.INVALID_PERIOD, 'Custom range requires valid dateFrom < dateTo', {
+      if (!validDate(startInclusive) || !validDate(endExclusive) || startInclusive > endExclusive) {
+        return fail(ERROR_CODES.INVALID_PERIOD, 'Custom range requires valid dateFrom <= dateTo', {
           dateFrom: startInclusive,
           dateTo: endExclusive,
         });
       }
+      endExclusive = addDays(endExclusive, 1);
     } else {
       const referenceDate = text(request.referenceDate);
       if (!validDate(referenceDate)) {

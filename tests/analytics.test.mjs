@@ -96,9 +96,32 @@ test('quarter bounds cross year safely', () => {
   assert.deepEqual(plain([result.startInclusive, result.endExclusive]), ['2026-10-01', '2027-01-01']);
 });
 
-test('custom range preserves explicit end-exclusive bounds', () => {
-  const result = api.resolvePeriod({ period: 'custom', dateFrom: '2026-08-01', dateTo: '2026-09-01', timeZone: 'UTC' });
+test('custom range normalizes inclusive dateTo to the following end-exclusive day', () => {
+  const result = api.resolvePeriod({ period: 'custom', dateFrom: '2026-08-01', dateTo: '2026-08-31', timeZone: 'UTC' });
   assert.deepEqual(plain([result.startInclusive, result.endExclusive]), ['2026-08-01', '2026-09-01']);
+});
+
+test('single-day custom range is valid and includes that local operational date', () => {
+  const period = { period: 'custom', dateFrom: '2026-08-30', dateTo: '2026-08-30', timeZone: 'America/Chicago' };
+  const resolved = api.resolvePeriod(period);
+  assert.deepEqual(plain([resolved.startInclusive, resolved.endExclusive]), ['2026-08-30', '2026-08-31']);
+  const snapshot = api.createAnalyticsSnapshot(input({ period, loads: [
+    { id: 'same-day', crewId: 'crew-1', pickup: '2026-08-30', gross: 100, loadedMiles: 80, deadMiles: 20 },
+  ] }));
+  assert.deepEqual(plain(snapshot.records.map(record => record.id)), ['same-day']);
+});
+
+test('custom range includes start and inclusive dateTo but excludes normalized endExclusive', () => {
+  const snapshot = api.createAnalyticsSnapshot(input({
+    period: { period: 'custom', dateFrom: '2026-08-28', dateTo: '2026-08-30', timeZone: 'America/Chicago' },
+    loads: [
+      { id: 'start', crewId: 'crew-1', pickup: '2026-08-28', gross: 1, loadedMiles: 1, deadMiles: 1 },
+      { id: 'middle', crewId: 'crew-1', pickup: '2026-08-29', gross: 1, loadedMiles: 1, deadMiles: 1 },
+      { id: 'date-to', crewId: 'crew-1', pickup: '2026-08-30', gross: 1, loadedMiles: 1, deadMiles: 1 },
+      { id: 'end-exclusive', crewId: 'crew-1', pickup: '2026-08-31', gross: 1, loadedMiles: 1, deadMiles: 1 },
+    ],
+  }));
+  assert.deepEqual(plain(snapshot.records.map(record => record.id)), ['start', 'middle', 'date-to']);
 });
 
 test('invalid custom and unsupported periods return invalid_period', () => {
