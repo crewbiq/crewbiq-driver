@@ -39,10 +39,10 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.3-S1 - DriverTruckAssignment Read Foundation
+Slice 4B.1b.3-S2 - DriverTruckAssignment Mutation Commands
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
 Codex
@@ -51,10 +51,10 @@ Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; orchestrator read foundation accepted on agent/driver-truck-assignment-read at d8aae153f65228906f467bd141fa62651b56dc14. Workspace-scoped effective-dated relation, DB-enforced workspace/interval/team-overlap invariants (advisory-lock-serialized), server-derived read capability, and current/history/as-of reads only, all independently verified (9/9 tests re-run). No write endpoint exists yet, so the integrity trigger is currently dormant/unreachable.
+current main; S1 read foundation accepted at orchestrator d8aae153f65228906f467bd141fa62651b56dc14 with independent review e572cd1641fa0d180f74e8a9ada3f92bbdb82aad. The DB trigger must receive genuine execution-based PostgreSQL verification before any mutation endpoint is published.
 
 Latest implementation commit:
-d8aae153f65228906f467bd141fa62651b56dc14 (crewbiq/crewbiq-orchestrator @ agent/driver-truck-assignment-read)
+PENDING (crewbiq/crewbiq-orchestrator)
 
 Latest correction commit:
 NONE for this slice
@@ -69,11 +69,7 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-- CURRENT_PROJECTION_STRATEGY_UNDEFINED remains intentionally deferred; legacy projections, PWA/UI, migration execution, merge, and deployment remain out of scope
-- the driver_truck_assignments_integrity trigger's overlap-rejection, advisory-lock serialization, and workspace-integrity enforcement have zero behavioral test coverage (verified correct only by manual trace, since no fake connection can execute PL/pgSQL and this repo has no real-Postgres test infrastructure anywhere) - MUST be closed with a genuine behavioral test before any future mutation-command slice makes this trigger reachable; not blocking this read-only slice since no write path exists yet
-- _authorized_workspace_id in driver_truck_assignments.py requires the requested workspace to be the caller's active workspace specifically, stricter than the earlier workspace_drivers.py router (any held membership) - an inconsistency across endpoints, not a security defect, worth reconciling later
-- no explicit test for a user with an entirely empty active_workspace_id (distinct from a mismatched one) - low-risk, unexercised code path
-- (carried forward from prior reviews) resolveDefaultTruck case/whitespace sensitivity; deduction-template save branch without truckId guard; cosmetic formatting artifact; canonical workspace timeZone source unspecified; workspace_drivers.py's redundant status-default; Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific; account-connected user with empty Driver roster cannot submit PTI; HISTORY append-order inconsistency; CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING relevant only to future SELF UI; no live-Postgres test for raw_payload round-trip
+Legacy projection writes, PWA/UI integration, production migration execution, merge, and deployment remain excluded.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
@@ -82,7 +78,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-implement the orchestrator-only mutation-command slice for DriverTruckAssignment (create/close/revoke), reusing existing canonical-command conventions (idempotency key, optimistic-concurrency version check, immutable relationship_audit_events append, capability-gated authorization) exactly as the discovery document specifies. As a firm requirement of this next slice: add genuine behavioral verification of the driver_truck_assignments_integrity trigger (a real-PostgreSQL-backed test or another execution-based mechanism, not static text matching) before or alongside making the trigger reachable via a live write path. Exclude legacy-projection dual-writes, PWA/UI integration, migration execution against production, merge, and deployment.
+implement capability-gated create/close/revoke commands with idempotency, optimistic concurrency, immutable audit events, and genuine execution-based PostgreSQL trigger tests; exclude projections, PWA/UI, production migration execution, merge, and deployment.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
