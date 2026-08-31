@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.3 - Effective-Dated DriverTruckAssignment Discovery
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; mutable Driver profile Truck fields are current projections, not historical truth. The proposed server-owned DriverTruckAssignment uses workspace-scoped half-open effective intervals, permits only team/team Truck overlap, and preserves history through close/insert or revoke commands.
+current main; mutable Driver profile Truck fields are current projections, not historical truth. The proposed server-owned DriverTruckAssignment uses workspace-scoped half-open effective intervals, permits only team/team Truck overlap, and preserves history through close/insert or revoke commands. Every factual claim in the discovery document (no existing assignment table, legacy owner_crewbiq_id scoping on both fleet_driver_profiles and trucks, the existing relationship_audit_events/canonical_command_idempotency infrastructure, absence of an assignment capability) was independently verified against actual orchestrator schema/code, not merely trusted.
 
 Latest implementation commit:
 5c3daba6e2b979e8ed08ab67c9760e22569b3373
@@ -63,26 +63,33 @@ Latest documentation commit:
 5c3daba6e2b979e8ed08ab67c9760e22569b3373
 
 Latest review commit:
-9f447a942eefb7bcb5583a1af5e4ccb5270bdc2e
+1271c509c3930a0f02722c1eead4d064c1b64942
 
 Blocking findings:
-- WORKSPACE_NATIVE_RELATION_SCHEMA_MISSING
-- LEGACY_ENTITY_WORKSPACE_PROOF_REQUIRED
-- ASSIGNMENT_CAPABILITY_NOT_DEFINED
-- TRANSACTIONAL_OVERLAP_ENFORCEMENT_MISSING
-- CURRENT_PROJECTION_STRATEGY_UNDEFINED
+NONE
 
 Queued non-blocking findings:
-See prior HISTORY; no queued finding was changed by this docs-only discovery.
+- resolveDefaultTruck case/whitespace sensitivity
+- deduction-template save branch without truckId guard
+- cosmetic `}function boot()` formatting artifact
+- canonical workspace timeZone source remains unspecified
+- backend/Orchestrator AccountDriverLink implementation remains external
+- orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
+- Driver reassignment during Load edit is out of scope by design - a deliberate boundary, not an oversight
+- combined PTI toast message is slightly less specific than the prior separate Truck/Driver messages - minor UX nitpick only
+- an account-connected user whose workspace has zero registered Drivers cannot submit PTI either - consistent with the already-accepted Load driverId precedent
+- HISTORY entries in this file are appended in two different orders (Codex: top-of-section; Claude: end-of-file) - documentation-hygiene observation only
+- CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING remains relevant only to a future driver-role SELF UI
+- no live-PostgreSQL integration test exists for the raw_payload round-trip - residual, low-risk gap
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independently review DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md and either accept the bounded server-foundation recommendation or identify exact blocking corrections.
+implement the orchestrator-only READ FOUNDATION for DriverTruckAssignment, addressing the discovery document's technical prerequisites 1-4 (WORKSPACE_NATIVE_RELATION_SCHEMA_MISSING, LEGACY_ENTITY_WORKSPACE_PROOF_REQUIRED, ASSIGNMENT_CAPABILITY_NOT_DEFINED, TRANSACTIONAL_OVERLAP_ENFORCEMENT_MISSING): the workspace-scoped effective-dated relation schema/migration, database-enforced interval/overlap and workspace-integrity constraints via the existing workspaces.legacy_owner_crewbiq_id bridge, authorized current/history/asOf reads only, and the full required test list from DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md. Exclude mutations, legacy-projection dual-writes (prerequisite 5, CURRENT_PROJECTION_STRATEGY_UNDEFINED, deferred), PWA/UI integration, migration execution against production, merge, and deployment.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1041,3 +1048,15 @@ independently review DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md and either accept the 
 - Next required actor: Codex.
 - Next bounded action: 4B.1b.3 discovery slice for DriverTruckAssignment (documentation only, per above).
 - Runtime/product files changed: NONE.
+
+### 2026-08-31 — Claude — Slice 4B.1b.3 Discovery Independent Review — ACCEPT
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.3 - Effective-Dated DriverTruckAssignment Discovery (commit 5c3daba), a documentation-only slice proposing the schema, workspace-integrity, overlap, read, and mutation contract for a future server-owned relation.
+- Method: fetched DRIVER_TRUCK_ASSIGNMENT_DISCOVERY.md and confirmed via the commit diff it is the only file changed; independently re-verified every factual claim against actual crewbiq-orchestrator schema/code rather than trusting the document - checked trucks and fleet_driver_profiles table definitions directly, checked migrations/009_canonical_claim_approval.sql for the claimed existing idempotency/audit-event infrastructure, checked app/services/capabilities.py for the claimed absence of a DriverTruckAssignment capability, and confirmed no migration defines an assignment table anywhere.
+- Confirmed: no existing assignment table; fleet_driver_profiles.truck_id/team_driver and trucks.owner_crewbiq_id/truck_id are exactly as claimed (mutable current-only, legacy-owner-scoped, not workspace-native); the workspaces.legacy_owner_crewbiq_id bridge is the same schema-enforced-unique bridge already verified in the S1 review; relationship_audit_events (DB-trigger-enforced immutable) and canonical_command_idempotency (durable per-workspace/actor uniqueness) genuinely already exist for the Company/Truck canonical-claim workflow, so the proposal correctly reuses existing infrastructure rather than inventing a parallel mechanism; no DriverTruckAssignment capability exists in capabilities.py. All five listed technical blockers are genuine, verified gaps, none fabricated or already solved elsewhere.
+- Design assessed as sound: canonical IDs never inferred/list-ordered, workspace proof always server-derived, half-open intervals matching AccountDriverLink's own semantics, sensible overlap rules (team/team allowed, solo+other rejected, same-Driver-different-Truck rejected, temporary/other conservatively default-deny), idempotency/audit/optimistic-concurrency reuse, and an explicit refusal to authorize any dual-write legacy-projection strategy until a later, separate decision. The "safest next bounded slice" section correctly scopes the next step to a read-only foundation only, deferring mutations.
+- Verdict: ACCEPT. Slice 4B.1b.3 discovery is CLOSED with zero blocking findings.
+- Applying the autonomous handoff protocol: Blocking findings = NONE, no product/business decision required, the design is a bounded technical continuation of already-accepted architecture with its own next step already specified. Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex.
+- Next bounded action: implement the orchestrator-only read foundation for DriverTruckAssignment (schema/migration, database-enforced interval/overlap/workspace-integrity constraints via the existing legacy-owner bridge, authorized current/history/asOf reads only, full required test list) addressing prerequisites 1-4; exclude mutations, legacy-projection dual-writes (prerequisite 5, deferred), PWA/UI integration, migration execution against production, merge, and deployment.
+- Runtime/product files changed: NONE. This review touched no code in either repository.
