@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.3-S1 - DriverTruckAssignment Read Foundation
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; orchestrator read foundation published on agent/driver-truck-assignment-read at d8aae153f65228906f467bd141fa62651b56dc14. It adds the workspace-scoped effective-dated relation, DB-enforced workspace/interval/team-overlap invariants, server-derived read capability, and current/history/as-of reads only.
+current main; orchestrator read foundation accepted on agent/driver-truck-assignment-read at d8aae153f65228906f467bd141fa62651b56dc14. Workspace-scoped effective-dated relation, DB-enforced workspace/interval/team-overlap invariants (advisory-lock-serialized), server-derived read capability, and current/history/as-of reads only, all independently verified (9/9 tests re-run). No write endpoint exists yet, so the integrity trigger is currently dormant/unreachable.
 
 Latest implementation commit:
 d8aae153f65228906f467bd141fa62651b56dc14 (crewbiq/crewbiq-orchestrator @ agent/driver-truck-assignment-read)
@@ -63,22 +63,26 @@ Latest documentation commit:
 5c3daba6e2b979e8ed08ab67c9760e22569b3373
 
 Latest review commit:
-1271c509c3930a0f02722c1eead4d064c1b64942
+e572cd1641fa0d180f74e8a9ada3f92bbdb82aad
 
 Blocking findings:
 NONE
 
 Queued non-blocking findings:
-CURRENT_PROJECTION_STRATEGY_UNDEFINED remains intentionally deferred; mutations, audit command integration, legacy projections, PWA/UI, migration execution, merge, and deployment remain out of scope.
+- CURRENT_PROJECTION_STRATEGY_UNDEFINED remains intentionally deferred; legacy projections, PWA/UI, migration execution, merge, and deployment remain out of scope
+- the driver_truck_assignments_integrity trigger's overlap-rejection, advisory-lock serialization, and workspace-integrity enforcement have zero behavioral test coverage (verified correct only by manual trace, since no fake connection can execute PL/pgSQL and this repo has no real-Postgres test infrastructure anywhere) - MUST be closed with a genuine behavioral test before any future mutation-command slice makes this trigger reachable; not blocking this read-only slice since no write path exists yet
+- _authorized_workspace_id in driver_truck_assignments.py requires the requested workspace to be the caller's active workspace specifically, stricter than the earlier workspace_drivers.py router (any held membership) - an inconsistency across endpoints, not a security defect, worth reconciling later
+- no explicit test for a user with an entirely empty active_workspace_id (distinct from a mismatched one) - low-risk, unexercised code path
+- (carried forward from prior reviews) resolveDefaultTruck case/whitespace sensitivity; deduction-template save branch without truckId guard; cosmetic formatting artifact; canonical workspace timeZone source unspecified; workspace_drivers.py's redundant status-default; Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific; account-connected user with empty Driver roster cannot submit PTI; HISTORY append-order inconsistency; CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING relevant only to future SELF UI; no live-Postgres test for raw_payload round-trip
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independently review orchestrator branch agent/driver-truck-assignment-read commit d8aae153f65228906f467bd141fa62651b56dc14, including schema concurrency/workspace invariants, read authorization/shape, and focused regressions.
+implement the orchestrator-only mutation-command slice for DriverTruckAssignment (create/close/revoke), reusing existing canonical-command conventions (idempotency key, optimistic-concurrency version check, immutable relationship_audit_events append, capability-gated authorization) exactly as the discovery document specifies. As a firm requirement of this next slice: add genuine behavioral verification of the driver_truck_assignments_integrity trigger (a real-PostgreSQL-backed test or another execution-based mechanism, not static text matching) before or alongside making the trigger reachable via a live write path. Exclude legacy-projection dual-writes, PWA/UI integration, migration execution against production, merge, and deployment.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1064,4 +1068,16 @@ independently review orchestrator branch agent/driver-truck-assignment-read comm
 - Verdict: ACCEPT. Slice 4B.1b.3 discovery is CLOSED with zero blocking findings.
 - Applying the autonomous handoff protocol: Blocking findings = NONE, no product/business decision required, the design is a bounded technical continuation of already-accepted architecture with its own next step already specified. Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex.
 - Next bounded action: implement the orchestrator-only read foundation for DriverTruckAssignment (schema/migration, database-enforced interval/overlap/workspace-integrity constraints via the existing legacy-owner bridge, authorized current/history/asOf reads only, full required test list) addressing prerequisites 1-4; exclude mutations, legacy-projection dual-writes (prerequisite 5, deferred), PWA/UI integration, migration execution against production, merge, and deployment.
+- Runtime/product files changed: NONE. This review touched no code in either repository.
+
+### 2026-08-31 — Claude — Slice 4B.1b.3-S1 Independent Review (cross-repository) — ACCEPT
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.3-S1 - DriverTruckAssignment Read Foundation, implemented in crewbiq/crewbiq-orchestrator (commit d8aae15).
+- Method: fetched every changed file directly via gh api; read the migration's PL/pgSQL trigger and the router's read endpoints in full; manually traced the trigger's range-overlap boolean logic and advisory-lock keying by hand; independently reconstructed the minimal package and ran pytest (9/9 passed); confirmed the repo has no real-Postgres integration test infrastructure anywhere (checked test_migrations.py and found only hand-rolled fake connections, no conftest/docker-compose/testcontainers).
+- Confirmed: the driver_truck_assignments table and enforce_driver_truck_assignment_integrity trigger correctly implement workspace-scoped effective-dated intervals, DB-enforced Driver/Truck-workspace membership proof via the existing legacy-owner bridge, advisory-lock-serialized concurrent-insert protection, and the exact overlap rules from the discovery document (same-Driver overlap always rejected; same-Truck solo+other rejected; team+team allowed) - traced by hand and found correct. Read endpoints (/current, /history, /as-of) independently re-validate every field (including a correct bool-vs-int guard on version), exclude revoked rows only where appropriate, and fail closed on any malformed/duplicate/cross-workspace record.
+- Key finding, non-blocking: the trigger's overlap/concurrency logic has zero behavioral test coverage - only static text-matching, since no fake connection can execute PL/pgSQL and this repository has no real-Postgres test infrastructure at all. However, this slice publishes no write endpoint, so the trigger is currently dormant and unreachable through any live code path - the gap is deferred, not present, and is recorded as a firm requirement for the next mutation-command slice rather than a defect in this one.
+- Verdict: ACCEPT. Slice 4B.1b.3-S1 is CLOSED with zero blocking findings.
+- Applying the autonomous handoff protocol: Blocking findings = NONE, no product/business decision required, the mutation-command phase is already named in the accepted contract and discovery document's own sequence. Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex.
+- Next bounded action: implement the orchestrator-only mutation-command slice (create/close/revoke) reusing existing canonical-command conventions (idempotency, optimistic concurrency, immutable audit events, capability gating); as a firm requirement, add genuine behavioral verification of the integrity trigger (real-Postgres-backed or equivalent execution-based test) before or alongside making it reachable via a live write path. Exclude legacy-projection dual-writes, PWA/UI, production migration execution, merge, and deployment.
 - Runtime/product files changed: NONE. This review touched no code in either repository.
