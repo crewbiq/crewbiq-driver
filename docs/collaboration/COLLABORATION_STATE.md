@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1b.2c-S1 - Read-Only Workspace Driver Roster Server Action
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -87,10 +87,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspaces/{workspaceId}/drivers, mirroring account-driver-link.js exactly - validate response shape, fail closed on any workspace mismatch or malformed entry, no fallback, no UI wiring, no driverId writes yet
+implement the bounded read-only PWA adapter for GET /v1/workspaces/{workspaceId}/drivers; validate shape and workspace ownership fail-closed, with no UI wiring or driverId writes
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -873,6 +873,5 @@ authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspa
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspaces/{workspaceId}/drivers, mirroring account-driver-link.js exactly - validate response shape, fail closed on any workspace mismatch or malformed entry, no fallback, no UI wiring, no driverId writes yet.
 - Runtime/product files changed: NONE. This review touched no code in either repository.
-
 
 
