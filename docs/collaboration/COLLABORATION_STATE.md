@@ -39,13 +39,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B.1b.2b - Normalized truckId for NEW/Explicitly Reassigned Loads
+Slice 4B.1b.2c - Explicit Driver Selection + Normalized Load driverId
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -78,10 +78,10 @@ Queued non-blocking findings:
 - backend/Orchestrator AccountDriverLink implementation remains external
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize a future explicit Driver-selection UI control for Load driverId (not AccountDriverLink, not a default), designed from the start to respect fresh edit-time reselection the way truckId now correctly does; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate, independently-sequenced tracks
+run the team-driver gate, verify an authorized current-workspace canonical Driver roster source, then add explicit Load assignment only if both are proven
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -810,7 +810,6 @@ authorize a future explicit Driver-selection UI control for Load driverId (not A
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a future explicit Driver-selection UI control for Load driverId (not AccountDriverLink, not a default), designed to respect fresh edit-time reselection the way truckId now correctly does; PTI attribution-context UI work and the AccountDriverLink server handoff remain separate tracks.
 - Runtime/product files changed: NONE.
-
 
 
 
