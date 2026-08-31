@@ -2197,3 +2197,59 @@ The implementation correctly fits existing orchestrator architecture (auth, DB-e
 Within `crewbiq-driver`: implement a bounded, read-only PWA adapter for `GET /v1/workspaces/{workspaceId}/drivers`, mirroring `account-driver-link.js`'s pattern exactly — validate the response shape, fail closed on any workspace mismatch or malformed entry, no fallback of any kind, no UI wiring, no `driverId` writes yet. This is the smallest next step that keeps the same discipline used for `AccountDriverLink`: adapter first, reviewed independently, before any Driver-selector UI or `driverId` normalization work begins.
 
 Runtime/product files changed by this review: NONE. This review touched no code in either repository.
+
+## Slice 4B.1b.2c-S2 Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.2c-S2 — Read-Only PWA Workspace Driver Roster Adapter (implementation commit `1212779`), consuming the just-accepted orchestrator endpoint from Slice 4B.1b.2c-S1.
+**Method:** fetched every changed file directly via `gh api` (`workspace-driver-roster.js`, `tests/workspace-driver-roster.test.mjs`, `core-runtime.js`, `index.html`, `sw.js`, `package.json`, `tests/workspace-attribution.test.mjs`); read `workspace-driver-roster.js` in full; grepped `index.html` for any invocation of `CrewBIQWorkspaceDriverRoster` beyond the script tag; independently copied the changed source into an isolated scratch directory and ran `node --test` (11/11 passed, not merely trusted); re-checked the server contract accepted in the prior review (`workspace_drivers.py`, snake_case fields, binary `active`/`inactive` status) against this adapter's parsing to confirm no mismatch.
+
+### Adapter (`workspace-driver-roster.js`)
+
+Mirrors `account-driver-link.js`'s established structure exactly: `normalizeDriver()` requires non-empty `driver_id`/`workspace_id`/`name`, a status in the real server's binary set (`active`/`inactive` — correctly matching the actual orchestrator response verified in the prior review, not the three-value `active|inactive|terminated` set from this reviewer's own illustrative Q14 pseudocode, which the server never implements), a valid `effective_from` date, and an `effective_to` that is either absent or a valid date not preceding `effective_from`. `validateResponse()` rejects any response-level workspace mismatch, any per-record workspace mismatch (defense-in-depth even if the envelope passed), and any duplicate `driver_id` within one response — matching the server's own duplicate/workspace-match invariants. `read()` requires both `sessionToken` and `workspaceId` before ever calling `request()`, and maps 401/403 → `UNAUTHORIZED`, thrown/network errors → `NETWORK_UNAVAILABLE`, 5xx/`ok:false` → `SERVER_ERROR`. Zero requests on module load. Input response objects and their driver records are not mutated (verified both by direct read and by the test's before/after `JSON.stringify` comparison).
+
+### Transport (`core-runtime.js::adaptWorkspaceDriverRoster`)
+
+Maps the `workspace_driver_roster_read` action-envelope to `GET /v1/workspaces/{workspaceId}/drivers` with `authHeaders(token)` — the exact endpoint and auth mechanism accepted in the prior orchestrator-side review, confirmed by direct comparison against `workspace_drivers.py`'s route. Read-only: a GET request, no body, no `localStorage`/`scopedSave` write of any kind in the adapter function (confirmed both by direct read and by the test's regex assertion against the extracted function body).
+
+### No UI wiring, no fallback, no cross-contamination
+
+`index.html` adds only the `<script src="workspace-driver-roster.js">` tag; grepped directly and confirmed via the test suite that `CrewBIQWorkspaceDriverRoster.read(` / `.create(` is never called anywhere in `index.html` — the module is loaded but genuinely disconnected, matching the same bounded-adapter-first pattern used for `AccountDriverLink` in Slice 4B.1b.1a. Grepped the adapter source directly: no `localStorage`/`indexedDB`/`fetch`/`XMLHttpRequest`, no `firstDriver`/`driverProfiles`/`AccountDriverLink` reference of any kind, no `save/write/create/update/deleteDriver` mutation path. No `driverId` is written to any Load/PTI record by this commit — this slice is adapter-only.
+
+### Service-worker cache rotation
+
+`workspace-driver-roster.js` is a new app-shell file; `CACHE_NAME` was correctly bumped `v88 → v89`, the file was added to `APP_SHELL`, and both the header comment and the activation log string were updated consistently. `package.json` correctly registers the new test file in `test:e2e:tooling`. The pre-existing `workspace-attribution.test.mjs` cache-version assertion was updated `v88`→`v89` to match — purely mechanical, not semantic.
+
+### Independent test execution
+
+Reconstructed the isolated scratch copy and ran `node --test tests/workspace-driver-roster.test.mjs` directly: **11/11 passed** — module purity, response normalization without mutation, empty/multiple-driver rosters, response-level and record-level workspace-mismatch rejection, six distinct malformed-record cases plus a duplicate-ID case, a specifically valuable test rejecting a **camelCase** wire response (`workspaceId`/`driverId` instead of the real server's `workspace_id`/`driver_id`) as `workspace_driver_roster_invalid_response` rather than silently tolerating it — confirming the adapter is strict about the real contract rather than being permissively lenient — missing-session/workspace failing before any transport call, structured authorization/network/server-error mapping, transport-shape assertions against the real `core-runtime.js` function body, and confirmation the adapter is loaded without UI invocation.
+
+### A material, positive correction to this reviewer's own prior finding
+
+The Slice 4B.1b.2c blocker review (this reviewer, prior turn) flagged that a proven-workspace-only Driver selector could hide "nearly the entire existing driver roster" if built without a migration path, since local `driverProfiles` have never carried `workspaceId`. Having now traced the full path end-to-end: `saveDriverProfiles()` already calls `queueFleetConfigSync()`, meaning locally-entered driver profiles are already synced into the server's `fleet_driver_profiles` table (the same table the new orchestrator endpoint reads from, scoped via the schema-enforced `legacy_owner_crewbiq_id` bridge verified in the prior review). This means the new server-side roster endpoint does **not** depend on any client-side `workspaceId` migration at all — it independently derives a genuinely workspace-scoped, already-populated roster from data that real existing users have already synced. The "existing Drivers disappear from selection" risk this reviewer raised is substantially mitigated by this discovery: a future selector consuming this adapter would see the real, already-existing driver population, not an empty or artificially-filtered one.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings (reassessed)
+
+- `AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN` — **both the server source (S1) and the client adapter (S2) are now accepted.** The remaining gap is purely UI: no Driver-selector consumes this adapter yet, and no `driverId` is written anywhere. Given the positive correction above, this blocker is close to fully resolved — the next step is compositional/UI work, not a further data-provenance prerequisite.
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` (carried forward, unrelated to this slice)
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` (carried forward, unrelated to this slice)
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING` (carried forward, unrelated to this slice)
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Orchestrator's `_authorized_workspace_id()` redundant status-default (server-side, prior review).
+- **Updated/superseded:** the "proven-workspace-only selector would hide the existing roster" concern from the 4B.1b.2c blocker review is substantially mitigated per the discovery above; kept here for traceability rather than silently dropped.
+
+### Recommended next bounded action
+
+Authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load `driverId`, consuming the now-accepted `workspace-driver-roster.js` adapter — showing only Drivers returned by the proven, authorized roster (never a local `driverProfiles` fallback, never a first/default selection). This is the natural next slice now that both the server source and the client adapter are independently verified sound, and the earlier migration concern is substantially de-risked. `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN` and PTI attribution-context remain separate, independently-sequenced tracks.
+
+Runtime/product files changed by this review: NONE.
