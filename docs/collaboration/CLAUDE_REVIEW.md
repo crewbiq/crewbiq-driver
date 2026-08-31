@@ -1937,3 +1937,91 @@ In `loads.js::saveLoad()`, the edit-path `truckId` assignment must respect a fre
 Correct the `saveLoad()` edit-path `truckId` assignment as described above, add a regression test that an edit selecting a *different* truck than the existing `truckId` actually updates the saved record (the current suite only tests that the existing value is *preserved*, never that a genuine reselection during edit takes effect), and resubmit for review before proceeding to Load `driverId` or PTI attribution-context work.
 
 Runtime/product files changed by this review: NONE.
+
+## Slice 4B.1b.2b.1 Focused Re-Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Focused re-review of `LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED` only (original implementation `5082a63`, original review `116f11b`, correction `718c668`). No other accepted findings reopened; correction caused no regression, so scope stayed narrow as instructed.
+**Method:** fetched the correction commit's diff directly via `gh api` for every changed file; read the full corrected `saveLoad()` region in `loads.js` (not just the diff hunk) to confirm the exact statement now in place; independently copied all corrected source (`loads.js`, `pti.js`, `sync.js`, `sw.js`, `index.html`, both test files) into an isolated scratch directory and ran `node --test` (37/37 passed, not merely trusted); diffed the updated `NORMALIZED_RECORD_ID_CONTRACT.md` prose and the new/changed test assertions against the actual code to confirm they describe real behavior, not aspirational behavior.
+
+### The fix
+
+The two previous non-`else` `if` statements are replaced by a single unconditional line:
+
+```js
+entry.truckId = truckAttribution.truckId;
+```
+
+`truckAttribution` is derived earlier in the same `saveLoad()` call from the current, freshly-read `truckSel` (`getLoadTruckSelection()`), and `truckAttribution.ok` is already mandatory-gated (`if (!truckAttribution.ok) return _toast('Truck assignment required', 'err')`) before this line is reached, for both new and edit saves. This is exactly the correction this reviewer recommended in the prior review.
+
+### 1. New Load explicit selection still writes canonical truckId — CONFIRMED
+
+Unchanged in effect: `!editId` saves still receive `entry.truckId = truckAttribution.truckId` from the fresh, explicit, validated selection.
+
+### 2. Truck A → explicit Truck B edit: truckId and unitNumber both update to Truck B — CONFIRMED
+
+`entry.truckId = truckAttribution.truckId` and `unitNumber: truckSel.unitNumber || driver.unitNumber` (line 385, unchanged) now both derive from the same current `truckSel` read at save time — no more split source of truth between the two fields. Verified directly in the corrected source, not merely via the test's synthetic composition.
+
+### 3. No stale Truck A truckId remains — CONFIRMED
+
+The unconditional overwrite leaves no code path where a prior `truckId` value can survive an edit save; grepped the corrected `saveLoad()` body directly (no `existingEntry...truckId` pattern of any kind remains, matching the new test `'no stale truckId survives explicit reassignment'`).
+
+### 4. Same-Truck edit preserves correct attribution — CONFIRMED
+
+If the user does not change the dropdown during edit, `truckSel`/`truckAttribution` resolve to the same `truckId` the record already had (since `populateLoadTruckSelect` pre-selects the current truck) — a no-op in effect, not a regression.
+
+### 5. Legacy Load without truckId may gain truckId ONLY after explicit validated edit-time selection — CONFIRMED
+
+Because the mandatory `truckAttribution.ok` gate runs before any save (new or edit) can proceed at all, and the unconditional assignment now applies on every save, a legacy Load being edited will have `truckId` set for the first time only as a side effect of that same explicit, required, freshly-validated selection — there is no other path (no background job, no read-time normalization, no restore-time write) that could ever set it.
+
+### 6–7. Legacy read/render/restore untouched; no automatic backfill — CONFIRMED
+
+Nothing outside `saveLoad()` was touched by this correction. The only way to add `truckId` to a record remains an explicit user save action with a mandatory validated selection, never a passive read/render/restore/sync path.
+
+### 8. No fallback of any kind — CONFIRMED, unchanged from the prior slice
+
+`resolveNewLoadTruckAttribution()` itself was not touched by this correction; the "no `activeTrucks()[0]`/`getDefaultTruck()`/first-truck/array-position/unitNumber-guess" tests (already independently verified in the prior review) still pass unchanged.
+
+### 9–11. workspaceId unchanged; no driverId; PTI untouched — CONFIRMED
+
+The `workspaceId`-preservation block above this line is untouched by the diff. Grepped the corrected `loads.js` for `driverId`: none. `pti.js` does not appear in this commit's file list at all — confirmed genuinely untouched.
+
+### 12. Serialization/restore remains green — CONFIRMED
+
+`sync.js::stampRecord()` is untouched; its `{...record, ...}` spread (verified in the two prior reviews) continues to preserve whatever `truckId` value `saveLoad()` now correctly writes.
+
+### 13. Service-worker cache state remains consistent — CONFIRMED
+
+`loads.js` content changed again, so `CACHE_NAME` was correctly rotated `v87 → v88`; `sw.js`'s own header comment and the `sidr-contract-resolver-integration-v1.test.mjs` cache-version assertion both match the single new value. `package.json` was correctly left unchanged (no new test file was added this time — `tests/load-truck-attribution.test.mjs` was already registered by the prior slice).
+
+### 14. Targeted + regression re-run — CONFIRMED, no collateral change
+
+Independently ran both `tests/load-truck-attribution.test.mjs` (21 tests, including four new/rewritten assertions directly targeting this fix: Truck A→B reassignment, no-stale-id, same-truck edit, legacy-gains-truckId-via-edit) and `tests/workspace-attribution.test.mjs` (16 tests, unrelated to this fix) together in one isolated scratch run: **37/37 passed**. The workspace-attribution suite passing unchanged alongside the Load-truck suite confirms no collateral behavior change to the adjacent, previously-accepted `workspaceId` logic.
+
+### Verdict
+
+**ACCEPT**
+
+The correction is precise, minimal, and directly resolves the confirmed defect without introducing any new fallback, backfill, or cross-cutting change. Both Slice 4B.1b.2b and this focused re-review (4B.1b.2b.1) are CLOSED.
+
+### Blocking findings (preserved, unchanged)
+
+- `SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN`
+- `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING`
+- `PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING`
+
+`LOAD_EDIT_TRUCK_REASSIGNMENT_SILENTLY_DISCARDED` is resolved and removed from the blocking list.
+
+### Non-blocking findings carried forward
+
+- `resolveDefaultTruck` case/whitespace sensitivity.
+- Deduction-template save branch without `truckId` guard.
+- Cosmetic `}function boot()` formatting artifact.
+- Canonical workspace `timeZone` source remains unspecified.
+- Backend/Orchestrator `AccountDriverLink` implementation remains external.
+
+### Recommended next bounded action
+
+With Load `truckId` (creation and edit-time reassignment) now fully closed, the safest next step is a future explicit Driver-selection UI control for Load `driverId` (not `AccountDriverLink`, not a default), designed from the start to respect fresh edit-time reselection the way `truckId` now correctly does. PTI attribution-context UI work and the `AccountDriverLink` server handoff remain separate, independently-sequenced tracks.
+
+Runtime/product files changed by this review: NONE.
