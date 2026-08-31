@@ -42,16 +42,16 @@ Phase:
 Slice 4B.1b.2c-S2 - Read-Only PWA Workspace Driver Roster Adapter
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; the accepted orchestrator roster endpoint now has a bounded read-only PWA adapter and Bearer transport mapping; no Driver-selector UI or driverId record writes exist
+current main; the accepted orchestrator roster endpoint now has an accepted bounded read-only PWA adapter and Bearer transport mapping; no Driver-selector UI or driverId record writes exist yet
 
 Latest implementation commit:
 1212779f89c99f2b9a13820842b13f94a762d285
@@ -63,10 +63,10 @@ Latest documentation commit:
 7c7b4c149d1562adbb067b431edbef2aaec1d881
 
 Latest review commit:
-5470951bb8596f0986dde0ba41534b6f87f34fd8
+e6361f92c49db306f9a66e3a868c85e9fbadfb20
 
 Blocking findings:
-- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - server layer accepted; bounded PWA adapter published and pending Claude acceptance, with no UI consumption yet
+- AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - both server source (S1) and client adapter (S2) now accepted; remaining gap is purely UI consumption, not further data provenance
 - SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN - blocks Load and PTI equally; server-side; needs a real backend round-trip test, not a contract test alone
 - CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING - blocks driverId for Load and PTI; server+client; bypassable via an explicit UI Driver-selection source instead of waiting for AccountDriverLink
 - PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING - blocks PTI only; client-side UI gap; submitPTI() has no truckId/driverId or selection step at all, worse than Loads
@@ -77,8 +77,8 @@ Queued non-blocking findings:
 - cosmetic `}function boot()` formatting artifact
 - canonical workspace timeZone source remains unspecified
 - backend/Orchestrator AccountDriverLink implementation remains external
-- a proven-workspace-only Driver selector built without a migration path would hide nearly the entire existing driver roster from selection - future Driver-selector UI work must sequence after or alongside a migration/backfill plan, not treat filtering alone as sufficient
 - orchestrator's _authorized_workspace_id() has a redundant status-defaults-to-active fallback, harmless given current data but worth simplifying later
+- superseded: the "proven-workspace-only selector would hide the existing roster" concern is substantially mitigated - saveDriverProfiles() already syncs to the server's fleet_driver_profiles table the new endpoint reads from, so the roster reflects real already-synced drivers, not an empty/filtered set
 
 Cross-repository implementation:
 crewbiq/crewbiq-orchestrator @ agent/workspace-driver-roster-read @ 412c39d94f357dcbf04f356fc9b210deb84abb8f (ACCEPTED)
@@ -87,10 +87,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independent review of the read-only PWA workspace Driver roster adapter and transport mapping
+authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load driverId, consuming the accepted workspace-driver-roster.js adapter - show only Drivers returned by the proven, authorized roster, never a local driverProfiles fallback or first/default selection
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -888,4 +888,17 @@ independent review of the read-only PWA workspace Driver roster adapter and tran
 - Next required actor: ChatGPT.
 - Next bounded action: authorize a bounded, read-only PWA adapter in crewbiq-driver for GET /v1/workspaces/{workspaceId}/drivers, mirroring account-driver-link.js exactly - validate response shape, fail closed on any workspace mismatch or malformed entry, no fallback, no UI wiring, no driverId writes yet.
 - Runtime/product files changed: NONE. This review touched no code in either repository.
+
+### 2026-08-31 — Claude — Slice 4B.1b.2c-S2 Independent Review
+
+- Agent: Claude
+- Task: independent review of Slice 4B.1b.2c-S2 - Read-Only PWA Workspace Driver Roster Adapter (implementation commit 1212779), consuming the accepted orchestrator endpoint from Slice 4B.1b.2c-S1.
+- Method: fetched every changed file directly via gh api (workspace-driver-roster.js, its test file, core-runtime.js, index.html, sw.js, package.json, workspace-attribution.test.mjs); read workspace-driver-roster.js in full; grepped index.html for any invocation of CrewBIQWorkspaceDriverRoster beyond the script tag; independently ran node --test in an isolated scratch copy (11/11 passed); cross-checked the adapter's parsing against the real accepted server contract (snake_case fields, binary active/inactive status) from the prior review.
+- Confirmed: the adapter mirrors account-driver-link.js's structure exactly - fail-closed on response-level and per-record workspace mismatch, duplicate driver_id, and any malformed field; correctly matches the server's real binary active/inactive status set rather than this reviewer's own illustrative three-value pseudocode; zero requests on load; no input mutation. The transport adapter (core-runtime.js::adaptWorkspaceDriverRoster) maps to the exact accepted GET /v1/workspaces/{workspaceId}/drivers endpoint with Bearer auth, read-only. index.html loads the script but never invokes CrewBIQWorkspaceDriverRoster.read/create anywhere - genuinely disconnected, matching the AccountDriverLink bounded-adapter-first pattern. No driverId written anywhere. Service-worker cache correctly rotated v88->v89.
+- Material positive correction to this reviewer's own prior finding: the 4B.1b.2c blocker review flagged that a proven-workspace-only selector could hide nearly the entire existing driver roster without a migration path. Tracing further: saveDriverProfiles() already calls queueFleetConfigSync(), meaning locally-entered driver profiles are already synced into the server's fleet_driver_profiles table - the same table the new endpoint reads from. The new roster endpoint therefore reflects the real, already-existing driver population without requiring any client-side workspaceId migration, substantially de-risking the earlier concern.
+- Blockers reassessed: AUTHORIZED_WORKSPACE_DRIVER_ROSTER_UNPROVEN - both server source (S1) and client adapter (S2) are now accepted; the remaining gap is UI consumption only. SERVER_NORMALIZED_ID_ROUNDTRIP_UNPROVEN, CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING, and PTI_EXPLICIT_ATTRIBUTION_CONTEXT_MISSING remain open, unrelated to this slice.
+- Verdict: ACCEPT. Slice 4B.1b.2c-S2 is CLOSED.
+- Next required actor: ChatGPT.
+- Next bounded action: authorize a bounded composition-root wiring plus a minimal, explicit, no-default Driver-selector UI for new Load driverId, consuming the accepted adapter - show only Drivers returned by the proven, authorized roster, never a local driverProfiles fallback or first/default selection.
+- Runtime/product files changed: NONE.
 
