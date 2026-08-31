@@ -177,6 +177,13 @@
     return { truckId: truck ? truck.id : '', unitNumber: truck ? truck.unitNumber : '' };
   }
 
+  function resolveNewLoadTruckAttribution(selection) {
+    const truckId = String((selection && selection.truckId) || '').trim();
+    return truckId
+      ? { ok: true, truckId }
+      : { ok: false, code: 'truck_not_resolved' };
+  }
+
   function populateLoadTruckSelect(preferred = '') {
     const row = document.getElementById('loadTruckRow');
     const select = document.getElementById('loadTruckSelect');
@@ -354,7 +361,8 @@
     const loads     = _get.loads();
     const driver    = _get.driver();
     const truckSel  = getLoadTruckSelection();
-    if (!truckSel.truckId) return _toast('Truck assignment required', 'err');
+    const truckAttribution = resolveNewLoadTruckAttribution(truckSel);
+    if (!truckAttribution.ok) return _toast('Truck assignment required', 'err');
     if (!editId && loads.find(x => x.loadId === loadId)) return _toast('Load ID already exists', 'err');
     if (!editId) {
       const sameDate = loads.filter(x => x.pickup === pickupVal);
@@ -374,7 +382,6 @@
       pickupLocation: document.getElementById('pickupLocation').value.trim(),
       deliveryLocation: document.getElementById('deliveryLocation').value.trim(),
       notes: document.getElementById('loadNotes').value.trim(),
-      truckId: truckSel.truckId || (existingEntry && existingEntry.truckId) || '',
       unitNumber: truckSel.unitNumber || driver.unitNumber,
       driverName: driver.name,
       ownerKey: ownerKey(), crewId: driver.crewId || '', driverEmail: driver.email || '',
@@ -385,6 +392,10 @@
     if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'workspaceId')) {
       entry.workspaceId = existingEntry.workspaceId;
     }
+    if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'truckId')) {
+      entry.truckId = existingEntry.truckId;
+    }
+    if (!editId) entry.truckId = truckAttribution.truckId;
     if (!editId && global.CrewBIQWorkspaceAttribution) {
       const attribution = global.CrewBIQWorkspaceAttribution.attributeNewRecord(entry, _get.workspaceContext());
       entry = attribution.record;
@@ -1268,6 +1279,7 @@
   const CrewBIQLoads = {
     version: '0.4.0',
     init,
+    resolveNewLoadTruckAttribution,
     assignUnresolvedLoad,
     calcDriverPay, calcDriverPayWith, recalcLoadsFrom,
     maskGross, calcPreview, getWeekLoads,

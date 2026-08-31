@@ -120,6 +120,6 @@ test('editing preserves an existing workspaceId but does not backfill a legacy L
 
 test('new resolver is loaded before constructors and cache-rotated in the app shell', () => {
   assert.ok(html.indexOf('workspace-attribution.js') < html.indexOf('pti.js'));
-  assert.match(swSource, /crewbiq-driver-v86/);
+  assert.match(swSource, /crewbiq-driver-v87/);
   assert.match(swSource, /workspace-attribution\.js/);
 });

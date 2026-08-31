@@ -2,6 +2,18 @@
 
 Status: `WORKSPACE_ONLY_IMPLEMENTED / AWAITING REVIEW`
 
+## Slice 4B.1b.2b new-Load truck attribution
+
+New Loads now retain the stable canonical `Truck.id` returned by the existing explicit Load truck selection. `unitNumber` remains a separate business/display identifier and is never accepted by the normalized attribution helper as `truckId`. Missing or invalid canonical selection fails closed through the existing "Truck assignment required" behavior.
+
+This is new-record-only normalization. Editing a legacy Load without `truckId` does not add the field; editing a normalized Load preserves its existing `truckId`. PTI attribution and `driverId` are unchanged. Client object serialization, restore/import pass-through, and sync record stamping preserve the field, but server round-trip remains unproven.
+
+| Record | workspaceId | truckId | driverId |
+| --- | --- | --- | --- |
+| New Load | Implemented when workspace proof succeeds | Implemented from explicit canonical Truck selection | Pending |
+| New PTI | Implemented when workspace proof succeeds | Pending | Pending |
+| Legacy Load/PTI | No backfill | No backfill | No backfill |
+
 ## Slice 4B.1b.2a workspace-only implementation
 
 The first bounded prerequisite now writes only `workspaceId` to newly-created Load and PTI records when an authenticated Orchestrator session proves one explicit active workspace membership.

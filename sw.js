@@ -1,5 +1,5 @@
 /**
- * CrewBIQ Driver — Service Worker v1.0.86
+ * CrewBIQ Driver — Service Worker v1.0.87
  * CrewBIQ Technologies
  *
  * Strategy:
@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v86';
+const CACHE_NAME = 'crewbiq-driver-v87';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
