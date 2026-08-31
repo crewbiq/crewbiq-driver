@@ -8,6 +8,11 @@ on:
       - loads.js
       - core.js
       - core-runtime.js
+      - workspace-attribution.js
+      - workspace-driver-roster.js
+      - driver-truck-assignment.js
+      - account-driver-link.js
+      - driver-self.js
       - offline-sync-queue.js
       - restore-hotfix.js
       - settings-hotfix.js
@@ -45,6 +50,11 @@ on:
       - tests/hotfix-load-order-contract.test.mjs
       - tests/first-truck-fallback.test.mjs
       - tests/navigation-contract.test.mjs
+      - tests/workspace-attribution.test.mjs
+      - tests/workspace-driver-roster.test.mjs
+      - tests/driver-truck-assignment.test.mjs
+      - tests/account-driver-link.test.mjs
+      - tests/driver-self-ui.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
@@ -55,6 +65,11 @@ on:
       - loads.js
       - core.js
       - core-runtime.js
+      - workspace-attribution.js
+      - workspace-driver-roster.js
+      - driver-truck-assignment.js
+      - account-driver-link.js
+      - driver-self.js
       - offline-sync-queue.js
       - restore-hotfix.js
       - settings-hotfix.js
@@ -92,6 +107,11 @@ on:
       - tests/hotfix-load-order-contract.test.mjs
       - tests/first-truck-fallback.test.mjs
       - tests/navigation-contract.test.mjs
+      - tests/workspace-attribution.test.mjs
+      - tests/workspace-driver-roster.test.mjs
+      - tests/driver-truck-assignment.test.mjs
+      - tests/account-driver-link.test.mjs
+      - tests/driver-self-ui.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -168,6 +188,9 @@ jobs:
       - name: Run navigation and role-menu contract
         run: node --test tests/navigation-contract.test.mjs
 
+      - name: Run canonical identity and assignment contracts
+        run: node --test tests/workspace-attribution.test.mjs tests/workspace-driver-roster.test.mjs tests/driver-truck-assignment.test.mjs tests/account-driver-link.test.mjs tests/driver-self-ui.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
@@ -192,7 +215,7 @@ jobs:
           grep -q "startup-session.js?v=20260830-slice1b-v1" index.html
           grep -q "links.js?v=20260830-slice2b-v1" index.html
           grep -q "navigation-model.js?v=20260830-slice3b-v1" index.html
-          grep -q "crewbiq-driver-v85" sw.js
+          grep -q "crewbiq-driver-v94" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "load-order-hotfix.js" sw.js
