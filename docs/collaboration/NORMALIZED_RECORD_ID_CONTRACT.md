@@ -14,6 +14,20 @@ Creation and explicit edit saves use the same validated selection. On edit, the 
 | New PTI | Implemented when workspace proof succeeds | Pending | Pending |
 | Legacy Load/PTI | No backfill | No backfill | No backfill |
 
+## Slice 4B.1b.2c explicit Load Driver assignment gate
+
+Status: `BLOCKED`
+
+The team-driver gate passes for a single primary Load `driverId`: current team metadata is a relationship between Driver profiles, while the Load model does not require a simultaneous multi-Driver set. A future primary assignment field does not remove or reinterpret that team relationship.
+
+The authorized-workspace roster gate does not pass. The current Load UI can access `loadDriverProfiles()`, but that function reads identity-scoped local `driverProfiles` records. `normalizeDriverProfileRecord()` preserves a stable profile `id` but does not provide or validate `workspaceId`. The authenticated `/v1/fleet/config` adapter returns `driver_profiles` without attaching response workspace proof, and persisted roster records are not scoped by active workspace.
+
+Consequently, the client cannot prove that a selected Driver belongs to the active authorized workspace and cannot reject a cross-workspace injected ID. Treating the local identity scope as workspace authorization would be an inference. `crewId`, account identity, email, name, role, Truck assignment, and first/single Driver selection remain forbidden substitutes.
+
+`AccountDriverLink` remains separate and is not the required solution for Load assignment. The bounded prerequisite is a server-authoritative current-workspace Driver roster response, or equivalent accepted provenance, that supplies canonical `Driver.id` plus workspace ownership and remains verifiable after client persistence. Only then may an explicit no-default Load selector write or reassign `driverId`.
+
+No Load UI, Load record, PTI, analytics, AccountDriverLink, cache, or runtime behavior changed in this blocked slice.
+
 ## Slice 4B.1b.2a workspace-only implementation
 
 The first bounded prerequisite now writes only `workspaceId` to newly-created Load and PTI records when an authenticated Orchestrator session proves one explicit active workspace membership.
