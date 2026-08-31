@@ -2620,3 +2620,59 @@ Blocking findings = NONE. No product/business decision is required — the next 
 Implement the orchestrator-only mutation-command slice for `DriverTruckAssignment` (create/close/revoke), reusing the existing canonical-command conventions (idempotency key, optimistic-concurrency version check, immutable `relationship_audit_events` append, capability-gated authorization) exactly as the discovery document specifies — **and, as a firm requirement of this next slice, add genuine behavioral verification of the `driver_truck_assignments_integrity` trigger** (a real-PostgreSQL-backed test, or another execution-based mechanism — not merely static text matching) before or alongside making the trigger reachable via a live write path. Exclude legacy-projection dual-writes, PWA/UI integration, migration execution against production, merge, and deployment.
 
 Runtime/product files changed by this review: NONE. This review touched no code in either repository.
+
+## Slice 4B.1b.3-S2 Independent Review (cross-repository) — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of Slice 4B.1b.3-S2 — DriverTruckAssignment Mutation Commands, implemented in `crewbiq/crewbiq-orchestrator` (branch `agent/driver-truck-assignment-mutations`, commit `c4ac01d`), adding create/close/revoke commands and — directly addressing this reviewer's firm requirement from the S1 review — genuine execution-based PostgreSQL verification of the integrity trigger.
+**Method:** fetched every changed file directly via `gh api`; read the full mutation-command router code (`create_driver_truck_assignment`, `_change_assignment_status` for close/revoke, idempotency and audit helpers) and both new test files in full; **stood up a real PostgreSQL 16 instance in a local Docker container, ran the actual repository migrations against it, and independently executed `tests/test_driver_truck_assignments_postgres.py` myself** — not merely reading it — to verify the trigger's claimed behavior firsthand; independently reconstructed the mock-based command test file and ran it (5/5 passed); cross-checked `_actor_auth_user_id`'s `auth_user_id` field against the pre-existing (unmodified) `auth_service.py` to confirm it is a genuine, already-designed-for-this-purpose internal field, not newly invented.
+
+### Gold-standard verification of the integrity trigger
+
+This is the most rigorous verification step taken in this entire review track to date. I did not rely on reading the test and trusting its assertions: I ran `docker run postgres:16-alpine`, waited for readiness, assembled the minimal orchestrator package (migrations 001–010, `app/db/migrations.py`, `app/db/connection.py`, `app/config.py`), and executed `tests/test_driver_truck_assignments_postgres.py` against that live database myself. **It passed.** This independently confirms, by direct observation rather than code reading:
+
+- Two non-overlapping, adjacent (touching) intervals for the same Driver succeed (half-open boundary correctness).
+- An overlapping interval for the same Driver correctly raises `driver_truck_assignment_driver_overlap`.
+- An overlapping `team`-type assignment on a Truck that already has a `solo` assignment there correctly raises `driver_truck_assignment_truck_overlap` (mixed-type overlap rejected, exactly as designed).
+- Two overlapping `team`-type assignments on the same Truck for different Drivers succeed (the one case the business needs).
+- A cross-workspace assignment attempt (a Driver belonging to a different legacy owner) correctly raises `driver_truck_assignment_driver_workspace_mismatch`.
+- **A genuine concurrency test**: one transaction holds an open insert for a Driver; a second, concurrent connection attempting to insert an overlapping assignment for the *same* Driver is observed to be genuinely blocked (`not competing.done()` after 200ms) until the first transaction commits — proving the `pg_advisory_xact_lock` calls actually serialize competing transactions in a real database, not merely that the SQL text mentions them.
+
+This fully and rigorously closes the gap I flagged as a firm requirement in the S1 review. The CI workflow (`.github/workflows/tests.yml`) now provisions a real `postgres:16-alpine` service container with `CREWBIQ_TEST_DATABASE_URL` set, so this verification is durable — it will run on every future push/PR, not just this one time locally.
+
+### Mutation command implementation
+
+`create_driver_truck_assignment` and `_change_assignment_status` (shared by close/revoke) both: require the new `DRIVER_TRUCK_ASSIGNMENT_MANAGE` capability (distinct from `_READ`, correctly role-scoped to `owner_op`/`fleet`/`fleet_admin` in `capabilities.py`); require an `Idempotency-Key` header, computing a SHA-256 fingerprint over the full command payload and correctly distinguishing an exact-replay (returns the stored response verbatim without re-executing) from a same-key-different-payload conflict (409 `idempotency_conflict`); wrap the entire command in one database transaction, so idempotency bookkeeping, the mutation, and the audit-event append are atomic together; use `for update` row locking on close/revoke to make the optimistic-concurrency `expected_version` check race-safe; reject an already-`revoked` row outright (409) and reject closing a non-`active` row; validate `effective_to > effective_from` before applying a close; require a non-blank `reason` for close/revoke (Pydantic field validator, rejected with 422 before any database access); use `extra="forbid"` on every request model, so a client-supplied `workspace_id` in the body is rejected outright (422) rather than silently ignored or trusted; and never delete or overwrite a historical row — close and revoke both `update`, never `delete`. Every request model requires timezone-aware timestamps. Unmapped database errors are funneled through `_command_failure()`, which maps known constraint-violation SQLSTATEs (`23503`/`23514`/`23P01`) to specific structured 409 responses recovered from the actual exception message, or a generic 503 otherwise.
+
+`_actor_auth_user_id` reads `user["auth_user_id"]` — I confirmed this is not a newly invented field but an existing, internal-only field already present in the unmodified `auth_service.py`'s `authenticate_token()`, explicitly commented there as reserved for exactly this purpose ("Internal request context for audited canonical commands... do not expose the database Account primary key") — this slice correctly consumes existing infrastructure rather than inventing a new identity channel.
+
+### Independent test execution
+
+- **Real PostgreSQL** (`tests/test_driver_truck_assignments_postgres.py`): **1/1 passed**, executed against a live, locally-provisioned Postgres 16 instance (not the CI environment) — see above.
+- **Mock-based command tests** (`tests/test_driver_truck_assignment_commands.py`): reconstructed and ran independently: **5/5 passed** — create with idempotency/audit/trigger-insert wiring, version-conflict blocking any write, revoke preserving the row (never deleting) while incrementing version and appending a reasoned audit event, capability-gating plus rejection of a spoofed `workspace_id` request field, and blank-reason rejection before any database access.
+
+### Verdict
+
+**ACCEPT**
+
+### Blocking findings
+
+NONE.
+
+### Non-blocking findings carried forward
+
+- (Carried from prior reviews, unchanged) `resolveDefaultTruck` case/whitespace sensitivity; deduction-template save branch without `truckId` guard; cosmetic formatting artifact; canonical workspace `timeZone` source unspecified; `workspace_drivers.py`'s redundant status-default; Driver reassignment during Load edit out of scope by design; combined PTI toast message less specific; account-connected user with empty Driver roster cannot submit PTI; HISTORY append-order inconsistency; `CANONICAL_ACCOUNT_DRIVER_LINK_READ_PENDING` relevant only to future `SELF` UI; `driver_truck_assignments.py`'s stricter active-workspace requirement vs. `workspace_drivers.py`'s looser membership check (inconsistency across endpoints, not a defect); no explicit test for an entirely-empty `active_workspace_id`.
+- **Resolved and removed:** the S1 review's firm requirement — genuine behavioral verification of the integrity trigger — is now closed, both by the new real-Postgres test itself and by this reviewer's own independent execution of it against a separately-provisioned live database.
+- **Resolved and removed:** `CURRENT_PROJECTION_STRATEGY_UNDEFINED` remains the one deliberately-deferred item from the original discovery document (legacy dual-write projection strategy) — unchanged, still correctly out of scope, not part of this slice.
+- The `raw_payload` round-trip test from Slice 4B.1b.2c-S5 still has no live-Postgres counterpart — unlike this slice, which now sets a strong precedent for how to close that kind of gap. Worth revisiting given the infrastructure now exists.
+
+### Applying the autonomous handoff protocol
+
+Blocking findings = NONE. No product/business decision is required. However, unlike every prior slice in this specific sub-track, `IDENTITY_ATTRIBUTION_CONTRACT.md`'s own bounded sequence does **not** name a further sub-phase after mutation commands within `4B.1b.3` — the next named phase in the contract is `4B.1b.4` (legacy attribution/backfill tooling) or `4B.2` (real driver-role `SELF` UI), both of which were already identified as open, not-yet-authorized choices in the Slice 4B.1b.3 discovery's own review. Whether to proceed into PWA/UI integration for `DriverTruckAssignment` itself (not yet built at all — this track has been server-only so far), or to pivot to `4B.1b.4`/`4B.2`, is a genuine product-sequencing choice, not a bounded technical continuation with a single obvious next step named by already-accepted architecture.
+
+### Recommended handoff
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Decision required:** Should the next slice be (A) a PWA-side `DriverTruckAssignment` adapter/UI (consuming the now-accepted server read/mutation foundation, mirroring the `AccountDriverLink`/workspace-Driver-roster adapter pattern), (B) `4B.1b.4` legacy attribution/backfill tooling, or (C) `4B.2` a real driver-role `SELF` UI? Each is a materially different scope and priority choice not resolved by any already-accepted document.
+
+Runtime/product files changed by this review: NONE. This review touched no code in either repository (the local Docker Postgres container used for independent verification was created and destroyed entirely within this review session and is not part of either repository).
