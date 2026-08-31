@@ -2986,3 +2986,42 @@ This is a bounded technical correction to an already-accepted architecture (B4's
 **Next bounded action:** Fix the `healthcheck()` / `test_db_phase1.py` contract mismatch using option 1 or 2 above (Codex's choice, since both are equally valid and narrow), then run the full canonical `pytest -q --tb=short` and confirm zero failures, and confirm the live CI check run for the fix commit shows `success` before republishing for review. No deploy, merge, migration execution, or scope broadening authorized by this step.
 
 Runtime/product files changed by this review: NONE. Both repository clones used for independent verification were created and deleted entirely within this review session.
+
+## B4 Regression Fix Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of orchestrator fix commit `f00532a3437e14354748ef23a7827687797baa4f` ("fix: preserve disabled database health contract"), addressing the `ORCHESTRATOR_HEALTHCHECK_CONTRACT_REGRESSION` finding from the prior B1-B4 correction review.
+**Method:** fresh full clone of `crewbiq-orchestrator` at the fix commit; read the complete diff and the full resulting `app/db/connection.py`; ran the exact canonical `pytest -q --tb=short` command against the full suite (Python 3.12, prebuilt wheels — the earlier default Python 3.14 environment failed to build `asyncpg` from source and was discarded as an environment artifact, not a code issue); independently corroborated via `gh api .../commits/<sha>/check-runs` against the real GitHub Actions result for this exact commit.
+
+### The fix
+
+`healthcheck()`'s disabled-DB return reverts to the original, pre-existing contract: `{"ok": True, "enabled": False, "connected": False}` — restoring `tests/test_db_phase1.py::test_db_helpers_noop_when_disabled`'s validity unmodified. `deployment_readiness()` no longer relies on `healthcheck()`'s `ok` field to mean "ready" — it now independently checks `not db_enabled() or not database.get("connected")` to decide not-ready, which is semantically identical to before for every case: disabled DB → not ready (fail-closed preserved); enabled but pool unavailable or connectivity check throws → `connected` is `False` → not ready; enabled and connected → proceeds to the migration-table check as before. This is exactly option 1 of the two I proposed in the prior review — the narrowest correction, preserving both the shared function's original contract and the new readiness endpoint's fail-closed behavior, without weakening either test.
+
+### Verification
+
+- Ran the full canonical `pytest -q --tb=short` (the literal `.github/workflows/tests.yml` "Run tests" step) against the fix commit myself: **318 passed, 2 skipped, 0 failed** (previously 317 passed/1 failed/2 skipped; the fix commit adds one more test case relative to the prior count — consistent, not a discrepancy).
+- Specifically re-ran `tests/test_db_phase1.py::test_db_helpers_noop_when_disabled` and all 6 of `tests/test_deployment_readiness.py` together: **7/7 passed**.
+- Independently corroborated via `gh api repos/crewbiq/crewbiq-orchestrator/commits/f00532a3437e14354748ef23a7827687797baa4f/check-runs`: `pytest completed success` — the live CI gate for this exact commit is green, closing the loop opened by the prior finding (which showed `failure` for the pre-fix commit).
+- Read the full resulting `connection.py` end-to-end (not just the diff) to check for any other edge case affected: confirmed `get_pool()`, `close_pool()`, `_masked_host()`, and the migration-table query path in `deployment_readiness()` are unchanged and unaffected by this fix.
+
+### Verdict
+
+**ACCEPT**
+
+B1, B2, B3 remain closed (unchanged from the prior review). B4 is now also fully closed: its `/ready`/`deployment_readiness()` design was sound from the start, and the one supporting regression in the shared `healthcheck()` contract is now correctly reconciled without weakening any test. The B1-B4 production-readiness blocker correction round is complete, with a genuinely zero-failure canonical CI run confirmed both locally and on the repository's own live GitHub Actions for the exact commit.
+
+### Blocking findings
+
+None. All four original blockers (B1-B4) are confirmed closed.
+
+### Applying the autonomous handoff protocol
+
+This ACCEPT closes out the entire bounded technical-correction round with no blocking findings. However, the *next* step in the established deployment order (per `PRODUCTION_DEPLOYMENT_READINESS.md`'s own sequencing: close blockers → **Product Owner authorization** → provision staging → execute migrations → deploy server → verify → deploy PWA → ...) is explicitly staging provisioning and migration execution — actions this protocol has consistently treated as requiring Product Owner authorization, not a bounded Codex technical continuation, since they touch shared infrastructure and are the direct precursor to a real deploy. This is a genuine product/business decision point, not a further narrow technical slice.
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Next required actor: ChatGPT (Product Owner)**
+**Decision required:** All four production-readiness blockers (B1-B4) are now confirmed closed with a zero-failure canonical CI run on both repositories. Does the Product Owner authorize proceeding to the next step in the established deployment order — provisioning a staging environment and executing the additive migrations (`010_driver_truck_assignments.sql`, `011_account_driver_links.sql`) there — or should work remain paused pending some other business consideration first?
+
+No deploy, merge, migration execution, or production-data mutation is authorized by this review itself.
+
+Runtime/product files changed by this review: NONE. The repository clone and Python virtual environment used for independent verification were created entirely within this review session under the scratchpad directory.
