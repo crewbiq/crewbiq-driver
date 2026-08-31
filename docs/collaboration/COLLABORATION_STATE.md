@@ -39,19 +39,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Slice 4B - Production Integration Contract + Analytics Scope Architecture
+Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors
 
 Status:
-CLOSED / ACCEPT
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Slice 4A.2 and Slice 4A.3 visual direction approved as production-integration baseline
+current main; Slice 4B architecture CLOSED / ACCEPT
 
 Latest implementation commit:
 d61623c47a2d0f5a0ae30ef6a6280676744d7b66
@@ -60,21 +60,19 @@ Latest review commit:
 a27bbd13604ea4eaa8a0b4a027508162ececf65e
 
 Blocking findings:
-NONE for accepted next bounded slice; broader blockers preserved: ACCOUNT_DRIVER_LINK, NORMALIZED_RECORD_DRIVER_ID, EFFECTIVE_DATED_DRIVER_TRUCK_ASSIGNMENT, PTI_SCOPE_AND_POLICY, DOCUMENT_EVIDENCE_MODEL, UTILIZATION_DEFINITION
+NONE
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
-- docs/product/PRODUCT_CONTRACT.md and FEATURE_REGISTRY.md are stale relative to accepted Slices 1A-3B (still "Slice 0b" framing; contradicted statements re: auth/session extraction and index.html decomposition status) - needs a cleanup pass
-- docs/collaboration/ARCHITECTURE.md lacks a "Slice 3B Navigation Model" section and omits navigation-model.js from its module map - needs a one-paragraph addition
-- AnalyticsScope's canonical timeZone source (workspace vs device-local) is unspecified - left as an implementation detail for the period resolver, non-blocking
+- bounded stale product/architecture documentation cleanup included in 4B.1a
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-authorize 4B.1a - Driver SELF analytics snapshot and pure period selectors - as named, with the SELF-scope validator required to ship complete on day one including its self_not_linked/self_ambiguous rejection paths (not deferred to 4B.1b)
+implement and contract-test fail-closed Driver SELF analytics and deterministic period selectors
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -567,6 +565,7 @@ authorize 4B.1a - Driver SELF analytics snapshot and pure period selectors - as 
 - Verdict: VISUAL ACCEPT.
 - Approved baseline: dark navy/blue language, 4A.2 mobile typography, header, compact role selector, Today/KPI structure, command centers, operational summaries, Functions, Quick Add, floating bottom navigation, audit/evidence language, radii, spacing, and surfaces.
 - Constraint for Slice 4A.3: additive analytics only; do not redesign the accepted shell.
+
 
 
 
