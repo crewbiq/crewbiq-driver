@@ -42,22 +42,22 @@ Phase:
 Slice 4B.2-S2 - Driver SELF Read-Only UI
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; AccountDriverLink server source accepted at orchestrator ac98b111753c1e1119e94d00095bd618addcc439 with review dd0748d5470ad9f8e9f32bc6fc90e3495fe2779f. PWA may now compose canonical Account -> Driver -> current Truck reads.
+current main; canonical AccountDriverLink and DriverTruckAssignment reads are composed for read-only SELF context. Legacy screens and records remain authoritative when canonical context is unavailable.
 
 Latest implementation commit:
-PENDING
+b151d7d6d0b27545a0819d71f5b1468d215c710c
 
 Latest correction commit:
-NONE for this slice
+NONE
 
 Latest documentation commit:
 f64dc8897a183153a5f569944e3f26aad4288f60
@@ -65,20 +65,23 @@ f64dc8897a183153a5f569944e3f26aad4288f60
 Latest review commit:
 dd0748d5470ad9f8e9f32bc6fc90e3495fe2779f
 
+Latest state commit:
+publication commit containing this CURRENT block
+
 Blocking findings:
 NONE
 
 Queued non-blocking findings:
-Legacy backfill remains queued until SELF UI acceptance; no administration/mutation UI, ranking, migration, merge, or deployment.
+Legacy attribution/backfill remains queued; no AccountDriverLink administration, assignment mutation, ranking, migration, merge, or deployment was added.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-load and compose accepted AccountDriverLink and DriverTruckAssignment reads, then render a minimal read-only SELF state with explicit fail-closed outcomes while preserving all legacy screens and records.
+independent Slice 4B.2-S2 review of the read-only Driver SELF adapter/UI and fail-closed canonical identity composition.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1201,3 +1204,14 @@ load and compose accepted AccountDriverLink and DriverTruckAssignment reads, the
 - Applying the autonomous handoff protocol: the Product Owner's sequence already named SELF UI next, and the Slice 4B.2 discovery already specified this server slice and the subsequent PWA slice precisely - no fresh business decision needed. Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex.
 - Next bounded action: implement the subsequent bounded PWA slice - load and lazily compose the already-accepted account-driver-link.js adapter (currently uncomposed), resolve canonical Driver ID before calling the DriverTruckAssignment current-read adapter, render a minimal read-only SELF state for success/not-linked/ambiguous/unauthorized/unavailable outcomes. Must remain read-only.
 - Runtime/product files changed: NONE. This review touched no code in either repository (the local Docker Postgres container used for verification was created and destroyed entirely within this review session).
+### 2026-08-31 - Codex - Slice 4B.2-S2 Driver SELF Read-Only UI publication
+
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Branch: agent/pre-base44-audit
+Implementation commit: b151d7d6d0b27545a0819d71f5b1468d215c710c
+Runtime files changed: core-runtime.js, index.html, driver-self.js, sw.js
+Cache version: crewbiq-driver-v94
+Tests: 118 passed, 0 failed across Driver SELF, AccountDriverLink, DriverTruckAssignment, workspace roster/attribution, analytics, auth/startup, account settings, and service-worker path regressions.
+Behavior: authenticated canonical account identity resolves AccountDriverLink proof before current DriverTruckAssignment; not-linked, ambiguous, unauthorized, and unavailable states are explicit and fail closed. No first-Driver/first-Truck fallback, local accountId inference, mutation UI, legacy record changes, migration, ranking, backfill, merge, deployment, or server changes.
+Next required actor: Claude
+Next bounded action: independent Slice 4B.2-S2 review.
