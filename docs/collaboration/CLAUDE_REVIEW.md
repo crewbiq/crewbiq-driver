@@ -2869,3 +2869,60 @@ This slice completes the Product Owner's second priority (C). The stated sequenc
 **Decision required:** Does "Driver SELF UI proven" mean independent-review acceptance (satisfied now, by this ACCEPT) — in which case legacy backfill discovery (B) may begin — or does it require actual production/deployment validation of the SELF UI first, which has not yet occurred anywhere in this track? This is a product-risk-tolerance decision for irreversible-leaning legacy-data work, not a bounded technical continuation with an already-specified answer.
 
 Runtime/product files changed by this review: NONE.
+
+## Production/Deployment Readiness Independent Review — 2026-08-31
+
+**Agent:** Claude
+**Task:** Independent review of `PRODUCTION_DEPLOYMENT_READINESS.md` (commit `f4c28224`), the Product Owner-directed evidence-gathering exercise evaluating the accepted `crewbiq-driver`/`crewbiq-orchestrator` work as an integrated deployable system, following the decision to defer legacy backfill and validate deployability first.
+**Method:** performed a full, independent, from-scratch verification rather than trusting the document's claims — **cloned the complete `crewbiq-driver` repository at the accepted branch tip and ran the exact aggregate `test:e2e:tooling` command myself**; **cloned the complete `crewbiq-orchestrator` repository at the accepted branch and read the actual CORS and `/health` source directly**; **made live, read-only HTTP GET requests to the actual production Railway service and the actual published GitHub Pages site** to independently confirm the document's production observations, rather than accepting them as reported.
+
+### B1 — DRIVER_CANONICAL_TEST_GATE_RED — confirmed exactly
+
+Cloned the full repository and ran the precise 36-file aggregate command from `package.json`'s `test:e2e:tooling` script myself. Result: **316 passed, 1 failed** — an exact match to the document's claim. The single failure is `sidr-contract-resolver-integration-v1.test.mjs:69`, asserting a regex match count of 1 for `crewbiq-driver-v88` against the real `sw.js`, which now correctly contains `crewbiq-driver-v94`. This is precisely the stale-assertion gap described — not a functional regression in any accepted feature.
+
+### B2 — DRIVER_CI_GATE_STALE_AND_INCOMPLETE — confirmed exactly
+
+Read the full `.github/workflows/pwa-auth-contract.yml` from the cloned repository directly. Confirmed: its cache-rotation verification step contains `grep -q "crewbiq-driver-v85" sw.js` — a hard assertion against a version four generations stale. Confirmed: neither the `pull_request` nor `push` trigger's `paths:` filter lists any of `workspace-attribution.js`, `workspace-driver-roster.js`, `driver-truck-assignment.js`, `account-driver-link.js`, or `driver-self.js` — a pull request touching only one of these five accepted modules would not trigger this contract workflow at all.
+
+### B3 — ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED — confirmed exactly
+
+Read `app/main.py` from the cloned orchestrator repository directly and confirmed the exact configuration: `allow_origins=['*']` with the literal source comment `# tighten before production`, alongside `allow_credentials=True`, `allow_methods=['*']`, `allow_headers=['*']` — a genuinely unfinished, non-environment-configurable production CORS posture, exactly as described.
+
+### B4 — ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN — confirmed, with an additional useful detail
+
+Read `/health`'s implementation directly: it returns `{"ok": True, "service": ..., "env": ..., "secret_configured": ...}` unconditionally, never calling any database-connectivity check. Confirmed `.env.example` defaults `CREWBIQ_DB_ENABLED=false`. I additionally found that `app/db/connection.py` already contains a ready-made, unused `healthcheck()` function (`{"ok": value == 1, "enabled": True, "connected": ...}` via `select 1`) that is simply never wired into the public `/health` route — a helpful detail for whoever closes this blocker: the fix may be smaller than a from-scratch implementation, since the connectivity-check logic already exists.
+
+### Production observations — independently confirmed via live, read-only requests
+
+Rather than trust the document's snapshot, I made my own live GET requests: `https://crewbiq-orchestrator-production.up.railway.app/health` returned `{"ok":true,...,"env":"production","secret_configured":true}` — matching exactly. Its `/openapi.json` currently exposes 35 paths, and I confirmed **zero** of them contain `roster`, `driver-truck-assignment`, or `account-driver-link` — none of the six accepted new routes are live in production. `https://crewbiq.github.io/crewbiq-driver/sw.js` (the actual currently-published GitHub Pages service worker) contains `CACHE_NAME = 'crewbiq-driver-v79'` and no reference to `driver-self.js` or `account-driver-link.js` — confirming the accepted PWA work is not yet published anywhere either.
+
+### Assessment of the document's reasoning and plans
+
+The deployment dependency matrix's classifications (READY/PARTIAL/BLOCKED/NOT REQUIRED) are consistent with everything independently verified across this entire review track — server-side identity/attribution work is genuinely `READY` (backed by real PostgreSQL execution evidence I personally reproduced in three separate prior reviews), while the four concrete gaps are correctly isolated as `BLOCKED` rather than allowed to quietly downgrade the overall verdict to a false "mostly ready." The required deployment order (close blockers → Product Owner authorization → provision staging → migrate → deploy server → verify → deploy PWA → verify cache → smoke-test → evidence → Product Owner production authorization) correctly sequences server-before-client (consistent with the read-only production observation that deploying the PWA first would point canonical reads at a server that doesn't yet expose them) and correctly treats migration execution, CORS hardening, and health-check wiring as pre-conditions rather than afterthoughts. The staging smoke-test plan (15 items) and rollback requirements (additive-migrations-only, exact-fixture-ID cleanup, PWA-first rollback ordering) are thorough and consistent with every fail-closed/no-guessing/no-bulk-cleanup discipline established throughout this track. No deployment, merge, migration execution, or legacy-data mutation occurred in producing this document — confirmed via the commit diff (one file, documentation only).
+
+### Verdict
+
+**ACCEPT** (the readiness assessment itself — accurate, honest, and correctly reasoned)
+
+The overall deployment status remains, correctly, **BLOCKED** — this acceptance is of Codex's assessment quality, not a claim that the system is ready to deploy. All four blockers are genuine, independently confirmed, and none is fabricated, mischaracterized, or missing an obvious quicker fix.
+
+### Blocking findings (confirmed, unchanged from the document)
+
+- `DRIVER_CANONICAL_TEST_GATE_RED` (B1)
+- `DRIVER_CI_GATE_STALE_AND_INCOMPLETE` (B2)
+- `ORCHESTRATOR_PRODUCTION_CORS_UNHARDENED` (B3)
+- `ORCHESTRATOR_HEALTH_CAN_BE_FALSE_GREEN` (B4) — noting the existing unused `healthcheck()` function in `app/db/connection.py` as a likely faster closure path
+
+### Non-blocking findings carried forward
+
+All items unchanged from the Slice 4B.2-S2 review (server-side items carried from earlier `DriverTruckAssignment`/`AccountDriverLink` work; long-standing PWA items — see prior HISTORY entries). Legacy attribution/backfill remains explicitly deferred per the Product Owner's decision, unaffected by this readiness slice.
+
+### Applying the autonomous handoff protocol
+
+All four blockers are narrow, well-specified technical corrections (a stale test assertion, a stale/incomplete CI workflow, an environment-driven CORS allowlist, wiring an existing health-check function into the readiness endpoint) with no ambiguity requiring further product input — the document's own "Required closure" language for each is precise and actionable. This is a bounded technical continuation, not a fresh business decision. `Decision gate: AUTO_CONTINUE_ALLOWED`, `Next required actor: Codex`.
+
+### Recommended next bounded action
+
+Close B1–B4 exactly as scoped: (B1) reconcile `sidr-contract-resolver-integration-v1.test.mjs`'s cache-version assertion with `v94` without weakening its one-version/cache-shell check, and obtain a zero-failure aggregate `test:e2e:tooling` run; (B2) update `.github/workflows/pwa-auth-contract.yml`'s cache assertion to `v94` and add the five omitted canonical modules and their tests to its `paths:` filters and execution steps, preserving every existing check; (B3) introduce a fail-closed, environment-driven CORS origin allowlist in `crewbiq-orchestrator`'s `app/main.py`, rejecting wildcard origins in production, with tests for allowed and denied origins; (B4) wire the existing `healthcheck()` function (or an equivalent readiness check) into `/health` or a dedicated readiness endpoint that fails when DB connectivity or required migrations are absent, while preserving a separate liveness check if needed. No deploy, merge, production-data mutation, migration execution, or legacy backfill is authorized by this step — bring the corrections back for independent review before any further step in the deployment order.
+
+Runtime/product files changed by this review: NONE. This review touched no code in either repository (the two repository clones used for independent verification were created and deleted entirely within this review session; the production/GitHub Pages requests made were read-only GETs, no credentials submitted, no state changed).
