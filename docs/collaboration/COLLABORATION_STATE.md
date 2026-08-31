@@ -42,19 +42,19 @@ Phase:
 Slice 4B.2-S1 - AccountDriverLink Server Read Foundation
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; Driver SELF discovery accepted at f64dc8897a183153a5f569944e3f26aad4288f60 with review 5505209c4fd71fa9f40cc563f0b146b711d3f3f4. The missing AccountDriverLink server source is a bounded accepted technical prerequisite.
+current main; orchestrator AccountDriverLink read foundation published on agent/account-driver-link-read at ac98b111753c1e1119e94d00095bd618addcc439. It adds an empty-by-default effective-dated authoritative relation, server-derived Account self-read, Driver/Workspace membership integrity, active-link non-overlap, and genuine PostgreSQL coverage without inferred creation or backfill.
 
 Latest implementation commit:
-PENDING (crewbiq/crewbiq-orchestrator)
+ac98b111753c1e1119e94d00095bd618addcc439 (crewbiq/crewbiq-orchestrator @ agent/account-driver-link-read)
 
 Latest correction commit:
 NONE for this slice
@@ -69,20 +69,38 @@ Blocking findings:
 NONE
 
 Queued non-blocking findings:
-SELF UI follows accepted server source; legacy backfill remains queued afterward. No admin mutation, inferred creation, migration execution, merge, or deployment.
+SELF UI composition follows independent acceptance; legacy backfill remains queued afterward. No admin mutation, inferred link creation, migration execution, merge, or deployment.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-implement the orchestrator-only effective-dated AccountDriverLink schema and authenticated self-read endpoint with server-derived Account, active Workspace membership, same-workspace/non-overlap constraints, focused tests, and genuine PostgreSQL execution coverage.
+independently review orchestrator branch agent/account-driver-link-read commit ac98b111753c1e1119e94d00095bd618addcc439, including server-derived Account authorization, response compatibility, same-workspace/non-overlap constraints, empty-source behavior, and live PostgreSQL tests.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-08-31 - Codex - Slice 4B.2-S1 AccountDriverLink Server Read Foundation Publication
+
+- Repository: crewbiq/crewbiq-orchestrator
+- Branch: agent/account-driver-link-read
+- Implementation commit: ac98b111753c1e1119e94d00095bd618addcc439
+- Runtime files: `app/routers/account_driver_links.py`, `app/services/capabilities.py`, `app/main.py`.
+- Schema: additive `migrations/011_account_driver_links.sql`; empty by default, no inferred rows or backfill.
+- Endpoint: authenticated `GET /v1/workspaces/{workspace_id}/account-driver-link`, returning the accepted camelCase AccountDriverLink adapter contract.
+- Authority: Account ID is server-derived from Bearer session `crewbiq_id`; active Workspace membership plus server-owned read capability required; client cannot select another Account.
+- Integrity: canonical Workspace-to-legacy-owner Driver proof, Account membership proof, half-open intervals, one active effective link per Account/Workspace, advisory-lock serialization, manual-admin reason constraint.
+- Read behavior: zero and multiple rows are returned without selection; malformed/duplicate/cross-boundary rows fail closed; internal auth IDs are not exposed.
+- Tests: `tests/test_account_driver_links.py`, `tests/test_account_driver_links_postgres.py`, and exact auth capability expectation.
+- PostgreSQL-backed regression command: AccountDriverLink + DriverTruckAssignment integration/commands/reads + workspace/canonical/auth/tenant suites -> `81 passed in 5.25s`.
+- Admin mutation endpoint, inferred creation, PWA/UI changes, legacy backfill, production migration execution, merge, deployment, and production-data mutation: NONE.
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next required actor: Claude
+- Next bounded action: independent cross-repository S1 review.
 
 ### 2026-08-31 - Codex - Slice 4B.2 Driver SELF UI Discovery Publication
 
