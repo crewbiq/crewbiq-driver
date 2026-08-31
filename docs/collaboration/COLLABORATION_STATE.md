@@ -42,10 +42,10 @@ Phase:
 Slice 4B.1a - Driver SELF Analytics Snapshot + Pure Period Selectors
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+NEEDS FIX
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -57,21 +57,23 @@ Latest implementation commit:
 d9dbdf25133b4fa9e29c63145655b3e7cbc56e78
 
 Latest review commit:
-a27bbd13604ea4eaa8a0b4a027508162ececf65e
+8649cf080b341e4da451565892e6a2d7528bd48b
 
 Blocking findings:
-NONE
+- analytics.js resolvePeriod() custom-period branch treats dateTo as exclusive (endExclusive = dateTo directly), silently contradicting the already-accepted ANALYTICS_SCOPE_CONTRACT.md's explicit "dateFrom and dateTo are inclusive local operational dates." Confirmed reproducible via direct execution: a load dated on the requested dateTo is silently dropped with no trace in excludedRecords/dataQuality, and a single-day custom range (dateFrom === dateTo) is incorrectly rejected as invalid_period. ANALYTICS_ENGINE_CONTRACT.md's custom-period bullet matches the code but was never reconciled against the prior accepted contract.
 
 Queued non-blocking findings:
 - resolveDefaultTruck case/whitespace sensitivity
 - deduction-template save branch without truckId guard
 - cosmetic `}function boot()` formatting artifact
+- AnalyticsScope's canonical timeZone source (workspace vs device-local) is unspecified - non-blocking, left as a period-resolver implementation detail
+- tests/analytics.test.mjs's custom-period test encodes the implementation's (incorrect) exclusive-dateTo convention rather than the accepted contract's inclusive one - will need updating alongside the fix
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independent review of SELF analytics purity, attribution, identity resolution, period semantics, and data-quality behavior
+land Slice 4B.1a.1 - correct resolvePeriod()'s custom-period branch to treat dateTo as inclusive (endExclusive = addDays(dateTo, 1)), allow dateFrom === dateTo as a valid single-day range, correct ANALYTICS_ENGINE_CONTRACT.md's custom-period bullet to match ANALYTICS_SCOPE_CONTRACT.md, and update/add tests proving the last day of a custom range is included. No other change, no UI, no new scope type. Then return to Claude for re-review.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -93,6 +95,22 @@ independent review of SELF analytics purity, attribution, identity resolution, p
 - UI/prototype changes: NONE. Network, persistence, domain mutation, deploy, and service-worker changes: NONE.
 - Next required actor: Claude.
 - Next bounded action: independent review of SELF analytics purity, attribution, identity resolution, period semantics, and data-quality behavior.
+
+### 2026-08-30 — Claude — Slice 4B.1a Independent Review
+
+- Agent: Claude
+- Task: Slice 4B.1a Independent Review
+- Verdict: NEEDS FIX
+- Reviewed implementation commit: `d9dbdf25133b4fa9e29c63145655b3e7cbc56e78`
+- Review commit SHA: `8649cf080b341e4da451565892e6a2d7528bd48b` (appended review section to `docs/collaboration/CLAUDE_REVIEW.md`)
+- Method: read all 349 lines of `analytics.js` directly; grepped the whole file for every forbidden pattern (throw, fetch/XMLHttpRequest, localStorage, document., activeTrucks/getDefaultTruck, Math.random, bare new Date) with zero matches; independently executed `resolvePeriod()`/`createAnalyticsSnapshot()` via `node:vm` against constructed inputs rather than trusting the test suite, which is how the blocking finding was found and confirmed reproducible; cross-referenced `ANALYTICS_ENGINE_CONTRACT.md` against the previously-accepted `ANALYTICS_SCOPE_CONTRACT.md` (not just against the code).
+- Blocking findings: ONE — `resolvePeriod()`'s custom-period branch treats `dateTo` as exclusive (`endExclusive = dateTo` directly), contradicting the already-accepted `ANALYTICS_SCOPE_CONTRACT.md`'s explicit inclusive-`dateTo` semantics. Confirmed via direct execution: a load dated exactly on the requested `dateTo` is silently dropped with zero trace in `excludedRecords`/`dataQuality` (worse than the module's otherwise-careful visible exclusions), and a single-day custom range (`dateFrom === dateTo`) is incorrectly rejected as `invalid_period`. `ANALYTICS_ENGINE_CONTRACT.md` matches the code but silently redefines the prior contract's convention without reconciling the two documents.
+- Non-blocking findings: the custom-period test in `tests/analytics.test.mjs` encodes the implementation's (incorrect) convention rather than the accepted contract's, so it will need updating alongside the fix; `AnalyticsScope`'s canonical `timeZone` source remains unspecified (non-blocking, a period-resolver implementation detail).
+- Confirmed excellent everywhere else: purity fully verified by direct grep, not just reading; `SELF` resolution is rigorously fail-closed with real executed tests proving no fallback from name/email/unit/first-driver/first-truck/role/array-position; account-`crewId` vs. Driver-profile-`id` are never conflated (`driverProfileId` explicitly `null` when unproven); attribution/exclusion tracking is precise and visible; gross parsing correctly handles null/empty-string/non-numeric-string/zero with no NaN propagation (stress-tested by hand); mileage uses only canonical fields with a deliberate red-herring-field test; RPM is a hardcoded `null`, never calculated; current truck is pure pass-through with no first-truck fallback, proven via a decoy-array test; series/provenance use only real IDs with correct empty-array handling for missing provenance; input immutability confirmed via both value- and reference-equality tests; every expected failure is a structured result, never a throw; the module is genuinely disconnected from production (byte-identical `index.html`, no SW change); and the stale-documentation findings from the Slice 4B review were fixed accurately and narrowly, without rewriting product strategy.
+- Slice 4B.1a: NOT CLOSED — pending the one bounded correction above.
+- Next required actor: Codex
+- Next bounded action: land Slice 4B.1a.1 (the bounded custom-period `dateTo`-inclusive correction described in the blocking finding), then return to Claude for re-review. Do not wire into UI, do not begin `ACCOUNT_DRIVER_LINK`/`DRIVER`-scope work, until this lands and passes re-review.
+
 ## Slice 4B - Production Integration Contract + Analytics Scope Architecture published
 
 - Agent: Codex
