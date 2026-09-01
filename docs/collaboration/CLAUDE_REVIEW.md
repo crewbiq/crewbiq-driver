@@ -3468,3 +3468,41 @@ Phase A (workflow authoring plus static contract tests, on the existing collabor
 **Next bounded action:** Implement Phase A only — add the workflow file to `agent/pre-base44-audit` with the exact trigger, permissions, concurrency, and job steps specified in the plan, plus static contract tests asserting: the branch filter does not match the collaboration branch, the exact accepted SHA is checked out (never `HEAD`/`github.sha`/a mutable ref), permissions are exactly the minimal set, action references are pinned per the repository's supply-chain convention, and the rollback procedure is documented. Publish for independent review. Do not create the control branch, change any Pages or environment configuration, or attempt a production deployment — Phase B remains a separate decision requiring both an independent Claude ACCEPT of Phase A and explicit Product Owner authorization.
 
 Runtime/product files changed by this review: NONE.
+
+## Phase A (Non-Production Workflow) Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review Phase A commit `f19f05129fee94004505fc321fcef925e5cd4d99` — the workflow file itself, its trigger isolation, checkout/permissions/pins, the no-build guard, rollback documentation, and the seven contract tests' actual pass/fail result.
+**Method:** fetched and read the actual workflow YAML and test file directly from the repository; independently verified all four SHA-pinned action references against GitHub's live tag refs via `gh api`; copied both files locally and **ran the seven contract tests myself** with Node's test runner rather than trusting the claimed 7/7; confirmed via `gh api repos/.../commits/<sha>` that exactly three files changed (the workflow, `package.json`, the test file) — no existing workflow was touched; confirmed the new test is wired into the canonical `test:e2e:tooling` aggregate command, not left orphaned.
+
+### Workflow content — matches the accepted plan exactly
+
+`deploy-accepted-pages-v95.yml`: trigger is `push: branches: [pages-actions-v95-66a7985]` — one exact branch name, no `workflow_dispatch`/`pull_request`/`schedule`, and critically does not match `main` or the collaboration branch `agent/pre-base44-audit`. Permissions are exactly `contents: read`, `pages: write`, `id-token: write` — nothing broader. `concurrency: group: pages, cancel-in-progress: false` and `timeout-minutes: 15` bound the job. Checkout pins `ref: 66a7985765b76e0702d015ca1e300390156f8ad6` explicitly (never `HEAD`/`main`/an interpolated ref), followed by a runtime shell assertion (`git rev-parse HEAD` equals that exact SHA) plus explicit `test -f` checks for all 13 required app-shell files and a `grep` for the `crewbiq-driver-v95` cache string — a genuine belt-and-suspenders guard, not merely a checkout pin. No build, install, or network command appears anywhere in the job.
+
+### Action pins — independently verified against live GitHub tag refs
+
+Confirmed via `gh api repos/actions/<name>/git/ref/tags/<version>` for all four actions used: `checkout@11d5960a...` = `v4`, `configure-pages@983d773...` = `v5`, `upload-pages-artifact@7b1f4a7...` = `v4`, `deploy-pages@d6db901...` = `v4`. Every pin exactly matches its claimed version — not merely asserted in a comment, independently confirmed live.
+
+### Contract tests — independently executed, not merely trusted
+
+Copied the workflow and test file to a local scratch directory and ran `node --test` myself: **7 pass, 0 fail** — matching the claimed result exactly. The seven tests are substantive, not tautological: they assert the trigger cannot match `main`/the collaboration branch, permissions are exactly the minimal 3 keys with no broader scope, the checkout ref/assertion is the exact accepted SHA appearing exactly twice with no `github.sha`/`github.ref`/interpolated ref, all four `uses:` lines match a fixed expected list of 40-hex-char pins, concurrency/environment/timeout are correctly configured, all 13 files plus the cache-version grep are present with no build/install/network command anywhere in the workflow text, and the rollback documentation (comment header) references the exact prior SHA and cache version.
+
+### Scope discipline — confirmed via the actual commit diff
+
+`gh api repos/.../commits/f19f05129fee94004505fc321fcef925e5cd4d99` shows exactly three changed files: the new workflow, `package.json` (adding the new test to the existing `test:e2e:tooling` aggregate command — genuinely wired in, not orphaned), and the new test file. No existing workflow, Pages setting, environment policy, or runtime file was touched.
+
+### Verdict
+
+**ACCEPT.** Phase A is exactly what was authorized: a workflow file that is structurally incapable of running from any activity on the collaboration branch, verified action pins, a genuinely substantive and independently-confirmed-passing contract-test suite, and zero scope creep beyond the three files needed. No Pages configuration, environment policy, `main`, or production state was touched.
+
+### Applying the autonomous handoff protocol
+
+Phase B — creating the control branch, changing Pages `build_type`, and adding the deployment-branch-policy entry — is the actual production-facing execution this whole design was built to gate. That remains a genuine business/risk decision requiring explicit Product Owner authorization, exactly as scoped in the accepted plan; Phase A's ACCEPT does not imply it.
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Next required actor: ChatGPT (Product Owner)**
+**Decision required:** Phase A (the non-production workflow and its contract tests) is independently reviewed, verified by running the tests directly, and accepted. Does the Product Owner authorize proceeding to Phase B — creating the `pages-actions-v95-66a7985` control branch, adding its deployment-branch-policy entry, changing Pages `build_type` to `workflow`, and executing the one bounded deployment attempt under the plan's exact verification and rollback contract — or should this remain paused for further consideration?
+
+No control branch creation, Pages configuration change, environment policy change, deployment, merge, migration, or production-data write is authorized by this review.
+
+Runtime/product files changed by this review: NONE. All verification was read-only or performed in a local scratch copy (running the contract tests), never against the actual repository or any live service.
