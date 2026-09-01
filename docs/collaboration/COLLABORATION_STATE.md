@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-CrewBIQ ADR-0007 - Carrier Membership Topology Review
+CrewBIQ MVP Production Gap Inventory
 
 Status:
-LINE_ENDING_FIX_PUBLISHED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE
 
 Current owner:
-Codex
+Claude
 
 Branch:
-agent/pre-base44-audit; architecture source crewbiq/crewbiq-docs claude/adr-0007-mvp-roles-and-phase4-backlog at 54fb0aec2c79340c09d2530cca6cd3597eeec372
+agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93; ADR-0007 clarification crewbiq/crewbiq-docs 54fb0aec2c79340c09d2530cca6cd3597eeec372
 
 Product truth:
-Root cause confirmed: Python's default text-mode file write on Windows silently converted the file's original pure-LF line endings to CRLF on every line, not just the intended additions. Fixed by re-reading the pre-edit file as raw bytes and writing back with newline='' to prevent any platform translation. Independently verified via GitHub's own compare API (60e1b4c...54fb0aec): the cumulative diff from the original ADR-0007 to the current tip is exactly 22 additions/1 deletion/23 changes - matching the intended narrow three-part carrier-topology semantic edit exactly, with zero unrelated line-ending churn. ADR-0007 remains Proposed; no implementation, runtime, schema, UI, migration, merge, or deployment change.
+ADR-0007 carrier membership topology clarification is accepted with a clean narrow cumulative diff and remains Proposed; it authorizes no implementation. CrewBIQ production is live on main bcfd74a/cache v95. The next bounded roadmap step is evidence inventory only: assess current production against the canonical PostgreSQL-cutover Definition of Done and legacy-independence criteria before authorizing any additional product/runtime slice.
 
 Latest implementation commit:
 00a6ab8963697d0f3e2078867f7e28e2c4779438
@@ -97,25 +97,25 @@ Latest correction commit:
 54fb0aec2c79340c09d2530cca6cd3597eeec372 (crewbiq-docs)
 
 Latest review commit:
-2e9dd0e713822b8a67f484a450f6aef6f6b2d219
+1a667e026bbf20a905bf673b488c9a62216c0720
 
 Latest state commit:
-0777ed52de28fa5dd97a3da7c8aea0e11ba0e9fa
+9594d062d8ef14c83c965a7602b4c7fdadbab358
 
 Blocking findings:
-NONE remaining if Codex confirms the line-ending fix via the same compare-API method.
+NONE
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. SIDR vision and ADR-0008-0016 remain architecture context only and authorize no current implementation.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify the ADR-0007 fix commit (crewbiq-docs 54fb0aec2c79340c09d2530cca6cd3597eeec372): confirm via gh api compare (original 60e1b4c versus current tip) that the cumulative diff is narrow and contains only the accepted carrier-topology semantic additions, with no residual line-ending churn. If ACCEPT, set Next required actor: Claude with the next bounded CrewBIQ MVP roadmap item, explicitly excluding ADR-0007 status promotion, ADR-0008-0016, or SIDR implementation.
+Create `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` using accepted production evidence and current production source revisions. Evaluate every `CREWBIQ_ARCHITECTURE_V1.md` section 14 Definition-of-Done criterion plus section 10 legacy-independence criteria as PROVEN, PARTIAL, BLOCKED, or NOT_REQUIRED, cite exact evidence, and recommend exactly one safest bounded follow-up. Documentation/coordination files only. Do not implement fixes, disable/remove legacy paths, promote ADR-0007, begin ADR-0008-0016 or SIDR work, merge, deploy, migrate, mutate data, or access production destructively. Publish and hand to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -3538,3 +3538,13 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, to independently re-verify the fix.
 - No implementation, schema, runtime, UI, migration, merge, or deployment change occurred.
 - Runtime/product files changed: NONE.
+### 2026-09-01 - Codex - ADR-0007 line-ending correction accepted
+
+- Re-reviewed `crewbiq-docs` correction `54fb0aec2c79340c09d2530cca6cd3597eeec372`.
+- GitHub Compare API `60e1b4c...54fb0aec`: one file, 22 additions, 1 deletion, 23 changes; patch contains only the accepted carrier-topology additions.
+- Ordinary diff matched 22/1 and `git diff --check` was clean.
+- Verdict: ACCEPT; `DOCUMENT_WIDE_LINE_ENDING_CHURN` CLOSED.
+- Review commit: `1a667e026bbf20a905bf673b488c9a62216c0720`.
+- Next roadmap item: Claude documentation-only CrewBIQ MVP production gap inventory against canonical PostgreSQL-cutover and legacy-independence Definition of Done.
+- Runtime, schema, UI, migration, merge, deployment, and data changes: NONE.
+
