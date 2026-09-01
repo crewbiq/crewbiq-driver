@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-PRODUCTION_VALIDATION_BLOCKED
+IN_PROGRESS - EXACT DOWN QUIESCENCE AUTHORIZED
 
 Current owner:
-Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Fresh production snapshot and repeated preflight passed; rollout stopped because orchestrator write quiescence was not achieved
+Fresh snapshot remains required; Product Owner authorized exact production orchestrator down quiescence with redeploy of the prior revision as mandatory failure fallback
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,22 +100,22 @@ Latest review commit:
 466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-743771ec277a916355f44cffb579ccdf4dbf443e
+f0f9389cd31f3adb5722e8fc14ecc9bbc3072dbb
 
 Blocking findings:
-WRITE_QUIESCENCE_NOT_ACHIEVED - Railway scale sfo=0 completed but service remained configured=1/running=1
+NONE at authorization; stop on any snapshot, preflight, down/quiescence, migration, verification, deployment, or smoke failure
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED within exact authorized production rollout and fallback
 
 Next required actor:
-Product Owner
+Codex
 
 Next bounded action:
-Decision required: authorize exact Railway deployment-stop/down quiescence with restoration/redeploy fallback, or provide another exact supported maintenance mechanism; after authorization Codex must repeat full preflight before migration
+repeat full preflight, execute exact Railway down and prove running=0, then run accepted migration/deployment/smoke chain; redeploy prior revision and stop on first failure
 <!-- CURRENT_END -->
 
 
@@ -3046,3 +3046,9 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Migration runner, production migrations/schema/data mutation, orchestrator/PWA code deployment, ad-hoc down/delete/locks, merge, backfill, cleanup, and rollback: NONE.
 - Evidence commit: `b4e4a2f0fbd5f2bbc7bb920cf501f1b5d414afec`.
 - Decision required: authorize an exact deployment-stop/down quiescence mechanism with restoration/redeploy fallback, or provide another supported maintenance mechanism. Full preflight must run again before mutation.
+### 2026-09-01 - Product Owner - Exact production down quiescence authorized
+
+- Authorized exact Railway `down` for the active production orchestrator deployment to achieve write quiescence.
+- Mandatory fallback: redeploy the prior production revision on any quiescence, migration, verification, or rollout failure.
+- Codex must repeat the complete preflight before down and stop on the first failure.
+- Existing snapshot, migration order, deployment order, smoke boundary, and prohibited-scope rules remain binding.
