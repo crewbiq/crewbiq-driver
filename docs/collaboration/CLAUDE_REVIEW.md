@@ -3393,3 +3393,41 @@ Since actually executing this candidate is a further live production-facing acti
 No production Pages source change, branch creation, deployment, merge, migration, or production-data write is authorized by this review itself.
 
 Runtime/product files changed by this review: NONE.
+
+## Slash-Free Attempt Failure Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review the slash-free Pages publication attempt (full 10-minute all-13-asset 404, successful rollback), classify the remaining `LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404` blocker, and recommend at most one coordination/design-only next step — no production attempt.
+**Method:** read the new evidence sections in `PRODUCTION_MIGRATION_EXECUTION_EVIDENCE.md` in full; independently ran three additional read-only checks not requested by Codex, to test whether a structural (not naming) explanation exists: `gh api repos/.../environments` (deployment-branch protection), `gh api repos/.../environments/github-pages/deployment-branch-policies` (the exact allow-list), and `gh api repos/.../pages/builds` (full build history).
+
+### The slash hypothesis is now cleanly falsified
+
+Both the original slash-containing branch (`agent/production-release-20260901-v95`) and the newly tested slash-free branch (`production-v95-66a7985`) — identical accepted tree, identical SHA, identical path `/` — served all 13 required app-shell assets as 404 for the complete 10-minute polling window, while `main` consistently serves correctly both before and immediately after each attempt. Branch-name shape is no longer a plausible explanation; this is a clean, well-controlled negative result, not an inconclusive one.
+
+### Additional read-only investigation (not in the prior evidence document)
+
+- `gh api repos/crewbiq/crewbiq-driver/environments`: confirms a `github-pages` environment exists with `deployment_branch_policy: {custom_branch_policies: true}`.
+- `gh api repos/.../environments/github-pages/deployment-branch-policies`: the allow-list contains exactly three branches — `main`, `agent/production-release-20260901-v95`, and `production-v95-66a7985`. **Both failed branches are already explicitly allow-listed** — this environment's branch policy is not the blocker. (This environment is also very likely a vestige of GitHub's Actions/`environments`-based Pages deployment concept, which this repository's `build_type: "legacy"` — confirmed via `gh api repos/.../pages` in the prior review — does not actually route through at build/serve time.)
+- `gh api repos/crewbiq/crewbiq-driver/pages/builds`: the full build history shows every recorded build is either commit `86b8b4d...` (the long-standing `main` history) or one of the two commits from today's two failed attempts. There is no record, anywhere in this site's history, of a successful *serving* from any branch other than `main` — only `main` has ever actually worked, even though the API reports every attempted branch's build as `built`.
+
+This corroborates, from an independent angle, that the issue is not the branch name, not a short CDN-propagation delay, and not the deployment-branch protection policy — it is something specific to this site's legacy Pages configuration that appears bound to `main` at a level the branch-source API setting does not control. I cannot identify the exact mechanism through further read-only inspection; this looks like a genuine GitHub-side platform quirk for this specific site, not a repository-content or configuration defect within reach of another branch-swap experiment.
+
+### Classification
+
+`LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404`: a reproducible (now three-for-three) limitation of this site's legacy branch-based Pages publication when the source is any branch other than `main`, with no root cause identifiable through content, naming, propagation-timing, or deployment-branch-policy inspection. Further identical-mechanism experiments (a fourth branch name, a longer wait, etc.) are very unlikely to yield new information — the variable space for the legacy branch-source mechanism has now been reasonably exhausted.
+
+### Recommendation — one coordination/design-only next step
+
+The most promising remaining avenue is fundamentally different from what has been tried: GitHub Pages' **Actions-based deployment** (`build_type: "workflow"`, using `actions/upload-pages-artifact` + `actions/deploy-pages`) uses an entirely different build/serve pipeline than the legacy branch-source mechanism that has now failed identically twice. This was noted in the original correction plan as a rejected *first* option only because it "adds more variables" relative to a minimal branch-swap test — but with both minimal variants now cleanly eliminated, it becomes the most reasonable next candidate to design, not execute.
+
+This is a meaningfully bigger change than the two prior attempts (a new workflow file, and changing the Pages `build_type` setting itself) and deserves its own careful design document — mirroring exactly how the slash-free branch plan was drafted, independently reviewed, and only then authorized — before any live attempt.
+
+### Applying the autonomous handoff protocol
+
+Drafting a new design document is a bounded technical/coordination task with no business decision embedded in it yet.
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:** Draft a new `PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md`, coordination/design-only, proposing an Actions-based GitHub Pages deployment as the next candidate: a workflow file (living on the immutable evidence branch, triggered via `workflow_dispatch` against the exact accepted SHA, never on `main`), the exact `actions/upload-pages-artifact`/`actions/deploy-pages` steps, the exact same all-13-asset byte-for-byte verification and immediate-rollback-to-`main`-if-any-failure discipline already proven twice, and an explicit note that changing `build_type` from `legacy` to `workflow` is itself a Pages configuration change requiring its own review and Product Owner authorization before any execution. No production attempt, Pages source change, `build_type` change, workflow execution, merge, migration, or production-data write is authorized by this review.
+
+Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `environments`, `environments/github-pages/deployment-branch-policies`, and `pages/builds`).
