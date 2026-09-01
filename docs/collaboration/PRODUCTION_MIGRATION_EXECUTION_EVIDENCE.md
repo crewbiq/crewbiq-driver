@@ -295,3 +295,109 @@ invocation environment so `DATABASE_URL` equals Railway's injected
 and one runner invocation. No migration file or runtime code change is needed.
 
 Without that authorization, production migration and deployment remain paused.
+
+## Corrected public-URL runner: migrations applied, rollout paused
+
+Result: `PRODUCTION_VALIDATION_BLOCKED - MIGRATIONS APPLIED / SERVICE RECOVERED`
+
+The Product Owner authorized one corrected runner invocation with the local
+`DATABASE_URL` explicitly assigned from Railway's injected
+`DATABASE_PUBLIC_URL`. No migration or runtime source file changed.
+
+### Fresh preflight and quiescence
+
+At `2026-09-01T08:45:12Z`, the complete production preflight was repeated:
+
+- project `happy-sparkle` (`89eb12bf-57ee-4228-a841-4008ef7a0e59`);
+- environment `production` (`0aa6a57a-2655-46e4-bd9a-0cf4cc9ce46c`);
+- database service `Postgres-IFbZ` (`19637ac7-6ba2-4524-b802-466a2cb241f7`);
+- orchestrator service `crewbiq-orchestrator`
+  (`dd23479b-f6b1-48ba-9d7c-27f4e0c01ba2`);
+- snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d` remained AVAILABLE for
+  `postgres-volume-7PVl`;
+- database was PostgreSQL 18.6, primary/non-standby;
+- live orchestrator health was green;
+- target objects were absent and the accepted eight migrations remained
+  pending;
+- legacy counts and all accepted identity/mapping/role/Truck/owner risk
+  aggregates were unchanged;
+- all eight accepted SHA-256 hashes matched;
+- active pre-down orchestrator deployment was
+  `5b4f9d26-4828-471b-8ddb-71a094a28999`, SUCCESS, commit
+  `8bc3214070670d79b5d1f8c419b2a992991b9024`.
+
+Railway `down` was requested at `2026-09-01T08:46:30.3037652Z`. The first
+poll observed `running=0`, `total=0`. At `2026-09-01T08:46:39.5305171Z`, a
+separate read-only PostgreSQL session reported `other_clients=0` and
+`other_non_idle=0`.
+
+### Successful migration transaction
+
+The runner started at `2026-09-01T08:46:41.9031852Z` with
+`DATABASE_URL=DATABASE_PUBLIC_URL` in the one local Railway runner process. It
+completed at `2026-09-01T08:46:48.9222166Z` with exit code 0.
+
+Exactly these files were applied in order in one runner transaction:
+
+1. `003_effective_dated_deductions.sql`
+2. `004_service_invoice_lineage.sql`
+3. `006_truck_vin.sql`
+4. `007_identity_workspace.sql`
+5. `008_canonical_company_truck.sql`
+6. `009_canonical_claim_approval.sql`
+7. `010_driver_truck_assignments.sql`
+8. `011_account_driver_links.sql`
+
+The six previously applied migration names were skipped. No additional
+migration was run.
+
+### Post-migration evidence-query failure
+
+The first custom post-migration verifier failed read-only with PostgreSQL
+`42703`: it assumed `workspaces.workspace_id`, while the actual migrated
+`workspaces` table uses a different key column. The failure occurred inside a
+read-only transaction; it did not alter schema or data.
+
+Under the stop-on-first-material-failure policy:
+
+- the verifier was not corrected or retried;
+- accepted orchestrator commit `27e3463220a2022ea1adf074d7131ec69eb32fe5`
+  was NOT deployed to production;
+- the PWA was NOT deployed;
+- production smoke was NOT started;
+- no rollback or broad repair was attempted.
+
+### Mandatory service recovery
+
+The accepted prior production revision was immediately redeployed through the
+previously verified deployment-ID fallback.
+
+- recovery deployment: `aa76e9f4-6ccc-40cc-96ce-6a27d4d08252`;
+- source deployment: `d0b20599-112d-4cfe-8b77-fc84b8a76244`;
+- recovered commit: `8bc3214070670d79b5d1f8c419b2a992991b9024`;
+- final status: SUCCESS;
+- running instances: 1;
+- recovered at: `2026-09-01T08:48:03.1507043Z`;
+- live `/health`: green, service `crewbiq-orchestrator`, env `production`.
+
+### Read-only post-failure state capture
+
+A previously accepted generic schema/readiness collector was run read-only at
+`2026-09-01T08:48:25.7114848Z`. It established:
+
+- all eight authorized migration names are `applied`, exactly one execution
+  each;
+- all 16 expected target tables exist, including `workspaces`,
+  `driver_truck_assignments`, and `account_driver_links`;
+- `migration_runs` increased from 13 to 21 exactly;
+- legacy counts remain: 9 deduction templates, 16 weekly deductions, 11
+  service logs, 7 trucks, 1 auth user, 1 owner mapping, and 2 roles;
+- identity, mapping, role, Truck, and owner-coverage risk aggregates remain
+  unchanged and clean;
+- database remains primary/non-standby;
+- snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d` remains AVAILABLE; Railway now
+  reports incremental `usedMB=1`.
+
+The migrations are applied, but production rollout validation is not complete.
+A new decision is required before correcting/running the bounded read-only
+post-migration verifier and resuming the already accepted server/PWA rollout.

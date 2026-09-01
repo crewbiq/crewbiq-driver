@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-IN_PROGRESS - AUTHORIZED CORRECTED PRODUCTION MIGRATION RUNNER
+PRODUCTION_VALIDATION_BLOCKED - MIGRATIONS APPLIED / SERVICE RECOVERED
 
 Current owner:
-Codex
+Product Owner
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Fresh recovery snapshot is available; prior production service revision is healthy; Product Owner authorized one corrected runner invocation using Railway DATABASE_PUBLIC_URL after a new full preflight and exact down quiescence
+Authorized migrations 003-011 applied successfully exactly once; accepted old orchestrator revision is recovered and healthy; server/PWA rollout stopped because the first read-only post-migration verifier used the wrong workspace key column
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,22 +100,22 @@ Latest review commit:
 466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-aa961aef8117eded7b61d09adceb981f781a9519
+ed19af54ad4e1e72921253b2206f7d4f048899f1
 
 Blocking findings:
-NONE - corrected invocation authorized; execution pending
+POST_MIGRATION_EVIDENCE_QUERY_SCHEMA_MISMATCH
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+Product Owner
 
 Next bounded action:
-Repeat complete production preflight, establish exact down quiescence, invoke the accepted migration runner once with DATABASE_URL explicitly copied from DATABASE_PUBLIC_URL, stop on first failure, and publish evidence
+Decision required: authorize one corrected read-only post-migration verifier using the actual migrated workspace key; if green, resume the already authorized accepted orchestrator/PWA rollout and bounded production smoke; otherwise keep rollout paused
 <!-- CURRENT_END -->
 
 
@@ -3062,3 +3062,14 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Result: `PRODUCTION_VALIDATION_BLOCKED`; blocker `MIGRATION_RUNNER_PRIVATE_DNS_RESOLUTION_FAILED`.
 - Evidence commit: `2a4a3b3317539a2222f0ab7f0971dccbf0aa8ef4`.
 - Decision required: authorize only the corrected local invocation environment (`DATABASE_URL` explicitly assigned from Railway `DATABASE_PUBLIC_URL`) after another full preflight and exact down, or remain paused.
+### 2026-09-01 - Corrected production runner applied migrations; rollout paused
+
+- Agent: Codex
+- Status: PRODUCTION_VALIDATION_BLOCKED - MIGRATIONS APPLIED / SERVICE RECOVERED
+- Quiescence: orchestrator running/total 0/0; DB other clients/non-idle 0/0
+- Runner: exit 0; authorized migrations 003, 004, 006, 007, 008, 009, 010, 011 applied exactly once
+- Verification blocker: read-only verifier assumed nonexistent `workspaces.workspace_id`
+- Recovery deployment: `aa76e9f4-6ccc-40cc-96ce-6a27d4d08252`, SUCCESS, health green
+- Runtime deployment: accepted new orchestrator/PWA revisions NOT deployed
+- Next required actor: Product Owner
+- Decision required: authorize corrected bounded read-only verifier and conditional resume of accepted rollout
