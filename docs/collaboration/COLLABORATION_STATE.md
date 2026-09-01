@@ -79,31 +79,31 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-NEEDS_FIX / CODEX REVIEWED
+CORRECTED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The central ordering finding is accepted conditionally: doSync() runs legacy pushToCloud() first and invokes pushToOrchestrator() only after a successful non-skipped legacy push; the first destination is Apps Script under the default driver.syncUrl but may differ when explicitly overridden. The published map is not yet complete or fully accurate because repository-wide callers outside its four-file scope are omitted, several source/caller edges and destinations are misstated, the telemetry observability model is invalid, and sink/reachability claims are overstated.
+LEGACY_SYNC_CALL_PATH_MAP.md corrected against all five Codex findings using repository-wide exact-tree evidence: scope widened from 4 to 9 files (added startup-session.js, offline-sync-queue.js, dispute-tombstone-hotfix.js, owner-snapshot-hotfix.js, pti.js, plus UI/scheduler callers in index.html and sync.js); index.html:1704 and the restoreSession()/pullFromCloud() edges fixed; destination claims qualified (driver.syncUrl is Apps Script by default, not unconditionally guaranteed); telemetry model corrected (Orchestrator logs cannot observe direct browser-to-script.google.com traffic under any circumstance); sink count corrected to 8 direct call sites plus 10 additional indirect/scheduler/UI callers, with reachability narrowed to static evidence only. The accepted conditional doSync() ordering finding and all prior gap-inventory classifications are preserved unchanged.
 
 Latest implementation commit:
-2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0
+8a66fb0568a3204cfb1316b845bae3dc7852f76c
 
 Latest correction commit:
-59d5b289a8baf40360a9de9e434fe5a826b7121c
+8a66fb0568a3204cfb1316b845bae3dc7852f76c
 
 Latest review commit:
 5be2e87cbcfd5cf7ddb631bb7698456424ec868f
 
 Latest state commit:
-b01d14f43ce6f5aef752f37b4474e6e9a0845f3a
+(pending this publish)
 
 Blocking findings:
-CALLER_AND_FILE_SCOPE_INCOMPLETE; INCORRECT_SOURCE_AND_CALLER_EDGES; DESTINATION_AND_ORDER_OVERSTATED; TELEMETRY_OBSERVABILITY_MODEL_INVALID; SINK_COUNT_AND_REACHABILITY_OVERCLAIMED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` using repository-wide exact-tree evidence: include all executable callers/files identified by Codex; fix the index.html/restoreSession/pullFromCloud/expense scheduling edges; qualify driver.syncUrl destinations and doSync order; correct telemetry visibility; correct sink counts and static reachability claims. Preserve all production gap classifications. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Independently re-verify commit 8a66fb0568a3204cfb1316b845bae3dc7852f76c against all five prior findings (CALLER_AND_FILE_SCOPE_INCOMPLETE, INCORRECT_SOURCE_AND_CALLER_EDGES, DESTINATION_AND_ORDER_OVERSTATED, TELEMETRY_OBSERVABILITY_MODEL_INVALID, SINK_COUNT_AND_REACHABILITY_OVERCLAIMED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3623,3 +3623,13 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next actor: Claude for evidence-document correction only.
 - Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - Legacy sync call-path map correction (implementer role)
+
+- Independently re-verified all five Codex NEEDS_FIX findings before correcting, rather than trusting the review at face value: fetched startup-session.js, offline-sync-queue.js, dispute-tombstone-hotfix.js, owner-snapshot-hotfix.js, and pti.js directly at bcfd74a and re-read the disputed index.html/sync.js/restore-hotfix.js lines in full context.
+- Confirmed each finding independently: index.html:1704 only sets a form-input display value, not driver.syncUrl; index.html:2514/2553 call restoreSession() (whose own sink is authPost auth_restore), not pullFromCloud() directly - the actual delayed pullFromCloud() call happens via showApp()'s 1-second setTimeout in startup-session.js; syncExpensesNow() is deterministically triggered via a real save-hook chain, not a generic unevaluated event; driver.syncUrl destinations are Apps Script by default but not code-guaranteed; Orchestrator logs structurally cannot observe direct browser-to-Google traffic under any circumstance; the sink count was undercounted (8, not 5) and reachability was overstated as live-execution evidence.
+- Corrected docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md: widened scope to 9 files, fixed all misattributed source/caller edges, qualified destination claims, corrected the telemetry-observability model, corrected sink counts, and added a new section (4B) covering 10 additional indirect/scheduler/UI callers (including an unconditional hourly+midnight auto-sync scheduler and a browser reconnect listener) that were entirely missing from the first draft. Preserved the accepted conditional doSync() ordering finding and all prior gap-inventory classifications verbatim.
+- Published commit 8a66fb0568a3204cfb1316b845bae3dc7852f76c. Verified via GitHub Compare API against parent 8b5885cb3028de6284cd79dd444156f664cbdd8b that exactly one file changed (141 additions, 47 deletions, 188 changes) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
+- Runtime/product files changed: NONE (documentation only).
