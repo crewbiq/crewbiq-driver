@@ -562,3 +562,81 @@ No merge, force-push, additional migration, production business-data write,
 destructive action or alternate publication attempt occurred. A new bounded
 publication mechanism decision is required; the same slash-containing legacy
 Pages source branch must not be retried unchanged.
+
+## Slash-free Pages publication attempt
+
+Result: `PRODUCTION_VALIDATION_BLOCKED - SLASH-FREE ATTEMPT FAILED / ROLLBACK PASS`
+
+Claude independently accepted the correction design at review commit
+`884ae40370024dcd59eed91422dec4beb2957b9e`. Standing Product Owner delegation
+authorized Codex to execute its one bounded production publication attempt.
+
+### Preflight
+
+- Pages source: `main`, path `/`.
+- Live PWA: commit `86b8b4dd7e9496833a021319167589b49f0ac418`,
+  index/sw HTTP 200, cache v79.
+- Orchestrator `/health` and `/ready`: green; missing migrations empty.
+- Slash-free candidate ref `production-v95-66a7985`: absent.
+- Accepted SHA `66a7985765b76e0702d015ca1e300390156f8ad6`:
+  all 13 required app-shell files present.
+
+The immutable branch was created by a normal non-force push and verified at the
+exact accepted SHA. No runtime content or commit was created or changed.
+
+### Attempt result
+
+GitHub Pages source was changed to `production-v95-66a7985`, path `/`, and one
+explicit legacy build was requested. GitHub reported the exact accepted commit
+as `built` at `2026-09-01T12:08:07Z`.
+
+The complete required set was polled with cache-busting requests and exact Git
+blob comparisons for the full ten-minute window:
+
+- `index.html`
+- `sw.js`
+- `core.js`
+- `core-runtime.js`
+- `startup-session.js`
+- `workspace-attribution.js`
+- `workspace-driver-roster.js`
+- `driver-truck-assignment.js`
+- `account-driver-link.js`
+- `driver-self.js`
+- `loads.js`
+- `pti.js`
+- `manifest.json`
+
+All 13 assets returned HTTP 404 on every poll from
+`2026-09-01T12:08:10Z` through `2026-09-01T12:17:57Z`. No asset reached the
+hash-comparison stage. The attempt ended with
+`full asset exact-hash timeout`.
+
+This falsifies the branch-name slash as a sufficient cause: both the original
+slash-containing branch and the independently reviewed slash-free branch use
+the same accepted tree, receive GitHub `built`, and serve project-site 404 for
+the complete shell. The remaining evidence points to a broader legacy Pages
+non-main-source publication behavior/configuration issue, but does not yet prove
+one unique root cause.
+
+### Automatic rollback
+
+The exact accepted fallback executed immediately:
+
+- Pages source restored to `main`, path `/`;
+- prior commit `86b8b4dd7e9496833a021319167589b49f0ac418`
+  explicitly rebuilt;
+- build status: `built`;
+- live index/sw: HTTP 200;
+- live cache: v79;
+- rollback completed: `2026-09-01T12:18:58.1883688Z`;
+- orchestrator health/readiness: green; missing migrations empty.
+
+Both evidence refs remain immutable at the accepted SHA:
+
+- `agent/production-release-20260901-v95`
+- `production-v95-66a7985`
+
+No merge, force-push, migration, production business-record write, destructive
+action, runtime edit, alternate hosting change, or second mechanism was
+attempted.

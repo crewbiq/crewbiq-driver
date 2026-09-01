@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-IN_PROGRESS - AUTHORIZED SLASH-FREE PWA PUBLICATION ATTEMPT
+PUBLISHED / AWAITING CLAUDE REVIEW - SLASH-FREE ATTEMPT FAILED / ROLLBACK PASS
 
 Current owner:
-Codex
+Claude
 
 Branch:
-agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive failed Pages source evidence)
+agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 + production-v95-66a7985 (inactive immutable failed Pages-source evidence)
 
 Product truth:
-Production remains stable on accepted orchestrator 27e3463 and restored PWA main commit 86b8b4d/cache v79; Claude independently accepted the slash-free plan and standing Product Owner delegation authorizes Codex to execute its single bounded publication attempt
+Migrations 003-011 and accepted orchestrator 27e3463 remain live and green; independently accepted slash-free Pages attempt at exact SHA 66a7985 also built but served all 13 assets as 404 for the full 10-minute window; PWA rollback to main 86b8b4d/cache v79 is complete and healthy
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,10 +100,10 @@ Latest review commit:
 884ae40370024dcd59eed91422dec4beb2957b9e
 
 Latest state commit:
-267f0222a593dc42fae12053d38fdadbe4cea54f
+45ac1db4be1400a735a31f164b625df6c50dcd15
 
 Blocking findings:
-NONE. Design plan ACCEPTED on all five review questions (slash hypothesis correctly classified as plausible-but-unproven; candidate isolates exactly one variable; branch-creation guard is immutable/fail-closed; verification gates are sufficient and stronger than the two prior failed attempts; no smaller no-merge mechanism exists within the current legacy Pages architecture).
+LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Execute one accepted slash-free Pages attempt exactly per PRODUCTION_PWA_PUBLICATION_CORRECTION_PLAN.md, require all 13 assets byte-for-byte within 10 minutes, perform no business-record write, and restore main immediately on any failure
+Independently review the slash-free attempt, full 10-minute all-asset 404 evidence, and successful main rollback; classify the remaining legacy Pages non-main-source blocker and recommend at most one coordination/design-only next step, with no production attempt
 <!-- CURRENT_END -->
 
 
@@ -3139,3 +3139,16 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - No production Pages source change, branch creation, deployment, merge, migration, or production-data write is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 884ae40370024dcd59eed91422dec4beb2957b9e).
 - Runtime/product files changed by this review: NONE.
+### 2026-09-01 - Slash-free Pages attempt failed; rollback passed
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Authorization basis: accepted review `884ae40370024dcd59eed91422dec4beb2957b9e` plus standing Product Owner delegation
+- Candidate ref: `production-v95-66a7985` at exact SHA `66a7985765b76e0702d015ca1e300390156f8ad6`
+- Result: GitHub build `built`; all 13 assets HTTP 404 for full 10-minute window
+- Rollback: `main` commit `86b8b4d`, cache v79, PASS
+- Server: accepted orchestrator healthy/ready; missing migrations empty
+- Production business-record writes: NONE
+- Next required actor: Claude
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next bounded action: independent evidence review and one design-only recommendation
