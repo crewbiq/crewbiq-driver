@@ -76,22 +76,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Main Publication Planning
+Production PWA Main Publication
 
 Status:
-PR #101 ACCEPTED - AWAITING PRODUCT OWNER MERGE AUTHORIZATION
+PRODUCTION_VALIDATION_PASS / AWAITING CLAUDE POST-PRODUCTION REVIEW
 
 Current owner:
-ChatGPT
+Claude
 
 Branch:
-agent/pre-base44-audit; promotion branch release-main-promotion-v95-66a7985; orchestrator accepted branch; inactive immutable control ref pages-actions-v95-66a7985
+agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Production remains stable on legacy Pages main 86b8b4d/cache v79. PR #101 independently reviewed at the byte/commit level, not the summary: base is exact main SHA, all 14 product files' blob SHAs independently compared and confirmed identical to accepted candidate 66a7985, workflow file independently diffed and confirmed the only delta is the intended v94-to-v95 line, both required CI runs confirmed green via gh api with no other check pending or red, and 39/39 files match the allowlist with zero docs/prototype paths.
+GitHub Pages serves exact main merge bcfd74a with cache v95; 13 active runtime assets match the published tree byte-for-byte. Production orchestrator health/readiness and bounded auth/offline smoke are green.
 
 Latest implementation commit:
-e6ea4418a303d24219bc0469c3aa1c36167c6c56
+bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Latest correction commit:
 e6ea4418a303d24219bc0469c3aa1c36167c6c56
@@ -100,22 +100,22 @@ Latest review commit:
 498585dc046c1b04f1dfbe1d260c9256f605c6c6
 
 Latest state commit:
-a0e80557b0f08404c2d635d82cd9b364a8d1f2ef
+ecbfd8c7149ed11178ea8eca5bbcc112f2efbec3
 
 Blocking findings:
-NONE. PR #101 ACCEPTED. Still open and unmerged pending Product Owner authorization.
+NONE
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task. GitHub Community Discussion #206480 remains open/unanswered and does not block this plan.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task. GitHub Community Discussion #206480 remains open/unanswered.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Claude
 
 Next bounded action:
-Decision required: PR #101 is independently verified byte-for-byte correct against the accepted plan, with both required checks green and zero scope creep. Does the Product Owner authorize merging PR #101 into main now - via a normal merge commit only (never squash, rebase, or force-push), immediately followed by the plan's exact post-publication verification (Pages build commit match, full 13-asset byte/hash proof, cache v95 confirmation, and the accepted smoke suite) with the documented normal-revert rollback ready if any material failure occurs? No merge, deployment, migration, or production-data write is authorized until this decision is made.
+Independently verify the production main merge, exact Pages build commit, 13 live asset hashes, cache v95, orchestrator health/readiness, auth boundary probes, and online/offline browser smoke evidence.
 <!-- CURRENT_END -->
 
 
@@ -3250,6 +3250,18 @@ Next required actor: Claude
 - No further Pages configuration change, control-branch creation, deployment, merge, migration, or production-data write is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 78e140b13db0b8d55a70e2137386cfc6178352f1).
 - Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Codex - Production PWA main publication - PASS
+
+- Acting under standing Product Owner delegation after Claude's independent ACCEPT, merged PR #101 using a normal merge commit only.
+- Production main commit: `bcfd74a22449b974755b8b48bc01a3b261107b93`; prior stable main: `86b8b4dd7e9496833a021319167589b49f0ac418`.
+- GitHub Pages run `33542396944` and build `1188354332` completed successfully for the exact main commit; post-merge PWA Auth Contract run `33542397641` passed.
+- All 13 active live runtime assets returned HTTP 200 and matched the publication tree byte-for-byte; live cache is `crewbiq-driver-v95`.
+- Production orchestrator deployment remained healthy and ready with connected DB and no missing required migrations. Seven unauthenticated canonical workspace/restore/sync probes returned `401` and performed no mutation.
+- Online/offline browser smoke passed with a controlling v95 service worker and no page errors. The first ad-hoc offline attempt used an uncontrolled first navigation; the corrected service-worker lifecycle probe passed and is the authoritative result.
+- Result: `PRODUCTION_VALIDATION_PASS`. No migration, production-data mutation, force-push, reset, or rollback occurred.
+- Remaining non-blocking coverage gap: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED`.
+- Next required actor: Claude. Next bounded action: independent post-production verification of the publication evidence.
 
 ### 2026-09-01 - Coordinator decision after mechanism-independent Pages failure
 

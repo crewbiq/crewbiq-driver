@@ -422,3 +422,24 @@ Status: PREPARED / NOT MERGED / NOT DEPLOYED
 
 The PR remains explicitly gated for independent Claude review and separate
 coordinator authorization before any merge.
+## Production publication execution evidence - 2026-09-01
+
+Result: `PRODUCTION_VALIDATION_PASS`
+
+- PR `#101` was merged by a normal merge commit. No squash, rebase, force-push, or branch-history rewrite was used.
+- Production `main` publication commit: `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+- GitHub Pages run: `33542396944`; build ID: `1188354332`; authoritative final status: `built`; published commit: `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+- Post-merge PWA Auth Contract run: `33542397641`; result: `success` at the exact publication commit.
+- Pages remained configured as legacy publication from `main:/` with HTTPS enforced.
+- All 13 active runtime assets returned HTTP `200` and their downloaded Git blob IDs matched the publication commit exactly: `account-driver-link.js`, `core-runtime.js`, `driver-self.js`, `driver-truck-assignment.js`, `index.html`, `links.js`, `loads.js`, `navigation-model.js`, `pti.js`, `startup-session.js`, `sw.js`, `workspace-attribution.js`, and `workspace-driver-roster.js`.
+- The live service worker declares cache `crewbiq-driver-v95`.
+- Production orchestrator deployment `87f7d41a-b677-4f05-a09e-4fc2b9fa7702` remained `SUCCESS` and `RUNNING` in Railway production.
+- Production `/health` returned `ok=true`, `env=production`, and `secret_configured=true`.
+- Production `/ready` returned `ok=true`, database configured/connected, and `missing_migrations=[]` for required migrations 010 and 011.
+- Unauthenticated Driver roster, AccountDriverLink, DriverTruckAssignment read/write, restore, and sync probes all returned `401`; no anonymous workspace data or mutation was possible.
+- Browser smoke returned HTTP `200`, loaded `CrewBIQ Driver` without page errors, acquired a controlling service worker, observed only cache `crewbiq-driver-v95`, and reloaded successfully offline with HTTP `200` and intact shell content.
+- An initial ad-hoc offline probe attempted an offline reload before the first navigation was service-worker-controlled and therefore returned Chromium `ERR_FAILED`. The corrected lifecycle probe first waited for activation and an online controlled reload; it then passed. This was a smoke-harness sequencing issue, not an application failure.
+- No production database record was created, changed, or deleted. No migration ran. Rollback was not required.
+- Rollback remains a normal revert of merge commit `bcfd74a22449b974755b8b48bc01a3b261107b93`, followed by exact Pages build/SHA and live cache verification; force-push/reset are prohibited.
+
+Remaining non-blocking coverage gap: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED`.
