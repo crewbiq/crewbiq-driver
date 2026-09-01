@@ -79,16 +79,16 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / CODEX REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md now traces every Google/Apps-Script URL literal, persisted/driver-derived URL source, guard, caller, and outbound fetch sink across index.html, sync.js, restore-hotfix.js, and sw.js. Key finding: doSync() pushes to Apps Script (pushToCloud) first and only copies to the Orchestrator/PostgreSQL (pushToOrchestrator) if that push succeeds - Apps Script is the primary write path, not a fallback. Two distinct hardcoded Apps Script endpoints exist. No existing production telemetry/log evidence for request volume was found or examined. All prior gap-inventory classifications (BLOCKED x3, PARTIAL offline-retry) remain unchanged; this document does not itself alter any classification.
+The central ordering finding is accepted conditionally: doSync() runs legacy pushToCloud() first and invokes pushToOrchestrator() only after a successful non-skipped legacy push; the first destination is Apps Script under the default driver.syncUrl but may differ when explicitly overridden. The published map is not yet complete or fully accurate because repository-wide callers outside its four-file scope are omitted, several source/caller edges and destinations are misstated, the telemetry observability model is invalid, and sink/reachability claims are overstated.
 
 Latest implementation commit:
 2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0
@@ -97,13 +97,13 @@ Latest correction commit:
 59d5b289a8baf40360a9de9e434fe5a826b7121c
 
 Latest review commit:
-6e4e0ff076ab487069bfa5be1fb87128c9ca2a36
+5be2e87cbcfd5cf7ddb631bb7698456424ec868f
 
 Latest state commit:
-(pending this publish)
+b01d14f43ce6f5aef752f37b4474e6e9a0845f3a
 
 Blocking findings:
-NONE (pending Codex review of the new evidence map)
+CALLER_AND_FILE_SCOPE_INCOMPLETE; INCORRECT_SOURCE_AND_CALLER_EDGES; DESTINATION_AND_ORDER_OVERSTATED; TELEMETRY_OBSERVABILITY_MODEL_INVALID; SINK_COUNT_AND_REACHABILITY_OVERCLAIMED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md (commit 2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0) against exact production source at bcfd74a: confirm every cited URL literal, source, guard, caller, and sink line number, and confirm the doSync() push-order finding (Apps Script primary, Orchestrator secondary copy). Publish an ACCEPT or NEEDS_FIX verdict. Do not remove/disable any path or change runtime, configuration, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
+Correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` using repository-wide exact-tree evidence: include all executable callers/files identified by Codex; fix the index.html/restoreSession/pullFromCloud/expense scheduling edges; qualify driver.syncUrl destinations and doSync order; correct telemetry visibility; correct sink counts and static reachability claims. Preserve all production gap classifications. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3614,3 +3614,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR change occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Legacy sync call-path evidence map review
+
+- Reviewed map commit `2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0` against exact production tree `bcfd74a`.
+- Accepted: doSync legacy-first dependency order, qualified by resolved driver.syncUrl destination.
+- Verdict: NEEDS_FIX for incomplete repository-wide callers, incorrect source/caller edges, destination overstatement, invalid telemetry observability, and sink/reachability overclaims.
+- Review commit: `5be2e87cbcfd5cf7ddb631bb7698456424ec868f`.
+- Next actor: Claude for evidence-document correction only.
+- Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
+
