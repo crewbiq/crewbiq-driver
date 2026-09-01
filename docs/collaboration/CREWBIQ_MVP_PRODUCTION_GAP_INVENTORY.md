@@ -95,16 +95,29 @@ Apps-Script-only fallback logic in `index.html`.
 
 A staging-only configuration test cannot resolve this, since the legacy path
 lives in the production PWA's own shipped code, not in an environment
-variable. The safest next step is **read-only**: trace every call site of
-`getAuthSyncUrl()` and `DEFAULT_SYNC_URL` in the exact production `main`
-source, and for each one, document (a) the exact condition under which the
-Apps Script fallback is reached versus an Orchestrator-resolved URL is used,
-and (b) whether any live telemetry, log, or request-count evidence already
-exists (without adding new instrumentation) that could establish how often
-the fallback actually fires in current production usage, as opposed to being
-merely reachable in code. This produces the precise, evidence-backed call-
-path map a future de-risked removal PR would need, without touching any
-runtime file, configuration, or production system.
+variable. The safest next step is **read-only**: trace every Google/Apps-
+Script URL literal, every persisted or driver-derived URL source, and every
+outbound fetch/network sink that can carry one, across the exact production
+`main` source — not only `getAuthSyncUrl()`/`DEFAULT_SYNC_URL` in
+`index.html`. Independently confirmed additional sources/sinks that a
+narrower map would have missed:
+- `restore-hotfix.js:283` — a second, distinct hardcoded Apps Script fallback
+  (`https://script.google.com/macros/s/crewbiq-expenses/exec`), used whenever
+  `driver.syncUrl` is falsy.
+- `sync.js` — multiple live `fetch(driver.syncUrl, ...)` sinks (lines 607,
+  666, 843, plus a related guard/fallback pattern at 283/370/513) that will
+  dispatch to whatever URL `driver.syncUrl` currently resolves to, including
+  an Apps Script default inherited from `index.html`'s resolution chain.
+
+For each source and sink found, the map should document (a) the exact
+condition under which the Apps Script fallback is reached versus an
+Orchestrator-resolved URL is used, and (b) whether any live telemetry, log,
+or request-count evidence already exists (without adding new
+instrumentation) that could establish how often the fallback actually fires
+in current production usage, as opposed to being merely reachable in code.
+This produces the precise, evidence-backed call-path map a future
+de-risked removal PR would need, without touching any runtime file,
+configuration, or production system.
 
 No implementation, legacy-path removal, migration, merge, deployment, or
 production mutation is proposed or authorized by this document.
