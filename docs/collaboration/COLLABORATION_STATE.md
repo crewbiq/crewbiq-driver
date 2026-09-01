@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW - ACTIONS PAGES CORRECTION PLAN
+ACTIONS DEPLOYMENT DESIGN ACCEPTED - PHASE A ASSIGNED TO CODEX
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 + production-v95-66a7985 (inactive immutable failed Pages-source evidence)
 
 Product truth:
-Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Codex published an Actions-based design that preserves accepted artifact SHA 66a7985 separately from a future push-triggered workflow-control branch because workflow_dispatch cannot run from a non-default immutable branch
+Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79. PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md independently reviewed and ACCEPTED - the workflow_dispatch/default-branch conflict was independently verified against GitHub's own documentation (fetched directly, not merely cited), and the immutable-artifact/push-triggered-control-branch split, two-phase sequencing, permissions, and rollback contract are all sound.
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -97,13 +97,13 @@ Latest correction commit:
 NONE
 
 Latest review commit:
-9037ac450875c7286decf784654790ca074f6ffa
+e33eb5bf2733e9a0cabef66be4abf891eb191844
 
 Latest state commit:
-1cb775e
+e3475c4b7c4ce20fdd3093d8d0bde35d8df4296d
 
 Blocking findings:
-NONE for design review; production PWA publication remains blocked and no Actions implementation or execution is authorized
+NONE. Design ACCEPTED on all five review questions (workflow_dispatch/default-branch conflict correctly identified and independently verified; artifact/control-branch split preserves exact bytes without touching main; Phase A provably incapable of triggering Pages; Phase B ordering and rollback complete; permissions/concurrency/exact-SHA/full-asset gates sufficient).
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Independently review PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md, especially the workflow_dispatch default-branch correction, immutable artifact/control-branch split, two-phase sequencing, permissions, configuration ordering, and legacy-main rollback; perform no implementation or production attempt
+Implement Phase A only: add the workflow file to agent/pre-base44-audit with the exact trigger (push restricted to pages-actions-v95-66a7985 only), permissions (contents:read, pages:write, id-token:write), concurrency, and job steps specified in the plan, plus static contract tests asserting the branch filter cannot match the collaboration branch, the exact accepted SHA 66a7985765b76e0702d015ca1e300390156f8ad6 is checked out explicitly (never HEAD/github.sha/a mutable ref), permissions are exactly minimal, action references are pinned, and rollback is documented. Publish for independent review. Do not create the control branch, change Pages/environment configuration, or attempt a production deployment - Phase B remains a separate decision requiring both independent Claude ACCEPT of Phase A and explicit Product Owner authorization.
 <!-- CURRENT_END -->
 
 
@@ -3178,3 +3178,16 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Next required actor: Claude
 - Decision gate: AUTO_CONTINUE_ALLOWED
 - Next bounded action: independent design review only; if ACCEPT, Phase A workflow-only implementation
+
+### 2026-09-01 - Claude - Actions-Based PWA Deployment Correction Plan Independent Review - ACCEPT
+
+- Method: read PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md in full; independently verified its single load-bearing factual claim (workflow_dispatch requires the workflow file on the default branch) against GitHub's own documentation via a direct fetch, not merely trusting the citation; reasoned through push-vs-workflow_dispatch trigger mechanics and the artifact/control-branch separation from first principles.
+- Confirmed GitHub's documentation states verbatim: "This event will only trigger a workflow run if the workflow file exists on the default branch" - the design's crux constraint is factually accurate, not fabricated.
+- Confirmed the push-triggered control-branch mechanism correctly sidesteps this constraint: push events evaluate the workflow file from the exact pushed commit, not the default branch, and the deployment job's checkout step pins the exact accepted SHA explicitly (with an in-workflow git rev-parse HEAD assertion as a second guard) - the control branch's own content is irrelevant to what gets deployed.
+- Confirmed Phase A (workflow file added to the collaboration branch, single exact-branch-name push trigger, no wildcard) cannot trigger a Pages run under any activity on that branch.
+- Confirmed Phase B's ordering (reconfirm state, record config, one new deployment-branch-policy entry, build_type change, control-ref creation as the trigger, full verification) and rollback contract (revert build_type, restore main, rebuild, verify v79, reconfirm orchestrator health) are complete and mirror the discipline already proven twice.
+- Confirmed workflow permissions are the documented minimal set for actions/deploy-pages, with no broader scope; concurrency control prevents overlapping runs.
+- Verdict: ACCEPT. Sound, verified design; performs no implementation or execution itself.
+- Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: implement Phase A only (workflow file + static contract tests on the collaboration branch, provably incapable of triggering Pages) and publish for review. Phase B remains gated on both a fresh Claude ACCEPT and explicit Product Owner authorization.
+- Runtime/product files changed by this review: NONE.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit e33eb5bf2733e9a0cabef66be4abf891eb191844).
