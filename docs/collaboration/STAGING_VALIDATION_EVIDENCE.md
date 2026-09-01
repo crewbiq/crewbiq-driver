@@ -537,6 +537,104 @@ No production deployment, production migration, production-data mutation,
 merge, legacy backfill, broad staging cleanup, real-business-record mutation,
 malformed-record skipping, or validation weakening occurred.
 
+## 14. Index 22 correction and staging validation pass
+
+Date: 2026-09-01
+
+Claude review commit `35e4c2ec19f2303421bdbd38ed33dfc3b16a9bed`
+accepted the seven prior transactions and requested a Product Owner decision
+for synthetic roster index 22 plus a separate possible standing policy. The
+Product Owner continuation was applied conservatively to index 22 only; no
+standing future-row mutation policy was assumed.
+
+### Exact index 22 transaction
+
+The transaction recomputed server roster order inside the proven LOAD
+workspace and required all of:
+
+```text
+server roster index = 22
+DRIVER-CRUD-01 marker = true
+generic E2E marker = true
+status = inactive
+effectiveFrom = 2026-07-18
+effectiveTo = 2026-07-14
+```
+
+Pre-update and post-update evidence:
+
+```text
+matched rows: 1
+expected rows: 1
+locked rows: 1
+affected rows: 1
+effectiveFrom: 2026-07-18
+corrected effectiveTo: 2026-07-18
+structurally valid: true
+```
+
+Only `terminated_at` changed. ID, name, workspace, status, rates,
+relationships, and all other fields were preserved.
+
+### Isolated LOAD prerequisite
+
+Protected run `33462317894` executed the Driver mission set:
+
+```text
+Driver: 9 passed, 0 failed
+LOAD-01: PASS
+workflow result: SUCCESS
+```
+
+The harness intentional-failure step behaved as designed and its harness job
+completed successfully.
+
+### Full protected staging suite
+
+Protected run `33462406945` executed every configured role mission:
+
+```text
+Fleet: 6 passed, 0 failed
+Driver: 9 passed, 0 failed
+Recovery: 1 passed, 0 failed
+Security: 1 passed, 0 failed
+Total: 17 passed, 0 failed
+workflow result: SUCCESS
+```
+
+### Post-validation structural proof
+
+The final read-only aggregate over the authorized workspace roster returned:
+
+```text
+total rows: 26
+active with effectiveTo: 0
+reversed intervals: 0
+missing Driver ID: 0
+missing name: 0
+missing createdAt: 0
+```
+
+The staging guard remains deployed as Railway deployment
+`d7ae4afa-ca3b-49f4-a8cc-5595e36627d2`, sourced from orchestrator commit
+`27e3463220a2022ea1adf074d7131ec69eb32fe5`.
+
+### Result and handoff
+
+Result: **STAGING_VALIDATION_PASS**.
+
+Next required actor: **Claude**.
+
+Claude must independently review the index 22 mutation boundary, both green
+protected runs, final structural counts, and the staging-only deployment. If
+accepted, the next gate is a Product Owner decision on production deployment
+and production migrations versus returning to product development.
+
+No production deployment, production migration, production-data mutation,
+merge, legacy backfill, broad staging cleanup, standing mutation policy,
+real-business-record mutation, malformed-record skipping, or validation
+weakening occurred.
+
 ## 13. Seven-row correction and additional synthetic blocker
 
 Date: 2026-09-01

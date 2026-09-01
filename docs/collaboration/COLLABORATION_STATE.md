@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-IN_PROGRESS
+STAGING_VALIDATION_PASS / PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -66,23 +66,35 @@ Latest review commit:
 35e4c2ec19f2303421bdbd38ed33dfc3b16a9bed
 
 Blocking findings:
-STAGING_LOAD_ROSTER_ADDITIONAL_MALFORMED_SYNTHETIC_RANGE - ACCEPTED: the authorized indices 15-21 were each independently corrected via the identical per-row discipline as the first row (exact predicate match, affected-row-count=1 required, only terminated_at changed); targeted postflight confirms zero remaining malformed rows among 15-21. Index 22 (DRIVER-CRUD-01 marker true, effectiveFrom 2026-07-18, effectiveTo 2026-07-14 - same defect signature, different creation date, likely residue from an earlier stale CI run predating the fixture fix) was correctly left untouched, outside the authorized boundary. Live guard continues to correctly return HTTP 502 for this one remaining row.
+NONE. Synthetic roster index 22 was corrected by an exact-one-row staging transaction; only terminated_at changed from 2026-07-14 to its own created_at date 2026-07-18. Isolated Driver run 33462317894 passed 9/9. Full protected run 33462406945 passed 17/17. Post-validation roster guard diagnosis reports reversed_interval=0 and no structural violations.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33461262359 is 8 passed, 1 failed (LOAD-01 only, expected given index 22 remains unfixed). Full all-role suite gated on all rows being structurally valid.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a separately tracked coverage gap only; it does not invalidate the now-green protected suite. Standing mutation policy for future rows was not authorized and was not assumed. Production deployment/migrations remain unauthorized pending Product Owner decision after Claude review.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+REVIEW_REQUIRED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Correct only synthetic roster index 22 via the proven exact-one-row staging discipline: recompute server roster order, match marker/inactive-state/workspace-owner/exact dates, require affected-row-count=1, and change only terminated_at to its own created_at date; abort on mismatch. Then run isolated LOAD-01 and, only on PASS, the full protected suite. Standing policy for future rows is not authorized. No production action, merge, migration, backfill, broad cleanup, real-business-record mutation, malformed-record skipping, or weakened validation.
+Independently review index 22 provenance and exact-one-row mutation evidence, isolated run 33462317894, full protected run 33462406945, post-validation structural counts, staging-only guard deployment, and the STAGING_VALIDATION_PASS conclusion. If ACCEPT, set Decision gate COORDINATOR_REQUIRED and ask the Product Owner whether to authorize production deployment/migrations or return to product development. No production action, merge, migration, backfill, standing mutation policy, or further data correction is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Index 22 correction and staging validation pass
+
+- Product Owner continuation authorized immediate correction of synthetic roster index 22 only; standing future-row mutation policy was not treated as authorized.
+- Exact predicate: proven LOAD workspace owner, server roster index 22, DRIVER-CRUD-01 and generic E2E markers, inactive status, `effectiveFrom=2026-07-18`, `effectiveTo=2026-07-14`.
+- Transaction preflight matched exactly 1; lock count 1; affected row count 1; only `terminated_at` changed to `2026-07-18`; structural validity true.
+- Isolated Driver run `33462317894`: `9 passed, 0 failed`, including LOAD-01 PASS; workflow result SUCCESS.
+- Full protected run `33462406945`: Fleet 6/6, Driver 9/9, Recovery 1/1, Security 1/1; total 17 passed, 0 failed; workflow result SUCCESS.
+- Post-validation read-only roster diagnosis: total 26, active_with_end 0, reversed_interval 0, missing ID/name/createdAt 0.
+- Orchestrator guard remains deployed only in staging as deployment `d7ae4afa-ca3b-49f4-a8cc-5595e36627d2` from commit `27e3463220a2022ea1adf074d7131ec69eb32fe5`.
+- Result: STAGING_VALIDATION_PASS; next actor Claude for independent review.
+- Production deploy/migration/data mutation, merge, legacy backfill, broad cleanup, standing mutation policy, real-business-record mutation, malformed-record skipping and validation weakening: NONE.
 
 ### 2026-09-01 - Codex - Seven-row correction and additional synthetic blocker publication
 
