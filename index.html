@@ -11,9 +11,17 @@
   <title>CrewBIQ Driver</title>
   <script src="core.js?v=20260715-disputes-sync-v1"></script>
   <script src="sync.js?v=20260715-disputes-sync-v1"></script>
+  <script src="workspace-attribution.js?v=20260831-slice4b1b2a-v1"></script>
+  <script src="workspace-driver-roster.js?v=20260831-slice4b1b2c-s2-v1"></script>
+  <script src="driver-truck-assignment.js?v=20260831-slice4b1b3-s3-v1"></script>
+  <script src="account-driver-link.js?v=20260831-slice4b2-s2-v1"></script>
+  <script src="driver-self.js?v=20260831-slice4b2-s2-v1"></script>
   <script src="pti.js?v=20260617-pg-pwa"></script>
   <script src="loads.js?v=20260715-bol-load-fields-v1"></script>
   <script src="fleet-load-resolution.js?v=20260730-issue20-v1"></script>
+<script src="startup-session.js?v=20260830-slice1b-v1"></script>
+<script src="links.js?v=20260830-slice2b-v1"></script>
+<script src="navigation-model.js?v=20260830-slice3b-v1"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--tx);max-width:480px;margin:0 auto;min-height:100vh}
@@ -417,6 +425,8 @@
 
   <!-- ODOMETER -->
   <div class="pti-odo-card">
+    <div class="sfield"><div class="slabel">Truck *</div><select id="ptiTruckSelect" onchange="updatePTIProgress()"><option value="" selected disabled>Truck assignment required</option></select></div>
+    <div class="sfield"><div class="slabel">Driver *</div><select id="ptiDriverSelect" onchange="updatePTIProgress()" disabled><option value="" selected disabled>Driver assignment required</option></select></div>
     <div class="pti-odo-label">📍 Odometer Reading *</div>
     <input type="number" id="ptiOdometer" placeholder="e.g. 485000" style="margin-top:4px">
     <div class="muted" style="margin-top:6px;font-size:11px">Required — used for maintenance tracking</div>
@@ -475,6 +485,17 @@
       <div class="stat-card"><div class="label">Dead mi</div><div class="stat-val" id="homeDeadMi">0</div></div>
     </div>
 
+    <div class="card" id="driverSelfCard" style="margin-top:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div>
+          <div class="label">Driver SELF</div>
+          <div id="driverSelfStatus" style="font-size:14px;font-weight:800;margin-top:4px">Canonical assignment unavailable</div>
+          <div class="muted" id="driverSelfDetail" style="font-size:11px;margin-top:4px">Connect a CrewBIQ platform account to view verified assignment context.</div>
+        </div>
+        <button class="btn ghost" type="button" onclick="refreshDriverSelfCard(true)" style="margin-left:auto;padding:8px 10px">Refresh</button>
+      </div>
+    </div>
+
     <div class="sync-row" style="margin-top:16px">
       <div class="sync-dot" id="syncDot"></div>
       <span class="muted" id="syncStatus" style="font-size:12px">Not synced</span>
@@ -505,6 +526,10 @@
       <div class="sfield" id="loadTruckRow" style="display:none">
         <div class="slabel">Truck</div>
         <select id="loadTruckSelect"></select>
+      </div>
+      <div class="sfield" id="loadDriverRow" style="display:none">
+        <div class="slabel">Driver *</div>
+        <select id="loadDriverSelect" disabled></select>
       </div>
       <div class="frow">
         <div class="fg"><div class="label">Loaded Miles *</div><input type="number" id="loadedMiles" oninput="calcPreview()"></div>
@@ -1071,7 +1096,7 @@
 
     <!-- Search -->
     <div style="padding:10px 16px 0">
-      <input id="lmSearch" placeholder="🔍  Search links…" oninput="linkSearchQuery=this.value; renderCommunity()"
+      <input id="lmSearch" placeholder="🔍  Search links…" oninput="setLinkSearchQuery(this.value); renderCommunity()"
         style="width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:10px;color:var(--tx);padding:10px 12px;font-size:14px;outline:none">
     </div>
 
@@ -1272,95 +1297,9 @@ const APP_SCHEMA_VERSION = 2;
 
 // ── ROLE SYSTEM ───────────────────────────────────────────────────────────────
 
-const ROLE_CONFIG = {
-  driver: {
-    label: 'Driver',    icon: '🚛',
-    desc:  'Load tracking, PTI, expenses, sync',
-    menu: [
-      {page:'load',      icon:'📦', label:'Loads'},
-      {page:'report',    icon:'📄', label:'Reports'},
-      {page:'expenses',  icon:'💳', label:'Expenses'},
-      {page:'disputes',  icon:'⚖️', label:'Disputes'},
-      {page:'pti',       icon:'🔍', label:'PTI'},
-      {page:'stats',     icon:'📈', label:'Stats'},
-      {page:'community', icon:'🔗', label:'Links'},
-      {page:'settings',  icon:'⚙️', label:'Settings'},
-    ],
-  },
-  owner_op: {
-    label: 'Owner-Op',  icon: '🏢',
-    desc:  'Driver + fuel, deductions, service fund, P&L',
-    menu: [
-      {page:'load',        icon:'📦', label:'Loads'},
-      {page:'report',      icon:'📄', label:'Reports'},
-      {page:'expenses',    icon:'💳', label:'Expenses'},
-      {page:'fuel',        icon:'⛽', label:'Fuel'},
-      {page:'deductions',  icon:'💰', label:'Deductions'},
-      {page:'service',     icon:'🔧', label:'Service'},
-      {page:'disputes',    icon:'⚖️', label:'Disputes'},
-      {page:'pti',         icon:'🔍', label:'PTI'},
-      {page:'stats',       icon:'📈', label:'Stats'},
-      {page:'community',   icon:'🔗', label:'Links'},
-      {page:'settings',    icon:'⚙️', label:'Settings'},
-    ],
-  },
-  fleet: {
-    label: 'Fleet',     icon: '🚚',
-    desc:  'Owner-Op + fleet dashboard, multi-truck, drivers',
-    menu: [
-      {page:'load',        icon:'📦', label:'Loads'},
-      {page:'fleet',       icon:'🚚', label:'Fleet'},
-      {page:'drivers',     icon:'👥', label:'Drivers'},
-      {page:'report',      icon:'📄', label:'Reports'},
-      {page:'expenses',    icon:'💳', label:'Expenses'},
-      {page:'fuel',        icon:'⛽', label:'Fuel'},
-      {page:'deductions',  icon:'💰', label:'Deductions'},
-      {page:'service',     icon:'🔧', label:'Service'},
-      {page:'disputes',    icon:'⚖️', label:'Disputes'},
-      {page:'pti',         icon:'🔍', label:'PTI'},
-      {page:'stats',       icon:'📈', label:'Stats'},
-      {page:'community',   icon:'🔗', label:'Links'},
-      {page:'settings',    icon:'⚙️', label:'Settings'},
-    ],
-  },
-};
-
-['driver','owner_op','fleet'].forEach(function(role){
-  var cfg = ROLE_CONFIG[role];
-  if(cfg && !cfg.menu.some(function(x){ return x.page === 'scan'; })){
-    var after = cfg.menu.findIndex(function(x){ return x.page === 'expenses'; });
-    cfg.menu.splice(after >= 0 ? after + 1 : cfg.menu.length, 0, {page:'scan', icon:'📷', label:'Scan'});
-  }
-});
-
-// One source of truth for the grouped information architecture.
-// `Add` is intentionally not a group: it starts a new record from any domain.
-const FUNCTION_GROUPS = [
-  {label:'Work', items:[
-    {page:'load', icon:'📦', label:'Loads'},
-    {page:'disputes', icon:'⚖️', label:'Exceptions'},
-    {page:'scan', icon:'📄', label:'Documents'},
-  ]},
-  {label:'Truck', items:[
-    {page:'pti', icon:'🔍', label:'Inspections'},
-    {page:'fuel', icon:'⛽', label:'Fuel', minRole:'owner_op'},
-    {page:'service', icon:'🔧', label:'Maintenance', minRole:'owner_op'},
-  ]},
-  {label:'Money', items:[
-    {page:'expenses', icon:'💳', label:'Expenses'},
-    {page:'report', icon:'📄', label:'Reports'},
-    {page:'stats', icon:'📈', label:'Performance'},
-    {page:'deductions', icon:'💰', label:'Deductions', minRole:'owner_op'},
-  ]},
-  {label:'Team', roles:['fleet'], items:[
-    {page:'fleet', icon:'🚚', label:'Fleet overview'},
-    {page:'drivers', icon:'👥', label:'Drivers'},
-  ]},
-  {label:'Resources & account', items:[
-    {page:'community', icon:'🔗', label:'Links'},
-    {page:'settings', icon:'⚙️', label:'Settings'},
-  ]},
-];
+/* Navigation data/model is owned by navigation-model.js. */
+var ROLE_CONFIG = CrewBIQNavigationModel.ROLE_CONFIG;
+var FUNCTION_GROUPS = CrewBIQNavigationModel.FUNCTION_GROUPS;
 
 function getUserRole(){ return localStorage.getItem(K+'userRole') || 'driver'; }
 function setUserRole(role){
@@ -1409,7 +1348,7 @@ function changeRole(role, btn){
 function applyRoleUI(){
   const role = getUserRole();
   const cfg  = ROLE_CONFIG[role] || ROLE_CONFIG.driver;
-  const roleRank = {driver:0, owner_op:1, fleet:2};
+  const roleRank = CrewBIQNavigationModel.ROLE_RANK;
 
   // Sync setup role buttons if visible
   ['driver','owner_op','fleet'].forEach(r => {
@@ -1680,6 +1619,9 @@ function initPTI(){
     getPtiCustom: () => ptiCustom,
     setPtiCustom: (v) => { ptiCustom = v; },
     saveAll:      saveAll,
+    getWorkspaceContext: () => loadOrchestratorSession(),
+    getTrucks: () => loadTrucks(),
+    readWorkspaceDriverRoster: () => readAuthorizedWorkspaceDriverRoster(),
   });
 }
 function initLoads(){
@@ -1692,6 +1634,8 @@ function initLoads(){
     doSync:     () => doSync(),
     renderAll:  () => renderAll(),
     showPage:   (name) => showPage(name),
+    getWorkspaceContext: () => loadOrchestratorSession(),
+    readWorkspaceDriverRoster: () => readAuthorizedWorkspaceDriverRoster(),
   });
 }
 function saveAll(){
@@ -1863,6 +1807,145 @@ async function authPost(type, payload={}, syncUrlOverride=''){
   }
   if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
   return data;
+}
+let workspaceDriverRosterAdapter = null;
+function getWorkspaceDriverRosterAdapter(){
+  if(!workspaceDriverRosterAdapter && window.CrewBIQWorkspaceDriverRoster){
+    workspaceDriverRosterAdapter = window.CrewBIQWorkspaceDriverRoster.create({
+      request: async function(action, payload){
+        if(action !== 'workspace_driver_roster_read') throw new Error('Unsupported roster action');
+        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        if(!syncUrl) throw new Error('Sync URL is required');
+        const resp=await fetch(syncUrl, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
+          cache:'no-store',
+          redirect:'follow'
+        });
+        const text=await resp.text();
+        let data={};
+        try{ data=JSON.parse(text); }catch(e){ data={ok:false}; }
+        return {status:resp.status, data:data};
+      }
+    });
+  }
+  return workspaceDriverRosterAdapter;
+}
+async function readAuthorizedWorkspaceDriverRoster(){
+  const session=loadOrchestratorSession();
+  const resolver=window.CrewBIQWorkspaceAttribution;
+  const adapter=getWorkspaceDriverRosterAdapter();
+  if(!session || !resolver || !adapter) return {ok:false, code:'workspace_driver_roster_unavailable'};
+  const resolution=resolver.resolveActiveWorkspace(session);
+  if(!resolution.ok) return {ok:false, code:resolution.code};
+  return adapter.read({sessionToken:session.sessionToken, workspaceId:resolution.workspaceId});
+}
+let driverTruckAssignmentAdapter = null;
+function getDriverTruckAssignmentAdapter(){
+  if(!driverTruckAssignmentAdapter && window.CrewBIQDriverTruckAssignment){
+    driverTruckAssignmentAdapter = window.CrewBIQDriverTruckAssignment.create({
+      request: async function(action, payload){
+        const supported=['driver_truck_assignment_current_read','driver_truck_assignment_history_read','driver_truck_assignment_as_of_read'];
+        if(!supported.includes(action)) throw new Error('Unsupported DriverTruckAssignment action');
+        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        if(!syncUrl) throw new Error('Sync URL is required');
+        const resp=await fetch(syncUrl, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
+          cache:'no-store',
+          redirect:'follow'
+        });
+        const responseText=await resp.text();
+        let data={};
+        try{ data=JSON.parse(responseText); }catch(e){ data={ok:false}; }
+        return {status:resp.status, data:data};
+      }
+    });
+  }
+  return driverTruckAssignmentAdapter;
+}
+let accountDriverLinkAdapter = null;
+function getAccountDriverLinkAdapter(){
+  if(!accountDriverLinkAdapter && window.CrewBIQIdentityLink){
+    accountDriverLinkAdapter = window.CrewBIQIdentityLink.create({
+      request: async function(action, payload){
+        if(action !== 'account_driver_link_read') throw new Error('Unsupported AccountDriverLink action');
+        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        if(!syncUrl) throw new Error('Sync URL is required');
+        const resp=await fetch(syncUrl, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
+          cache:'no-store',
+          redirect:'follow'
+        });
+        const responseText=await resp.text();
+        let data={};
+        try{ data=JSON.parse(responseText); }catch(e){ data={ok:false}; }
+        return {status:resp.status, data:data};
+      }
+    });
+  }
+  return accountDriverLinkAdapter;
+}
+let driverSelfReader = null;
+let driverSelfRequestKey = '';
+let driverSelfRequest = null;
+function getDriverSelfReader(){
+  const linkAdapter=getAccountDriverLinkAdapter();
+  const assignmentAdapter=getDriverTruckAssignmentAdapter();
+  if(!driverSelfReader && window.CrewBIQDriverSelf && linkAdapter && assignmentAdapter){
+    driverSelfReader=window.CrewBIQDriverSelf.create({
+      readAccountDriverLink:(payload)=>linkAdapter.read(payload),
+      readCurrentAssignment:(payload)=>assignmentAdapter.readCurrent(payload),
+    });
+  }
+  return driverSelfReader;
+}
+function canonicalOrchestratorAccountId(session){
+  const me=(session&&session.me) || {};
+  return String(me.crewbiq_id || me.crewbiqId || '').trim();
+}
+function renderDriverSelfState(state){
+  const status=document.getElementById('driverSelfStatus');
+  const detail=document.getElementById('driverSelfDetail');
+  if(!status || !detail) return;
+  const value=state || {status:'unavailable'};
+  if(value.status==='success'){
+    status.textContent=value.truckId ? 'Verified current assignment' : 'Verified Driver; no current Truck assignment';
+    detail.textContent='Driver '+value.driverId+(value.truckId ? ' / Truck '+value.truckId : '')+' / Workspace '+value.workspaceId;
+  }else if(value.status==='not_linked'){
+    status.textContent='Account is not linked to a Driver';
+    detail.textContent='No canonical Driver identity is effective for this workspace.';
+  }else if(value.status==='ambiguous'){
+    status.textContent='Canonical assignment is ambiguous';
+    detail.textContent='CrewBIQ cannot safely choose a Driver or Truck. No fallback was used.';
+  }else if(value.status==='unauthorized'){
+    status.textContent='Canonical assignment is unauthorized';
+    detail.textContent='The connected account cannot read Driver SELF context for this workspace.';
+  }else{
+    status.textContent='Canonical assignment unavailable';
+    detail.textContent='Legacy CrewBIQ screens remain available; no Driver or Truck identity was inferred.';
+  }
+}
+function refreshDriverSelfCard(force){
+  const session=loadOrchestratorSession();
+  const resolver=window.CrewBIQWorkspaceAttribution;
+  const reader=getDriverSelfReader();
+  if(!session || !session.sessionToken || !resolver || !reader){ renderDriverSelfState({status:'unavailable'}); return Promise.resolve(); }
+  const workspace=resolver.resolveActiveWorkspace(session);
+  const accountId=canonicalOrchestratorAccountId(session);
+  if(!workspace.ok || !accountId){ renderDriverSelfState({status:workspace.code==='workspace_unauthorized'?'unauthorized':'unavailable'}); return Promise.resolve(); }
+  const key=[session.sessionToken,workspace.workspaceId,accountId].join('|');
+  if(!force && driverSelfRequest && driverSelfRequestKey===key) return driverSelfRequest;
+  driverSelfRequestKey=key;
+  renderDriverSelfState({status:'unavailable'});
+  driverSelfRequest=reader.read({sessionToken:session.sessionToken, workspaceId:workspace.workspaceId, accountId, effectiveAt:new Date().toISOString()})
+    .then(function(state){ if(driverSelfRequestKey===key) renderDriverSelfState(state); return state; })
+    .catch(function(){ if(driverSelfRequestKey===key) renderDriverSelfState({status:'unavailable'}); });
+  return driverSelfRequest;
 }
 function currentAssignmentLabel(){
   const a=(driver&&driver.currentAssignment) || {};
@@ -2314,7 +2397,9 @@ async function orchestratorFinishLogin(sessionToken){
   }
   saveOrchestratorSession({sessionToken: sessionToken, me: meResult.me, activeWorkspaceIdOverride: ''});
   await refreshOrchestratorCanonicalRead(sessionToken, meResult.me);
+  if(window.CrewBIQLoads) await CrewBIQLoads.refreshNewLoadAttribution();
   renderOrchestratorAccountSection();
+  refreshDriverSelfCard(true);
   toast('Orchestrator account connected');
 }
 async function refreshOrchestratorCanonicalRead(sessionToken, me){
@@ -2359,7 +2444,9 @@ function onOrchWorkspaceChange(){
   if(!select || !session) return;
   session.activeWorkspaceIdOverride = select.value;
   saveOrchestratorSession(session);
+  if(window.CrewBIQLoads) CrewBIQLoads.refreshNewLoadAttribution();
   renderOrchestratorAccountSection();
+  refreshDriverSelfCard(true);
 }
 async function onOrchDisconnectClick(){
   var session = loadOrchestratorSession();
@@ -2367,26 +2454,44 @@ async function onOrchDisconnectClick(){
   clearOrchestratorSession();
   clearOrchestratorCanonicalRead();
   renderOrchestratorAccountSection();
+  renderDriverSelfState({status:'unavailable'});
   toast('Orchestrator account disconnected');
 }
 
-async function restoreSession(options={}){
-  setFleetRestoreSettled(false);
-  const sessionToken=String(options.sessionToken || getSavedSessionToken()).trim();
-  const syncUrl=String(options.syncUrl || getAuthSyncUrl()).trim();
-  if(!sessionToken) throw endpointError('auth_restore', 'sessionToken missing before restore');
-  const data=await authPost('auth_restore', {sessionToken}, syncUrl);
-  applyAuthRestoreData(data, syncUrl);
-  var fleetRestore = null;
-  if(driver && driver.crewId && (!loadTrucks().length || !loadDriverProfiles().length)){
-    fleetRestore = await restoreFleetConfigFromOrchestrator(driver.crewId);
-  }
-  saveAll();
-  saveDriverProfile();
-  renderAll();
-  setFleetRestoreSettled(true);
-  if(!options.silent) setLoginStatus('Restored cloud data: '+formatRestoreSummary(data, fleetRestore),'ok');
-  return {...unwrapAuthResponse(data), fleetRestore};
+let startupCoordinator = null;
+function getStartupCoordinator(){
+  if(startupCoordinator) return startupCoordinator;
+  startupCoordinator = CrewBIQStartupSession.create({
+    document,
+    getDriver:()=>driver,
+    setFleetRestoreSettled,
+    getSavedSessionToken,
+    getAuthSyncUrl,
+    endpointError,
+    authPost,
+    applyAuthRestoreData,
+    loadTrucks,
+    loadDriverProfiles,
+    restoreFleetConfigFromOrchestrator,
+    saveAll,
+    saveDriverProfile,
+    renderAll,
+    setLoginStatus,
+    formatRestoreSummary,
+    unwrapAuthResponse,
+    renderStartupShell,
+    needsPTI,
+    showPTIBlocker,
+    ensureDefaultTruckFromDriver,
+    scheduleAutoSync,
+    getPullFromCloud:()=>typeof pullFromCloud==='function' ? pullFromCloud : null,
+    setTimeout:(callback, delay)=>setTimeout(callback, delay),
+    warn:(...args)=>console.warn(...args),
+  });
+  return startupCoordinator;
+}
+function restoreSession(options={}){
+  return getStartupCoordinator().restoreSession(options);
 }
 async function authLogin(){
   const syncUrl=getAuthSyncUrl();
@@ -2560,7 +2665,7 @@ async function saveSetup(){
 }
 
 // ── BOOT ──
-function boot(){
+function renderStartupShell(){
   if(!driver){ document.getElementById('setupScreen').style.display='flex'; return; }
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('hdrDriverName').textContent = driver.name + (driver.teamDriver ? ' + '+driver.teamDriver : '');
@@ -2577,30 +2682,15 @@ function boot(){
   let teamRow = document.getElementById('hdrTeamRow');
   if(driver.teamDriver){ teamRow.style.display=''; document.getElementById('hdrTeam').textContent = driver.teamDriver; }
   else { teamRow.style.display='none'; }
-  if(needsPTI()){ showPTIBlocker(); } else { showApp(); }
-}
+}function boot(){ return getStartupCoordinator().boot(); }
 
 
 // ── APP ──
-function showApp(){
-  document.getElementById('app').classList.add('show');
-  ensureDefaultTruckFromDriver();
-  renderAll();
-  scheduleAutoSync();
-  // Two-way sync: on app open, silently pull new cloud data from other devices.
-  if(driver && driver.syncUrl && typeof pullFromCloud === 'function'){
-    setTimeout(()=>pullFromCloud({silent:true}), 1000);
-  }
-}
+function showApp(){ return getStartupCoordinator().showApp(); }
 function primaryDestinationForPage(name){
-  if(['load','disputes','work'].includes(name)) return 'work';
-  if(['pti','fuel','service','truck'].includes(name)) return getUserRole()==='fleet' ? 'team' : 'truck';
-  if(['expenses','deductions','report','stats','money'].includes(name)) return 'money';
-  if(['fleet','drivers','team'].includes(name)) return 'team';
-  if(name === 'home') return 'home';
-  return '';
+  return CrewBIQNavigationModel.primaryDestinationForPage(name, getUserRole());
 }
-const PRIMARY_NAV_PAGES = ['home','work','truck','team','money'];
+const PRIMARY_NAV_PAGES = CrewBIQNavigationModel.PRIMARY_NAV_PAGES;
 let pageNavigationHistory = [];
 let currentPageName = 'home';
 function pageNavigationLabel(name){
@@ -2652,7 +2742,7 @@ function showPage(name, btn, options){
   var primaryPage = primaryDestinationForPage(name);
   if(btn && btn.dataset.page) btn.classList.add('active');
   else if(primaryPage){ var _nb=document.querySelector(`.navbtn[data-page="${primaryPage}"]`); if(_nb && _nb.style.display !== 'none') _nb.classList.add('active'); };
-  if(name==='home') renderHome();
+  if(name==='home'){ renderHome(); refreshDriverSelfCard(false); }
   if(name==='pti') renderPTIPage();
   if(name==='stats'){ renderStats(); renderFleetStats(); }
   if(name==='settings') renderSettingsPage(true);
@@ -2883,6 +2973,7 @@ function renderRealNetCard(){
 
 function renderAll(){
   renderHome();
+  refreshDriverSelfCard(false);
   renderLoadPage();
   renderPTIPage();
   renderStats();
@@ -3381,6 +3472,7 @@ function saveFuelLog(){
   var gal  = parseFloat(document.getElementById('fuelGallons').value) || 0;
   if(!gal){ toast('Fuel gallons required','err'); return; }
   var truckId = selectedTruckId('fuelTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var entry = {
     id:          document.getElementById('fuelEditId').value || ('fuel_'+Date.now()),
     date:        date,
@@ -3482,6 +3574,7 @@ function getDedWeekKey(){
 function getCurrentWeekDed(){
   var wk = getDedWeekKey();
   var truckId = selectedTruckId('dedTruckSelect');
+  if(!truckId) return {id:'', weekKey:wk, truckId:'', items:[], total:0, unresolvedTruck:true};
   var list = loadWeeklyDeds();
   var found = list.find(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
   if(!found){
@@ -3493,6 +3586,7 @@ function getCurrentWeekDed(){
 
 function applyDedTemplate(){
   var truckId = selectedTruckId('dedTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var truck = findTruckByIdOrUnit(truckId);
   var templates = deductionTemplatesForTruck(truck);
   if(!templates.length){ toast('No templates yet. Add templates first.','warn'); return; }
@@ -3556,6 +3650,7 @@ function saveDedModal(){
   } else {
     var wk   = getDedWeekKey();
     var truckId = selectedTruckId('dedTruckSelect');
+    if(!truckId){ toast('Truck assignment required','err'); return; }
     var list = loadWeeklyDeds();
     var idx  = list.findIndex(function(x){ return x.weekKey === wk && (x.truckId || '') === truckId; });
     var entry = idx>=0 ? list[idx] : {id:'wd_'+Date.now(), weekKey:wk, truckId:truckId, items:[], total:0};
@@ -3572,6 +3667,7 @@ function saveDedModal(){
 function deleteDedItem(idx){
   var wk   = getDedWeekKey();
   var truckId = selectedTruckId('dedTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var list = loadWeeklyDeds();
   var wi   = list.findIndex(function(x){ return x.weekKey===wk && (x.truckId || '') === truckId; });
   if(wi<0) return;
@@ -3717,6 +3813,7 @@ function saveServiceLog(){
   var amount = parseFloat(document.getElementById('svcAmount').value) || 0;
   if(!date || !amount){ toast('Date and amount required','err'); return; }
   var truckId = selectedTruckId('svcTruckSelect');
+  if(!truckId){ toast('Truck assignment required','err'); return; }
   var entry = {
     id:         document.getElementById('svcEditId').value || ('svc_'+Date.now()),
     date:       date,
@@ -4576,7 +4673,17 @@ function normalizeFleetLookupValue(value){
   return String(value == null ? '' : value).trim().toLowerCase();
 }
 function getDefaultTruck(){
-  return findTruckByIdOrUnit(driver && driver.unitNumber) || activeTrucks()[0] || null;
+  return resolveDefaultTruck(driver, activeTrucks());
+}
+function resolveDefaultTruck(driverValue, trucks){
+  trucks = Array.isArray(trucks) ? trucks.filter(function(t){ return t && t.active !== false; }) : [];
+  var explicitAssignment = String((driverValue && driverValue.unitNumber) || '').trim();
+  if(explicitAssignment){
+    return trucks.find(function(t){
+      return String(t.id || '') === explicitAssignment || String(t.unitNumber || '') === explicitAssignment;
+    }) || null;
+  }
+  return trucks.length === 1 ? trucks[0] : null;
 }
 function truckDisplay(t){
   if(!t) return 'Truck';
@@ -4594,9 +4701,12 @@ function renderTruckSelect(selectId, rowId, preferred){
     sel.innerHTML = '';
     return '';
   }
-  var selected = findTruckByIdOrUnit(preferred) || findTruckByIdOrUnit(sel.value) || getDefaultTruck() || trucks[0];
+  var preferredKey = String(preferred || '').trim();
+  var currentKey = String(sel.value || '').trim();
+  var explicitKey = preferredKey || currentKey;
+  var selected = explicitKey ? findTruckByIdOrUnit(explicitKey) : getDefaultTruck();
   if(row) row.style.display='';
-  sel.innerHTML = trucks.map(function(t){
+  sel.innerHTML = (!selected ? '<option value="" selected disabled>Truck assignment required</option>' : '') + trucks.map(function(t){
     return '<option value="'+escHtml(t.id)+'" '+(selected && selected.id===t.id?'selected':'')+'>'+escHtml(truckDisplay(t))+'</option>';
   }).join('');
   return selected ? selected.id : '';
@@ -5822,359 +5932,30 @@ function uninstallModule(id){
 //  LINKS MANAGER v0.1 (UPGRADED COMMUNITY MODULE)
 // ═════════════════════════════════════════════════════════════════════════════
 
-let currentLinkFilter = 'all';
-let linkSearchQuery = '';
-
-const LINK_CATEGORIES = {
-  dispatch:    { label: 'Dispatch', icon: '🚛' },
-  accounting:  { label: 'Accounting', icon: '💰' },
-  factoring:   { label: 'Factoring', icon: '🏦' },
-  maintenance: { label: 'Maintenance', icon: '🛠' },
-  documents:   { label: 'Documents', icon: '📁' },
-  insurance:   { label: 'Insurance', icon: '🛡' },
-  broker:      { label: 'Broker', icon: '🤝' },
-  company:     { label: 'Company', icon: '🏢' },
-  community:   { label: 'Community', icon: '💬' },
-  other:       { label: 'Other', icon: '🔗' }
-};
-
-function getLinksKey() {
-  // K already includes trailing underscore: 'fiqD_'
-  return (typeof K !== 'undefined' ? K : 'fiqD_') + 'clinks';
-}
-
-function escAttr(value) {
-  return escHtml(value).replace(/`/g, '&#96;');
-}
-
-function normalizeLinkUrl(url) {
-  let u = String(url || '').trim();
-  if (!u) return '#';
-  // Allow common web/Telegram schemes. Default to https:// for bare domains.
-  if (/^(https?:\/\/|tg:\/\/|mailto:)/i.test(u)) return u;
-  if (/^[\w.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(u)) return 'https://' + u;
-  return u;
-}
-
-/**
- * Загрузка ссылок с автоматической миграцией старого формата {name, url}
- * Also repairs the temporary wrong key fiqD__clinks if it was created before this fix.
- */
-function loadCLinks() {
-  try {
-    const key = getLinksKey();
-    const badKey = 'fiqD__clinks';
-
-    let raw = localStorage.getItem(key);
-    const badRaw = localStorage.getItem(badKey);
-
-    if (!raw && badRaw) {
-      raw = badRaw;
-      localStorage.setItem(key, badRaw);
-      localStorage.removeItem(badKey);
-    }
-
-    if (!raw) {
-      const defaultLinks = [
-        {
-          id: 'def-1',
-          name: 'CrewBIQ Community',
-          url: 'https://t.me/+ktZOiC7_bMowZmEx',
-          category: 'community',
-          note: 'Official CrewBIQ Community',
-          favorite: true,
-          createdAt: Date.now()
-        },
-        {
-          id: 'def-2',
-          name: 'CrewBIQ Support Bot',
-          url: 'https://t.me/CrewBIQSupport_bot',
-          category: 'community',
-          note: 'Support, bugs, ideas and referrals',
-          favorite: true,
-          createdAt: Date.now()
-        }
-      ];
-      localStorage.setItem(key, JSON.stringify(defaultLinks));
-      return defaultLinks;
-    }
-
-    let links = JSON.parse(raw);
-    if (!Array.isArray(links)) links = [];
-
-    let wasMigrated = false;
-    links = links.map(link => {
-      if (!link.id) {
-        wasMigrated = true;
-        return {
-          id: 'lnk-' + Math.random().toString(36).slice(2, 11) + '-' + Date.now(),
-          name: link.name || 'Untitled Work Link',
-          url: normalizeLinkUrl(link.url || '#'),
-          category: 'other',
-          note: '',
-          favorite: false,
-          createdAt: Date.now()
-        };
-      }
-      if (!link.category || !LINK_CATEGORIES[link.category]) {
-        wasMigrated = true;
-        link.category = 'other';
-      }
-      if (typeof link.favorite !== 'boolean') {
-        wasMigrated = true;
-        link.favorite = !!link.favorite;
-      }
-      if (link.url) {
-        const normalized = normalizeLinkUrl(link.url);
-        if (normalized !== link.url) {
-          wasMigrated = true;
-          link.url = normalized;
-        }
-      }
-      return link;
-    });
-
-    if (wasMigrated) localStorage.setItem(key, JSON.stringify(links));
-    return links;
-  } catch(e) {
-    console.error('[CrewBIQ Links] Error loading links:', e);
-    return [];
-  }
-}
-
-function saveCLinks(links) {
-  localStorage.setItem(getLinksKey(), JSON.stringify(links));
-  localStorage.removeItem('fiqD__clinks');
-}
-
-/**
- * Рендеринг основного экрана менеджера кастомных рабочих ссылок
- */
-function renderCommunity() {
-  const page = document.getElementById('communityCustomLinks');
-  if (!page) return;
-
-  const topSearch = document.getElementById('lmSearch');
-  if (topSearch && topSearch.value !== linkSearchQuery) topSearch.value = linkSearchQuery;
-
-  const links = loadCLinks();
-
-  const filtered = links.filter(l => {
-    const name = String(l.name || '');
-    const note = String(l.note || '');
-    const url = String(l.url || '');
-    if (linkSearchQuery) {
-      const q = linkSearchQuery.toLowerCase();
-      const matchN = name.toLowerCase().includes(q);
-      const matchNt = note.toLowerCase().includes(q);
-      const matchU = url.toLowerCase().includes(q);
-      if (!matchN && !matchNt && !matchU) return false;
-    }
-    if (currentLinkFilter === 'favorites') return !!l.favorite;
-    if (currentLinkFilter !== 'all') return l.category === currentLinkFilter;
-    return true;
+let linksRuntime = null;
+function getLinksRuntime(){
+  if(linksRuntime) return linksRuntime;
+  linksRuntime = CrewBIQLinks.create({
+    document, localStorage, K, escHtml, toast, URL, console,
+    confirm:(message)=>confirm(message),
+    setTimeout:(callback, delay)=>setTimeout(callback, delay),
+    random:()=>Math.random(),
+    now:()=>Date.now(),
   });
-
-  const grouped = {};
-  filtered.forEach(l => {
-    const cat = LINK_CATEGORIES[l.category] ? l.category : 'other';
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(l);
-  });
-
-  const quickFilters = [
-    { id: 'all', label: 'All' },
-    { id: 'favorites', label: '⭐ Favorites' },
-    { id: 'dispatch', label: 'Dispatch' },
-    { id: 'accounting', label: 'Accounting' },
-    { id: 'maintenance', label: 'Maintenance' },
-    { id: 'documents', label: 'Docs' }
-  ];
-
-  let html = `<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:8px;-webkit-overflow-scrolling:touch;">`;
-  quickFilters.forEach(f => {
-    const act = currentLinkFilter === f.id;
-    html += `
-      <button onclick="currentLinkFilter='${f.id}'; renderCommunity();" class="lm-chip ${act ? 'lm-chip-active' : ''}">
-        ${escHtml(f.label)}
-      </button>`;
-  });
-  html += `</div>`;
-
-  if (filtered.length === 0) {
-    html += `
-      <div class="empty" style="padding:40px 20px;border:1px dashed var(--bd);border-radius:12px">
-        No custom work links found.
-      </div>`;
-  } else {
-    for (const [catKey, catMeta] of Object.entries(LINK_CATEGORIES)) {
-      if (!grouped[catKey] || grouped[catKey].length === 0) continue;
-
-      html += `
-        <div class="lm-cat-group-title">
-          <span>${catMeta.icon}</span>
-          <span>${escHtml(catMeta.label)}</span>
-          <span style="opacity:.55">(${grouped[catKey].length})</span>
-        </div>`;
-
-      grouped[catKey].forEach(link => {
-        const safeId = escAttr(link.id || '');
-        const safeName = escHtml(link.name || 'Untitled Link');
-        const safeNote = escHtml(link.note || '');
-        const safeUrl = escAttr(normalizeLinkUrl(link.url || '#'));
-
-        let domain = '';
-        try { domain = new URL(normalizeLinkUrl(link.url)).hostname.replace('www.', ''); }
-        catch(e) { domain = normalizeLinkUrl(link.url || '#'); }
-        const safeDomain = escHtml(domain);
-
-        html += `
-          <div class="lm-card ${link.favorite ? 'fav' : ''}">
-            <div class="lm-card-body">
-              <div class="lm-cat-icon" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25)">
-                ${catMeta.icon}
-              </div>
-              <div class="lm-card-info">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-                  <div class="lm-card-name">${safeName}</div>
-                  <button onclick="toggleLinkFav('${safeId}')" style="background:none;border:none;color:${link.favorite ? 'var(--acc)' : 'var(--mu)'};cursor:pointer;font-size:18px;line-height:1;padding:0">
-                    ${link.favorite ? '★' : '☆'}
-                  </button>
-                </div>
-                ${safeNote ? `<div class="lm-card-note">${safeNote}</div>` : ''}
-                <div class="lm-card-url">🌐 ${safeDomain}</div>
-              </div>
-            </div>
-            <div class="lm-card-actions">
-              <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="flex:1;text-align:center;text-decoration:none;color:var(--acc);padding:9px 4px;font-size:12px;font-weight:700">
-                Open ↗
-              </a>
-              <button onclick="openLinkModal('${safeId}')">Edit</button>
-              <button onclick="deleteLink('${safeId}')" style="color:var(--rd)">Delete</button>
-            </div>
-          </div>`;
-      });
-    }
-  }
-
-  page.innerHTML = html;
+  return linksRuntime;
 }
-
-function toggleLinkFav(id) {
-  let links = loadCLinks();
-  links = links.map(l => l.id === id ? { ...l, favorite: !l.favorite } : l);
-  saveCLinks(links);
-  renderCommunity();
-}
-
-function deleteLink(id) {
-  if (confirm('Delete this work link?')) {
-    let links = loadCLinks().filter(l => l.id !== id);
-    saveCLinks(links);
-    renderCommunity();
-    toast('Link deleted');
-  }
-}
-
-function openLinkModal(id = '') {
-  let backdrop = document.getElementById('lm_modal_backdrop');
-  if (!backdrop) {
-    backdrop = document.createElement('div');
-    backdrop.id = 'lm_modal_backdrop';
-    backdrop.className = 'lm-modal-backdrop';
-    document.body.appendChild(backdrop);
-  }
-
-  let item = { id: '', name: '', url: '', category: 'other', note: '', favorite: false };
-  if (id) {
-    const found = loadCLinks().find(l => l.id === id);
-    if (found) item = found;
-  }
-
-  let catOptions = '';
-  for (const [key, value] of Object.entries(LINK_CATEGORIES)) {
-    catOptions += `<option value="${key}" ${item.category === key ? 'selected' : ''}>${value.icon} ${escHtml(value.label)}</option>`;
-  }
-
-  backdrop.innerHTML = `
-    <div class="lm-modal-box">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid var(--bd);padding-bottom:8px;">
-        <h4 style="margin:0;font-size:16px;color:var(--tx);font-weight:bold;">${item.id ? 'Edit Link' : 'Add Custom Link'}</h4>
-        <span onclick="closeLinkModal()" style="cursor:pointer;color:var(--tx);opacity:.5;font-size:22px;line-height:1;">&times;</span>
-      </div>
-      <form id="lm_form" onsubmit="handleSaveLink(event)">
-        <input type="hidden" id="lm_id" value="${escAttr(item.id || '')}">
-
-        <label style="display:block;margin-bottom:4px;font-size:11px;opacity:.6;">Link Name *</label>
-        <input type="text" id="lm_name" value="${escAttr(item.name || '')}" required class="lm-input" placeholder="e.g. Amazon Dispatch Room">
-
-        <label style="display:block;margin-bottom:4px;font-size:11px;opacity:.6;">URL Address *</label>
-        <input type="url" id="lm_url" placeholder="https://" value="${escAttr(item.url || '')}" required class="lm-input">
-
-        <label style="display:block;margin-bottom:4px;font-size:11px;opacity:.6;">Category</label>
-        <select id="lm_category" class="lm-select">
-          ${catOptions}
-        </select>
-
-        <label style="display:block;margin-bottom:4px;font-size:11px;opacity:.6;">Note / Access Code (Optional)</label>
-        <input type="text" id="lm_note" placeholder="e.g. Ext 402, code 9921" value="${escAttr(item.note || '')}" class="lm-input">
-
-        <div style="margin:12px 0 18px 0;display:flex;align-items:center;gap:8px;">
-          <input type="checkbox" id="lm_favorite" ${item.favorite ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--acc);cursor:pointer;">
-          <label for="lm_favorite" style="font-size:13px;cursor:pointer;user-select:none;">Pin to Favorites</label>
-        </div>
-
-        <div style="display:flex;gap:10px;">
-          <button type="button" onclick="closeLinkModal()" style="flex:1;background:var(--s2);border:1px solid var(--bd);color:var(--tx);padding:10px;border-radius:6px;font-size:13px;cursor:pointer;">Cancel</button>
-          <button type="submit" style="flex:1;background:var(--acc);border:none;color:#000;font-weight:bold;padding:10px;border-radius:6px;font-size:13px;cursor:pointer;">Save</button>
-        </div>
-      </form>
-    </div>`;
-  backdrop.style.display = 'block';
-  setTimeout(() => {
-    const nameEl = document.getElementById('lm_name');
-    if (nameEl) nameEl.focus();
-  }, 50);
-}
-
-function closeLinkModal() {
-  const backdrop = document.getElementById('lm_modal_backdrop');
-  if (backdrop) backdrop.style.display = 'none';
-}
-
-function handleSaveLink(e) {
-  if (e) e.preventDefault();
-
-  const id = document.getElementById('lm_id').value;
-  const name = document.getElementById('lm_name').value.trim();
-  const url = normalizeLinkUrl(document.getElementById('lm_url').value.trim());
-  const category = document.getElementById('lm_category').value;
-  const note = document.getElementById('lm_note').value.trim();
-  const favorite = document.getElementById('lm_favorite').checked;
-
-  if (!name || !url) {
-    toast('Name and URL required', 'err');
-    return;
-  }
-
-  let links = loadCLinks();
-
-  if (id) {
-    links = links.map(l => l.id === id ? { ...l, name, url, category, note, favorite } : l);
-  } else {
-    links.push({
-      id: 'lnk-' + Math.random().toString(36).slice(2, 11) + '-' + Date.now(),
-      name, url, category, note, favorite,
-      createdAt: Date.now()
-    });
-  }
-
-  saveCLinks(links);
-  closeLinkModal();
-  renderCommunity();
-  toast(id ? 'Link updated' : 'Link added');
-}
-
+function setLinkFilter(value){ return getLinksRuntime().setFilter(value); }
+function setLinkSearchQuery(value){ return getLinksRuntime().setSearchQuery(value); }
+function getLinksKey(){ return getLinksRuntime().getLinksKey(); }
+function normalizeLinkUrl(value){ return getLinksRuntime().normalizeLinkUrl(value); }
+function loadCLinks(){ return getLinksRuntime().loadCLinks(); }
+function saveCLinks(value){ return getLinksRuntime().saveCLinks(value); }
+function renderCommunity(){ return getLinksRuntime().renderCommunity(); }
+function toggleLinkFav(id){ return getLinksRuntime().toggleLinkFav(id); }
+function deleteLink(id){ return getLinksRuntime().deleteLink(id); }
+function openLinkModal(id=''){ return getLinksRuntime().openLinkModal(id); }
+function closeLinkModal(){ return getLinksRuntime().closeLinkModal(); }
+function handleSaveLink(event){ return getLinksRuntime().handleSaveLink(event); }
 
 function shareInvite(){
   let url='https://crewbiq.github.io/crewbiq-driver';
@@ -6984,15 +6765,7 @@ if(_savedUrl && document.getElementById('loginSyncUrl'))
 if(_savedSched && document.getElementById('setupPtiSchedule'))
   document.getElementById('setupPtiSchedule').value = _savedSched;
 document.getElementById('pickupDate').value = today();
-const _savedSession = getSavedSessionToken();
-if(_savedSession && (_savedUrl || (driver && driver.syncUrl))){
-  restoreSession({sessionToken:_savedSession, syncUrl:_savedUrl || driver.syncUrl, silent:true})
-    .catch(e => console.warn('[CrewBIQ Auth] session restore failed:', e.message))
-    .finally(() => boot());
-} else {
-  setFleetRestoreSettled(true);
-  boot();
-}
+getStartupCoordinator().start({savedUrl:_savedUrl});
 </script>
 </body>
 </html>

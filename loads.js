@@ -47,13 +47,15 @@
 
   // ── ACCESSORS ──────────────────────────────────────────────────────────────
 
-  let _get = { driver: null, loads: null, ptiLog: null };
+  let _get = { driver: null, loads: null, ptiLog: null, workspaceContext: null, workspaceDriverRoster: null };
   let _set = { loads: null };
   let _saveAll   = null;
   let _doSync    = null;
   let _renderAll = null;
   let _showPage  = null;
   let _ready = false;
+  let _workspaceDrivers = [];
+  let _driverRosterRequestId = 0;
 
   // ── SORT HELPER ───────────────────────────────────────────────
   // Always newest pickup date first. Called every time loads are written.
@@ -72,11 +74,15 @@
     const _rawSetLoads = opts.setLoads;
     _set.loads   = (v) => _rawSetLoads(_sortLoads(v));
     _get.ptiLog  = opts.getPtiLog || (() => []);
+    _get.workspaceContext = opts.getWorkspaceContext || (() => null);
+    _get.workspaceDriverRoster = opts.readWorkspaceDriverRoster || null;
     _saveAll     = opts.saveAll;
     _doSync      = opts.doSync;
     _renderAll   = opts.renderAll;
     _showPage    = opts.showPage;
     _ready = true;
+
+    refreshNewLoadAttribution();
 
     Core.events.on('driver:pay_settings_changed', (payload) => {
       const effectiveDate = (payload && payload.effectiveDate) || _today();
@@ -176,6 +182,79 @@
     return { truckId: truck ? truck.id : '', unitNumber: truck ? truck.unitNumber : '' };
   }
 
+  function resolveNewLoadTruckAttribution(selection) {
+    const truckId = String((selection && selection.truckId) || '').trim();
+    return truckId
+      ? { ok: true, truckId }
+      : { ok: false, code: 'truck_not_resolved' };
+  }
+
+  function resolveNewLoadDriverAttribution(selection, workspaceResolution) {
+    const driverId = String((selection && selection.driverId) || '').trim();
+    const workspaceId = String((selection && selection.workspaceId) || '').trim();
+    const name = String((selection && selection.name) || '').trim();
+    if (!driverId || !workspaceId || !name) return { ok: false, code: 'driver_not_resolved' };
+    if (!workspaceResolution || workspaceResolution.ok !== true || workspaceResolution.workspaceId !== workspaceId) {
+      return { ok: false, code: 'driver_workspace_mismatch' };
+    }
+    return { ok: true, driverId, workspaceId, name };
+  }
+
+  function getLoadDriverSelection() {
+    const select = document.getElementById('loadDriverSelect');
+    const selectedId = String((select && select.value) || '').trim();
+    const driver = _workspaceDrivers.find(candidate => candidate.driverId === selectedId) || null;
+    return driver ? { ...driver } : null;
+  }
+
+  function hideLoadDriverSelect() {
+    _driverRosterRequestId += 1;
+    _workspaceDrivers = [];
+    const row = document.getElementById('loadDriverRow');
+    const select = document.getElementById('loadDriverSelect');
+    if (row) row.style.display = 'none';
+    if (select) { select.innerHTML = ''; select.disabled = true; }
+  }
+
+  async function populateLoadDriverSelect() {
+    const requestId = ++_driverRosterRequestId;
+    const row = document.getElementById('loadDriverRow');
+    const select = document.getElementById('loadDriverSelect');
+    if (!row || !select) return;
+    row.style.display = '';
+    select.disabled = true;
+    select.innerHTML = '<option value="" selected disabled>Loading authorized Drivers...</option>';
+    _workspaceDrivers = [];
+    if (typeof _get.workspaceDriverRoster !== 'function') {
+      select.innerHTML = '<option value="" selected disabled>Authorized Driver roster unavailable</option>';
+      return;
+    }
+    const result = await _get.workspaceDriverRoster();
+    if (requestId !== _driverRosterRequestId) return;
+    if (!result || result.ok !== true || !Array.isArray(result.drivers)) {
+      select.innerHTML = '<option value="" selected disabled>Authorized Driver roster unavailable</option>';
+      return;
+    }
+    _workspaceDrivers = result.drivers.map(driver => ({ ...driver }));
+    if (!_workspaceDrivers.length) {
+      select.innerHTML = '<option value="" selected disabled>No authorized Drivers available</option>';
+      return;
+    }
+    select.innerHTML = '<option value="" selected disabled>Driver assignment required</option>' + _workspaceDrivers.map(driver =>
+      `<option value="${_escHtml(driver.driverId)}">${_escHtml(driver.name)}</option>`
+    ).join('');
+    select.disabled = false;
+  }
+
+  function refreshNewLoadAttribution() {
+    if (!_ready) return Promise.resolve();
+    const editId = document.getElementById('loadEditId');
+    if (editId && editId.value) return Promise.resolve();
+    const truckSelection = getLoadTruckSelection();
+    populateLoadTruckSelect(truckSelection.truckId || truckSelection.unitNumber || '');
+    return populateLoadDriverSelect();
+  }
+
   function populateLoadTruckSelect(preferred = '') {
     const row = document.getElementById('loadTruckRow');
     const select = document.getElementById('loadTruckSelect');
@@ -189,13 +268,19 @@
     }
 
     const driver = _get.driver ? _get.driver() : null;
-    const preferredTruck = findTruckByIdOrUnit(preferred)
-      || findTruckByIdOrUnit(select.value)
-      || findTruckByIdOrUnit(driver && driver.unitNumber);
-    const selectedId = preferredTruck ? preferredTruck.id : trucks[0].id;
+    const preferredKey = String(preferred || '').trim();
+    const currentKey = String(select.value || '').trim();
+    const driverKey = String((driver && driver.unitNumber) || '').trim();
+    const explicitKey = preferredKey || currentKey || driverKey;
+    const selectedTruck = explicitKey
+      ? findTruckByIdOrUnit(explicitKey)
+      : (trucks.length === 1 ? trucks[0] : null);
+    const selectedId = selectedTruck ? selectedTruck.id : '';
 
     row.style.display = '';
-    select.innerHTML = trucks.map(t => {
+    select.innerHTML = (!selectedTruck
+      ? '<option value="" selected disabled>Truck assignment required</option>'
+      : '') + trucks.map(t => {
       const selected = t.id === selectedId ? ' selected' : '';
       return `<option value="${_escHtml(t.id)}"${selected}>${_escHtml(truckLabel(t))}</option>`;
     }).join('');
@@ -325,6 +410,7 @@
     if (det) det.value = '';
     if (lay) lay.value = '';
     populateLoadTruckSelect();
+    populateLoadDriverSelect();
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -347,6 +433,15 @@
     const loads     = _get.loads();
     const driver    = _get.driver();
     const truckSel  = getLoadTruckSelection();
+    const truckAttribution = resolveNewLoadTruckAttribution(truckSel);
+    if (!truckAttribution.ok) return _toast('Truck assignment required', 'err');
+    const workspaceResolution = global.CrewBIQWorkspaceAttribution
+      ? global.CrewBIQWorkspaceAttribution.resolveActiveWorkspace(_get.workspaceContext())
+      : { ok: false, code: 'workspace_not_resolved' };
+    const driverAttribution = !editId
+      ? resolveNewLoadDriverAttribution(getLoadDriverSelection(), workspaceResolution)
+      : null;
+    if (!editId && !driverAttribution.ok) return _toast('Driver assignment required', 'err');
     if (!editId && loads.find(x => x.loadId === loadId)) return _toast('Load ID already exists', 'err');
     if (!editId) {
       const sameDate = loads.filter(x => x.pickup === pickupVal);
@@ -358,7 +453,7 @@
       }
     }
     const existingEntry = editId ? loads.find(x => x.id === editId) : null;
-    const entry = {
+    let entry = {
       id: editId || ('l_' + Date.now()), loadId, gross,
       loadedMiles: loaded, deadMiles: dead, totalMiles: total,
       driverPay: pay, detention, layover,
@@ -366,7 +461,6 @@
       pickupLocation: document.getElementById('pickupLocation').value.trim(),
       deliveryLocation: document.getElementById('deliveryLocation').value.trim(),
       notes: document.getElementById('loadNotes').value.trim(),
-      truckId: truckSel.truckId || (existingEntry && existingEntry.truckId) || '',
       unitNumber: truckSel.unitNumber || driver.unitNumber,
       driverName: driver.name,
       ownerKey: ownerKey(), crewId: driver.crewId || '', driverEmail: driver.email || '',
@@ -374,6 +468,24 @@
       adjAmount: (existingEntry && existingEntry.adjAmount) || 0,
       synced: false,
     };
+    if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'workspaceId')) {
+      entry.workspaceId = existingEntry.workspaceId;
+    }
+    entry.truckId = truckAttribution.truckId;
+    if (existingEntry && Object.prototype.hasOwnProperty.call(existingEntry, 'driverId')) {
+      entry.driverId = existingEntry.driverId;
+    }
+    if (!editId) {
+      entry.driverId = driverAttribution.driverId;
+      entry.driverName = driverAttribution.name;
+    }
+    if (!editId && global.CrewBIQWorkspaceAttribution) {
+      const attribution = global.CrewBIQWorkspaceAttribution.attributeNewRecord(entry, _get.workspaceContext());
+      entry = attribution.record;
+      if (!attribution.resolution.ok) {
+        console.warn('[CrewBIQ Loads] workspace attribution skipped:', attribution.resolution.code);
+      }
+    }
     let updated = editId ? loads.map(x => x.id === editId ? entry : x) : [...loads, entry];
     _set.loads(updated); // setLoads wrapper auto-sorts
     _saveAll();
@@ -405,6 +517,7 @@
     if (det) det.value = x.detention ? x.detention.toFixed(2) : '';
     if (lay) lay.value = x.layover   ? x.layover.toFixed(2)   : '';
     populateLoadTruckSelect(x.truckId || x.unitNumber || '');
+    hideLoadDriverSelect();
     document.getElementById('saveLoadBtn').textContent     = 'Save Changes';
     document.getElementById('cancelEditBtn').style.display = 'block';
     calcPreview();
@@ -1250,10 +1363,12 @@
   const CrewBIQLoads = {
     version: '0.4.0',
     init,
+    resolveNewLoadTruckAttribution,
+    resolveNewLoadDriverAttribution,
     assignUnresolvedLoad,
     calcDriverPay, calcDriverPayWith, recalcLoadsFrom,
     maskGross, calcPreview, getWeekLoads,
-    saveLoad, editLoad, deleteLoad, resetLoadForm, setLoadStatus,
+    saveLoad, editLoad, deleteLoad, resetLoadForm, refreshNewLoadAttribution, setLoadStatus,
     toggleStatusMenu, closeAllMenus,
     getDriverDisputed, setDriverDisputed,
     addDriverDisputed, driverResolveDispute, driverReopenDispute,

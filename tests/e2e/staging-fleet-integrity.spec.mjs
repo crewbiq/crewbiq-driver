@@ -4,10 +4,14 @@ import {
   attachSafeObservations,
   clone,
   exactlyOneById,
+  loginIdentity,
   loginFleetA,
   openFreshApplication,
+  pushIdentityOwnerData,
   pushOwnerData,
+  registerFreshIdentity,
   restoreFleet,
+  restorePwa,
   revokeSession,
 } from './support/staging-api.mjs';
 
@@ -51,7 +55,7 @@ function fleetStorageKey(crewbiqId, entity) {
   return `fiqD_data_crew_${slug}_${entity}`;
 }
 
-async function seedFleetUi(page, config, token, fleet) {
+async function seedFleetUi(page, config, token, fleet, authCrewbiqId = config.fleetA.authCrewbiqId) {
   await page.evaluate(({ authId, email, syncUrl, sessionToken, trucks, driverProfiles, profileKey, truckKey }) => {
     localStorage.setItem('fiqD_driver', JSON.stringify({
       crewId: authId,
@@ -65,16 +69,19 @@ async function seedFleetUi(page, config, token, fleet) {
     localStorage.setItem(profileKey, JSON.stringify(driverProfiles));
     localStorage.setItem(truckKey, JSON.stringify(trucks));
   }, {
-    authId: config.fleetA.authCrewbiqId,
+    authId: authCrewbiqId,
     email: 'e2e-redacted@example.test',
     syncUrl: `${config.orchestratorUrl}/v1/sync`,
     sessionToken: token,
     trucks: fleet.trucks,
     driverProfiles: fleet.driverProfiles,
-    profileKey: fleetStorageKey(config.fleetA.authCrewbiqId, 'driverProfiles'),
-    truckKey: fleetStorageKey(config.fleetA.authCrewbiqId, 'trucks'),
+    profileKey: fleetStorageKey(authCrewbiqId, 'driverProfiles'),
+    truckKey: fleetStorageKey(authCrewbiqId, 'trucks'),
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => (
+    typeof _fleetRestoreSettled !== 'undefined' && _fleetRestoreSettled === true
+  ), undefined, { timeout: 20_000 });
   await page.evaluate(() => {
     if (typeof showPage === 'function') showPage('drivers');
     if (typeof renderDriversPage === 'function') renderDriversPage();
@@ -105,6 +112,16 @@ function softFleetSnapshot(response) {
       ? response.body.trucks : [],
     driverProfiles: Array.isArray(response && response.body && response.body.driver_profiles)
       ? response.body.driver_profiles : [],
+  };
+}
+
+function activePwaOwnerSnapshot(response) {
+  expect(response.status).toBe(200);
+  expect(response.body.ok).toBe(true);
+  const ownerData = response.body && response.body.ownerData ? response.body.ownerData : {};
+  return {
+    trucks: Array.isArray(ownerData.trucks) ? ownerData.trucks : [],
+    driverProfiles: Array.isArray(ownerData.driverProfiles) ? ownerData.driverProfiles : [],
   };
 }
 
@@ -470,35 +487,60 @@ test(
     let originalProfileMutated = false;
     let originalProfileDeactivated = false;
     let originalProfile = null;
+    let freshCrewbiqId = '';
+    const terminationDate = new Date().toISOString().slice(0, 10);
 
     try {
       assertEmptyStorage(await openFreshApplication(page, context, config));
       assertEmptyStorage(await openFreshApplication(recoveryPage, recoveryContext, config));
-      writerToken = tokenFrom(await loginFleetA(page, config));
-      recoveryToken = tokenFrom(await loginFleetA(recoveryPage, config));
+      const freshIdentity = await registerFreshIdentity(page, config, 'driver-crud-01');
+      expect(freshIdentity.status).toBe(201);
+      expect(freshIdentity.token).toBeTruthy();
+      expect(freshIdentity.crewbiqId).toBeTruthy();
+      freshCrewbiqId = freshIdentity.crewbiqId;
+      writerToken = freshIdentity.token;
+      const recoveryLogin = await loginIdentity(recoveryPage, config, freshIdentity.credentials);
+      expect(recoveryLogin.status).toBe(200);
+      recoveryToken = recoveryLogin.body.session_token;
+      expect(recoveryToken).toBeTruthy();
 
-      const beforeResponse = await restoreFleet(page, config, writerToken);
-      let before = activeFleetSnapshot(beforeResponse);
-      const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED`;
-      const staleAddedProfiles = before.driverProfiles.filter(item => item.name === marker);
-      if (staleAddedProfiles.length) {
-        const staleCleanup = await pushOwnerData(page, config, writerToken, {
-          driverProfiles: staleAddedProfiles.map(item => ({
-            ...item,
-            active: false,
-            terminatedAt: '2026-07-14',
-          })),
-        }, 'DRIVER-CRUD-01', 'stale-cleanup');
-        expect(staleCleanup.status).toBe(200);
-        before = activeFleetSnapshot(await restoreFleet(page, config, writerToken));
-      }
-      originalProfile = clone(before.driverProfiles.find(item =>
-        item.id === config.fleetA.activeDriverProfileIds[0]));
+      const emptyBefore = activePwaOwnerSnapshot(await restorePwa(page, config, writerToken));
+      expect(emptyBefore.driverProfiles).toHaveLength(0);
+      await seedFleetUi(page, config, writerToken, emptyBefore, freshCrewbiqId);
+
+      const baseMarker = `${config.displayPrefix}DRIVER-CRUD-01-FRESH-${Date.now()}`;
+      await page.evaluate(() => {
+        const button = Array.from(document.querySelectorAll('#page-drivers button'))
+          .find(item => /Add Driver/.test(item.textContent || ''));
+        if (!button) throw new Error('Add Driver button is missing');
+        button.click();
+      });
+      await page.locator('#dfName').fill(baseMarker);
+      await page.locator('#dfPayType').selectOption('cpm');
+      await page.locator('#dfRate').fill('0.65');
+      await page.locator('#dfActive').selectOption('1');
+      await page.evaluate(() => {
+        const button = document.querySelector('#driverModal button.btn.primary');
+        if (!button) throw new Error('Driver Save button is missing');
+        button.click();
+      });
+      originalProfile = await page.evaluate(name => loadDriverProfiles().find(item => item.name === name), baseMarker);
       expect(originalProfile && originalProfile.id).toBeTruthy();
-      await seedFleetUi(page, config, writerToken, before);
+      const baseWrite = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
+        driverProfiles: await page.evaluate(() => loadDriverProfiles()),
+      }, 'DRIVER-CRUD-01', 'fresh-base');
+      expect(baseWrite.status).toBe(200);
+      const baseRestored = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
+      expect(exactlyOneById(baseRestored.driverProfiles, originalProfile.id)).toHaveLength(1);
 
-      observations.push({ step: 'seeded-driver-ui', original_id: originalProfile.id });
+      const marker = `${config.displayPrefix}DRIVER-CRUD-01-ADDED-${Date.now()}`;
+
+      observations.push({
+        step: 'seeded-fresh-driver-ui', original_id: originalProfile.id,
+        previously_touched: false,
+      });
       originalProfileMutated = true;
+      await page.evaluate(() => { window.confirm = () => true; });
       await page.evaluate(async ({ id, payType, rate }) => {
         openDriverForm(id);
         const payTypeEl = document.querySelector('#dfPayType');
@@ -509,7 +551,13 @@ test(
         toggleDriverPayFields();
         await saveDriverForm();
       }, { id: originalProfile.id, payType: 'cpm', rate: 0.91 });
-      const afterCpmEdit = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const localCpmProfile = await page.evaluate(id => loadDriverProfiles().find(item => item.id === id), originalProfile.id);
+      expect(localCpmProfile.payType).toBe('cpm');
+      expect(localCpmProfile.rate).toBe(0.91);
+      expect((await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
+        driverProfiles: await page.evaluate(() => loadDriverProfiles()),
+      }, 'DRIVER-CRUD-01', 'cpm-edit')).status).toBe(200);
+      const afterCpmEdit = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
       const cpmProfile = exactlyOneById(afterCpmEdit.driverProfiles, originalProfile.id);
       expect(cpmProfile).toHaveLength(1);
       expect(cpmProfile[0].payType).toBe('cpm');
@@ -524,7 +572,13 @@ test(
         toggleDriverPayFields();
         await saveDriverForm();
       }, { id: originalProfile.id, payType: 'gross_percent', rate: 27.5 });
-      const afterGrossEdit = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const localGrossProfile = await page.evaluate(id => loadDriverProfiles().find(item => item.id === id), originalProfile.id);
+      expect(localGrossProfile.payType).toBe('gross_percent');
+      expect(localGrossProfile.rate).toBe(27.5);
+      expect((await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
+        driverProfiles: await page.evaluate(() => loadDriverProfiles()),
+      }, 'DRIVER-CRUD-01', 'gross-edit')).status).toBe(200);
+      const afterGrossEdit = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
       const grossProfile = exactlyOneById(afterGrossEdit.driverProfiles, originalProfile.id);
       expect(grossProfile).toHaveLength(1);
       expect(grossProfile[0].payType).toBe('gross_percent');
@@ -548,9 +602,12 @@ test(
         const item = loadDriverProfiles().find(profile => profile.id === id);
         return item ? item.active : null;
       }, originalProfile.id)).toBe(false);
+      expect((await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
+        driverProfiles: await page.evaluate(() => loadDriverProfiles()),
+      }, 'DRIVER-CRUD-01', 'delete')).status).toBe(200);
       originalProfileDeactivated = true;
       observations.push({ step: 'verified-local-inactive-tombstone' });
-      const afterDelete = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const afterDelete = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
       observations.push({ step: 'completed-delete-recovery' });
       expect(exactlyOneById(afterDelete.driverProfiles, originalProfile.id)).toHaveLength(0);
       observations.push({
@@ -580,11 +637,11 @@ test(
       const localAfterAdd = await page.evaluate(() => ({
         driverProfiles: loadDriverProfiles(),
       }));
-      const addSync = await pushOwnerData(page, config, writerToken, {
+      const addSync = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
         driverProfiles: localAfterAdd.driverProfiles,
       }, 'DRIVER-CRUD-01', 'add');
       expect(addSync.status).toBe(200);
-      const afterAdd = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const afterAdd = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
       expect(exactlyOneById(afterAdd.driverProfiles, addedProfile.id)).toHaveLength(1);
       expect(exactlyOneById(afterAdd.driverProfiles, addedProfile.id)[0].name).toBe(marker);
       observations.push({
@@ -594,11 +651,11 @@ test(
         sync_status: addSync.status,
       });
 
-      const terminateSync = await pushOwnerData(page, config, writerToken, {
-        driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
+      const terminateSync = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
+        driverProfiles: [{ ...addedProfile, active: false, terminatedAt: terminationDate }],
       }, 'DRIVER-CRUD-01', 'terminate');
       expect(terminateSync.status).toBe(200);
-      const afterTerminate = activeFleetSnapshot(await restoreFleet(recoveryPage, config, recoveryToken));
+      const afterTerminate = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
       expect(exactlyOneById(afterTerminate.driverProfiles, addedProfile.id)).toHaveLength(0);
       expect(exactlyOneById(afterTerminate.driverProfiles, originalProfile.id)).toHaveLength(0);
       addedProfileTerminated = true;
@@ -612,19 +669,19 @@ test(
     } finally {
       if (addedProfile && writerToken && !addedProfileTerminated) {
         await cleanupStep('driver-crud-added-profile-rollback', observations, async () => {
-          const rollback = await pushOwnerData(page, config, writerToken, {
-            driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
+          const rollback = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
+            driverProfiles: [{ ...addedProfile, active: false, terminatedAt: terminationDate }],
           }, 'DRIVER-CRUD-01', 'rollback');
           expect.soft(rollback.status).toBe(200);
         });
       }
       if (originalProfile && originalProfileMutated && writerToken) {
         await cleanupStep('driver-crud-original-profile-rollback', observations, async () => {
-          const rollback = await pushOwnerData(page, config, writerToken, {
+          const rollback = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
             driverProfiles: [{
               ...originalProfile,
-              active: true,
-              terminatedAt: null,
+              active: false,
+              terminatedAt: terminationDate,
             }],
           }, 'DRIVER-CRUD-01', 'original-rollback');
           expect.soft(rollback.status).toBe(200);

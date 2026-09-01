@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const navigationModel = readFileSync(new URL('../navigation-model.js', import.meta.url), 'utf8');
 
 test('primary navigation exposes task domains and a global add action', () => {
   assert.match(html, /data-page="home"[^>]*>[\s\S]*?Today/);
@@ -26,9 +27,9 @@ test('functions have one clear domain and the legacy menu uses the same groups',
   const hubs = html.slice(html.indexOf('id="page-work"'), html.indexOf('<!-- MENU / MODULES -->'));
   assert.equal((hubs.match(/showPage\('scan'\)/g) || []).length, 1, 'Documents should belong to Work only');
   assert.doesNotMatch(hubs, /Quick Access/);
-  assert.match(html, /const FUNCTION_GROUPS = \[/);
+  assert.match(navigationModel, /const FUNCTION_GROUPS = \[/);
   for (const group of ['Work', 'Truck', 'Money', 'Team', 'Resources & account']) {
-    assert.match(html, new RegExp(`label:'${group.replace('&', '&')}'`));
+    assert.match(navigationModel, new RegExp(`label:'${group.replace('&', '&')}'`));
   }
   assert.match(html, /data-function-group="\$\{group\.label\}"/);
 });
@@ -36,9 +37,10 @@ test('functions have one clear domain and the legacy menu uses the same groups',
 test('role adaptation swaps Truck and Team and filters owner actions', () => {
   assert.match(html, /truckNav\.style\.display = role === 'fleet' \? 'none' : ''/);
   assert.match(html, /teamNav\.style\.display = role === 'fleet' \? '' : 'none'/);
-  assert.match(html, /const roleRank = \{driver:0, owner_op:1, fleet:2\}/);
+  assert.match(navigationModel, /const ROLE_RANK = \{driver:0,owner_op:1,fleet:2\}/);
   assert.match(html, /data-min-role="owner_op"/);
-  assert.match(html, /getUserRole\(\)==='fleet' \? 'team' : 'truck'/);
+  assert.match(html, /CrewBIQNavigationModel\.primaryDestinationForPage\(name, getUserRole\(\)\)/);
+  assert.match(navigationModel, /role === 'fleet' \? 'team' : 'truck'/);
 });
 
 test('account and quick add remain keyboard reachable', () => {
@@ -53,7 +55,8 @@ test('account and quick add remain keyboard reachable', () => {
 test('secondary pages expose one prominent in-app back control without changing primary navigation', () => {
   assert.match(html, /id="appBackNav"[^>]*aria-hidden="true"/);
   assert.match(html, /id="appBackButton"[^>]*onclick="goBackPage\(\)"/);
-  assert.match(html, /const PRIMARY_NAV_PAGES = \['home','work','truck','team','money'\]/);
+  assert.match(html, /const PRIMARY_NAV_PAGES = CrewBIQNavigationModel\.PRIMARY_NAV_PAGES/);
+  assert.match(navigationModel, /const PRIMARY_NAV_PAGES = \['home','work','truck','team','money'\]/);
   assert.match(html, /function goBackPage\(\)/);
   assert.match(html, /pageNavigationHistory\.push\(previousPage\)/);
   assert.match(html, /updatePageBackNavigation\(name\)/);
