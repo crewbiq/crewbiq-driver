@@ -79,31 +79,31 @@ Phase:
 CrewBIQ MVP Production Gap Inventory
 
 Status:
-NEEDS_FIX / CODEX REVIEWED
+CORRECTED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The inventory correctly identifies several partial/proven areas but misclassifies live legacy connectivity. Exact production PWA main bcfd74a/cache v95 still contains executable direct Apps Script authentication/sync/fallback paths and a hardcoded script.google.com default. Therefore PWA-only-Orchestrator, executable legacy-path removal, and legacy independence are BLOCKED, not merely unverified. Production traffic remains unproven and cannot be established by a staging-only invalid-URL test.
+The inventory now uses only PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED. PWA-only-Orchestrator, Google-traffic, and legacy-path-removal are classified BLOCKED, citing direct bcfd74a source evidence (DEFAULT_SYNC_URL constant, getAuthSyncUrl() fallback chain with no Orchestrator-aware branch, and Settings UI copy naming Apps Script as primary). The staging-config-test recommendation is withdrawn and replaced with a read-only call-path evidence-mapping follow-up. Offline-retry evidence is narrowed to PARTIAL (single scenario only).
 
 Latest implementation commit:
 2bb115542e37817b30e5e2165dfeb1636be28b80
 
 Latest correction commit:
-54fb0aec2c79340c09d2530cca6cd3597eeec372 (crewbiq-docs)
+f492f06f504cc2433b1babea6611a311454bed6c
 
 Latest review commit:
 6100132782ccc44fe982f564c567602644882221
 
 Latest state commit:
-7d74ebc275e3976b9ae554f88959b16dfe64fe65
+(pending this publish)
 
 Blocking findings:
-CLASSIFICATION_SCHEMA_AND_PWA_ONLY_CLAIM_WRONG; EXECUTABLE_LEGACY_PATH_MISCLASSIFIED; PRODUCTION_TRAFFIC_NOT_PROVABLE_BY_STAGING_CONFIG_TEST; OFFLINE_PROOF_SCOPE_OVERSTATED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`: use only PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED; classify production PWA-only-Orchestrator and executable legacy-path removal from exact bcfd74a source evidence; keep production traffic BLOCKED pending authoritative production evidence; replace the insufficient staging-config recommendation with a read-only legacy call-path/control-point evidence slice; narrow offline retry to PARTIAL unless universal idempotency evidence is cited. Do not execute follow-up work or change configuration, runtime, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
+Independently re-verify the correction in `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` (commit f492f06f504cc2433b1babea6611a311454bed6c) against the four prior NEEDS_FIX findings: classification schema, executable-legacy-path/BLOCKED classification with bcfd74a evidence, withdrawal of the staging-config-test claim, and the narrowed offline-retry scope. Publish an ACCEPT or NEEDS_FIX verdict. Do not execute configuration, runtime, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR changes.
 <!-- CURRENT_END -->
 
 
@@ -3567,3 +3567,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Runtime, configuration, deployment, migration, merge, and data changes: NONE.
 - Next actor: Claude for document correction only.
 
+
+### 2026-09-01 - Claude - CrewBIQ MVP production gap inventory correction (implementer role)
+
+- Independently re-verified all four Codex NEEDS_FIX findings before correcting, rather than trusting the review at face value: re-fetched bcfd74a index.html directly, confirmed DEFAULT_SYNC_URL (script.google.com), confirmed getAuthSyncUrl() has no Orchestrator-aware branch and defaults to it, confirmed 4 additional live call sites, and confirmed Settings UI copy states Apps Script sync remains primary.
+- Corrected docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md: restored the authorized PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED schema (removed the invented NOT_VERIFIED label); reclassified PWA-only-Orchestrator, Google-traffic, and legacy-path-removal as BLOCKED with direct bcfd74a source citations; withdrew the staging-config-test recommendation as incapable of proving anything about production traffic; replaced it with a read-only call-path/control-point evidence-mapping follow-up; narrowed offline-retry from PROVEN to PARTIAL since only OFFLINE-01 (one scenario) was cited, not universal coverage.
+- Published commit f492f06f504cc2433b1babea6611a311454bed6c. Verified via GitHub Compare API against parent 9382ff441468bd7676275117c1f4f8b64851c430 that exactly one file changed (77 additions, 38 deletions, 115 changes) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review of the correction.
+- No implementation, configuration, runtime, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR change occurred.
+- Runtime/product files changed: NONE (documentation only).
