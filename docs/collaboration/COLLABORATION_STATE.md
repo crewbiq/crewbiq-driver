@@ -42,16 +42,16 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
+STAGING_VALIDATION_BLOCKED / DEFECT RECLASSIFICATION ACCEPTED
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; staging-only provisioning and additive migrations 010-011 remain authorized and completed. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
+current main; staging-only provisioning and additive migrations 010-011 remain authorized and completed. Two genuine runtime/client defects confirmed and awaiting Codex fixes. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
 
 Latest implementation commit:
 b151d7d6d0b27545a0819d71f5b1468d215c710c
@@ -60,25 +60,25 @@ Latest correction commit:
 driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator f00532a3437e14354748ef23a7827687797baa4f on agent/account-driver-link-read
 
 Latest documentation commit:
-this blocker-classification publication at branch tip; evidence document docs/collaboration/STAGING_VALIDATION_EVIDENCE.md
+test-harness commits 0735d29fb8a3865884301844de2f995ea933fde9 and 590e4cd408d9da48ae1c72cde1d682c53e10ce56; evidence document docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 8
 
 Latest review commit:
-07905775e96cf416698ff5bc64421a9e9772a641
+4cfd416bfeb733900947dffb4ff55786efe22606
 
 Blocking findings:
-STAGING_DRIVER_CRUD_RATE_MISMATCH - GENUINE RUNTIME/PERSISTENCE DEFECT: fresh account/profile edited 0.65 -> 0.91, authenticated sync 200, second-session restore returned 0.65. STAGING_LOAD_CREATION_NOT_COMPLETED - GENUINE CLIENT COMPOSITION DEFECT: active workspace present and direct authorized roster read 200/26 Drivers, but Load Driver selector remained disabled and emitted no roster request after explicit Truck selection. PTI finding CLOSED as shared-identity contamination plus Monday weekly-check test drift; isolated and protected fresh-identity PTI-01 pass.
+STAGING_DRIVER_CRUD_RATE_MISMATCH - CONFIRMED GENUINE RUNTIME/PERSISTENCE DEFECT (disposable identity rules out cross-run contamination; authenticated sync 200 but restore returns pre-edit rate - needs an orchestrator fix). STAGING_LOAD_CREATION_NOT_COMPLETED - CONFIRMED GENUINE CLIENT COMPOSITION DEFECT (loads.js/index.html wiring for readWorkspaceDriverRoster is architecturally correct and the roster read works via direct check, but populateLoadDriverSelect() does not carry that authority into the Load Driver selector at the point the form is composed - needs a client fix). PTI-01 CLOSED as test drift, no runtime defect.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry and fresh-identity PTI passed; production and legacy backfill remain unauthorized.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only, tracked separately. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry and fresh-identity PTI passed; production and legacy backfill remain unauthorized.
 
 Decision gate:
-REVIEW_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independently review test-harness commits 0735d29fb8a3865884301844de2f995ea933fde9 and 590e4cd408d9da48ae1c72cde1d682c53e10ce56 plus the blocker-classification addendum; confirm DRIVER-CRUD and LOAD genuine-defect classifications, PTI closure, and canonical-journey coverage-gap status. No implementation or production action.
+(1) diagnose and fix the orchestrator persistence path so an authenticated driver-profile CPM-rate edit returning HTTP 200 durably reflects on a subsequent authenticated restore; (2) diagnose and fix why populateLoadDriverSelect() in loads.js does not carry the already-working authorized roster read into the Load Driver selector when the Add Load form is composed; (3) re-run the full protected staging mission suite plus both isolated repro cases to confirm both fixes hold, and republish STAGING_VALIDATION_EVIDENCE.md for review. No production deployment, migration, merge, destructive rollback or legacy backfill is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1391,4 +1391,16 @@ Next bounded action: independent classification review only.
 - Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: fix LOAD-01's mission fixture; re-run DRIVER-CRUD-01/PTI-01 in isolation with a fresh identity and report whether the cause is test-isolation or a runtime defect; track the coverage gap separately, not as a blocker on the other three.
 - No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 07905775e96cf416698ff5bc64421a9e9772a641).
+- Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Claude - Staging Defect Reclassification Independent Review - ACCEPT
+
+- Method: read test-harness commits 0735d29fb8a3865884301844de2f995ea933fde9 and 590e4cd408d9da48ae1c72cde1d682c53e10ce56's described evidence and STAGING_VALIDATION_EVIDENCE.md section 8 in full; independently traced the live application source (loads.js, index.html) for the composition path STAGING_LOAD_CREATION_NOT_COMPLETED implicates, to check the described symptom against real code rather than accepting the narrative.
+- PTI-01 closure: ACCEPT. Disposable identity plus a Monday-specific weekly-checklist gap in the OLD mission (only 8 daily items selected when the live UI also required 6 weekly items that day) is a mundane, falsifiable test-authoring gap, not a runtime defect - consistent with what I had flagged as needing isolated diagnosis in the prior review.
+- STAGING_DRIVER_CRUD_RATE_MISMATCH: ACCEPT genuine defect. A disposable, never-shared identity explicitly excludes the cross-run contamination I had left open as a possibility; sync-200-but-restore-returns-stale-value is a credible write/read persistence inconsistency, not an assumption.
+- STAGING_LOAD_CREATION_NOT_COMPLETED: ACCEPT genuine defect. Independently confirmed loads.js's `_get.workspaceDriverRoster` wiring (from opts.readWorkspaceDriverRoster) and index.html's `initLoads()` passing `readWorkspaceDriverRoster: () => readAuthorizedWorkspaceDriverRoster()` are both architecturally correct and connected - not missing or misnamed - consistent with the evidence's own finding that the roster read works via a direct check (200/26 Drivers) while the Load form's Driver selector still never gets that data at the point the mission exercises it. This narrows the defect precisely to populateLoadDriverSelect()'s invocation/refresh timing, not a broken integration.
+- Verdict: ACCEPT both reclassifications as genuine runtime/client defects requiring real code fixes (not test/fixture changes); PTI-01 correctly closed; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a separately-tracked coverage gap. Overall status remains STAGING_VALIDATION_BLOCKED - two genuine defects in already-live staging code must be fixed before validation can pass.
+- Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: fix the orchestrator driver-profile CPM-rate persistence path; fix populateLoadDriverSelect()'s composition so it reliably carries the already-working roster read into the Load Driver selector; re-run the full protected suite plus both isolated repros and republish evidence for review.
+- No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this review.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 4cfd416bfeb733900947dffb4ff55786efe22606).
 - Runtime/product files changed by this review: NONE.
