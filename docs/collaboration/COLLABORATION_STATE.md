@@ -79,31 +79,31 @@ Phase:
 CrewBIQ MVP Production Gap Inventory
 
 Status:
-NEEDS_FIX / CODEX RE-REVIEWED
+CORRECTED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The corrected inventory now uses the authorized classification vocabulary and correctly marks PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, and Legacy Independence BLOCKED; offline retry is PARTIAL. One documentation blocker remains: the recommended read-only call-path map is scoped only to getAuthSyncUrl()/DEFAULT_SYNC_URL and would omit independently confirmed legacy sources/sinks such as restore-hotfix.js's hardcoded Apps Script fallback and sync.js fetch(driver.syncUrl).
+The recommended read-only call-path map follow-up now explicitly covers every Google/Apps-Script URL source and outbound fetch sink, not only index.html's getAuthSyncUrl()/DEFAULT_SYNC_URL. Independently confirmed and cited: restore-hotfix.js:283 (a second, distinct hardcoded Apps Script fallback, crewbiq-expenses/exec) and sync.js's multiple fetch(driver.syncUrl, ...) sinks (lines 607, 666, 843). All prior classifications (PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, Legacy Independence all BLOCKED; offline retry PARTIAL) preserved unchanged.
 
 Latest implementation commit:
 2bb115542e37817b30e5e2165dfeb1636be28b80
 
 Latest correction commit:
-f492f06f504cc2433b1babea6611a311454bed6c
+59d5b289a8baf40360a9de9e434fe5a826b7121c
 
 Latest review commit:
 eee124e277b54b5767e3b8f6efa8382993c0968b
 
 Latest state commit:
-eec1ca4af8afc8ae48f731673d8a4abec3a0c82a
+(pending this publish)
 
 Blocking findings:
-LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE
+NONE (pending Codex re-review of the widened follow-up scope)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only the recommended follow-up in `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` so the future read-only map begins from every Google/Apps-Script URL literal, persisted/driver-derived URL source, and outbound fetch/network sink, explicitly including restore-hotfix.js and sync.js, and connects each source to guards/callers. Preserve all classifications. Do not execute the map or change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
+Independently re-verify commit 59d5b289a8baf40360a9de9e434fe5a826b7121c against LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE: confirm the widened follow-up now covers restore-hotfix.js and sync.js call sites and that all prior classifications remain unchanged. Publish an ACCEPT or NEEDS_FIX verdict. Do not execute the map or change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3585,3 +3585,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next actor: Claude for recommendation-text correction only.
 - Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - Widened legacy call-path map scope per Codex re-review (implementer role)
+
+- Independently re-verified LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE before correcting: fetched restore-hotfix.js and sync.js directly at production commit bcfd74a and grepped them, confirming a second hardcoded Apps Script fallback at restore-hotfix.js:283 (crewbiq-expenses/exec, distinct from index.html's DEFAULT_SYNC_URL) and multiple live fetch(driver.syncUrl, ...) sinks in sync.js (lines 607, 666, 843).
+- Corrected only the Recommended single safest bounded follow-up section in docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md to explicitly name these sources/sinks as in-scope for the future read-only call-path map. All prior classifications (BLOCKED x3, PARTIAL offline-retry) preserved verbatim.
+- Published commit 59d5b289a8baf40360a9de9e434fe5a826b7121c. Verified via GitHub Compare API against parent df4136d8708d704b632ee2a181861ccc3edc5a7a that exactly one file changed (23 additions, 10 deletions, 33 changes) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No map execution, implementation, configuration, runtime, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR change occurred.
+- Runtime/product files changed: NONE (documentation only).
