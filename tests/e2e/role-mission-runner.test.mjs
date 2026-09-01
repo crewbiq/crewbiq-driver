@@ -10,8 +10,8 @@ import {
 } from './missions/role-missions.mjs';
 
 test('role mission catalog covers the staging journey families', () => {
-  assert.deepEqual(ALL_ROLE_NAMES, ['fleet', 'driver', 'recovery', 'security']);
-  assert.equal(resolveRoleMissions('all').length, 4);
+  assert.deepEqual(ALL_ROLE_NAMES, ['fleet', 'driver', 'canonical', 'recovery', 'security']);
+  assert.equal(resolveRoleMissions('all').length, 5);
   for (const role of ALL_ROLE_NAMES) {
     const mission = ROLE_MISSIONS[role];
     assert.ok(mission.specs.length, `${role} must have executable specs`);

@@ -44,7 +44,7 @@ test('protected credentials remain confined to the manual staging job', () => {
   assert.match(manual, /workflow_dispatch:/);
   assert.match(manual, /environment: staging/);
   assert.match(manual, /mission_role:/);
-  assert.match(manual, /- all\s+- fleet\s+- driver\s+- recovery\s+- security/);
+  assert.match(manual, /- all\s+- fleet\s+- driver\s+- canonical\s+- recovery\s+- security/);
   assert.match(manual, /secrets\.CREWBIQ_E2E_FLEET_A_EMAIL/);
   assert.match(manual, /secrets\.CREWBIQ_E2E_FLEET_B_EMAIL/);
   assert.match(manual, /secrets\.CREWBIQ_E2E_FIXTURE_MANIFEST_JSON/);

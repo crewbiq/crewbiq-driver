@@ -17,6 +17,7 @@ on:
           - all
           - fleet
           - driver
+          - canonical
           - recovery
           - security
       app_deployment_commit:
