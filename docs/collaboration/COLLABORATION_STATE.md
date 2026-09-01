@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-IN_PROGRESS - PWA PUBLICATION CORRECTION DESIGN ONLY
+PUBLISHED / AWAITING CLAUDE REVIEW - PWA PUBLICATION CORRECTION PLAN
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive failed Pages source evidence)
 
 Product truth:
-Production remains stable on accepted orchestrator 27e3463 and restored PWA main commit 86b8b4d/cache v79; Codex is documenting one minimal no-merge alternative publication mechanism without creating a branch or changing Pages/runtime/production
+Production remains stable on accepted orchestrator 27e3463 and restored PWA main commit 86b8b4d/cache v79; Codex documented but did not execute a slash-free immutable branch candidate at accepted SHA 66a7985, while classifying the slash hypothesis as plausible but unproven
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,10 +100,10 @@ Latest review commit:
 e393590459d621818ef980cc6396f7b74fc4b399
 
 Latest state commit:
-cb2095d
+8e3771e
 
 Blocking findings:
-GITHUB_PAGES_RELEASE_BRANCH_SERVES_404_AFTER_10_MINUTES
+NONE for independent design review; production PWA publication remains blocked pending review and fresh authorization
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Coordination/design only: document an immutable slash-free release branch at accepted SHA 66a7985765b76e0702d015ca1e300390156f8ad6 as a controlled candidate, its evidence limits and rollback gates; publish for independent Claude review without another production attempt
+Independently review PRODUCTION_PWA_PUBLICATION_CORRECTION_PLAN.md; verify the unproven slash hypothesis, minimal slash-free branch mechanism, exact-hash/timeout/rollback gates, and publish ACCEPT or bounded NEEDS FIX without a production attempt
 <!-- CURRENT_END -->
 
 
@@ -3112,3 +3112,16 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Decision gate: COORDINATOR_REQUIRED
 - Next required actor: Codex under standing delegation
 - Next bounded action: coordination-only selection of a different no-merge publication mechanism
+
+### 2026-09-01 - PWA publication correction plan published
+
+- Agent: Codex
+- Task: coordination/design only; no production attempt
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Candidate: immutable slash-free branch `production-v95-66a7985` at exact accepted SHA `66a7985765b76e0702d015ca1e300390156f8ad6`
+- Causal classification: slash-containing branch is plausible but UNPROVEN as the 404 cause
+- Runtime/main/Pages/production changes: NONE
+- Plan: `docs/collaboration/PRODUCTION_PWA_PUBLICATION_CORRECTION_PLAN.md`
+- Next required actor: Claude
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next bounded action: independent design review only; no production publication attempt
