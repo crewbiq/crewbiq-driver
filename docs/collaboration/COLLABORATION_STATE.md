@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / SEVEN-ROW CORRECTION ACCEPTED / AWAITING PRODUCT OWNER DECISION ON INDEX 22 + STANDING POLICY
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -72,13 +72,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33461262359 is 8 passed, 1 failed (LOAD-01 only, expected given index 22 remains unfixed). Full all-role suite gated on all rows being structurally valid.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: (1) authorize correcting index 22 via the identical per-row discipline proven eight times now (recompute roster order, match full marker/inactive-state/workspace-owner/date predicate, require affected-row-count=1, change only terminated_at to the row's own created_at::date, mandatory abort on mismatch); (2) separately, given this is now the third round of discovering additional rows with the identical positively-matched DRIVER-CRUD-01 signature, consider authorizing a STANDING policy instead of one-off asks: pre-authorize Codex to correct, via this same exact per-row safety discipline, any future row bearing this specific proven-synthetic signature without a fresh request each time one surfaces. No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested.
+Correct only synthetic roster index 22 via the proven exact-one-row staging discipline: recompute server roster order, match marker/inactive-state/workspace-owner/exact dates, require affected-row-count=1, and change only terminated_at to its own created_at date; abort on mismatch. Then run isolated LOAD-01 and, only on PASS, the full protected suite. Standing policy for future rows is not authorized. No production action, merge, migration, backfill, broad cleanup, real-business-record mutation, malformed-record skipping, or weakened validation.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
