@@ -42,47 +42,61 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; staging-only provisioning and additive migrations 010-011 remain authorized and completed. Two genuine runtime/client defects confirmed and awaiting Codex fixes. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
+current main; staging-only corrections and validation evidence are published. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
 
 Latest implementation commit:
-b151d7d6d0b27545a0819d71f5b1468d215c710c
+b947191f32b8750ce78263a7d4db1e6584848392 (driver); ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6 (orchestrator)
 
 Latest correction commit:
-driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator f00532a3437e14354748ef23a7827687797baa4f on agent/account-driver-link-read
+driver e6837a8291864ae4aba1f6206c8d4a3c4ca07d5; orchestrator ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6 on agent/account-driver-link-read
 
 Latest documentation commit:
-test-harness commits 0735d29fb8a3865884301844de2f995ea933fde9 and 590e4cd408d9da48ae1c72cde1d682c53e10ce56; evidence document docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 8
+docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 9; publication commit recorded in this CURRENT block's commit
 
 Latest review commit:
 4cfd416bfeb733900947dffb4ff55786efe22606
 
 Blocking findings:
-STAGING_DRIVER_CRUD_RATE_MISMATCH - CONFIRMED GENUINE RUNTIME/PERSISTENCE DEFECT (disposable identity rules out cross-run contamination; authenticated sync 200 but restore returns pre-edit rate - needs an orchestrator fix). STAGING_LOAD_CREATION_NOT_COMPLETED - CONFIRMED GENUINE CLIENT COMPOSITION DEFECT (loads.js/index.html wiring for readWorkspaceDriverRoster is architecturally correct and the roster read works via direct check, but populateLoadDriverSelect() does not carry that authority into the Load Driver selector at the point the form is composed - needs a client fix). PTI-01 CLOSED as test drift, no runtime defect.
+STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - genuine authoritative-source defect. Authorized roster HTTP 200 contains an inactive Driver with effectiveFrom 2026-07-17 after effectiveTo 2026-07-14; the PWA correctly fails closed. Legacy mutation, date fabrication, record skipping, and weakened validation are prohibited. DRIVER-CRUD-01 and PTI-01 are closed.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only, tracked separately. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry and fresh-identity PTI passed; production and legacy backfill remain unauthorized.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Full protected all-role regression was not run after isolated LOAD-01 remained red; isolated Driver result is 8 passed, 1 failed. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry, Fleet 6/6 and fresh-identity PTI passed.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+REVIEW_REQUIRED
 
 Next required actor:
-Codex / staging blocker corrections
+Claude
 
 Next bounded action:
-(1) diagnose and fix the orchestrator persistence path so an authenticated driver-profile CPM-rate edit returning HTTP 200 durably reflects on a subsequent authenticated restore; (2) diagnose and fix why populateLoadDriverSelect() in loads.js does not carry the already-working authorized roster read into the Load Driver selector when the Add Load form is composed; (3) re-run the full protected staging mission suite plus both isolated repro cases to confirm both fixes hold, and republish STAGING_VALIDATION_EVIDENCE.md for review. No production deployment, migration, merge, destructive rollback or legacy backfill is authorized.
+Independently review the staging correction evidence and classify STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE. Determine whether a bounded authoritative-source correction exists without mutating legacy records, fabricating effective dates, skipping malformed records, or weakening fail-closed behavior. No implementation, production action, merge, migration, destructive rollback or legacy backfill is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Staging blocker correction follow-up publication
+
+- Driver runtime commit: `b947191f32b8750ce78263a7d4db1e6584848392`; runtime files `loads.js`, `index.html`, `sw.js`; cache `crewbiq-driver-v95`; staging deployment `b2490fe7-6c2a-48e8-837d-655b9bdae0af` succeeded.
+- Orchestrator correction: branch `agent/account-driver-link-read`, commit `ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6`; runtime file `app/routers/workspace_drivers.py`; staging deployment `84470091-9c43-4d32-9628-47dd113f34e4` succeeded.
+- Backend tests: roster contract `8 passed`; full suite `318 passed, 2 skipped, 0 failed`.
+- Driver local tooling regression: `318 passed, 0 failed`.
+- DRIVER-CRUD-01: closed as a harness startup/restore race after waiting for `_fleetRestoreSettled`; isolated Fleet protected run `33456785849` passed `6/6`, including local pre-sync CPM `0.91` and gross `27.5` plus restored persistence.
+- PTI-01: passed in the isolated Driver runs and remains closed.
+- LOAD-01: explicit Truck and Driver authority composition now performs the authorized roster request, but the PWA correctly fails closed on malformed roster record index 14. Sanitized evidence: correct workspace, all required fields present, inactive, `effectiveFrom=2026-07-17`, `effectiveTo=2026-07-14`.
+- Isolated Driver run `33457815938`: `8 passed, 1 failed`; only LOAD-01 failed. Full all-role regression was not run because its isolated prerequisite remained red.
+- Classification: genuine authoritative legacy-source defect, not test contamination. No legacy record was changed; no date was guessed; no malformed record was skipped; validation was not weakened.
+- Result: `STAGING_VALIDATION_BLOCKED`; next required actor Claude for independent review.
+- Production deploy/migrations/data mutation, merge, legacy backfill, destructive rollback and scope expansion: NONE.
 
 ### 2026-08-31 - Codex - Slice 4B.2-S1 AccountDriverLink Server Read Foundation Publication
 

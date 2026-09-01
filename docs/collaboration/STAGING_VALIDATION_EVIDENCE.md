@@ -252,3 +252,77 @@ two genuine runtime findings above.
 Follow-up verdict: **STAGING_VALIDATION_BLOCKED** pending independent Claude
 review of the two genuine defects. No production action, merge, migration,
 destructive rollback, legacy backfill, or runtime fix was performed.
+
+## 9. Blocker correction execution and malformed roster evidence
+
+Date: 2026-09-01
+
+### Published corrections
+
+- Driver commit `b947191f32b8750ce78263a7d4db1e6584848392` refreshes NEW-Load
+  attribution after Loads initialization, Orchestrator login, and active
+  workspace changes. Runtime files are `loads.js`, `index.html`, and `sw.js`;
+  cache rotation is `crewbiq-driver-v95`. Railway staging deployment
+  `b2490fe7-6c2a-48e8-837d-655b9bdae0af` reached `SUCCESS`.
+- Orchestrator branch `agent/account-driver-link-read`, commit
+  `ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6`, normalizes roster effective
+  dates to the accepted calendar-date wire form. Runtime file is
+  `app/routers/workspace_drivers.py`. Railway staging deployment
+  `84470091-9c43-4d32-9628-47dd113f34e4` reached `SUCCESS`.
+- Driver test-harness diagnostics are published through
+  `e6837a8291864ae4aba1f6206c8d4a3c4ca07d5` and contain no Driver ID or name.
+
+### Regression evidence
+
+- Orchestrator roster contract: `8 passed, 0 failed`.
+- Full Orchestrator suite: `318 passed, 2 skipped, 0 failed`.
+- Driver E2E tooling contracts: `318 passed, 0 failed`.
+- Isolated Fleet run `33456785849`: `6 passed, 0 failed`. The disposable
+  identity's CPM edit was locally `0.91`, calculated gross was `27.5`, and the
+  authenticated restored value persisted. The prior mismatch was a harness
+  race with startup restore, not an Orchestrator persistence defect.
+- Isolated Driver run `33457815938`: `8 passed, 1 failed`. PTI-01 passed; only
+  LOAD-01 remained red.
+- A full all-role run was not started after the isolated prerequisite remained
+  red. Claiming a zero-failure full regression would be inaccurate.
+
+### Remaining LOAD-01 blocker
+
+The corrected PWA composition issued the authorized workspace roster request.
+The server returned HTTP 200 with 26 workspace-scoped Drivers. The PWA adapter
+then failed closed at roster index 14. Sanitized evidence for that record is:
+
+```text
+driverId present: true
+workspaceId present and matches requested workspace: true
+name present: true
+status: inactive
+effectiveFrom: 2026-07-17
+effectiveTo: 2026-07-14
+```
+
+The record's effective interval is impossible because its end precedes its
+start. This is a genuine authoritative-source/legacy-data defect, not shared
+identity contamination and not a client composition defect. The accepted PWA
+contract correctly rejects the entire malformed authoritative response.
+
+The bounded task cannot safely make LOAD-01 green by skipping the record,
+weakening date validation, fabricating a start date, inferring another Driver,
+or mutating the legacy profile. Those actions violate the accepted fail-closed
+contract or the explicit no-legacy-mutation constraint.
+
+### Result and handoff
+
+Result: **STAGING_VALIDATION_BLOCKED**.
+
+`CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains a coverage gap only and is not
+used as a functional blocker. Production deploy, production migrations,
+production-data mutation, merge, legacy backfill, destructive rollback, and
+scope expansion were not performed.
+
+Next required actor: **Claude**.
+
+Next bounded action: independently review the malformed effective-range
+classification and determine whether any bounded authoritative-source fix is
+possible without changing legacy records, inventing dates, dropping malformed
+records, or weakening fail-closed behavior.
