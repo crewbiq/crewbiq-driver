@@ -79,7 +79,7 @@ Phase:
 Canonical Staging Journey Coverage
 
 Status:
-STAGING_CANONICAL_IDENTITY_COVERAGE_BLOCKED - ACCEPTED, FIXTURE PROVISIONING ASSIGNED
+IN_PROGRESS - STAGING CANONICAL FIXTURE PROVISIONING
 
 Current owner:
 Codex
@@ -100,7 +100,7 @@ Latest review commit:
 8a4a65a165317edc62f08c38f3160a2a6881a9a0
 
 Latest state commit:
-73eb82ac3e9b0eade8d86242c066f3ad32287953
+e8a97f1db2d60053a0ef3a60ac2a215969b2334a
 
 Blocking findings:
 STAGING_CANONICAL_ACCOUNT_DRIVER_LINK_FIXTURE_MISSING - ACCEPTED classification. Roster read and adapter passed; protected Fleet A has no canonical AccountDriverLink; assignment and SELF cannot be proven without a fixture.
@@ -115,7 +115,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-Provision only the missing canonical AccountDriverLink (and one effective current DriverTruckAssignment if absent) for the exact protected Fleet A staging fixture, using an explicit, reversible, provenance-recorded staging fixture procedure that aborts unless the target account, workspace, Driver, and Truck each resolve uniquely from the protected fixture contract. Then re-run the isolated canonical identity journey and the full protected suite, and publish results for review. No runtime code change, production action, merge, migration, or production-data write is authorized.
+In progress: guarded, reversible staging-only provisioning for exact protected manifest generation staging-20260714, followed by isolated canonical identity and full protected suite runs. No runtime code change, production action, merge, migration, or production-data write.
 <!-- CURRENT_END -->
 
 
