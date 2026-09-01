@@ -536,3 +536,98 @@ remaining synthetic rows before any further correction boundary is proposed.
 No production deployment, production migration, production-data mutation,
 merge, legacy backfill, broad staging cleanup, real-business-record mutation,
 malformed-record skipping, or validation weakening occurred.
+
+## 13. Seven-row correction and additional synthetic blocker
+
+Date: 2026-09-01
+
+Claude review commit `1a60d08ef6a216888c2281b002af63a3e6384808`
+accepted the first one-row correction and requested a fresh Product Owner
+decision for the seven remaining rows. The Product Owner authorized the exact
+indices 15-21 using the same per-row discipline.
+
+### Seven independent transactions
+
+Read-only preflight proved:
+
+```text
+matched rows: 7
+expected rows: 7
+roster indices: 15, 16, 17, 18, 19, 20, 21
+all DRIVER-CRUD-01 provenance markers: true
+effectiveFrom: 2026-07-17
+effectiveTo: 2026-07-14
+```
+
+Each index was processed in a separate transaction. Every transaction:
+
+- recomputed the server roster order inside the proven LOAD workspace;
+- required exactly one row at its authorized index;
+- repeated marker, inactive-state, workspace-owner and exact-date predicates;
+- locked exactly one base row;
+- changed only `terminated_at` to that row's `created_at::date`;
+- required affected-row-count one before commit.
+
+Results for all seven rows were identical:
+
+```text
+affected rows per transaction: 1
+effectiveFrom: 2026-07-17
+effectiveTo: 2026-07-17
+structurally valid: true
+```
+
+Targeted postflight found zero remaining malformed rows among indices 15-21.
+
+### Isolated validation
+
+Protected Driver run `33461262359` completed with:
+
+```text
+8 passed
+1 failed: LOAD-01
+authorized workspace roster expected HTTP 200, received HTTP 502
+```
+
+Because LOAD-01 remained red, the full protected all-role suite was not
+started.
+
+### Newly discovered blocker
+
+A read-only guard aggregate over the complete proven workspace roster found:
+
+```text
+total rows: 26
+active with effectiveTo: 0
+reversed intervals: 1
+missing ID/name/createdAt: 0
+```
+
+The remaining reversed row is:
+
+```text
+roster index: 22
+status: inactive
+DRIVER-CRUD-01 marker: true
+generic E2E marker: true
+effectiveFrom: 2026-07-18
+effectiveTo: 2026-07-14
+```
+
+This row has a distinct creation date and was not within the authorized
+indices 15-21. It was not mutated. The live HTTP 502 therefore continues to
+prove the server guard remains fail closed.
+
+### Result and handoff
+
+Result: **STAGING_VALIDATION_BLOCKED**.
+
+Next required actor: **Claude**.
+
+Claude must independently review the seven per-row corrections and classify
+the newly discovered index 22 synthetic row before any new mutation boundary
+is proposed.
+
+No production deployment, production migration, production-data mutation,
+merge, legacy backfill, broad staging cleanup, real-business-record mutation,
+malformed-record skipping, or validation weakening occurred.

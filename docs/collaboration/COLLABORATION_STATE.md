@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-IN_PROGRESS
+STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -66,23 +66,35 @@ Latest review commit:
 1a60d08ef6a216888c2281b002af63a3e6384808
 
 Blocking findings:
-STAGING_LOAD_ROSTER_MALFORMED_SYNTHETIC_EFFECTIVE_RANGES - ACCEPTED as correctly scoped and executed: refined workspace + roster-index predicate identified exactly the authorized index 14 row; one-row transaction changed only terminated_at from 2026-07-14 to 2026-07-17, required affected-row-count=1 before commit, and proved structural validity; no other field changed. Staging-only guard deployment and live HTTP 502 malformed_driver_record behavior confirmed correct. Post-correction read-only evidence shows 7 additional DRIVER-CRUD synthetic reversed rows at roster indices 15-21 (same signature: DRIVER-CRUD-01 marker, created_at::date=2026-07-17, terminated_at=2026-07-14) - this is a NEW scope, not covered by the prior one-row authorization, and requires its own explicit Product Owner decision.
+STAGING_LOAD_ROSTER_ADDITIONAL_MALFORMED_SYNTHETIC_RANGE - the authorized indices 15-21 were each corrected in separate exact-one-row transactions and targeted postflight is zero. Isolated run 33461262359 still receives HTTP 502. Read-only full-roster guard diagnosis found one different reversed synthetic row at index 22 with DRIVER-CRUD-01 and generic E2E markers, effectiveFrom 2026-07-18, effectiveTo 2026-07-14. Index 22 was outside the authorized 15-21 boundary and was not changed.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33460281572 is 8 passed, 1 failed (LOAD-01 only, expected given 7 rows remain unfixed); full all-role suite gated on all 8 rows being structurally valid.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33461262359 is 8 passed, 1 failed (LOAD-01 only). Full all-role suite was not started because the mandatory LOAD-01 PASS prerequisite failed. Authorized seven-row correction affected exactly seven rows; no broad cleanup occurred.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+REVIEW_REQUIRED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Execute the Product Owner-approved identical provenance-gated staging correction for roster indices 15-21, one transaction per row, each requiring an exact one-row match and changing only terminated_at to its own created_at date; abort on any mismatch. Then run isolated LOAD-01 and, only if it passes, the full protected staging suite; publish evidence and hand to Claude. No production action, merge, migration, backfill, broad cleanup, real-business-record mutation, malformed-record skipping, or weakened validation.
+Independently review the seven exact transactions, isolated run 33461262359, live guard behavior, and the newly discovered synthetic index 22 row with distinct created_at date. Determine the exact next decision boundary. Do not mutate index 22, deploy, run the full suite, merge, migrate, backfill, skip malformed records, or weaken validation.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Seven-row correction and additional synthetic blocker publication
+
+- Product Owner authorized identical per-row staging correction for proven synthetic roster indices 15-21.
+- Preflight matched exactly 7 rows at indices 15-21, all with DRIVER-CRUD-01 provenance, inactive status, `effectiveFrom=2026-07-17`, and `effectiveTo=2026-07-14`.
+- Seven separate transactions each selected, locked and updated exactly one row; each changed only `terminated_at` to its own `created_at::date`, affected count 1, and structural validity true.
+- Targeted postflight for indices 15-21: remaining malformed rows 0.
+- Protected Driver run `33461262359`: `8 passed, 1 failed`; LOAD-01 still received live HTTP 502.
+- Read-only full-roster diagnosis: one remaining reversed row at index 22, inactive, DRIVER-CRUD-01 marker true, generic E2E marker true, `effectiveFrom=2026-07-18`, `effectiveTo=2026-07-14`.
+- Index 22 was outside the authorized 15-21 boundary and was not mutated. Full all-role suite was not run because LOAD-01 did not pass.
+- Result: STAGING_VALIDATION_BLOCKED; next actor Claude for independent review.
+- Production action, merge, migration, backfill, broad cleanup, real-business-record mutation, malformed-record skipping and validation weakening: NONE.
 
 ### 2026-09-01 - Codex - Refined one-row remediation and staging guard validation
 
