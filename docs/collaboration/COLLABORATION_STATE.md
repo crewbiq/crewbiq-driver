@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-PRODUCTION_VALIDATION_BLOCKED - SERVICE RECOVERED
+IN_PROGRESS - AUTHORIZED CORRECTED PRODUCTION MIGRATION RUNNER
 
 Current owner:
-Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Snapshot and quiescence passed; runner failed before DB connection because local invocation used Railway private DATABASE_URL; prior production service revision is recovered and healthy
+Fresh recovery snapshot is available; prior production service revision is healthy; Product Owner authorized one corrected runner invocation using Railway DATABASE_PUBLIC_URL after a new full preflight and exact down quiescence
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -103,19 +103,19 @@ Latest state commit:
 aa961aef8117eded7b61d09adceb981f781a9519
 
 Blocking findings:
-MIGRATION_RUNNER_PRIVATE_DNS_RESOLUTION_FAILED
+NONE - corrected invocation authorized; execution pending
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Product Owner
+Codex
 
 Next bounded action:
-Decision required: authorize one corrected runner invocation with local DATABASE_URL explicitly set to Railway DATABASE_PUBLIC_URL, after a new full preflight and exact down quiescence; otherwise keep production rollout paused
+Repeat complete production preflight, establish exact down quiescence, invoke the accepted migration runner once with DATABASE_URL explicitly copied from DATABASE_PUBLIC_URL, stop on first failure, and publish evidence
 <!-- CURRENT_END -->
 
 
