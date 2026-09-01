@@ -3506,3 +3506,45 @@ Phase B — creating the control branch, changing Pages `build_type`, and adding
 No control branch creation, Pages configuration change, environment policy change, deployment, merge, migration, or production-data write is authorized by this review.
 
 Runtime/product files changed by this review: NONE. All verification was read-only or performed in a local scratch copy (running the contract tests), never against the actual repository or any live service.
+
+## Phase B (Actions Deployment) Failure Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review Phase B run `33515902286`, the complete 404 evidence, the configuration mutations made and reverted, and the successful legacy rollback; classify whether `GITHUB_PAGES_PROJECT_SITE_SERVING_404_AFTER_SUCCESSFUL_ACTIONS_DEPLOYMENT` is a repository-configuration issue or a platform-level behavior, and recommend at most one coordination/design-only next step — no production attempt.
+**Method:** independently confirmed the Actions run's actual result via `gh api actions/runs/33515902286` (and its job list) rather than trusting the summary; independently confirmed the current live Pages configuration and the live site state via `gh api repos/.../pages` and direct HTTP checks against the real production PWA URL.
+
+### Independent confirmation of the run and rollback
+
+`gh api repos/crewbiq/crewbiq-driver/actions/runs/33515902286`: `conclusion: success`, job `deploy: completed/success` — the Actions-based deployment genuinely built and deployed successfully according to GitHub's own automation, exactly as reported; not a misreported or partial failure.
+
+`gh api repos/crewbiq/crewbiq-driver/pages`: current live configuration is `build_type: "legacy"`, `source: {branch: "main", path: "/"}` — confirms the rollback reverted not just the served content but the `build_type` setting itself back to its original state, not merely the branch.
+
+Live checks: `index.html` → HTTP 200; `sw.js` → `CACHE_NAME = 'crewbiq-driver-v79'`. Production PWA is genuinely healthy and restored, independently confirmed, not merely asserted.
+
+### Classification
+
+This is the **third** independent, structurally distinct publication mechanism to fail with the identical externally-observed symptom — GitHub's own status reports success, yet the live site serves 404 for the complete asset set:
+
+1. Legacy branch source, slash-containing branch name.
+2. Legacy branch source, slash-free branch name.
+3. GitHub Actions-based deployment (`actions/upload-pages-artifact` + `actions/deploy-pages`) — an entirely different build/serve pipeline from the legacy branch mechanism used in the first two attempts.
+
+Across all three, only the original `main`-sourced deployment — never itself re-deployed during this entire investigation — has ever served correctly. The variable eliminated this time is the deployment *mechanism* itself: legacy branch-based and Actions-based publishing are fundamentally different systems (different build pipelines, different artifact-serving infrastructure), yet both produce the identical symptom. Combined with the two previously eliminated variables (branch-name shape, short CDN-propagation delay) and the previously-confirmed facts (no `.nojekyll`/content difference, deployment-branch policy not blocking, and this site's build history showing no successful non-`main` serving ever recorded), the remaining explanation space has narrowed to something specific to this particular GitHub Pages **project site's** live-serving/caching layer — not anything controllable from within this repository's configuration, content, or choice of publication mechanism.
+
+I checked GitHub's public status page for an acknowledged incident; the fetch did not return usable incident data (the page's history is client-rendered), so this does not confirm or rule out a platform-wide issue — but the reproducible, mechanism-independent nature of the failure is itself already strong, self-sufficient evidence.
+
+### Recommendation
+
+Further engineering workaround attempts from within this repository are very unlikely to succeed: three fundamentally different mechanisms have now been tried, each well-designed, each independently verified by me before execution, and each failed identically. Continuing to invent a fourth mechanism would not be a reasonable use of further live production attempts. This has moved from "a repo-configuration problem to engineer around" to "a platform-behavior anomaly for this specific site that needs GitHub-side investigation."
+
+### Applying the autonomous handoff protocol
+
+Whether to pursue GitHub Support engagement, accept the current stable state (production fully functional except for this one specific PWA artifact publication), or consider a materially different hosting path (e.g., publishing the PWA through a different domain/service entirely) are genuine business decisions — not bounded technical continuations Codex or I can resolve with another engineering attempt.
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Next required actor: ChatGPT (Product Owner)**
+**Decision required:** Three independently-designed, independently-verified publication mechanisms (two legacy branch-source variants, one Actions-based deployment) have all failed identically — GitHub reports success, the live site serves 404 — while `main` continues to serve correctly and production remains otherwise fully healthy (migrations applied, orchestrator live, zero customer-facing damage at any point). Does the Product Owner want to: (a) open a GitHub Support ticket documenting this reproducible, mechanism-independent anomaly, (b) accept the current stable production state (server-side canonical features live; PWA publication of the accepted commit deferred) while further options are considered, or (c) explore a materially different PWA hosting path (a decision this protocol has not yet evaluated) — before any further production publication attempt is made?
+
+No further Pages configuration change, control-branch creation, deployment, merge, migration, or production-data write is authorized by this review.
+
+Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `actions/runs`, `actions/runs/.../jobs`, and `pages`; live HTTP GETs to the production PWA).
