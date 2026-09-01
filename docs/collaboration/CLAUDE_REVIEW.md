@@ -3900,3 +3900,19 @@ Blocking finding: `LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE`.
 
 Next required actor: Claude
 Next bounded action: correct only the Recommended single safest bounded follow-up in `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` so the proposed read-only evidence slice explicitly covers every legacy URL source and outbound network sink, including `restore-hotfix.js` and `sync.js`, rather than only `getAuthSyncUrl()`/`DEFAULT_SYNC_URL`. Preserve all corrected classifications. Do not execute the map or change runtime/configuration/legacy paths/deployment/migrations/merge/data/ADR status/ADR-0008-0016/SIDR.
+
+## 2026-09-01 - Codex independent re-review - Legacy call-path map scope correction
+
+Verdict: ACCEPT
+
+Reviewed correction commit: `59d5b289a8baf40360a9de9e434fe5a826b7121c`.
+
+- `LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE` is CLOSED.
+- The recommended follow-up now starts from every Google/Apps-Script URL literal, every persisted/driver-derived URL source, and every outbound fetch/network sink across exact production `main`, rather than assuming two symbols are complete.
+- The scope explicitly includes the independent `restore-hotfix.js:283` hardcoded Apps Script fallback and multiple `sync.js` `fetch(driver.syncUrl, ...)` sinks, while requiring source-to-guard-to-caller tracing and existing-telemetry assessment.
+- The correction changes only the recommendation section. Previously accepted classifications remain unchanged: items 2/6/7 and Legacy Independence BLOCKED; offline retry PARTIAL.
+- No map execution, runtime/configuration/legacy-path change, deployment, migration, merge, data mutation, ADR status change, ADR-0008-0016, or SIDR work occurred.
+
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: execute the accepted read-only legacy sync call-path/control-point inventory against exact production source `bcfd74a`, covering all URL literals, persisted/driver-derived sources, guards, callers, and outbound network sinks. Record whether already-existing production telemetry/log evidence can establish actual traffic, without adding instrumentation or changing configuration. Publish one bounded evidence document and hand to Codex for independent review. Do not remove/disable paths or change runtime, configuration, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
