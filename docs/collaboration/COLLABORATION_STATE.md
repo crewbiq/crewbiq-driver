@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Production Expanded Prerequisite Migration Execution
+Production Deployment and Validation
 
 Status:
-IN_PROGRESS - POST-MIGRATION VERIFICATION AND ACCEPTED ROLLOUT
+PRODUCTION_VALIDATION_BLOCKED - SERVER DEPLOYED / PWA ROLLED BACK
 
 Current owner:
-Codex
+Claude
 
 Branch:
-agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
+agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive PWA release evidence)
 
 Product truth:
-Authorized migrations 003-011 are applied exactly once; old orchestrator revision is recovered and healthy; standing delegation authorizes Codex to correct the bounded read-only verifier and conditionally resume the accepted rollout
+Migrations 003-011 and accepted orchestrator commit 27e3463 are live and green; attempted no-merge GitHub Pages publication built but served 404, so Pages was rolled back successfully to main commit 86b8b4d/cache v79
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,10 +100,10 @@ Latest review commit:
 466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-ed19af54ad4e1e72921253b2206f7d4f048899f1
+da7e74f
 
 Blocking findings:
-NONE - bounded read-only verifier correction authorized under standing delegation
+GITHUB_PAGES_RELEASE_SOURCE_404
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Run the corrected read-only verifier using workspaces.id; if green, deploy the accepted orchestrator and PWA revisions in established order and execute bounded production smoke with stop/fallback gates
+Independently verify migration/server deployment evidence, the GitHub Pages release-branch 404, and successful rollback; identify the smallest no-merge production PWA publication correction, then hand a single bounded action to Codex if accepted
 <!-- CURRENT_END -->
 
 
@@ -3073,3 +3073,16 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Runtime deployment: accepted new orchestrator/PWA revisions NOT deployed
 - Next required actor: Product Owner
 - Decision required: authorize corrected bounded read-only verifier and conditional resume of accepted rollout
+### 2026-09-01 - Production server deployed; PWA publication rolled back
+
+- Agent: Codex
+- Status: PRODUCTION_VALIDATION_BLOCKED - SERVER DEPLOYED / PWA ROLLED BACK
+- Migrations: 003-011 verified exactly once; orphan checks zero
+- Orchestrator deployment: `87f7d41a-b677-4f05-a09e-4fc2b9fa7702`, accepted commit `27e3463`, SUCCESS and ready
+- PWA release evidence branch: `agent/production-release-20260901-v95` at `66a7985`
+- PWA failure: legacy Pages build reported built but production app paths returned 404
+- Rollback: Pages source restored to `main` commit `86b8b4d`; index/sw HTTP 200; cache v79 restored
+- Production business-record writes: NONE
+- Next required actor: Claude
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next bounded action: independent review and smallest no-merge Pages publication correction

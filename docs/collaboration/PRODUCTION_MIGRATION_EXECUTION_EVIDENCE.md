@@ -401,3 +401,104 @@ A previously accepted generic schema/readiness collector was run read-only at
 The migrations are applied, but production rollout validation is not complete.
 A new decision is required before correcting/running the bounded read-only
 post-migration verifier and resuming the already accepted server/PWA rollout.
+
+## Delegated continuation: server deployed, PWA publication rolled back
+
+Result: `PRODUCTION_VALIDATION_BLOCKED - SERVER DEPLOYED / PWA ROLLED BACK`
+
+Standing Product Owner delegation authorized Codex to correct the bounded
+read-only verifier and resume the already accepted rollout without another
+routine Product Owner checkpoint.
+
+### Corrected post-migration verification
+
+The verifier was corrected only to join child `workspace_id` values to the
+actual migrated canonical key `workspaces.id`. It completed read-only with
+`ok=true`:
+
+- database primary/non-standby;
+- all eight authorized migrations recorded exactly once;
+- all 16 expected target objects present;
+- legacy counts unchanged;
+- workspace membership, DriverTruckAssignment and AccountDriverLink workspace
+  orphan counts all zero.
+
+### Production orchestrator deployment
+
+Production configuration was missing the accepted fail-closed CORS allowlist.
+GitHub Pages metadata authoritatively identified the production PWA as
+`https://crewbiq.github.io/crewbiq-driver/`; only origin
+`https://crewbiq.github.io` was configured, with Railway auto-deploy disabled.
+No secret value was published.
+
+A clean git archive of accepted orchestrator commit
+`27e3463220a2022ea1adf074d7131ec69eb32fe5` was uploaded to the existing
+production orchestrator service.
+
+- deployment: `87f7d41a-b677-4f05-a09e-4fc2b9fa7702`;
+- created: `2026-09-01T08:55:54.340Z`;
+- final status: SUCCESS;
+- image digest:
+  `sha256:8912b6cec426850f28c1158f81b29ba548aafec6efc296d14b356bab244772ea`.
+
+Server smoke passed:
+
+- `/health`: green, environment production;
+- `/ready`: DB enabled/configured/connected, required migrations present,
+  missing migrations empty;
+- canonical workspace Driver roster, DriverTruckAssignment and
+  AccountDriverLink OpenAPI paths present;
+- allowed Pages-origin preflight returned 200 with the exact allow-origin;
+- unlisted-origin preflight returned 400 without allow-origin;
+- missing and invalid sessions returned 401 for canonical workspace reads.
+
+The first OpenAPI smoke assertion incorrectly expected an unscoped
+`/v1/account-driver-link`; the authoritative accepted path is
+`/v1/workspaces/{workspace_id}/account-driver-link`. This was a local read-only
+assertion error, not a server failure; the corrected assertion passed.
+
+### Production PWA publication failure and rollback
+
+The final accepted PWA runtime is commit `b947191`; exact green protected CI run
+`33462406945` used descendant
+`66a7985765b76e0702d015ca1e300390156f8ad6`, and independent staging acceptance
+commit `7d809ae` is its descendant. No merge to `main` was authorized.
+
+An immutable release branch
+`agent/production-release-20260901-v95` was therefore created normally at exact
+green SHA `66a7985765b76e0702d015ca1e300390156f8ad6`. GitHub legacy Pages source was
+changed from `main` to that release branch and an explicit Pages build was
+requested.
+
+- release build commit: `66a7985765b76e0702d015ca1e300390156f8ad6`;
+- created: `2026-09-01T09:00:27Z`;
+- completed: `2026-09-01T09:01:09Z`;
+- GitHub build status: `built`;
+- live result: material failure; every tested production app path, including
+  `index.html` and `sw.js`, returned GitHub Pages 404.
+
+Rollout stopped at that first material PWA failure. No application smoke or
+production business-record write followed.
+
+The predetermined rollback changed Pages source back to `main` and explicitly
+rebuilt prior commit `86b8b4dd7e9496833a021319167589b49f0ac418`.
+
+- rollback build status: `built`;
+- source: `main`, path `/`;
+- live `index.html`: HTTP 200;
+- live `sw.js`: HTTP 200;
+- prior cache `crewbiq-driver-v79`: restored;
+- recovery observed: `2026-09-01T09:03:18.5607506Z`.
+
+The failed release branch remains as immutable evidence but is not the Pages
+source. No force-push, merge, production business-data write, destructive
+rollback, legacy backfill or broad cleanup occurred.
+
+### Current production state
+
+- migrations 003, 004, 006, 007, 008, 009, 010 and 011: applied;
+- orchestrator: accepted commit `27e3463`, deployment `87f7d41a`, green;
+- PWA: prior `main` commit `86b8b4d`, cache v79, restored;
+- snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d`: retained recovery point;
+- production validation: incomplete;
+- blocker: `GITHUB_PAGES_RELEASE_SOURCE_404`.
