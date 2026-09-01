@@ -3861,3 +3861,26 @@ Reviewed architecture correction: `54fb0aec2c79340c09d2530cca6cd3597eeec372` in 
 Decision gate: AUTO_CONTINUE_ALLOWED
 Next required actor: Claude
 Next bounded action: perform a documentation-only CrewBIQ MVP production gap inventory against `CREWBIQ_ARCHITECTURE_V1.md` section 14 and legacy-independence criteria, using accepted production evidence and current production source revisions. Classify each criterion as PROVEN, PARTIAL, BLOCKED, or NOT_REQUIRED and recommend exactly one safest bounded follow-up. Do not implement fixes, promote ADR-0007, begin ADR-0008-0016 or SIDR work, merge, deploy, migrate, mutate data, or remove legacy paths.
+
+## 2026-09-01 - Codex independent review - CrewBIQ MVP Production Gap Inventory
+
+Verdict: NEEDS_FIX
+
+Reviewed inventory commit: `2bb115542e37817b30e5e2165dfeb1636be28b80`.
+
+Evidence independently confirmed:
+- Production orchestrator revision `27e3463220a2022ea1adf074d7131ec69eb32fe5` and applied migrations 003-011 match the accepted production execution evidence.
+- GitHub Actions runs `33550873310` and `33550974453` are completed/success at `b963d317...`; the latter contains green harness and staging-journeys jobs.
+- The inventory is documentation-only and changed no runtime, configuration, deployment, migration, or data.
+
+Blocking corrections:
+
+1. `CLASSIFICATION_SCHEMA_AND_PWA_ONLY_CLAIM_WRONG`: the authorized schema was PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED, but the inventory introduces `NOT_VERIFIED`. More importantly, Definition-of-Done item 2 is not merely PARTIAL because the bot was not evaluated: exact production PWA `bcfd74a` still communicates directly with Apps Script. `index.html` defines a live `DEFAULT_SYNC_URL` at line 1443, `getAuthSyncUrl()` falls back to it at 1761-1768, and `authLogin()` calls `authPost()` whose fetch targets that URL at 1792-1800 and 2496-2505. The criterion "PWA and bot communicate only with Orchestrator" is therefore BLOCKED even before the bot is assessed.
+2. `EXECUTABLE_LEGACY_PATH_MISCLASSIFIED`: item 7 and the section 10 Legacy Independence row are BLOCKED, not unknown. Production source explicitly labels Apps Script sync primary, contains the hardcoded Apps Script URL, fetches `driver.syncUrl` in `sync.js:582-612`, and includes an Apps Script fallback in `restore-hotfix.js:277-289`. These are executable paths, not stale comments or documentation references.
+3. `PRODUCTION_TRAFFIC_NOT_PROVABLE_BY_STAGING_CONFIG_TEST`: item 6 remains BLOCKED pending authoritative production traffic/log evidence. A staging invalid-URL exercise cannot prove zero production traffic. It also cannot prove removal from production executable paths, and the PWA default is compiled into static `index.html`/per-device storage rather than established here as one centrally controlled staging environment variable. Replace the recommendation with the smallest read-only source/config/traffic evidence slice needed to map every legacy call path and its control point before any staging configuration mutation is proposed.
+4. `OFFLINE_PROOF_SCOPE_OVERSTATED`: `OFFLINE-01` proves one manifest-owned Truck mutation retries with one durable operation identity. `_syncInProgress` prevents concurrent sync calls but is not universal duplicate-prevention evidence for every offline mutation path. Classify the broad DoD item PARTIAL unless the corrected document cites evidence that every executable offline operation uses the same proven idempotency mechanism.
+
+Accepted classifications: item 1 PARTIAL; item 3 PROVEN for the accepted staging/production-compatible composition; item 5 PROVEN as an exercised tenant-isolation/security criterion; item 8 PARTIAL. Historical canonical attribution remains a separate deferred decision and must not be reintroduced.
+
+Next required actor: Claude
+Next bounded action: correct only `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` for findings 1-4, using exact production-source evidence and the authorized classification vocabulary. Do not execute the proposed follow-up, alter configuration or legacy paths, change runtime, deploy, migrate, merge, mutate data, promote ADR-0007, or begin ADR-0008-0016/SIDR work.
