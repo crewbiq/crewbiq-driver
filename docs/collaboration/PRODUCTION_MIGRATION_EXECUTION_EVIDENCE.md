@@ -502,3 +502,63 @@ rollback, legacy backfill or broad cleanup occurred.
 - snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d`: retained recovery point;
 - production validation: incomplete;
 - blocker: `GITHUB_PAGES_RELEASE_SOURCE_404`.
+
+## Patience-based PWA publication retry
+
+Result: `PRODUCTION_VALIDATION_BLOCKED - PWA RETRY FAILED / ROLLBACK PASS`
+
+Claude independently accepted the prior server/migration/rollback evidence at
+review commit `e393590459d621818ef980cc6396f7b74fc4b399` and assigned one
+identical no-merge Pages retry with a full ten-minute live propagation window.
+
+Codex verified before retry:
+
+- immutable release branch
+  `agent/production-release-20260901-v95` still resolved exactly to
+  `66a7985765b76e0702d015ca1e300390156f8ad6`;
+- production orchestrator `/health` and `/ready` were green.
+
+GitHub Pages source was changed from `main` to the identical release branch and
+an explicit legacy Pages build was requested. The build for commit
+`66a7985765b76e0702d015ca1e300390156f8ad6` reached `built` at
+`2026-09-01T09:20:10Z`.
+
+A first live poll at `2026-09-01T09:20:14Z` briefly returned HTTP 200 for
+`index.html` and `sw.js`, with cache `crewbiq-driver-v95`. The subsequent
+complete app-shell check returned 404. Codex then polled all 13 required assets
+through a fresh full ten-minute window:
+
+- `index.html`
+- `sw.js`
+- `core.js`
+- `core-runtime.js`
+- `startup-session.js`
+- `workspace-attribution.js`
+- `workspace-driver-roster.js`
+- `driver-truck-assignment.js`
+- `account-driver-link.js`
+- `driver-self.js`
+- `loads.js`
+- `pti.js`
+- `manifest.json`
+
+Every asset returned 404 on every recorded poll from
+`2026-09-01T09:21:05Z` through `2026-09-01T09:30:45Z`. The full window ended
+with `ASSET_RESULT=TIMEOUT`. This disproves a simple short CDN-propagation delay
+as sufficient explanation for the release-branch mechanism.
+
+No application smoke or production business-record write followed. The exact
+fallback was executed immediately:
+
+- Pages source restored to `main`, path `/`;
+- prior commit `86b8b4dd7e9496833a021319167589b49f0ac418` rebuilt successfully;
+- live `index.html`: HTTP 200;
+- live `sw.js`: HTTP 200;
+- live cache: `crewbiq-driver-v79`;
+- rollback pass observed: `2026-09-01T09:32:10.1407176Z`;
+- production orchestrator `/health` and `/ready`: still green.
+
+No merge, force-push, additional migration, production business-data write,
+destructive action or alternate publication attempt occurred. A new bounded
+publication mechanism decision is required; the same slash-containing legacy
+Pages source branch must not be retried unchanged.

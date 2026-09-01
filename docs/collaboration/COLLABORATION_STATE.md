@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-IN_PROGRESS - PATIENCE-BASED PWA RETRY
+PRODUCTION_VALIDATION_BLOCKED - PATIENCE RETRY FAILED / PWA RECOVERED
 
 Current owner:
 Codex
 
 Branch:
-agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive PWA release evidence)
+agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive failed Pages source evidence)
 
 Product truth:
-Migrations 003-011 and accepted orchestrator commit 27e3463 are live and green; Claude accepted the prior rollback evidence and assigned Codex one identical no-merge Pages retry with a full 10-minute propagation window and immediate main fallback
+Migrations 003-011 and accepted orchestrator commit 27e3463 are live and green; identical release-branch Pages retry served all required assets as 404 throughout a full 10-minute window; PWA rollback to main commit 86b8b4d/cache v79 is complete and healthy
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,22 +100,22 @@ Latest review commit:
 e393590459d621818ef980cc6396f7b74fc4b399
 
 Latest state commit:
-5da13ffed25125efd8b8b44ca2ace644461b2c42
+cb2095d
 
 Blocking findings:
-NONE. GITHUB_PAGES_RELEASE_SOURCE_404 classified as likely transient CDN propagation delay (build completed and 404 was observed only ~2 minutes later); root directory of the release branch is structurally identical to main (both have index.html, sw.js, manifest.json at root; no .nojekyll on either).
+GITHUB_PAGES_RELEASE_BRANCH_SERVES_404_AFTER_10_MINUTES
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
 Codex
 
 Next bounded action:
-Re-attempt the identical release-branch Pages publication at 66a7985765b76e0702d015ca1e300390156f8ad6, wait up to 10 minutes after built for live index.html/sw.js, and either complete bounded smoke or restore main immediately and publish the exact result
+Coordination-only: select and document one smallest no-merge PWA publication correction that does not reuse the failed slash-containing legacy Pages source unchanged; recommended first candidate is an immutable slash-free release branch at the same accepted SHA with the same main rollback fallback, subject to independent review before another production attempt
 <!-- CURRENT_END -->
 
 
@@ -3099,3 +3099,16 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - No merge to main, no destructive action, no additional migration, and no production business-data write is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit e393590459d621818ef980cc6396f7b74fc4b399).
 - Runtime/product files changed by this review: NONE.
+### 2026-09-01 - Patience-based Pages retry failed; rollback passed
+
+- Agent: Codex
+- Status: PRODUCTION_VALIDATION_BLOCKED - PATIENCE RETRY FAILED / PWA RECOVERED
+- Review authorization: `e393590459d621818ef980cc6396f7b74fc4b399`
+- Release SHA: `66a7985765b76e0702d015ca1e300390156f8ad6`
+- Result: build `built`; all 13 required assets remained HTTP 404 through the full 10-minute window
+- Rollback: `main` commit `86b8b4d`, cache v79, index/sw HTTP 200
+- Server: accepted orchestrator remains healthy and ready
+- Production business-record writes: NONE
+- Decision gate: COORDINATOR_REQUIRED
+- Next required actor: Codex under standing delegation
+- Next bounded action: coordination-only selection of a different no-merge publication mechanism
