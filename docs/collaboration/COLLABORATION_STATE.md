@@ -76,13 +76,13 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Deployment Track Complete
+Collaboration Protocol - Claude Implementation / Codex Review
 
 Status:
-STAGING_CANONICAL_IDENTITY_COVERAGE_PASS - INDEPENDENTLY CONFIRMED - AWAITING PRODUCT OWNER NEXT PRIORITY
+ROLE_SWAP_ACTIVE / READY FOR CLAUDE
 
 Current owner:
-ChatGPT
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
@@ -100,22 +100,22 @@ Latest review commit:
 73376818247759a0e90c515fb5348fd6ed8481b7
 
 Latest state commit:
-df547720960126c54b1634b79d3a77c60226ea3b
+fa84dc4f42cb5874bf6e9c39a49c554e73fe335b
 
 Blocking findings:
-NONE. Entire production deployment and staging coverage track is complete and independently verified end to end.
+NONE. Production deployment and canonical staging coverage are complete and independently verified.
 
 Queued non-blocking findings:
 GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Claude
 
 Next bounded action:
-Decision required: the canonical staging journey coverage gap is now independently confirmed closed - the last open item from the entire production deployment track. Is there a next priority the Product Owner would like to take up (the still-open GitHub Community Discussion, or new product work), or should this session's work be considered concluded for now? No production action, migration, merge, or data mutation is authorized or required.
+Claude is the primary implementer. Select and publish the single safest bounded technical continuation from already accepted priorities; the first eligible candidate is read-only legacy attribution/backfill discovery only, with no historical mutation. After every Claude publication set Next required actor: Codex for independent review. After Codex ACCEPT with no exceptional decision, Codex must set Next required actor: Claude with one bounded implementation action. Do not route through ChatGPT as a routine checkpoint.
 <!-- CURRENT_END -->
 
 
@@ -3449,3 +3449,13 @@ Next required actor: Claude
 - No production action, migration, merge, or data mutation is authorized or required by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 73376818247759a0e90c515fb5348fd6ed8481b7).
 - Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Product Owner / Codex - Permanent collaboration role swap
+
+- Binding role assignment changed: Claude is the primary implementer; Codex is the independent reviewer, coordination monitor, and handoff owner.
+- After Claude publishes a bounded implementation, CURRENT must name Codex for independent review.
+- After Codex ACCEPT with no blocker or exceptional Product Owner decision, CURRENT must immediately name Claude with one bounded implementation action.
+- Routine checkpoints must not route through ChatGPT and must not stop on Codex.
+- Existing safety gates remain unchanged. Product Owner remains required only for the exceptional high-risk categories in the standing delegation.
+- Next eligible accepted priority is read-only legacy attribution/backfill discovery only; historical attribution mutation remains prohibited without direct Product Owner authorization.
+- Runtime/product files changed: NONE.
