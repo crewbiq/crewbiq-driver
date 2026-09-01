@@ -217,3 +217,81 @@ The fresh snapshot remains available, but a later resume must repeat the full
 preflight because production state can change. The next coordinator decision
 must specify an exact supported write-quiescence mechanism rather than treating
 the unsuccessful scale request as sufficient.
+
+## Authorized down quiescence and runner connection failure
+
+Result: `PRODUCTION_VALIDATION_BLOCKED`
+
+The Product Owner explicitly authorized Railway `down` for the production
+orchestrator, with redeployment of the prior revision as the mandatory failure
+fallback.
+
+Before down, the complete preflight was repeated again:
+
+- snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d` remained listed and available;
+- volume state remained READY;
+- production health remained green;
+- schema, migration ledger, counts, and risk aggregates remained unchanged;
+- all eight hashes and the exact pending sequence remained correct.
+
+Railway `down` completed at `2026-09-01T08:32:31Z`. Authoritative service
+state reached `configured=1`, `running=0`, `total=0`. A separate production DB
+session check then reported `other_clients=0` and `other_non_idle=0`.
+Write quiescence was therefore proven before runner invocation.
+
+### Runner failure
+
+The accepted runner was invoked exactly once from orchestrator revision
+`27e3463220a2022ea1adf074d7131ec69eb32fe5` using production Railway-injected
+database variables.
+
+It failed before opening a database connection:
+
+- exception: `socket.gaierror [Errno 11001] getaddrinfo failed`;
+- failing stage: `asyncpg.connect(dsn=url)`;
+- cause: the local `railway run` process selected the Railway private
+  `DATABASE_URL` hostname, which is not resolvable outside Railway's private
+  network;
+- transaction started: NO;
+- advisory migration lock acquired: NO;
+- migration SQL executed: NO;
+- migration ledger/schema/data changes: NONE.
+
+Stop-on-first-failure was applied. The available public database URL was not
+substituted and the runner was not retried.
+
+### Mandatory service recovery
+
+The first generic `railway redeploy` attempt selected the latest stopped
+deployment and produced failed recovery deployment
+`408d11ea-29bc-4fdd-81f1-45263249f516`; service remained down.
+
+Railway's deployment-ID API was then used under the authorized fallback to
+redeploy the exact last successful pre-down revision
+`d0b20599-112d-4cfe-8b77-fc84b8a76244`.
+
+- recovery deployment: `5b4f9d26-4828-471b-8ddb-71a094a28999`;
+- created: `2026-09-01T08:34:11.669Z`;
+- final status: SUCCESS;
+- production replicas: running 1 / total 1;
+- live `/health`: `ok=true`, service `crewbiq-orchestrator`, env `production`.
+
+### Post-failure verification
+
+Read-only verification at `2026-09-01T08:35:02.1960910Z` confirmed:
+
+- the eight migration names remain pending;
+- all `007-011` target objects remain absent;
+- counts remain 9 deduction templates, 16 weekly deductions, 11 service logs,
+  7 trucks, 1 auth user, 1 owner mapping, 2 roles, and 13 ledger rows;
+- identity/mapping/role/Truck/owner risk aggregates remain clean;
+- snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d` remains available.
+
+### Required decision before another attempt
+
+A later runner attempt needs explicit authorization to override only the local
+invocation environment so `DATABASE_URL` equals Railway's injected
+`DATABASE_PUBLIC_URL`, followed by a new full preflight, exact down quiescence,
+and one runner invocation. No migration file or runtime code change is needed.
+
+Without that authorization, production migration and deployment remain paused.
