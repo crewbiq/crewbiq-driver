@@ -42,7 +42,7 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / DEFECT RECLASSIFICATION ACCEPTED
+IN_PROGRESS
 
 Current owner:
 Codex
@@ -75,7 +75,7 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Codex / staging blocker corrections
 
 Next bounded action:
 (1) diagnose and fix the orchestrator persistence path so an authenticated driver-profile CPM-rate edit returning HTTP 200 durably reflects on a subsequent authenticated restore; (2) diagnose and fix why populateLoadDriverSelect() in loads.js does not carry the already-working authorized roster read into the Load Driver selector when the Add Load form is composed; (3) re-run the full protected staging mission suite plus both isolated repro cases to confirm both fixes hold, and republish STAGING_VALIDATION_EVIDENCE.md for review. No production deployment, migration, merge, destructive rollback or legacy backfill is authorized.

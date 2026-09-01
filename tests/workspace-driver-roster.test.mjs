@@ -122,7 +122,7 @@ test('adapter is loaded, lazily composed, and cache shell is rotated', () => {
   assert.match(html, /<script src="workspace-driver-roster\.js\?v=20260831-slice4b1b2c-s2-v1"><\/script>/);
   assert.match(html, /function getWorkspaceDriverRosterAdapter\(\)/);
   assert.doesNotMatch(html, /CrewBIQWorkspaceDriverRoster\.read\(/);
-  assert.match(swSource, /crewbiq-driver-v94/);
+  assert.match(swSource, /crewbiq-driver-v95/);
   assert.match(swSource, /workspace-driver-roster\.js/);
 });
 

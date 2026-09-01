@@ -36,6 +36,8 @@ function loadApi() {
 const api = loadApi();
 const saveSource = functionSource(source, 'function saveLoad()');
 const populateSource = functionSource(source, 'async function populateLoadDriverSelect()');
+const initSource = functionSource(source, 'function init(opts)');
+const refreshSource = functionSource(source, 'function refreshNewLoadAttribution()');
 const editSource = functionSource(source, 'function editLoad(id)');
 const compositionSource = functionSource(html, 'async function readAuthorizedWorkspaceDriverRoster()');
 const requestSource = functionSource(html, 'function getWorkspaceDriverRosterAdapter()');
@@ -77,6 +79,15 @@ test('composition root consumes only accepted adapter and canonical workspace re
   assert.match(requestSource, /workspace_driver_roster_read/);
 });
 
+test('new Load attribution refreshes after initialization and canonical account connection', () => {
+  assert.match(initSource, /refreshNewLoadAttribution\(\)/);
+  assert.match(refreshSource, /populateLoadTruckSelect\(/);
+  assert.match(refreshSource, /populateLoadDriverSelect\(\)/);
+  assert.match(html, /orchestratorFinishLogin[\s\S]*CrewBIQLoads\.refreshNewLoadAttribution\(\)/);
+  assert.match(html, /onOrchWorkspaceChange[\s\S]*CrewBIQLoads\.refreshNewLoadAttribution\(\)/);
+  assert.doesNotMatch(refreshSource, /\[\s*0\s*\]|loadDriverProfiles|driverProfiles/);
+});
+
 test('new Load only: edit preserves existing driverId and never backfills legacy Loads', () => {
   assert.match(saveSource, /existingEntry && Object\.prototype\.hasOwnProperty\.call\(existingEntry, 'driverId'\)/);
   assert.match(saveSource, /entry\.driverId = existingEntry\.driverId/);
@@ -91,6 +102,6 @@ test('PTI attribution remains independent from the Load-specific selector helper
 
 test('app shell is cache-rotated and roster loads before Loads module', () => {
   assert.ok(html.indexOf('workspace-driver-roster.js') < html.indexOf('loads.js'));
-  assert.match(swSource, /crewbiq-driver-v94/);
+  assert.match(swSource, /crewbiq-driver-v95/);
   assert.match(swSource, /workspace-driver-roster\.js/);
 });

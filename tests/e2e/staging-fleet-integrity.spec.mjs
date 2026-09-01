@@ -536,6 +536,7 @@ test(
         previously_touched: false,
       });
       originalProfileMutated = true;
+      await page.evaluate(() => { window.confirm = () => true; });
       await page.evaluate(async ({ id, payType, rate }) => {
         openDriverForm(id);
         const payTypeEl = document.querySelector('#dfPayType');
@@ -546,6 +547,9 @@ test(
         toggleDriverPayFields();
         await saveDriverForm();
       }, { id: originalProfile.id, payType: 'cpm', rate: 0.91 });
+      const localCpmProfile = await page.evaluate(id => loadDriverProfiles().find(item => item.id === id), originalProfile.id);
+      expect(localCpmProfile.payType).toBe('cpm');
+      expect(localCpmProfile.rate).toBe(0.91);
       expect((await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
         driverProfiles: await page.evaluate(() => loadDriverProfiles()),
       }, 'DRIVER-CRUD-01', 'cpm-edit')).status).toBe(200);
@@ -564,6 +568,9 @@ test(
         toggleDriverPayFields();
         await saveDriverForm();
       }, { id: originalProfile.id, payType: 'gross_percent', rate: 27.5 });
+      const localGrossProfile = await page.evaluate(id => loadDriverProfiles().find(item => item.id === id), originalProfile.id);
+      expect(localGrossProfile.payType).toBe('gross_percent');
+      expect(localGrossProfile.rate).toBe(27.5);
       expect((await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
         driverProfiles: await page.evaluate(() => loadDriverProfiles()),
       }, 'DRIVER-CRUD-01', 'gross-edit')).status).toBe(200);

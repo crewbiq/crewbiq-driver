@@ -2397,6 +2397,7 @@ async function orchestratorFinishLogin(sessionToken){
   }
   saveOrchestratorSession({sessionToken: sessionToken, me: meResult.me, activeWorkspaceIdOverride: ''});
   await refreshOrchestratorCanonicalRead(sessionToken, meResult.me);
+  if(window.CrewBIQLoads) await CrewBIQLoads.refreshNewLoadAttribution();
   renderOrchestratorAccountSection();
   refreshDriverSelfCard(true);
   toast('Orchestrator account connected');
@@ -2443,6 +2444,7 @@ function onOrchWorkspaceChange(){
   if(!select || !session) return;
   session.activeWorkspaceIdOverride = select.value;
   saveOrchestratorSession(session);
+  if(window.CrewBIQLoads) CrewBIQLoads.refreshNewLoadAttribution();
   renderOrchestratorAccountSection();
   refreshDriverSelfCard(true);
 }

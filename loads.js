@@ -82,6 +82,8 @@
     _showPage    = opts.showPage;
     _ready = true;
 
+    refreshNewLoadAttribution();
+
     Core.events.on('driver:pay_settings_changed', (payload) => {
       const effectiveDate = (payload && payload.effectiveDate) || _today();
       const rates         = (payload && payload.rates) || null;
@@ -242,6 +244,15 @@
       `<option value="${_escHtml(driver.driverId)}">${_escHtml(driver.name)}</option>`
     ).join('');
     select.disabled = false;
+  }
+
+  function refreshNewLoadAttribution() {
+    if (!_ready) return Promise.resolve();
+    const editId = document.getElementById('loadEditId');
+    if (editId && editId.value) return Promise.resolve();
+    const truckSelection = getLoadTruckSelection();
+    populateLoadTruckSelect(truckSelection.truckId || truckSelection.unitNumber || '');
+    return populateLoadDriverSelect();
   }
 
   function populateLoadTruckSelect(preferred = '') {
@@ -1357,7 +1368,7 @@
     assignUnresolvedLoad,
     calcDriverPay, calcDriverPayWith, recalcLoadsFrom,
     maskGross, calcPreview, getWeekLoads,
-    saveLoad, editLoad, deleteLoad, resetLoadForm, setLoadStatus,
+    saveLoad, editLoad, deleteLoad, resetLoadForm, refreshNewLoadAttribution, setLoadStatus,
     toggleStatusMenu, closeAllMenus,
     getDriverDisputed, setDriverDisputed,
     addDriverDisputed, driverResolveDispute, driverReopenDispute,

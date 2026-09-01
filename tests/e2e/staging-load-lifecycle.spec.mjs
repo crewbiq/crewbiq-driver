@@ -186,6 +186,8 @@ test(
       });
       expect(roster.status).toBe(200);
       expect(rosterDrivers.length, 'LOAD-01 requires at least one canonical Driver fixture').toBeGreaterThan(0);
+      await page.evaluate(token => orchestratorFinishLogin(token), writerToken);
+      observations.push({ step: 'connected-pwa-orchestrator-session' });
 
       // Per-run timestamp, not just a fixed marker: boot's restoreSession()
       // pulls this identity's existing server-side loads into the local
