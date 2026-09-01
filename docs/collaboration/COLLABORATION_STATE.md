@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-IN_PROGRESS - EXACT DOWN QUIESCENCE AUTHORIZED
+PRODUCTION_VALIDATION_BLOCKED - SERVICE RECOVERED
 
 Current owner:
-Codex
+Product Owner
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Fresh snapshot remains required; Product Owner authorized exact production orchestrator down quiescence with redeploy of the prior revision as mandatory failure fallback
+Snapshot and quiescence passed; runner failed before DB connection because local invocation used Railway private DATABASE_URL; prior production service revision is recovered and healthy
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,22 +100,22 @@ Latest review commit:
 466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-f0f9389cd31f3adb5722e8fc14ecc9bbc3072dbb
+aa961aef8117eded7b61d09adceb981f781a9519
 
 Blocking findings:
-NONE at authorization; stop on any snapshot, preflight, down/quiescence, migration, verification, deployment, or smoke failure
+MIGRATION_RUNNER_PRIVATE_DNS_RESOLUTION_FAILED
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED within exact authorized production rollout and fallback
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+Product Owner
 
 Next bounded action:
-repeat full preflight, execute exact Railway down and prove running=0, then run accepted migration/deployment/smoke chain; redeploy prior revision and stop on first failure
+Decision required: authorize one corrected runner invocation with local DATABASE_URL explicitly set to Railway DATABASE_PUBLIC_URL, after a new full preflight and exact down quiescence; otherwise keep production rollout paused
 <!-- CURRENT_END -->
 
 
@@ -3052,3 +3052,13 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Mandatory fallback: redeploy the prior production revision on any quiescence, migration, verification, or rollout failure.
 - Codex must repeat the complete preflight before down and stop on the first failure.
 - Existing snapshot, migration order, deployment order, smoke boundary, and prohibited-scope rules remain binding.
+### 2026-09-01 - Codex - Down quiescence PASS; runner connection failure; service recovered
+
+- Full pre-down production preflight PASS; snapshot `f8dcd2e7-825e-41de-8394-d25bb125885d` remained available.
+- Authorized Railway down achieved `running=0/total=0`; DB session proof showed zero other client/non-idle sessions.
+- The single accepted runner invocation failed before DB connection at `asyncpg.connect`: private Railway `DATABASE_URL` hostname could not resolve from the local `railway run` process (`getaddrinfo failed`). Transaction, lock, migration SQL, ledger/schema/data mutation: NONE.
+- Generic redeploy selected a stopped deployment and failed as `408d11ea-29bc-4fdd-81f1-45263249f516`; exact prior successful deployment `d0b20599-112d-4cfe-8b77-fc84b8a76244` was then redeployed under the authorized fallback as `5b4f9d26-4828-471b-8ddb-71a094a28999`, status SUCCESS.
+- Production orchestrator recovered to running=1 and `/health` green. Post-failure schema/ledger/counts/risks are unchanged; snapshot remains available.
+- Result: `PRODUCTION_VALIDATION_BLOCKED`; blocker `MIGRATION_RUNNER_PRIVATE_DNS_RESOLUTION_FAILED`.
+- Evidence commit: `2a4a3b3317539a2222f0ab7f0971dccbf0aa8ef4`.
+- Decision required: authorize only the corrected local invocation environment (`DATABASE_URL` explicitly assigned from Railway `DATABASE_PUBLIC_URL`) after another full preflight and exact down, or remain paused.
