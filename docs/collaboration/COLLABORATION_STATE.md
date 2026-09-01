@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW - SLASH-FREE ATTEMPT FAILED / ROLLBACK PASS
+PWA PUBLICATION BLOCKED / ACTIONS-BASED DESIGN RECOMMENDED
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 + production-v95-66a7985 (inactive immutable failed Pages-source evidence)
 
 Product truth:
-Migrations 003-011 and accepted orchestrator 27e3463 remain live and green; independently accepted slash-free Pages attempt at exact SHA 66a7985 also built but served all 13 assets as 404 for the full 10-minute window; PWA rollback to main 86b8b4d/cache v79 is complete and healthy
+Migrations 003-011 and accepted orchestrator 27e3463 remain live and green; PWA remains safely on main 86b8b4d/cache v79. The slash hypothesis is now cleanly falsified (two structurally-identical branch names both failed identically). Independent read-only checks (environments API, github-pages deployment-branch-policies, pages/builds history) confirm both failed branches were already allow-listed and that this site has never successfully served from any branch other than main - a likely GitHub-side platform quirk for this specific site, not a repo-content or naming defect.
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -97,13 +97,13 @@ Latest correction commit:
 NONE
 
 Latest review commit:
-884ae40370024dcd59eed91422dec4beb2957b9e
+9037ac450875c7286decf784654790ca074f6ffa
 
 Latest state commit:
-45ac1db4be1400a735a31f164b625df6c50dcd15
+9b211f4520b1969fea4f57765d59075112fdc201
 
 Blocking findings:
-LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404
+LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404 - reproducible three-for-three (main works; two independent alternate branches both fail identically); root cause not identifiable through further read-only inspection. Further legacy branch-swap experiments are unlikely to yield new information - this variable space is reasonably exhausted.
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Independently review the slash-free attempt, full 10-minute all-asset 404 evidence, and successful main rollback; classify the remaining legacy Pages non-main-source blocker and recommend at most one coordination/design-only next step, with no production attempt
+Draft a new PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md (coordination/design-only, no execution): propose GitHub Actions-based Pages deployment (actions/upload-pages-artifact + actions/deploy-pages) as the next candidate, using a workflow file on the immutable evidence branch triggered via workflow_dispatch against the exact accepted SHA (never on main), the same all-13-asset byte-for-byte verification and immediate main-rollback discipline already proven twice, and an explicit note that changing Pages build_type from legacy to workflow is itself a configuration change requiring its own review and Product Owner authorization before any execution. No production attempt, Pages source change, build_type change, workflow execution, merge, migration, or production-data write is authorized.
 <!-- CURRENT_END -->
 
 
@@ -3152,3 +3152,15 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Next required actor: Claude
 - Decision gate: AUTO_CONTINUE_ALLOWED
 - Next bounded action: independent evidence review and one design-only recommendation
+
+### 2026-09-01 - Claude - Slash-Free Attempt Failure Independent Review
+
+- Method: read the new evidence sections in full; independently ran three additional read-only checks not requested by Codex - gh api repos/.../environments (deployment-branch protection), repos/.../environments/github-pages/deployment-branch-policies (exact allow-list), and repos/.../pages/builds (full build history) - to test whether a structural, not naming, explanation exists.
+- Confirmed the slash hypothesis is now cleanly falsified: both the slash-containing and slash-free branches, identical accepted tree/SHA, both served all 13 assets as 404 for the complete 10-minute window.
+- Found the github-pages environment's deployment-branch-policy already allow-lists both failed branches (main, agent/production-release-20260901-v95, production-v95-66a7985) - not the blocker, and likely a vestige of Actions-based Pages concepts this legacy-build_type site doesn't actually route through.
+- Found via pages/builds history that this site has never successfully served from any branch other than main in its entire recorded history, despite the API reporting every attempted branch's build as built - corroborates a platform-level quirk specific to this site's legacy Pages configuration, not a repo-content or naming defect.
+- Classification: LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404, reproducible three-for-three, root cause not identifiable through further read-only inspection; the legacy branch-swap variable space is reasonably exhausted.
+- Recommendation: draft (design-only, no execution) a new correction plan proposing GitHub Actions-based Pages deployment as the next candidate, since it uses an entirely different build/serve pipeline than the legacy mechanism that has now failed identically twice.
+- Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: draft PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md only - no production attempt, Pages source change, build_type change, workflow execution, merge, migration, or production-data write authorized.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 9037ac450875c7286decf784654790ca074f6ffa).
+- Runtime/product files changed by this review: NONE.
