@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+STAGING_VALIDATION_BLOCKED / DATA DEFECT CLASSIFIED - PROVENANCE-GATED FIX PATH
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -63,22 +63,22 @@ Latest documentation commit:
 docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 9 at c0a1dd45bdcbe63b0576db7eedce5f1e72da1d54
 
 Latest review commit:
-4cfd416bfeb733900947dffb4ff55786efe22606
+5fe70f04ae88d39f59e13186b79e5b288dd6953e
 
 Blocking findings:
-STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - genuine authoritative-source defect. Authorized roster HTTP 200 contains an inactive Driver with effectiveFrom 2026-07-17 after effectiveTo 2026-07-14; the PWA correctly fails closed. Legacy mutation, date fabrication, record skipping, and weakened validation are prohibited. DRIVER-CRUD-01 and PTI-01 are closed.
+STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - CONFIRMED genuine authoritative-source data defect, root cause traced to app/routers/workspace_drivers.py: effective_from/effective_to are sourced directly from fleet_driver_profiles.created_at/terminated_at, and this row's terminated_at (2026-07-14) precedes its own created_at (2026-07-17) - an impossible row, not a mapping bug. The PWA correctly fails closed (workspace-driver-roster.js). ALSO FOUND: the orchestrator's _driver_response() validates one cross-field rule (is_active + effective_to) but has no check that effective_to >= effective_from - a safe, data-free server-side gap worth closing regardless of the data question. DRIVER-CRUD-01 and PTI-01 are closed (DRIVER-CRUD-01 was a harness race with startup restore, not an Orchestrator defect).
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Full protected all-role regression was not run after isolated LOAD-01 remained red; isolated Driver result is 8 passed, 1 failed. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry, Fleet 6/6 and fresh-identity PTI passed.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Full protected all-role regression was not run after isolated LOAD-01 remained red. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry, Fleet 6/6 and fresh-identity PTI passed.
 
 Decision gate:
-REVIEW_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Independently review the staging correction evidence and classify STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE. Determine whether a bounded authoritative-source correction exists without mutating legacy records, fabricating effective dates, skipping malformed records, or weakening fail-closed behavior. No implementation, production action, merge, migration, destructive rollback or legacy backfill is authorized.
+(1) add the missing effective_to >= effective_from consistency check to _driver_response() in app/routers/workspace_drivers.py (mirroring the existing is_active/effective_to check, same 502 malformed_driver_record response) - safe, data-free, confirm full orchestrator suite still passes; (2) determine this specific malformed row's provenance - if it traces to a version-controlled staging seed/fixture script, correct that script's dates (not a live manual data edit), redeploy staging, and confirm LOAD-01 plus the full protected suite go green; (3) if no version-controlled source exists, or the row appears to reflect real replicated legacy business data rather than synthetic staging fixture data, do NOT correct it - instead escalate with Decision gate: COORDINATOR_REQUIRED and an explicit question to the Product Owner about authorization to correct staging Driver-profile data. No legacy-record mutation, date fabrication, malformed-record skipping, weakened validation, production action, merge, or deploy is authorized.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1417,4 +1417,17 @@ Next bounded action: independent classification review only.
 - Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: fix the orchestrator driver-profile CPM-rate persistence path; fix populateLoadDriverSelect()'s composition so it reliably carries the already-working roster read into the Load Driver selector; re-run the full protected suite plus both isolated repros and republish evidence for review.
 - No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 4cfd416bfeb733900947dffb4ff55786efe22606).
+- Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Claude - Malformed Roster Record Independent Review
+
+- Method: read workspace-driver-roster.js's validation logic in full; fetched and read app/routers/workspace_drivers.py (orchestrator, agent/account-driver-link-read) to trace exactly where effective_from/effective_to originate.
+- Confirmed client fail-closed behavior is correct and intentional (normalizeDriver()/validateResponse() reject the whole response on any single malformed record, matching the established no-silent-skip design) - not a client defect.
+- Traced root cause to source: _driver_response() sources effective_from from fleet_driver_profiles.created_at and effective_to from terminated_at; the malformed row's terminated_at precedes its own created_at - a genuinely impossible row in the legacy Driver-profile table, not a roster-endpoint mapping bug.
+- Independently found an additional, narrow gap: _driver_response() validates one cross-field rule (is_active + effective_to) but never checks effective_to >= effective_from - a safe, data-free server-side fix worth adding regardless of how the data question resolves.
+- The underlying data-correction question (is this row synthetic staging fixture data, safe to correct via a version-controlled seed script, or does it reflect real replicated legacy business data requiring Product Owner authorization) cannot be resolved from code alone - flagged as the necessary next diagnostic step rather than guessed.
+- Verdict: STAGING_VALIDATION_BLOCKED confirmed correct - genuine authoritative-source data defect, not a workaround-able client/server bug.
+- Decision gate: AUTO_CONTINUE_ALLOWED for the safe server-side validation addition and the provenance investigation. Next required actor: Codex. Next bounded action: add the missing effective_to>=effective_from check; trace this row to a version-controlled seed script and fix there if found; otherwise escalate to COORDINATOR_REQUIRED for explicit Product Owner authorization before touching staging Driver-profile data.
+- No legacy mutation, date fabrication, record skipping, weakened validation, production action, merge, or deploy is authorized by this review.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 5fe70f04ae88d39f59e13186b79e5b288dd6953e).
 - Runtime/product files changed by this review: NONE.
