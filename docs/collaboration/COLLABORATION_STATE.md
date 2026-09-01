@@ -79,16 +79,16 @@ Phase:
 Legacy Attribution Backfill Dry-Run Discovery
 
 Status:
-CORRECTED / AWAITING CODEX REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Codex
+Product Owner
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Production remains stable on main bcfd74a/cache v95. Claude independently verified all four Codex findings against the actual 011_account_driver_links.sql migration before correcting: confirmed account_id/driver_id/workspace_id are the real columns (no person_id/driver_profile_id on this table), confirmed the trigger-based advisory-lock overlap mechanism instead of a partial unique index, and corrected the date-only/timestamptz interval semantics and the overgeneralized empty-table claim. LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md now incorporates Codex's measured staging counts (driver_loads 44,177, pti_log 44,183, fleet_loads 2, all UNRESOLVABLE) as the authoritative evidence.
+The corrected read-only discovery is accepted. Staging contains 44,177 driver_loads, 44,183 pti_log rows, and 2 fleet_loads; all are UNRESOLVABLE for canonical driverId and truckId under full-UTC-day authoritative interval proof. Migrations 010/011 contain no historical backfill. No conclusion about production classifications and no backfill write are authorized.
 
 Latest implementation commit:
 00a6ab8963697d0f3e2078867f7e28e2c4779438
@@ -97,25 +97,25 @@ Latest correction commit:
 00a6ab8963697d0f3e2078867f7e28e2c4779438
 
 Latest review commit:
-7064d424a7a08cf8bb6535819119dcec28adc4e1
+a9342c68dfe2b49385bc3ec5e662d41ebacde8aa
 
 Latest state commit:
-e053a8664644354ee512788d9ed569e9272e8e51
+8b59d74ca2e601602cc17806324f79c0a08fa508
 
 Blocking findings:
-NONE remaining if Codex confirms the correction addresses B1-B4 exactly. All four independently re-verified against the actual migration source before correcting, not merely accepted on Codex's word.
+NONE
 
 Queued non-blocking findings:
-GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything. Whether to backfill driver_truck_assignments'/account_driver_links' historical intervals remains an explicitly open, unresolved product question raised by this discovery - not decided by either agent.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. SIDR vision and proposed CrewBIQ ADR-0007 are architecture notices only and authorize no current implementation.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+PRODUCT_OWNER_DECISION_REQUIRED
 
 Next required actor:
-Codex
+Product Owner
 
 Next bounded action:
-Independently review the corrected LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md (commit 00a6ab8963697d0f3e2078867f7e28e2c4779438) against B1-B4: confirm the column names, cardinality mechanism, date-interval semantics, and measured-staging-evidence framing are now accurate. If ACCEPT, set Next required actor: Claude with one bounded implementation action per the role-swap protocol. No backfill write, migration, runtime change, or data mutation is authorized.
+Choose whether to authorize a separately bounded, initially read-only design for reconstructing authoritative historical AccountDriverLink/DriverTruckAssignment intervals, or close legacy attribution with existing records remaining UNRESOLVABLE and canonical attribution applying only to new records. No implementation, migration, production query, or historical mutation before that decision.
 <!-- CURRENT_END -->
 
 
@@ -3493,3 +3493,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, to confirm the correction fully addresses B1-B4.
 - No backfill write, migration, runtime change, or data mutation occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Legacy attribution discovery correction accepted
+
+- Reviewed correction commit `00a6ab8963697d0f3e2078867f7e28e2c4779438` independently.
+- Review commit: `a9342c68dfe2b49385bc3ec5e662d41ebacde8aa`.
+- Verdict: ACCEPT; B1-B4 CLOSED.
+- Staging evidence remains read-only: driver_loads 44,177; pti_log 44,183; fleet_loads 2; all UNRESOLVABLE; canonical table counts 1/1 before and after.
+- Runtime, migrations, deployments, production data, and historical records changed: NONE.
+- Product Owner decision required: authorize bounded read-only historical-interval reconstruction design, or close legacy attribution with old records unresolved and canonical attribution limited to new records.
+
