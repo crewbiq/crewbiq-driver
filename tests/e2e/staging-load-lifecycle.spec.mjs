@@ -179,6 +179,33 @@ test(
       const marker = `${config.displayPrefix}LOAD-01-${Date.now()}`.slice(0, 60).toUpperCase().replace(/[^A-Z0-9-]/g, '');
       await page.evaluate(() => { if (typeof showPage === 'function') showPage('load'); });
 
+      const truckId = config.fleetA.activeTruckIds[0];
+      await page.waitForFunction(expectedTruckId => {
+        const select = document.getElementById('loadTruckSelect');
+        return !!(select && !select.disabled
+          && Array.from(select.options).some(option => option.value === expectedTruckId));
+      }, truckId, { timeout: 20_000 });
+      await page.locator('#loadTruckSelect').selectOption({ value: truckId });
+
+      await page.waitForFunction(() => {
+        const select = document.getElementById('loadDriverSelect');
+        return !!(select && !select.disabled
+          && Array.from(select.options).some(option => String(option.value || '').trim()));
+      }, undefined, { timeout: 20_000 });
+      const canonicalDriverIds = await page.locator('#loadDriverSelect option').evaluateAll(options => (
+        options.map(option => String(option.value || '').trim()).filter(Boolean).sort()
+      ));
+      expect(canonicalDriverIds.length).toBeGreaterThan(0);
+      const driverId = canonicalDriverIds[0];
+      await page.locator('#loadDriverSelect').selectOption({ value: driverId });
+      expect(await page.locator('#loadTruckSelect').inputValue()).toBe(truckId);
+      expect(await page.locator('#loadDriverSelect').inputValue()).toBe(driverId);
+      observations.push({
+        step: 'explicit-canonical-attribution-selected',
+        truck_id: truckId,
+        driver_id: driverId,
+      });
+
       await page.locator('#loadId').fill(marker);
       await page.locator('#loadedMiles').fill('612');
       await page.locator('#grossInput').fill('1850.00');
@@ -219,6 +246,8 @@ test(
       // unrecognized client fields instead of silently dropping them.
       expect(matches[0].pickupLocation).toBe('Buffalo, NY');
       expect(matches[0].deliveryLocation).toBe('Lancaster, PA');
+      expect(matches[0].truckId).toBe(truckId);
+      expect(matches[0].driverId).toBe(driverId);
       observations.push({
         step: 'verified-recovery-restore',
         stable_id_preserved: matches[0].id === addedLoadId,
@@ -226,6 +255,8 @@ test(
         gross_match: Number(matches[0].gross) === 1850,
         pickup_location_match: matches[0].pickupLocation === 'Buffalo, NY',
         delivery_location_match: matches[0].deliveryLocation === 'Lancaster, PA',
+        truck_id_match: matches[0].truckId === truckId,
+        driver_id_match: matches[0].driverId === driverId,
       });
     } finally {
       if (addedLoadId) {
