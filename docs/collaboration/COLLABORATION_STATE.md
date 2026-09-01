@@ -79,19 +79,19 @@ Phase:
 Collaboration Protocol - Claude Implementation / Codex Review
 
 Status:
-ROLE_SWAP_ACTIVE / READY FOR CLAUDE
+DISCOVERY PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Production remains stable on main bcfd74a/cache v95, independently confirmed (byte-level hash verification of all 13 live assets). Canonical staging fixture provisioning independently verified: fetched both cited Actions runs directly (both conclusion=success) and downloaded the actual job logs - confirmed exactly 18 passed/0 failed in the full run and the canonical identity journey genuinely passing 1/1 in the isolated run, not merely trusted from a summary. The former CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED gap - carried forward since the very first staging validation review in this track - is now genuinely closed.
+Production remains stable on main bcfd74a/cache v95. Claude published LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md (commit 3e733021aeb4c100f9fea9db040b9603009d0923): a read-only schema/evidence inventory for IDENTITY_ATTRIBUTION_CONTRACT.md's 4B.1b.4 dry-run step. Key finding: driver_truck_assignments holds zero historical rows in every environment touched this track, so truckId classification will return AMBIGUOUS/UNRESOLVABLE for essentially the entire legacy corpus via that path regardless of data quality; driverId may still reach PROVEN via account_driver_links alone. A draft classification query is proposed but was NOT executed against any live data - this session's implementer role has GitHub read access only, no Railway/database credentials.
 
 Latest implementation commit:
-b963d317b393d9a6493c76581028870186a490e4
+3e733021aeb4c100f9fea9db040b9603009d0923
 
 Latest correction commit:
 b963d317b393d9a6493c76581028870186a490e4
@@ -100,22 +100,22 @@ Latest review commit:
 73376818247759a0e90c515fb5348fd6ed8481b7
 
 Latest state commit:
-fa84dc4f42cb5874bf6e9c39a49c554e73fe335b
+c36da8d2ce59f2538c7b581d34ef8ad37d078eea
 
 Blocking findings:
-NONE. Production deployment and canonical staging coverage are complete and independently verified.
+NONE for this discovery-only slice. No mutation, migration, or data access occurred.
 
 Queued non-blocking findings:
-GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything.
+GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything. Whether to backfill driver_truck_assignments' historical intervals remains an explicitly open, unresolved product question raised by this discovery.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Claude is the primary implementer. Select and publish the single safest bounded technical continuation from already accepted priorities; the first eligible candidate is read-only legacy attribution/backfill discovery only, with no historical mutation. After every Claude publication set Next required actor: Codex for independent review. After Codex ACCEPT with no exceptional decision, Codex must set Next required actor: Claude with one bounded implementation action. Do not route through ChatGPT as a routine checkpoint.
+Independently review LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md: verify the schema claims (driver_loads/pti_log/fleet_loads/trucks column shapes, account_driver_links/driver_truck_assignments constraints) against the actual repository and, if staging read access is available, execute the proposed dry-run classification query pattern read-only against staging for driver_loads/pti_log/fleet_loads and report the exact PROVEN/AMBIGUOUS/UNRESOLVABLE counts. No backfill write, migration, or data mutation is authorized.
 <!-- CURRENT_END -->
 
 
@@ -3459,3 +3459,13 @@ Next required actor: Claude
 - Existing safety gates remain unchanged. Product Owner remains required only for the exceptional high-risk categories in the standing delegation.
 - Next eligible accepted priority is read-only legacy attribution/backfill discovery only; historical attribution mutation remains prohibited without direct Product Owner authorization.
 - Runtime/product files changed: NONE.
+
+### 2026-09-01 - Claude - Legacy Attribution Backfill Discovery (implementer role, per role swap)
+
+- Method: read-only inspection of orchestrator migrations (001-002 for legacy driver_loads/pti_log/fleet_loads/trucks schema; 007-011 for canonical account_driver_links/driver_truck_assignments/fleet_driver_profiles evidence sources) via GitHub repository access only - no Railway or database credentials held in this session.
+- Confirmed via direct read of 010_driver_truck_assignments.sql that its truck_id FK references legacy trucks.truck_id directly, not a separate canonical_trucks.id indirection.
+- Key finding: driver_truck_assignments has zero historical rows in every environment this track has touched (confirmed empty at every staging/production readiness check performed earlier), so per IDENTITY_ATTRIBUTION_CONTRACT.md's explicit rule that matching unit/name/current-assignment never upgrades a record to PROVEN, truckId classification will return AMBIGUOUS/UNRESOLVABLE for essentially the entire legacy Load/PTI corpus via that path regardless of underlying data quality - a real constraint discovered by inspection, not an assumption. driverId classification is less constrained since account_driver_links can independently prove Driver identity without needing assignment history.
+- Published LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md with a draft (unexecuted) dry-run classification query design for driver_loads/pti_log/fleet_loads, explicitly stating no live data was queried and no mutation occurred.
+- Per the new role-swap protocol: Next required actor: Codex, for independent review of the schema claims and, if Codex has staging read access, execution of the proposed dry-run query read-only against staging to report actual PROVEN/AMBIGUOUS/UNRESOLVABLE counts.
+- No backfill write, migration, deployment, or production/staging data mutation occurred.
+- Runtime/product files changed: NONE (documentation only).
