@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-IN_PROGRESS - AUTHORIZED ACTIONS PAGES PHASE B
+PUBLISHED / AWAITING CLAUDE REVIEW - ACTIONS PHASE B FAILED / LEGACY ROLLBACK PASS
 
 Current owner:
-Codex
+Claude
 
 Branch:
-agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); inactive immutable release evidence refs unchanged
+agent/pre-base44-audit; orchestrator accepted branch; inactive immutable control ref pages-actions-v95-66a7985
 
 Product truth:
-Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Claude independently accepted Phase A and standing Product Owner delegation authorizes Codex to execute one exact Phase B attempt with immediate legacy-main rollback
+Production migrations and orchestrator are green. Actions run 33515902286 succeeded, but all 13 required production assets remained HTTP 404 for the full 10-minute validation window. Legacy GitHub Pages main/v79 rollback is complete and healthy.
 
 Latest implementation commit:
 f19f05129fee94004505fc321fcef925e5cd4d99
@@ -100,10 +100,10 @@ Latest review commit:
 f5cd4dbdbb6996943ad26cea63b787eab0dc963a
 
 Latest state commit:
-b1e1892d0bb82b039ef23ce705b3723acdc09a72
+b44feee7231489dde13a3a7d2842f4f4faea7555
 
 Blocking findings:
-NONE. Phase A ACCEPTED - trigger provably cannot match main or the collaboration branch, permissions are exactly minimal, checkout is pinned to the exact accepted SHA with a runtime git rev-parse HEAD guard plus explicit file/cache-version checks, no build/install/network command exists anywhere in the workflow, and all four action pins independently verified correct.
+GITHUB_PAGES_PROJECT_SITE_SERVING_404_AFTER_SUCCESSFUL_ACTIONS_DEPLOYMENT
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Execute one Phase B attempt exactly per the accepted plan: add only the exact control-branch policy, set build_type workflow, create the absent control ref at reviewed commit f19f051, require the exact workflow/deployment and 13-file hashes, and restore legacy main immediately on any failure
+Independently review Phase B run 33515902286, the complete 404 evidence, configuration mutations, and successful legacy rollback; classify whether the blocker is GitHub Pages project-site/repository configuration or platform behavior and recommend at most one coordination/design-only next step. No production attempt.
 <!-- CURRENT_END -->
 
 
@@ -3225,5 +3225,15 @@ Result: PUBLISHED / AWAITING CLAUDE REVIEW - ACTIONS PHASE B FAILED / LEGACY ROL
 Workflow run 33515902286 completed successfully from immutable control branch pages-actions-v95-66a7985 at implementation commit f19f05129fee94004505fc321fcef925e5cd4d99 and deployed accepted artifact 66a7985765b76e0702d015ca1e300390156f8ad6. Nevertheless, all 13 required production assets returned HTTP 404 throughout the full 10-minute validation window. Automatic rollback restored legacy Pages main:/ at commit 86b8b4dd7e9496833a021319167589b49f0ac418; index.html and sw.js returned HTTP 200 with cache v79, and orchestrator health/readiness remained green. No merge, force-push, migration, production business-data mutation, runtime edit, or unrelated change occurred.
 
 Blocking finding: GITHUB_PAGES_PROJECT_SITE_SERVING_404_AFTER_SUCCESSFUL_ACTIONS_DEPLOYMENT
+
+Next required actor: Claude
+
+### 2026-09-01 - Phase B authoritative CURRENT repair
+
+Agent: Codex
+
+Result: COORDINATION-ONLY REPAIR PUBLISHED
+
+Corrected the live marked CURRENT block after the Phase B evidence publication left the prior IN_PROGRESS state authoritative. No runtime/product file, deployment configuration, production data, migration, or environment was changed.
 
 Next required actor: Claude
