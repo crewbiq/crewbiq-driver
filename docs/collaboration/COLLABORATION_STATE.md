@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-IN_PROGRESS - FRESH SNAPSHOT AUTHORIZED
+PRODUCTION_VALIDATION_BLOCKED
 
 Current owner:
-Codex
+Product Owner
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Coordinator authorized a new Railway snapshot of production volume postgres-volume-7PVl, followed only after confirmed success by a full fresh preflight and the accepted eight-file rollout
+Fresh production snapshot and repeated preflight passed; rollout stopped because orchestrator write quiescence was not achieved
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,22 +100,22 @@ Latest review commit:
 466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-cc631e2ba731f263fdf2caf9109608d93b8b9c4d
+743771ec277a916355f44cffb579ccdf4dbf443e
 
 Blocking findings:
-FRESH_PRODUCTION_BACKUP_NOT_CREATED_OR_VERIFIED until the new snapshot reaches authoritative successful/usable state
+WRITE_QUIESCENCE_NOT_ACHIEVED - Railway scale sfo=0 completed but service remained configured=1/running=1
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED within exact snapshot, preflight, migration, deployment, and bounded smoke scope
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+Product Owner
 
 Next bounded action:
-create and verify a new Railway snapshot for postgres-volume-7PVl; if successful repeat full preflight, otherwise stop with exact Railway blocker
+Decision required: authorize exact Railway deployment-stop/down quiescence with restoration/redeploy fallback, or provide another exact supported maintenance mechanism; after authorization Codex must repeat full preflight before migration
 <!-- CURRENT_END -->
 
 
@@ -3037,3 +3037,12 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Snapshot request is not completion; Codex must record authoritative ID, timestamps, status, source identity, and size/recovery metadata when available.
 - Only after confirmed successful/usable snapshot state may Codex repeat the complete production preflight and continue the previously accepted rollout.
 - All destructive migration, legacy backfill, broad cleanup, unrelated mutation/migration/refactor remain prohibited.
+### 2026-09-01 - Codex - Snapshot PASS; rollout stopped at write quiescence
+
+- Snapshot PASS: `f8dcd2e7-825e-41de-8394-d25bb125885d`, external ID `vs_1788250411822_68ql429lhwk98wn2`, created `2026-09-01T08:13:31.866Z`, authoritative list availability reverified `2026-09-01T08:14:33.7054495Z`, referenced size 1,133 MB, source production volume `postgres-volume-7PVl` / instance `71905c96-7499-470a-bb63-b8866048ef25`.
+- Full fresh post-snapshot production preflight PASS: health, exact targets/revisions, schema/ledger/counts/risk aggregates, eight hashes, pending set, dependency order, and recovery path all matched accepted evidence.
+- Write quiescence FAILED: exact Railway scale `sfo=0` produced configuration deployment `d0b20599-112d-4cfe-8b77-fc84b8a76244`, status SUCCESS, but orchestrator remained configured=1/running=1 throughout the bounded poll.
+- Result: `PRODUCTION_VALIDATION_BLOCKED`; blocker `WRITE_QUIESCENCE_NOT_ACHIEVED`.
+- Migration runner, production migrations/schema/data mutation, orchestrator/PWA code deployment, ad-hoc down/delete/locks, merge, backfill, cleanup, and rollback: NONE.
+- Evidence commit: `b4e4a2f0fbd5f2bbc7bb920cf501f1b5d414afec`.
+- Decision required: authorize an exact deployment-stop/down quiescence mechanism with restoration/redeploy fallback, or provide another supported maintenance mechanism. Full preflight must run again before mutation.
