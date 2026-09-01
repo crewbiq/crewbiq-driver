@@ -79,43 +79,43 @@ Phase:
 Production Prerequisite Migration Readiness Validation
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+ACCEPTED - AWAITING PRODUCT OWNER DECISION ON EXPANDED 8-FILE SCOPE
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-current accepted branch tips; production schema traced read-only
+current accepted branch tips; production schema traced read-only; readiness assessment independently verified against actual migration source and the migration runner
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
 
 Latest correction commit:
-NONE — validation/documentation only
+NONE - validation/documentation only
 
 Latest review commit:
-PENDING CLAUDE REVIEW
+466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
 db3f6ce654176c38330cfce0a5f00a36876e5707
 
 Blocking findings:
-NONE
+NONE. Readiness assessment ACCEPTED: independently read 007_identity_workspace.sql and 009_canonical_claim_approval.sql in full (confirmed additive/idempotent backfill and the one constraint-replacement operation match the document exactly), grepped 007/008/009 for destructive DDL/DML (zero matches), read app/db/migrations.py and confirmed the entire sequence runs in one transaction with full rollback on any failure, and made a live read-only GET to production /health confirming env=production.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task. The original Product Owner authorization was scoped to migrations 010-011 only; this readiness assessment concludes 010-011 cannot be safely applied alone and requires the full ordered 8-file sequence (003, 004, 006, 007, 008, 009, 010, 011) - a genuine scope increase requiring fresh authorization. No production backup/snapshot has been created yet (a stated hard precondition).
 
 Decision gate:
-PENDING INDEPENDENT REVIEW
+COORDINATOR_REQUIRED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-independently review production prerequisite migration readiness evidence and classifications
+Decision required: does the Product Owner authorize the expanded 8-file production migration sequence (003 through 011 in the exact stated order), contingent on every stated precondition passing (hash reconfirmation, fresh preflight re-run, a verified pre-migration backup/snapshot created first, write quiescence during the transaction, stop-on-first-mismatch) - or should production migration remain paused for further consideration? No production migration, backup operation, deployment, merge, backfill, cleanup, or production-data mutation is authorized.
 <!-- CURRENT_END -->
 
 
@@ -3002,3 +3002,16 @@ Validated read-only production schema state and exact dependency order for migra
 Next required actor: Claude
 
 Next bounded action: independent review of prerequisite migration readiness evidence.
+### 2026-09-01 - Claude - Production Prerequisite Migration Readiness Independent Review - ACCEPT
+
+- Method: did not trust the document's descriptions at face value - fetched and read 007_identity_workspace.sql and 009_canonical_claim_approval.sql in full from the orchestrator repository, grepped 007/008/009 for destructive DDL/DML (drop table, truncate, delete from, drop column - zero matches), fetched and read app/db/migrations.py (the actual runner), and made a live read-only GET to production /health.
+- Confirmed 007's backfill logic (deterministic MD5-derived UUIDs, on conflict do nothing on every insert) exactly matches the document's description and idempotency claim.
+- Confirmed 009's one non-additive operation (drop/add constraint on legacy_record_links.target_entity_type_check) is exactly and only a check-constraint replacement, not a business-row mutation, as the document states.
+- Confirmed app/db/migrations.py wraps the entire migration sequence (advisory lock + every file) in one transaction, with any exception triggering a full rollback of the whole sequence - exactly as claimed. Confirmed via its own docstring this runner is never called on app startup.
+- Confirmed live production /health returns env=production, verifying this assessment traces the real production service.
+- Verdict: ACCEPT the readiness assessment as accurate, rigorous, and non-fabricated.
+- Scope observation: the original Product Owner authorization was scoped to migrations 010-011 only. This readiness assessment concludes 010-011 cannot be safely applied alone - the safe order requires all eight files (003-011). This is a genuine scope increase over what was authorized, not a mechanical continuation, per the same per-action/per-scope discipline applied throughout this track. A production backup/snapshot has also not yet been created, per the document's own stated hard precondition.
+- Decision gate: COORDINATOR_REQUIRED. Next required actor: ChatGPT. Decision required: authorize the expanded 8-file production migration sequence contingent on every stated precondition (hash reconfirmation, fresh preflight, verified backup created first, write quiescence, stop-on-first-mismatch), or remain paused.
+- No production migration, backup operation, deployment, merge, backfill, cleanup, or production-data mutation is authorized by this review.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 466f51064d4e30d72769a99ae09bff4f5c4711a7).
+- Runtime/product files changed by this review: NONE.
