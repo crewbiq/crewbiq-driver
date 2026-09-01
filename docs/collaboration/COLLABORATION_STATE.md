@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / PRODUCT OWNER DECISION REQUIRED
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -72,13 +72,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Local orchestrator suite is 318 passed, 2 skipped; driver tooling is 318 passed. Provenance Driver run is 8 passed, 1 failed (LOAD-01 only). Full protected all-role regression remains gated by the persisted synthetic malformed row.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: authorize a staging-only, version-controlled one-time remediation of the exact synthetic DRIVER-CRUD-01 malformed row (preserve ID and all other fields; set terminated_at no earlier than its proven created_at date), plus staging-only deployment of orchestrator commit 27e3463220a2022ea1adf074d7131ec69eb32fe5, followed by isolated LOAD-01 and the full protected suite? No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested.
+Execute the Product Owner-approved staging-only one-row guarded remediation of the exact synthetic DRIVER-CRUD-01 malformed row; deploy orchestrator commit 27e3463220a2022ea1adf074d7131ec69eb32fe5 to staging; verify the live 502 malformed_driver_record guard; run isolated LOAD-01 and the full protected staging suite; publish exact evidence and hand to Claude. No production action, merge, migration, legacy backfill, broad cleanup, or real-business-record mutation.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
