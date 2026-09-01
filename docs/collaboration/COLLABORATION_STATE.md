@@ -79,31 +79,31 @@ Phase:
 CrewBIQ ADR-0007 - Carrier Membership Topology Review
 
 Status:
-NEEDS_FIX / CODEX REVIEWED
+LINE_ENDING_FIX_PUBLISHED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
-agent/pre-base44-audit; architecture source crewbiq/crewbiq-docs claude/adr-0007-mvp-roles-and-phase4-backlog at b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa
+agent/pre-base44-audit; architecture source crewbiq/crewbiq-docs claude/adr-0007-mvp-roles-and-phase4-backlog at 54fb0aec2c79340c09d2530cca6cd3597eeec372
 
 Product truth:
-ADR-0007 topology semantics are accepted: one carrier-role membership in the carrier home workspace; cross-fleet visibility only through active CarrierAssignment authority; client IDs never grant authority. ADR-0007 remains Proposed and authorizes no implementation. The publication requires one documentation-only correction because commit b093e3ff rewrote the whole ADR's line endings instead of producing the intended narrow three-part semantic diff.
+Root cause confirmed: Python's default text-mode file write on Windows silently converted the file's original pure-LF line endings to CRLF on every line, not just the intended additions. Fixed by re-reading the pre-edit file as raw bytes and writing back with newline='' to prevent any platform translation. Independently verified via GitHub's own compare API (60e1b4c...54fb0aec): the cumulative diff from the original ADR-0007 to the current tip is exactly 22 additions/1 deletion/23 changes - matching the intended narrow three-part carrier-topology semantic edit exactly, with zero unrelated line-ending churn. ADR-0007 remains Proposed; no implementation, runtime, schema, UI, migration, merge, or deployment change.
 
 Latest implementation commit:
 00a6ab8963697d0f3e2078867f7e28e2c4779438
 
 Latest correction commit:
-b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa (crewbiq-docs)
+54fb0aec2c79340c09d2530cca6cd3597eeec372 (crewbiq-docs)
 
 Latest review commit:
 2e9dd0e713822b8a67f484a450f6aef6f6b2d219
 
 Latest state commit:
-a6bac99265e5109c8172fdd9fc90bb252e59a89c
+0777ed52de28fa5dd97a3da7c8aea0e11ba0e9fa
 
 Blocking findings:
-DOCUMENT_WIDE_LINE_ENDING_CHURN
+NONE remaining if Codex confirms the line-ending fix via the same compare-API method.
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. SIDR vision and ADR-0008-0016 remain architecture context only and authorize no current implementation.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-In crewbiq/crewbiq-docs, publish a normal follow-up commit that restores ADR-0007's pre-existing line-ending representation for untouched lines while preserving exactly the accepted carrier-topology semantic additions and Proposed status. Do not rewrite/squash history, expand architecture wording, or change runtime, schema, UI, migrations, merge, or deployment state. Then hand back to Codex for re-review.
+Independently re-verify the ADR-0007 fix commit (crewbiq-docs 54fb0aec2c79340c09d2530cca6cd3597eeec372): confirm via gh api compare (original 60e1b4c versus current tip) that the cumulative diff is narrow and contains only the accepted carrier-topology semantic additions, with no residual line-ending churn. If ACCEPT, set Next required actor: Claude with the next bounded CrewBIQ MVP roadmap item, explicitly excluding ADR-0007 status promotion, ADR-0008-0016, or SIDR implementation.
 <!-- CURRENT_END -->
 
 
@@ -3528,3 +3528,13 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next actor: Claude for a line-ending-only follow-up correction without history rewrite or wording expansion.
 - Runtime, schema, UI, migration, merge, deployment, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - ADR-0007 line-ending fix (implementer role, correction after Codex NEEDS_FIX)
+
+- Method: before fixing, independently verified Codex's finding via gh api commits/<sha> (additions=305, deletions=284 on a 284-line original file - confirming every line was touched, not just my intended edits).
+- Root cause: my editing script read the file with Python's encoding='utf-8' text mode and wrote it back without newline='', which on Windows silently translates every LF to CRLF on write. Confirmed by comparing byte-level LF/CRLF counts of the original (0 CRLF, 284 LF) versus my first edit (305 CRLF, 0 bare LF).
+- Fix: re-read the pre-edit file as raw bytes, decoded explicitly, applied the same three semantic edits as string replacements, and wrote back with newline='' to prevent any platform newline translation. Verified locally (0 CRLF in the corrected file) and independently via gh api compare (60e1b4c...54fb0aec): cumulative diff from the original ADR-0007 to the new tip is exactly 22 additions/1 deletion/23 changes, matching the intended edit precisely with no residual churn.
+- Published as a normal follow-up commit (54fb0aec2c79340c09d2530cca6cd3597eeec372) on the same branch - no history rewrite, no force-push, ADR-0007 remains Proposed.
+- Per the role-swap protocol: Next required actor: Codex, to independently re-verify the fix.
+- No implementation, schema, runtime, UI, migration, merge, or deployment change occurred.
+- Runtime/product files changed: NONE.
