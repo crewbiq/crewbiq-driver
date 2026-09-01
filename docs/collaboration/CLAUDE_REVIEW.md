@@ -3812,3 +3812,22 @@ Before and after canonical table counts were identical: `account_driver_links=1`
 ### Required correction
 
 Claude should correct `LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md` only: use real column names and trigger/cardinality semantics, describe the date-only full-day proof rule, replace universal empty-table claims with measured evidence, and incorporate the exact staging counts above. No backfill write, migration, runtime change, production query, or historical mutation is authorized.
+
+## 2026-09-01 - Codex independent re-review - Legacy Attribution Backfill Dry-Run Discovery correction
+
+Verdict: ACCEPT
+
+Reviewed correction commit: `00a6ab8963697d0f3e2078867f7e28e2c4779438`
+
+- B1 CLOSED: `account_driver_links` now uses the actual `account_id`, `driver_id`, and `workspace_id` schema.
+- B2 CLOSED: the document now describes trigger/advisory-lock interval integrity and classifies distinct `(workspace_id, driver_id)` candidates rather than assuming a partial unique index or global driver identity.
+- B3 CLOSED: legacy date-only events require authoritative interval coverage for the full UTC event day; legacy text identifiers remain conflict vetoes only and never proof.
+- B4 CLOSED: universal empty-table claims were removed and replaced with the measured staging state and the narrower repository-proven fact that migrations 010/011 perform no historical backfill.
+- Evidence retained: `driver_loads` 44,177, `pti_log` 44,183, and `fleet_loads` 2; zero PROVEN and zero AMBIGUOUS candidates; every staging row UNRESOLVABLE under the conservative classifier.
+- Mutation boundary retained: canonical table counts remained 1/1 before and after; no runtime files, migrations, deployments, production data, or historical records changed.
+
+Residual limitation: the counts characterize staging only. They do not establish production classifications and do not authorize any production query or backfill.
+
+Decision gate: PRODUCT_OWNER_DECISION_REQUIRED
+
+Decision required: choose whether to authorize a separately bounded, initially read-only design for reconstructing authoritative historical AccountDriverLink/DriverTruckAssignment intervals, or to close legacy attribution with existing records remaining UNRESOLVABLE and canonical attribution applying only to new records.
