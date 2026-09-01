@@ -79,7 +79,7 @@ Phase:
 Production Deployment and Validation
 
 Status:
-PRODUCTION_VALIDATION_BLOCKED - PATIENCE RETRY FAILED / PWA RECOVERED
+IN_PROGRESS - PWA PUBLICATION CORRECTION DESIGN ONLY
 
 Current owner:
 Codex
@@ -88,7 +88,7 @@ Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive failed Pages source evidence)
 
 Product truth:
-Migrations 003-011 and accepted orchestrator commit 27e3463 are live and green; identical release-branch Pages retry served all required assets as 404 throughout a full 10-minute window; PWA rollback to main commit 86b8b4d/cache v79 is complete and healthy
+Production remains stable on accepted orchestrator 27e3463 and restored PWA main commit 86b8b4d/cache v79; Codex is documenting one minimal no-merge alternative publication mechanism without creating a branch or changing Pages/runtime/production
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -109,13 +109,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
 Codex
 
 Next bounded action:
-Coordination-only: select and document one smallest no-merge PWA publication correction that does not reuse the failed slash-containing legacy Pages source unchanged; recommended first candidate is an immutable slash-free release branch at the same accepted SHA with the same main rollback fallback, subject to independent review before another production attempt
+Coordination/design only: document an immutable slash-free release branch at accepted SHA 66a7985765b76e0702d015ca1e300390156f8ad6 as a controlled candidate, its evidence limits and rollback gates; publish for independent Claude review without another production attempt
 <!-- CURRENT_END -->
 
 
