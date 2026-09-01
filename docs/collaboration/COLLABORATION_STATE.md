@@ -79,16 +79,16 @@ Phase:
 CrewBIQ ADR-0007 - Carrier Membership Topology Review
 
 Status:
-AUTHORIZED / AWAITING CLAUDE
+TOPOLOGY_CLARIFIED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
-agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93; architecture source crewbiq/crewbiq-docs claude/adr-0007-mvp-roles-and-phase4-backlog at 60e1b4c
+agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93; architecture source crewbiq/crewbiq-docs claude/adr-0007-mvp-roles-and-phase4-backlog at b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa
 
 Product truth:
-CrewBIQ production remains stable on main bcfd74a/cache v95. Legacy attribution reconstruction is closed for MVP: canonical attribution applies to new records; unprovable legacy records remain unchanged and are classified UNRESOLVABLE, with reconstruction deferred rather than declared impossible. Canonical staging identity coverage is already closed at 18/18 PASS. ADR-0007 remains PROPOSED and authorizes no runtime, schema, role-enforcement, or UI implementation.
+CrewBIQ production remains stable on main bcfd74a/cache v95. Claude reviewed ADR-0007 and ADR-0006's existing CarrierAssignment definition (confirmed Truck-scoped, per ADR-0006 line 158, not workspace-membership-scoped) and found the underlying model was already consistent with the Product Owner's preferred topology - it just was not stated explicitly enough to prevent a different implementation. Published a narrow, precise clarifying edit to ADR-0007 (crewbiq-docs, same branch, commit b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa, still Proposed, not merged to main): adds one explicit resolving bullet to Section 4 stating a carrier's carrier-role WorkspaceMembership exists exactly once in its own home workspace and must not additionally exist in any assigned fleet workspace, updates Section 1's summary line to match, and adds a corresponding Validation test bullet. No implementation, schema, runtime, or UI change; ADR-0007 remains Proposed.
 
 Latest implementation commit:
 00a6ab8963697d0f3e2078867f7e28e2c4779438
@@ -100,22 +100,22 @@ Latest review commit:
 a9342c68dfe2b49385bc3ec5e662d41ebacde8aa
 
 Latest state commit:
-f5b7b4ecc8f14a46d8ed83662997b06b404944ce
+679e30cf0b89ad712e31ed0751021c42b0356cd7
 
 Blocking findings:
-NONE
+NONE for this documentation-only slice.
 
 Queued non-blocking findings:
-Historical attribution reconstruction is deferred post-production and may be reconsidered only for justified business, analytics, compliance, or audit requirements. GitHub Community Discussion #206480 may remain monitored. SIDR vision is canonical architecture context only and authorizes no current implementation.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. SIDR vision and ADR-0008-0016 remain architecture context only, authorizing no current implementation. ADR-0007's status (Proposed vs Accepted) is a decision-owner call, not changed by this review.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-In crewbiq/crewbiq-docs, independently review and document the ADR-0007 carrier membership topology clarification: carrier-role membership belongs in the carrier home workspace, while cross-fleet visibility derives only from active CarrierAssignment/authority relationships and never from client-supplied IDs. Keep ADR-0007 PROPOSED unless the review fully resolves the topology; publish documentation only for Codex review. Do not implement roles, schema, runtime, UI, ADR-0008-0016, SIDR, migration, merge, or deployment work.
+Independently review the ADR-0007 clarifying edit in crewbiq-docs (commit b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa): confirm the added text correctly resolves the carrier membership topology question (carrier-role membership in its own home workspace only; cross-fleet visibility exclusively via CarrierAssignment, which ADR-0006 already defines as Truck-scoped) without changing the ADR's actual decision or introducing new scope. If ACCEPT, set Next required actor: Claude with the next bounded CrewBIQ MVP roadmap item, explicitly excluding ADR-0007 status promotion, ADR-0008-0016, or SIDR implementation.
 <!-- CURRENT_END -->
 
 
@@ -3510,3 +3510,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Corrected stale coordination: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` was already closed by `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`, isolated/full protected runs `33550873310` and `33550974453`, aggregate `18/18 PASS`, and Claude independent ACCEPT.
 - Next bounded roadmap action: Claude documentation-only review of ADR-0007 carrier-home-workspace topology; no implementation.
 
+
+### 2026-09-01 - Claude - ADR-0007 carrier membership topology clarification (implementer role)
+
+- Method: read ADR-0007 in full (crewbiq-docs, claude/adr-0007-mvp-roles-and-phase4-backlog at 60e1b4c); cross-checked its CarrierAssignment references against ADR-0006's actual definition (confirmed Truck-scoped: "a Truck has at most one active CarrierAssignment for the same operating context and overlapping time range," not a workspace-membership mechanism).
+- Concluded the ADR's existing architecture (carrier holds CarrierAssignment relationships to Trucks across fleets, does not own the fleet workspace) already matches the Product Owner's preferred topology (carrier-role membership lives only in its own home workspace; cross-fleet visibility derives exclusively from CarrierAssignment) - it was implied but never stated in explicit, implementation-proof language.
+- Published a narrow, precise clarifying edit to ADR-0007 (commit b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa, same branch, not merged to main, status remains Proposed): one explicit resolving bullet in Section 4, a matching update to Section 1's carrier summary, and one corresponding Validation test bullet. No other ADR content changed; no implementation, schema, runtime, or UI work performed.
+- Per the role-swap protocol: Next required actor: Codex, to independently review the edit for correctness and scope discipline.
+- No merge, ADR status change, ADR-0008-0016 work, SIDR implementation, migration, or deployment occurred.
+- Runtime/product files changed: NONE (architecture documentation only, in a separate repository from the active CrewBIQ release branch).
