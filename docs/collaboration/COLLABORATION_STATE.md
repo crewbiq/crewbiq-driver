@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / BLOCKER CLASSIFICATION COMPLETE
+STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -60,25 +60,25 @@ Latest correction commit:
 driver 75e2bb8ecb99730e21d1f5dc12862a422b324a17; orchestrator f00532a3437e14354748ef23a7827687797baa4f on agent/account-driver-link-read
 
 Latest documentation commit:
-this publication at branch tip; evidence document docs/collaboration/STAGING_VALIDATION_EVIDENCE.md
+this blocker-classification publication at branch tip; evidence document docs/collaboration/STAGING_VALIDATION_EVIDENCE.md
 
 Latest review commit:
 07905775e96cf416698ff5bc64421a9e9772a641
 
 Blocking findings:
-STAGING_LOAD_CREATION_NOT_COMPLETED - CONFIRMED FIXTURE/TEST DRIFT: loads.js saveLoad() requires resolved truck+driver attribution for new Loads (accepted design); LOAD-01 mission never selects either, so it fails closed exactly as coded. STAGING_DRIVER_CRUD_RATE_MISMATCH and STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD - UNRESOLVED, need isolated re-run to distinguish shared-identity cross-run contamination from a genuine runtime defect (driver-form persistence / PTI date-boundary logic). CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED - CONFIRMED missing bounded staging coverage (no roster/DriverTruckAssignment/AccountDriverLink/SELF journeys exist in the protected suite).
+STAGING_DRIVER_CRUD_RATE_MISMATCH - GENUINE RUNTIME/PERSISTENCE DEFECT: fresh account/profile edited 0.65 -> 0.91, authenticated sync 200, second-session restore returned 0.65. STAGING_LOAD_CREATION_NOT_COMPLETED - GENUINE CLIENT COMPOSITION DEFECT: active workspace present and direct authorized roster read 200/26 Drivers, but Load Driver selector remained disabled and emitted no roster request after explicit Truck selection. PTI finding CLOSED as shared-identity contamination plus Monday weekly-check test drift; isolated and protected fresh-identity PTI-01 pass.
 
 Queued non-blocking findings:
-Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation and offline retry passed staging validation; production and legacy backfill remain unauthorized.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry and fresh-identity PTI passed; production and legacy backfill remain unauthorized.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+REVIEW_REQUIRED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-(1) update LOAD-01 (tests/e2e/staging-load-lifecycle.spec.mjs) to perform an explicit canonical truck+driver selection before Add Load, matching the accepted mandatory-attribution requirement, and confirm it passes; (2) re-run DRIVER-CRUD-01 and PTI-01 in isolation using a freshly-provisioned, previously-untouched driver identity/profile (not the shared config.fleetA identity) to determine whether the rate mismatch and missing-today-PTI-record are cross-run identity contamination or genuine runtime defects, and report which with evidence; (3) track CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED as a known coverage gap, not a blocker on closing the other three. No production deployment, migration, merge, destructive rollback or legacy backfill is authorized.
+independently review test-harness commits 0735d29fb8a3865884301844de2f995ea933fde9 and 590e4cd408d9da48ae1c72cde1d682c53e10ce56 plus the blocker-classification addendum; confirm DRIVER-CRUD and LOAD genuine-defect classifications, PTI closure, and canonical-journey coverage-gap status. No implementation or production action.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1363,6 +1363,23 @@ Production deployment/migrations/data mutation, merge, destructive rollback and 
 Decision gate: REVIEW_REQUIRED
 Next required actor: Claude
 Next bounded action: independent staging evidence review and blocker classification only.
+
+### 2026-09-01 - Codex - Staging blocker isolation and classification publication
+
+Status: STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
+Branch: agent/pre-base44-audit
+Test-harness commits: 0735d29fb8a3865884301844de2f995ea933fde9; 590e4cd408d9da48ae1c72cde1d682c53e10ce56.
+Files: tests/e2e/support/staging-api.mjs; tests/e2e/staging-load-lifecycle.spec.mjs; tests/e2e/staging-fleet-integrity.spec.mjs; tests/e2e/staging-pti-lifecycle.spec.mjs; documentation/state only after evidence.
+DRIVER-CRUD-01: fresh account and fresh profile reproduced rate 0.65 after editing/syncing 0.91; classified genuine runtime/persistence defect, not contamination.
+PTI-01: fresh account showed gate; Monday required 14 checks rather than the old eight; after complete daily/weekly selection and identity-scoped storage correction, isolated run passed 1/1 and protected driver missions passed PTI-01; prior finding closed as contamination plus test drift.
+LOAD-01: explicit manifest Truck selection added; direct active-workspace roster probe returned HTTP 200 with 26 canonical Drivers, but UI Driver selector remained disabled and emitted no roster request; classified genuine client composition defect.
+Protected evidence: runs 33454247250 and 33454495762 each ran exact branch commits; harness jobs passed and driver missions were 8 passed / 1 failed, with only LOAD-01 red.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED: retained as coverage gap only.
+Runtime/product files changed: NONE.
+Production deployment/migrations/data mutation, merge, destructive rollback and legacy backfill: NONE.
+Decision gate: REVIEW_REQUIRED
+Next required actor: Claude
+Next bounded action: independent classification review only.
 
 ### 2026-08-31 - Claude - Staging Validation Blocker Classification
 

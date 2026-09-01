@@ -185,3 +185,70 @@ Next bounded action: independently review this staging evidence and classify
 each blocker as runtime, fixture/test drift, or missing bounded staging coverage.
 No implementation, production action, merge, destructive rollback, or legacy
 backfill is authorized by this handoff.
+
+## 8. Blocker classification follow-up
+
+Date: 2026-09-01
+
+Test-harness commits:
+
+- `0735d29fb8a3865884301844de2f995ea933fde9` - disposable identity isolation,
+  explicit Load attribution selection, and date-complete PTI coverage.
+- `590e4cd408d9da48ae1c72cde1d682c53e10ce56` - fail-closed LOAD-01 canonical
+  workspace/roster prerequisite evidence.
+
+### DRIVER-CRUD-01
+
+Classification: **GENUINE RUNTIME/PERSISTENCE DEFECT**.
+
+The scenario registered a new staging account, verified an empty owner snapshot,
+created a new Driver profile at rate `0.65`, then edited that same fresh profile
+through the real form to rate `0.91`. An explicit authenticated owner-data sync
+returned HTTP 200, but a second-session restore returned `0.65`. No shared
+`config.fleetA` identity or pre-existing profile participated. Shared-identity
+contamination is therefore excluded.
+
+### PTI-01
+
+Classification: **SHARED-IDENTITY CONTAMINATION PLUS DATE-DEPENDENT TEST DRIFT;
+NO RUNTIME DEFECT PROVEN**.
+
+A new staging account correctly showed the mandatory PTI gate with no prior
+record. The old mission selected only eight daily checks; on the Monday staging
+date the UI correctly required six additional weekly checks. After the harness
+selected every rendered daily/weekly item and used the fresh identity's scoped
+PTI storage key, PTI-01 passed both locally in isolation (`1 passed`) and in the
+protected driver mission runs. The record submitted, unblocked the app, synced,
+and restored in a second session.
+
+### LOAD-01
+
+Classification: **GENUINE CLIENT COMPOSITION DEFECT; ORIGINAL MISSING-SELECTION
+FAILURE ALSO CONTAINED TEST DRIFT**.
+
+The updated mission explicitly selects the manifest-owned Truck and attempts to
+select a concrete canonical Driver. Protected runs `33454247250` and
+`33454495762` each completed the other eight driver missions, including PTI-01,
+but LOAD-01 remained red. The final redacted evidence proves:
+
+- active canonical workspace: present;
+- direct authorized roster read: HTTP 200;
+- canonical Driver count: 26;
+- Truck selector: enabled and explicit manifest Truck selected;
+- Driver selector: remained disabled with no non-empty option;
+- no runtime roster request was emitted while composing the selector.
+
+This excludes an absent workspace/roster fixture. The client composition does
+not carry the already-proven canonical authority into the Load Driver selector.
+No runtime correction is included in this classification task.
+
+### Canonical journey coverage
+
+`CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains a **COVERAGE GAP ONLY**. The
+protected suite still lacks bounded roster, DriverTruckAssignment,
+AccountDriverLink, and Driver SELF journeys. It is not used to reclassify the
+two genuine runtime findings above.
+
+Follow-up verdict: **STAGING_VALIDATION_BLOCKED** pending independent Claude
+review of the two genuine defects. No production action, merge, migration,
+destructive rollback, legacy backfill, or runtime fix was performed.
