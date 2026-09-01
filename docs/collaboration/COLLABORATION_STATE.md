@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-PRODUCTION_VALIDATION_BLOCKED
+IN_PROGRESS - FRESH SNAPSHOT AUTHORIZED
 
 Current owner:
-Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Eight-file production sequence remains authorized, but mandatory fresh verified backup gate failed before any production mutation
+Coordinator authorized a new Railway snapshot of production volume postgres-volume-7PVl, followed only after confirmed success by a full fresh preflight and the accepted eight-file rollout
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,22 +100,22 @@ Latest review commit:
 466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-e3a96f28673e6e248433aefac63958866b08b1ab
+cc631e2ba731f263fdf2caf9109608d93b8b9c4d
 
 Blocking findings:
-FRESH_PRODUCTION_BACKUP_NOT_CREATED_OR_VERIFIED
+FRESH_PRODUCTION_BACKUP_NOT_CREATED_OR_VERIFIED until the new snapshot reaches authoritative successful/usable state
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED within exact snapshot, preflight, migration, deployment, and bounded smoke scope
 
 Next required actor:
-Product Owner
+Codex
 
 Next bounded action:
-create and identify a fresh Railway snapshot for production volume postgres-volume-7PVl, or provide a working PostgreSQL 18 pg_dump path; then return to Codex for a full fresh preflight
+create and verify a new Railway snapshot for postgres-volume-7PVl; if successful repeat full preflight, otherwise stop with exact Railway blocker
 <!-- CURRENT_END -->
 
 
@@ -3031,3 +3031,9 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Stop-on-first-mismatch applied before write quiescence, runner invocation, migrations, deployment, or production mutation.
 - Required action: Product Owner creates and identifies a fresh production volume snapshot, or provides a working PostgreSQL 18 pg_dump path. Codex must repeat the full read-only preflight after that evidence exists.
 - Production migrations, deployment, production data mutation, merge, backfill, cleanup, and rollback: NONE.
+### 2026-09-01 - Coordinator - Fresh production Railway snapshot authorized
+
+- Authorized creation of one new Railway snapshot for production volume `postgres-volume-7PVl` as the mandatory recovery point immediately before the accepted eight-file migration sequence.
+- Snapshot request is not completion; Codex must record authoritative ID, timestamps, status, source identity, and size/recovery metadata when available.
+- Only after confirmed successful/usable snapshot state may Codex repeat the complete production preflight and continue the previously accepted rollout.
+- All destructive migration, legacy backfill, broad cleanup, unrelated mutation/migration/refactor remain prohibited.
