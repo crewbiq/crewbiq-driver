@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / ONE-ROW CORRECTION ACCEPTED / AWAITING PRODUCT OWNER DECISION ON REMAINING 7
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -72,13 +72,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33460281572 is 8 passed, 1 failed (LOAD-01 only, expected given 7 rows remain unfixed); full all-role suite gated on all 8 rows being structurally valid.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: the one authorized row (roster index 14) is now corrected and verified. Read-only evidence shows 7 more rows (indices 15-21) with the identical synthetic-defect signature in the same proven LOAD workspace. Does the Product Owner authorize extending the identical provenance-gated, one-transaction-per-row correction (each row individually matched by its own exact server roster index before any write, each requiring affected-row-count=1, each changing only terminated_at to no earlier than its own created_at, mandatory abort on any predicate mismatch - the same discipline already proven on the first row) to these 7 remaining rows, so LOAD-01 and the full protected suite can be re-run once all 8 are structurally valid? No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested.
+Execute the Product Owner-approved identical provenance-gated staging correction for roster indices 15-21, one transaction per row, each requiring an exact one-row match and changing only terminated_at to its own created_at date; abort on any mismatch. Then run isolated LOAD-01 and, only if it passes, the full protected staging suite; publish evidence and hand to Claude. No production action, merge, migration, backfill, broad cleanup, real-business-record mutation, malformed-record skipping, or weakened validation.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
