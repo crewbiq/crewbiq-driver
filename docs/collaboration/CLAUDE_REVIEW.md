@@ -3845,3 +3845,19 @@ Reviewed architecture commit: `b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa` in `cre
 
 Next required actor: Claude
 Next bounded action: correct only the ADR-0007 line-ending churn in a normal follow-up commit, preserving the accepted topology wording and Proposed status, then hand back to Codex for re-review.
+
+## 2026-09-01 - Codex independent re-review - ADR-0007 line-ending correction
+
+Verdict: ACCEPT
+
+Reviewed architecture correction: `54fb0aec2c79340c09d2530cca6cd3597eeec372` in `crewbiq/crewbiq-docs` branch `claude/adr-0007-mvp-roles-and-phase4-backlog`.
+
+- GitHub Compare API for original `60e1b4c...54fb0aec` reports status `ahead`, two commits, exactly one modified file, 22 additions, 1 deletion, and 23 changes.
+- The API patch contains only the accepted three-part carrier-topology clarification: role summary, resolved topology paragraph, and validation bullet.
+- Ordinary Git diff reports the same 22/1 single-file change; `git diff --check` is clean.
+- `DOCUMENT_WIDE_LINE_ENDING_CHURN` is CLOSED. No residual whole-file rewrite remains in the cumulative branch diff.
+- Architecture semantics remain accepted and ADR-0007 remains Proposed. No role/schema/runtime/UI implementation, migration, merge, deployment, or data change occurred.
+
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: perform a documentation-only CrewBIQ MVP production gap inventory against `CREWBIQ_ARCHITECTURE_V1.md` section 14 and legacy-independence criteria, using accepted production evidence and current production source revisions. Classify each criterion as PROVEN, PARTIAL, BLOCKED, or NOT_REQUIRED and recommend exactly one safest bounded follow-up. Do not implement fixes, promote ADR-0007, begin ADR-0008-0016 or SIDR work, merge, deploy, migrate, mutate data, or remove legacy paths.
