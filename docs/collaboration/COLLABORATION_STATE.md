@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-IN_PROGRESS
+STAGING_VALIDATION_BLOCKED / MUTATION ABORTED - PRODUCT OWNER DECISION REQUIRED
 
 Current owner:
-Codex
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -66,23 +66,33 @@ Latest review commit:
 5fe70f04ae88d39f59e13186b79e5b288dd6953e
 
 Blocking findings:
-STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - provenance proven synthetic: protected run 33458759675 reports matches_driver_crud_marker=true for the exact reversed interval. The version-controlled DRIVER-CRUD fixture's three hardcoded 2026-07-14 termination paths are corrected to the run UTC date. The already-persisted malformed staging row remains unchanged because live staging-data mutation is not authorized. Server guard commit 27e3463220a2022ea1adf074d7131ec69eb32fe5 rejects reversed intervals with 502 malformed_driver_record and is published but not deployed.
+STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - approved guarded staging transaction aborted before UPDATE because the authorized provenance predicate matched 8 synthetic DRIVER-CRUD rows, not exactly 1. Output: matched_rows=8, expectation=1, reason=authorized_synthetic_row_count_8. No row changed. Per Product Owner instruction, staging guard deploy and subsequent LOAD/full regressions did not proceed.
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Local orchestrator suite is 318 passed, 2 skipped; driver tooling is 318 passed. Provenance Driver run is 8 passed, 1 failed (LOAD-01 only). Full protected all-role regression remains gated by the persisted synthetic malformed row.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+ChatGPT
 
 Next bounded action:
-Execute the Product Owner-approved staging-only one-row guarded remediation of the exact synthetic DRIVER-CRUD-01 malformed row; deploy orchestrator commit 27e3463220a2022ea1adf074d7131ec69eb32fe5 to staging; verify the live 502 malformed_driver_record guard; run isolated LOAD-01 and the full protected staging suite; publish exact evidence and hand to Claude. No production action, merge, migration, legacy backfill, broad cleanup, or real-business-record mutation.
+Decision required: authorize a read-only refinement that correlates the 8 matching synthetic DRIVER-CRUD rows to the already-proven LOAD workspace and roster record, followed by UPDATE only if that refined predicate identifies exactly 1 row; or provide a different explicit staging-only correction boundary. No mutation, deploy, or further regression will occur before that decision.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Approved staging mutation safely aborted
+
+- Product Owner authorized correction of exactly one proven synthetic DRIVER-CRUD staging row, with mandatory abort on zero or multiple matches.
+- Transaction predicate: provenance marker contains `DRIVER-CRUD-01`, inactive row, `created_at::date=2026-07-17`, and `terminated_at=2026-07-14`; row lock and repeated UPDATE predicate were prepared inside one transaction.
+- Pre-mutation output: `matched_rows=8`, `affected_row_count_expectation=1`, `provenance_marker=true`, current range `2026-07-17` to `2026-07-14`, intended `effectiveTo=2026-07-17`.
+- Result: transaction rollback with `authorized_synthetic_row_count_8`; affected rows `0`.
+- Orchestrator commit `27e3463220a2022ea1adf074d7131ec69eb32fe5` was not deployed. LOAD-01 and full protected suite were not run because the mandatory mutation prerequisite aborted.
+- Production/staging data mutation, deploy, merge, migration, backfill, broad cleanup and real-business-record changes: NONE.
+- Decision gate: COORDINATOR_REQUIRED; Product Owner must authorize a narrower read-only correlation/refined one-row predicate or a different explicit correction boundary.
 
 ### 2026-09-01 - Codex - Malformed roster provenance and guard publication
 

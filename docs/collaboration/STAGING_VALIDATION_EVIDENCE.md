@@ -393,3 +393,52 @@ is isolated LOAD-01 followed by the full protected suite.
 No production deployment, production migration, merge, backfill,
 legacy-business-record mutation, malformed-record skipping, or weakened
 validation is requested or performed.
+
+## 11. Approved one-row staging correction abort evidence
+
+Date: 2026-09-01
+
+The Product Owner authorized correction of only the exact synthetic
+DRIVER-CRUD row, with a mandatory abort unless the provenance predicate matched
+exactly one row.
+
+The staging-only transaction selected and locked rows matching all currently
+proven source facts:
+
+```text
+name contains DRIVER-CRUD-01
+is_active = false
+created_at::date = 2026-07-17
+terminated_at = 2026-07-14
+```
+
+Before mutation, the guarded client recorded:
+
+```text
+matched_rows: 8
+affected_row_count_expectation: 1
+provenance_marker: true
+current effectiveFrom: 2026-07-17
+current effectiveTo: 2026-07-14
+intended effectiveTo: 2026-07-17
+```
+
+Because eight rows matched, the transaction raised
+`authorized_synthetic_row_count_8` and executed `ROLLBACK` before UPDATE.
+Affected row count is therefore zero.
+
+Per the binding Product Owner boundary, execution stopped at this point.
+Orchestrator guard commit `27e3463220a2022ea1adf074d7131ec69eb32fe5`
+was not deployed, and neither isolated LOAD-01 nor the full protected suite was
+started.
+
+Result: **STAGING_VALIDATION_BLOCKED / MUTATION ABORTED**.
+
+Decision required: authorize a read-only correlation of the eight synthetic
+matches to the already-proven LOAD workspace and roster record, with a refined
+UPDATE still required to abort unless it identifies exactly one row; or provide
+a different explicit staging-only correction boundary.
+
+No staging or production row was changed. No deploy, migration, merge,
+backfill, broad cleanup, malformed-record skipping, or validation weakening
+occurred.
