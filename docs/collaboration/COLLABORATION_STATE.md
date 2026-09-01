@@ -79,16 +79,16 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-CORRECTED / AWAITING CODEX RE-REVIEW
+NEEDS_FIX / CODEX RE-REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-LEGACY_SYNC_CALL_PATH_MAP.md corrected against all five Codex findings using repository-wide exact-tree evidence: scope widened from 4 to 9 files (added startup-session.js, offline-sync-queue.js, dispute-tombstone-hotfix.js, owner-snapshot-hotfix.js, pti.js, plus UI/scheduler callers in index.html and sync.js); index.html:1704 and the restoreSession()/pullFromCloud() edges fixed; destination claims qualified (driver.syncUrl is Apps Script by default, not unconditionally guaranteed); telemetry model corrected (Orchestrator logs cannot observe direct browser-to-script.google.com traffic under any circumstance); sink count corrected to 8 direct call sites plus 10 additional indirect/scheduler/UI callers, with reachability narrowed to static evidence only. The accepted conditional doSync() ordering finding and all prior gap-inventory classifications are preserved unchanged.
+The corrected map now accurately qualifies legacy destinations/order, telemetry visibility, direct sink count, and static-vs-live evidence. Three documentation blockers remain: restoreSession is still incorrectly shown calling boot; dependency-injected Loads `_doSync` callers are omitted; and timer/hook paths are described too unconditionally without their readiness/installation/pending-state guards.
 
 Latest implementation commit:
 8a66fb0568a3204cfb1316b845bae3dc7852f76c
@@ -97,13 +97,13 @@ Latest correction commit:
 8a66fb0568a3204cfb1316b845bae3dc7852f76c
 
 Latest review commit:
-5be2e87cbcfd5cf7ddb631bb7698456424ec868f
+52d0862e4fee890b75a40f94ae8dc75e09e2c2fe
 
 Latest state commit:
-(pending this publish)
+f4ef3e2530b07d014f6af571d5fc0ef7f01a3a1f
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+RESTORE_BOOT_EDGE_STILL_WRONG; DEPENDENCY_INJECTED_CALLERS_OMITTED; SCHEDULER_CONDITIONS_OVERSTATED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 8a66fb0568a3204cfb1316b845bae3dc7852f76c against all five prior findings (CALLER_AND_FILE_SCOPE_INCOMPLETE, INCORRECT_SOURCE_AND_CALLER_EDGES, DESTINATION_AND_ORDER_OVERSTATED, TELEMETRY_OBSERVABILITY_MODEL_INVALID, SINK_COUNT_AND_REACHABILITY_OVERCLAIMED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md`: show restoreSession and boot as separate sequencing edges; include dependency-injected Loads `_doSync` callers at `loads.js:495/1357` and their `index.html:1634` injection; qualify scheduler/save-hook/owner-snapshot paths with exact readiness, installation, pending-state, and per-call guards. Preserve all accepted findings and classifications. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3633,3 +3633,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Corrected legacy sync map re-review
+
+- Re-reviewed correction `8a66fb0568a3204cfb1316b845bae3dc7852f76c` against exact production tree `bcfd74a`.
+- Accepted destination/order qualification, telemetry model, direct sink count, static reachability boundary, and most source/caller corrections.
+- Residual blockers: incorrect restoreSession-to-boot edge; omitted dependency-injected Loads `_doSync` callers; overstated scheduler/hook conditions.
+- Review commit: `52d0862e4fee890b75a40f94ae8dc75e09e2c2fe`.
+- Next actor: Claude for evidence-document correction only.
+- Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
+
