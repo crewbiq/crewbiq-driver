@@ -79,19 +79,19 @@ Phase:
 CrewBIQ MVP Production Gap Inventory
 
 Status:
-AUTHORIZED / AWAITING CLAUDE
+GAP_INVENTORY_PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93; ADR-0007 clarification crewbiq/crewbiq-docs 54fb0aec2c79340c09d2530cca6cd3597eeec372
 
 Product truth:
-ADR-0007 carrier membership topology clarification is accepted with a clean narrow cumulative diff and remains Proposed; it authorizes no implementation. CrewBIQ production is live on main bcfd74a/cache v95. The next bounded roadmap step is evidence inventory only: assess current production against the canonical PostgreSQL-cutover Definition of Done and legacy-independence criteria before authorizing any additional product/runtime slice.
+Published CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md (commit 2bb115542e37817b30e5e2165dfeb1636be28b80), evaluating every CREWBIQ_ARCHITECTURE_V1.md section 14 Definition-of-Done criterion and the section 10 legacy-independence criterion against this session's own independently-verified evidence (not the architecture doc's own stale section 6 entity table). PROVEN: clean-device restore, offline idempotent retry, tenant isolation/CORS. PARTIAL: entity persistence coverage (6 entities remain Audit-required per the source doc), bot communication path (not evaluated), production monitoring depth. NOT_VERIFIED: whether Google Apps Script/Sheets traffic has actually stopped in production - the literal cutover-defining criterion, not yet tested. Recommended follow-up: a reversible staging-only test disabling the Apps Script URL and re-running the full acceptance suite to answer this directly.
 
 Latest implementation commit:
-00a6ab8963697d0f3e2078867f7e28e2c4779438
+2bb115542e37817b30e5e2165dfeb1636be28b80
 
 Latest correction commit:
 54fb0aec2c79340c09d2530cca6cd3597eeec372 (crewbiq-docs)
@@ -100,22 +100,22 @@ Latest review commit:
 1a667e026bbf20a905bf673b488c9a62216c0720
 
 Latest state commit:
-9594d062d8ef14c83c965a7602b4c7fdadbab358
+a898733ace5f401597916b37611ac8a4c32c3ee3
 
 Blocking findings:
-NONE
+NONE for this documentation-only slice.
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether Google Apps Script traffic has stopped in production is the single most consequential open Definition-of-Done question.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Create `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` using accepted production evidence and current production source revisions. Evaluate every `CREWBIQ_ARCHITECTURE_V1.md` section 14 Definition-of-Done criterion plus section 10 legacy-independence criteria as PROVEN, PARTIAL, BLOCKED, or NOT_REQUIRED, cite exact evidence, and recommend exactly one safest bounded follow-up. Documentation/coordination files only. Do not implement fixes, disable/remove legacy paths, promote ADR-0007, begin ADR-0008-0016 or SIDR work, merge, deploy, migrate, mutate data, or access production destructively. Publish and hand to Codex for independent review.
+Independently review CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md: verify each PROVEN classification against the cited evidence, confirm the PARTIAL/NOT_VERIFIED classifications are not overstated or understated, and assess whether the recommended staging-only Apps-Script-disable test is the correct safest next step. If ACCEPT, set Next required actor: Claude with the next bounded CrewBIQ MVP roadmap item. No implementation, legacy-path change, migration, merge, deployment, or production mutation is authorized.
 <!-- CURRENT_END -->
 
 
@@ -3548,3 +3548,13 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next roadmap item: Claude documentation-only CrewBIQ MVP production gap inventory against canonical PostgreSQL-cutover and legacy-independence Definition of Done.
 - Runtime, schema, UI, migration, merge, deployment, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - CrewBIQ MVP production gap inventory (implementer role)
+
+- Method: read CREWBIQ_ARCHITECTURE_V1.md (crewbiq-docs, main) sections 6, 10, and 14 in full; evaluated every Definition-of-Done and legacy-independence criterion against this session's own independently-verified findings from earlier this session (live /health, /ready, CI runs read directly, source reads), not the architecture document's own now-stale section 6 entity table.
+- Classified: clean-device restore, offline idempotent retry, and tenant isolation/CORS as PROVEN, each citing the specific staging mission/CI run/live check already independently verified earlier this session. Entity persistence coverage, bot communication, and monitoring depth as PARTIAL, citing exactly what was and was not evaluated. Whether Google Apps Script/Sheets traffic has stopped in production - the literal criterion defining "cutover" - as NOT_VERIFIED, since no test was run this session with the Apps Script URL disabled.
+- Published CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md (commit 2bb115542e37817b30e5e2165dfeb1636be28b80). Confirmed clean pure-LF encoding before publishing, applying the lesson from the earlier ADR-0007 line-ending mistake.
+- Recommended the single safest bounded follow-up: a reversible, staging-only test disabling the Apps Script URL configuration and re-running the full accepted staging acceptance suite, to directly answer the Google-traffic and legacy-independence questions with real evidence rather than assumption.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No implementation, legacy-path change, migration, merge, deployment, or production mutation occurred.
+- Runtime/product files changed: NONE (documentation only).
