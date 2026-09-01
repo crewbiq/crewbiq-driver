@@ -79,31 +79,31 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-NEEDS_FIX / CODEX RE-REVIEWED
+CORRECTED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The corrected map now accurately qualifies legacy destinations/order, telemetry visibility, direct sink count, and static-vs-live evidence. Three documentation blockers remain: restoreSession is still incorrectly shown calling boot; dependency-injected Loads `_doSync` callers are omitted; and timer/hook paths are described too unconditionally without their readiness/installation/pending-state guards.
+LEGACY_SYNC_CALL_PATH_MAP.md corrected against all three residual Codex findings: restoreSession()/boot() edge fixed (restoreSession() never calls boot() itself; the caller does, via authLogin/authSignup or start()'s .finally()); dependency-injected loads.js _doSync alias callers added (index.html:1634 injection, loads.js:495/1357 - fires on every load save/edit, previously entirely missing); scheduler/hook conditions qualified with exact readiness (assertReady()/showApp()), installation, and pending-state guards instead of being described as unconditional. All prior accepted findings and gap-inventory classifications preserved unchanged.
 
 Latest implementation commit:
-8a66fb0568a3204cfb1316b845bae3dc7852f76c
+ffd8eedb93cb33e9999fa2ce901a9243abdb0808
 
 Latest correction commit:
-8a66fb0568a3204cfb1316b845bae3dc7852f76c
+ffd8eedb93cb33e9999fa2ce901a9243abdb0808
 
 Latest review commit:
 52d0862e4fee890b75a40f94ae8dc75e09e2c2fe
 
 Latest state commit:
-f4ef3e2530b07d014f6af571d5fc0ef7f01a3a1f
+(pending this publish)
 
 Blocking findings:
-RESTORE_BOOT_EDGE_STILL_WRONG; DEPENDENCY_INJECTED_CALLERS_OMITTED; SCHEDULER_CONDITIONS_OVERSTATED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md`: show restoreSession and boot as separate sequencing edges; include dependency-injected Loads `_doSync` callers at `loads.js:495/1357` and their `index.html:1634` injection; qualify scheduler/save-hook/owner-snapshot paths with exact readiness, installation, pending-state, and per-call guards. Preserve all accepted findings and classifications. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Independently re-verify commit ffd8eedb93cb33e9999fa2ce901a9243abdb0808 against the three residual findings (RESTORE_BOOT_EDGE_STILL_WRONG, DEPENDENCY_INJECTED_CALLERS_OMITTED, SCHEDULER_CONDITIONS_OVERSTATED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3642,3 +3642,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next actor: Claude for evidence-document correction only.
 - Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - Legacy sync call-path map residual correction (implementer role)
+
+- Independently re-verified all three residual Codex findings before correcting: read startup-session.js:5-25/39-66 in full to confirm restoreSession() returns without calling boot(), and that boot() is called separately by authLogin()/authSignup() (index.html:2516/2555) or start()'s .finally() (startup-session.js:61); fetched loads.js directly and confirmed the injected _doSync alias (index.html:1634 -> loads.js:80) fires at loads.js:495 (guarded) and loads.js:1357 (unconditional) on load save/edit; confirmed scheduleAutoSync() is reached only from showApp() and is itself gated by assertReady()/the _ready flag.
+- Corrected docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md: fixed the restoreSession/boot sequencing edge; added the previously entirely-missing dependency-injected loads.js _doSync callers (arguably the most frequently-firing trigger in the whole surface, fired on every load save/edit); added an explicit Preconditions column to the §4B indirect-caller table qualifying every scheduler/hook/UI entry with its actual readiness/installation/debounce/pending-state guard rather than describing any as unconditional.
+- Published commit ffd8eedb93cb33e9999fa2ce901a9243abdb0808. Verified via GitHub Compare API against parent a64f75ee2312cb2e8c6c9dd3654146667deae972 that exactly one file changed (75 additions, 27 deletions, 102 changes) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
+- Runtime/product files changed: NONE (documentation only).
