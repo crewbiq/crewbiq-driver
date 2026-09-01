@@ -79,16 +79,16 @@ Phase:
 Production Expanded Prerequisite Migration Execution
 
 Status:
-PRODUCTION_VALIDATION_BLOCKED - MIGRATIONS APPLIED / SERVICE RECOVERED
+IN_PROGRESS - POST-MIGRATION VERIFICATION AND ACCEPTED ROLLOUT
 
 Current owner:
-Product Owner
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-Authorized migrations 003-011 applied successfully exactly once; accepted old orchestrator revision is recovered and healthy; server/PWA rollout stopped because the first read-only post-migration verifier used the wrong workspace key column
+Authorized migrations 003-011 are applied exactly once; old orchestrator revision is recovered and healthy; standing delegation authorizes Codex to correct the bounded read-only verifier and conditionally resume the accepted rollout
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -103,19 +103,19 @@ Latest state commit:
 ed19af54ad4e1e72921253b2206f7d4f048899f1
 
 Blocking findings:
-POST_MIGRATION_EVIDENCE_QUERY_SCHEMA_MISMATCH
+NONE - bounded read-only verifier correction authorized under standing delegation
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Product Owner
+Codex
 
 Next bounded action:
-Decision required: authorize one corrected read-only post-migration verifier using the actual migrated workspace key; if green, resume the already authorized accepted orchestrator/PWA rollout and bounded production smoke; otherwise keep rollout paused
+Run the corrected read-only verifier using workspaces.id; if green, deploy the accepted orchestrator and PWA revisions in established order and execute bounded production smoke with stop/fallback gates
 <!-- CURRENT_END -->
 
 
