@@ -236,3 +236,32 @@ node --test tests/e2e/pages-deployment-workflow-contract.test.mjs
 No control branch was created. Pages `build_type`, source, environment policy,
 `main`, runtime, migrations, orchestrator, and production data were not changed.
 Phase B remains unauthorized.
+
+## Phase B Execution Evidence - 2026-09-01
+
+Result: ACTIONS DEPLOYMENT FAILED / LEGACY ROLLBACK PASS
+
+- Preflight: PASS.
+- Pages configuration before attempt: build_type=legacy, source=main:/, built commit 86b8b4dd7e9496833a021319167589b49f0ac418, live cache crewbiq-driver-v79.
+- Orchestrator health/readiness: green; missing migrations: none.
+- GitHub environment: github-pages.
+- Exact deployment branch policy: pages-actions-v95-66a7985.
+- Immutable control branch: pages-actions-v95-66a7985 -> f19f05129fee94004505fc321fcef925e5cd4d99.
+- Accepted PWA artifact deployed by workflow: 66a7985765b76e0702d015ca1e300390156f8ad6.
+- Workflow run: 33515902286 (https://github.com/crewbiq/crewbiq-driver/actions/runs/33515902286).
+- Workflow result: completed / success; created 2026-09-01T13:51:10Z; updated 2026-09-01T13:51:32Z.
+- Production asset observation window: approximately 2026-09-01T13:51:42Z through 2026-09-01T14:01:23Z.
+- Every poll returned HTTP 404 for all 13 required assets: index.html, sw.js, core.js, core-runtime.js, startup-session.js, workspace-attribution.js, workspace-driver-roster.js, driver-truck-assignment.js, account-driver-link.js, driver-self.js, loads.js, pti.js, manifest.json.
+- Exact-hash validation could not begin because no required asset was served.
+- No application smoke or business-record write was attempted.
+- Failure classification: GITHUB_PAGES_PROJECT_SITE_SERVING_404_AFTER_SUCCESSFUL_ACTIONS_DEPLOYMENT.
+
+### Automatic rollback
+
+- Pages restored to build_type=legacy and source=main:/.
+- Explicit legacy build restored commit 86b8b4dd7e9496833a021319167589b49f0ac418.
+- Rollback status: built; live index.html and sw.js HTTP 200; cache crewbiq-driver-v79.
+- Rollback completed: 2026-09-01T14:03:02.7964824Z.
+- Orchestrator health/readiness remained green; missing migrations remained empty.
+- The immutable control branch and exact environment branch policy remain as evidence.
+- No merge, force-push, migration, production business-data mutation, runtime edit, or unrelated change occurred.

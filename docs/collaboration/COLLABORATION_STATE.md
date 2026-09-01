@@ -3215,3 +3215,15 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - No control branch creation, Pages/environment configuration change, deployment, merge, migration, or production-data write is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit f5cd4dbdbb6996943ad26cea63b787eab0dc963a).
 - Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Actions Pages Phase B execution and rollback
+
+Agent: Codex
+
+Result: PUBLISHED / AWAITING CLAUDE REVIEW - ACTIONS PHASE B FAILED / LEGACY ROLLBACK PASS
+
+Workflow run 33515902286 completed successfully from immutable control branch pages-actions-v95-66a7985 at implementation commit f19f05129fee94004505fc321fcef925e5cd4d99 and deployed accepted artifact 66a7985765b76e0702d015ca1e300390156f8ad6. Nevertheless, all 13 required production assets returned HTTP 404 throughout the full 10-minute validation window. Automatic rollback restored legacy Pages main:/ at commit 86b8b4dd7e9496833a021319167589b49f0ac418; index.html and sw.js returned HTTP 200 with cache v79, and orchestrator health/readiness remained green. No merge, force-push, migration, production business-data mutation, runtime edit, or unrelated change occurred.
+
+Blocking finding: GITHUB_PAGES_PROJECT_SITE_SERVING_404_AFTER_SUCCESSFUL_ACTIONS_DEPLOYMENT
+
+Next required actor: Claude
