@@ -1,20 +1,62 @@
 # Legacy Attribution Backfill — Dry-Run Discovery
 
-Status: DISCOVERY ONLY — NO MUTATION, NO EXECUTION AGAINST LIVE DATA
+Status: DISCOVERY ONLY — NO MUTATION. Corrected per Codex independent review
+(`CLAUDE_REVIEW.md`, "2026-09-01 - Codex independent review - Legacy
+Attribution Backfill Dry-Run Discovery", verdict `NEEDS_FIX`).
 
-Prepared by: Claude (implementer role, per role-swap effective 2026-09-01)
+Prepared by: Claude (implementer role, per role-swap effective 2026-09-01).
+Corrected by: Claude, incorporating Codex's independently-executed staging
+dry-run counts.
 
 Scope: read-only schema/code analysis per `IDENTITY_ATTRIBUTION_CONTRACT.md`'s
 bounded step **4B.1b.4 — Legacy attribution tooling: dry-run inventory,
 `PROVEN`-only idempotent backfill, ambiguous/unresolvable queues, audit export,
 and rollback metadata.** This document covers only the dry-run inventory
-design. No backfill write, migration, deployment, or production/staging data
-access was performed — I do not hold Railway/database credentials in this
-session; only GitHub repository read access was used.
+design and Codex's measured results. No backfill write, migration,
+deployment, or data mutation was performed by either agent.
+
+## Corrections applied from the first draft
+
+The first draft (commit `3e733021...`) contained four defects, each verified
+against the actual migration source before correcting this revision:
+
+1. **Wrong `account_driver_links` columns.** The table has `account_id`,
+   `driver_id`, `workspace_id` — there is no `person_id` or
+   `driver_profile_id` column on this table. The original query's join
+   through `person_accounts.person_id` does not correspond to any real
+   column and could not execute. Confirmed by reading
+   `011_account_driver_links.sql` directly.
+2. **Wrong cardinality mechanism.** Migration 011 does not use a partial
+   unique index; overlap is rejected by `enforce_account_driver_link_integrity()`,
+   a `BEFORE INSERT OR UPDATE` trigger under an advisory lock scoped to
+   `(workspace_id, account_id)`. A single account can hold links in more
+   than one workspace, so a correct classifier must treat distinct
+   `(workspace_id, driver_id)` pairs as the ambiguity signal, not driver ID
+   alone.
+3. **Date/timestamptz mismatch.** `driver_loads.pickup`, `pti_log.pti_date`,
+   and `fleet_loads.pickup` are plain `date`; canonical intervals are
+   `timestamptz`. A naive comparison does not prove which instant within
+   that day the event actually occurred. The correct, conservative rule is
+   to require the candidate link/assignment to cover the **entire UTC day**
+   of the legacy event before treating it as a match — matching unit
+   number or truck text is a conflict *veto* only, never a promotion to
+   `PROVEN`, exactly as `IDENTITY_ATTRIBUTION_CONTRACT.md` requires.
+4. **Overgeneralized "universally empty" claim.** The first draft claimed
+   `driver_truck_assignments` was empty "in every environment this track
+   has touched." That was stale: this session's own earlier canonical
+   staging journey work (`CANONICAL_STAGING_JOURNEY_EVIDENCE.md`)
+   provisioned exactly one `account_driver_links` row and one
+   `driver_truck_assignments` row in staging as a test fixture. The
+   accurate claim is narrower and still true: migrations 010/011 are
+   additive with **no built-in historical backfill mechanism** — any rows
+   that exist came from either live application use or this track's own
+   test-fixture provisioning, not from a backfill process. Row counts must
+   be measured, not assumed.
 
 ## 1. Legacy schema inventory (source: orchestrator migrations 001–002, main)
 
-Tables holding legacy, pre-canonical Load/PTI/Truck data:
+Unchanged from the first draft — independently re-confirmed correct by
+Codex's review, which did not flag this section:
 
 | Table | Driver identity today | Truck identity today | Canonical FK present? |
 | --- | --- | --- | --- |
@@ -23,111 +65,59 @@ Tables holding legacy, pre-canonical Load/PTI/Truck data:
 | `fleet_loads` | `driver_crewbiq_id`, `driver_name` | `truck_id` (text, references legacy `trucks.truck_id` by convention, no FK constraint) | None |
 | `trucks` | n/a | `truck_id` (stable local text ID, e.g. `t_...`) | n/a |
 
-None of these tables carry a `driver_id` (roster `fleet_driver_profiles.driver_profile_id`)
-or a constrained `truck_id` FK today. All identity is denormalized text
-(`crewbiq_id`, `unit_number`, `driver_name`) — exactly the shape
-`IDENTITY_ATTRIBUTION_CONTRACT.md` requires proof before trusting.
+## 2. Corrected canonical evidence sources
 
-## 2. Canonical evidence sources available for classification (source: migrations 007–011, accepted branch)
+| Source | Real columns | What it proves | Cardinality mechanism |
+| --- | --- | --- | --- |
+| `account_driver_links` | `account_id` (→ `auth_users.crewbiq_id`), `driver_id` (→ `fleet_driver_profiles.driver_profile_id`), `workspace_id`, `effective_from`/`effective_to` | Which `driver_id` an account resolves to, per workspace, for an effective interval | `enforce_account_driver_link_integrity()` trigger + advisory lock reject overlapping *active* rows for one `(workspace_id, account_id)`; an account may still hold links across multiple workspaces |
+| `driver_truck_assignments` | `driver_id`, `truck_id` (→ `trucks.truck_id` directly, confirmed by reading `010_driver_truck_assignments.sql`), `workspace_id`, `effective_from`/`effective_to` | Which Driver was assigned to which Truck, per workspace, for an effective interval | Equivalent trigger-based overlap rejection per `(workspace_id, driver_id)` and `(workspace_id, truck_id)` |
 
-| Source | What it proves | Constraint |
-| --- | --- | --- |
-| `account_driver_links` | Which `driver_profile_id` an authenticated Account (`crewbiq_id`) resolves to, for an effective interval, within one workspace | One active link per Account per workspace (partial unique index) |
-| `driver_truck_assignments` | Which `driver_profile_id` was assigned to which `trucks.truck_id`, for an effective interval | **Currently contains zero historical rows in every environment this track has touched — the schema was deployed additively with no backfill of assignment history** |
-| `fleet_driver_profiles` | Driver roster entity, `owner_crewbiq_id` | Legacy table, already exists, no canonical ID beyond `driver_profile_id` itself |
-| `trucks` | Truck's own stable `truck_id`, `owner_crewbiq_id` | Legacy table; `driver_truck_assignments.truck_id` references this natural key directly (confirmed by reading `010_driver_truck_assignments.sql` — no separate `canonical_trucks.id` indirection for this specific FK) |
+## 3. Measured staging dry-run results (executed by Codex, read-only)
 
-## 3. Key finding: the assignment-history gap, not data ambiguity, is the current bottleneck
+Codex independently executed a corrected classifier (SHA-256
+`F9177ABCB91A19CB4397B67E5B065B714FB5396A7FD2DE538FD557BED2A06FC7`) against
+Railway environment `crewbiq-orchestrator-staging`, requiring full UTC-day
+coverage before any `PROVEN` result:
 
-Per `IDENTITY_ATTRIBUTION_CONTRACT.md`'s classification rules, a record's
-`truckId`/`driverId` may only become `PROVEN` via "one deterministic
-authorized relation/effective assignment [that] matches the record event time
-with no conflicting evidence" — explicitly **not** via matching unit number,
-current assignment, or any inference ("Single available Driver/truck, current
-assignment, matching name/email/unit, role, likely route, or array order never
-upgrades a record to `PROVEN`").
+| Domain | Total | Driver PROVEN | Driver AMBIGUOUS | Driver UNRESOLVABLE | Truck PROVEN | Truck AMBIGUOUS | Truck UNRESOLVABLE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `driver_loads` | 44,177 | 0 | 0 | 44,177 | 0 | 0 | 44,177 |
+| `pti_log` | 44,183 | 0 | 0 | 44,183 | 0 | 0 | 44,183 |
+| `fleet_loads` | 2 | 0 | 0 | 2 | 0 | 0 | 2 |
 
-Because `driver_truck_assignments` has never been backfilled with historical
-rows (only the schema exists, confirmed empty at every staging/production
-readiness check performed earlier in this track), **no existing legacy
-Load/PTI record can currently satisfy the `truckId` `PROVEN` test via that
-table**, regardless of how clean the underlying `unit_number` data is. This is
-a real constraint discovered by inspection, not an assumption: the classifier
-described below will return `AMBIGUOUS` or `UNRESOLVABLE` for `truckId` on
-essentially the entire legacy corpus until a **separate, explicitly-scoped
-decision** is made about whether historical assignment intervals themselves
-will ever be backfilled (a decision this document does not make and is out of
-scope for a read-only discovery step).
+Before and after canonical table counts were identical
+(`account_driver_links=1`, `driver_truck_assignments=1`) — the run performed
+zero writes, confirmed by Codex's own before/after count comparison.
 
-`driverId` classification is less constrained: `account_driver_links` can
-independently prove which `driver_profile_id` a `crewbiq_id` resolves to for
-an effective interval, without needing assignment history — so `driverId` may
-reach `PROVEN` today for records whose `crewbiq_id` has a stable, dateable
-`AccountDriverLink` covering the record's event time, even while `truckId`
-cannot.
+**Every legacy record in staging is currently `UNRESOLVABLE`** for both
+`driverId` and `truckId`. This is not because the underlying `unit_number`/
+`crewbiq_id` data is messy — it is because staging holds exactly one
+`AccountDriverLink` and one `DriverTruckAssignment` row (both test fixtures
+from this session's earlier canonical-journey work, not real historical
+coverage), so no full-UTC-day interval currently covers any of the 44,000+
+legacy event dates. The finding from the first draft — that assignment
+history is the bottleneck, not data quality — holds, but is now grounded in
+measured staging evidence rather than an inferred "universally empty" claim.
 
-## 4. Proposed dry-run classification query (design only — not executed)
+## 4. What this discovery does NOT do
 
-For `driver_loads` (the same shape applies to `pti_log` with `pti_date`
-substituted for `pickup`, and to `fleet_loads` with `driver_crewbiq_id`
-substituted for `crewbiq_id`):
-
-```sql
--- Read-only. Produces counts only; writes nothing.
-with candidate as (
-  select
-    dl.record_id,
-    dl.crewbiq_id,
-    dl.unit_number,
-    dl.pickup as event_date,
-    (
-      select adl.driver_profile_id
-        from account_driver_links adl
-        join auth_users au on au.crewbiq_id = dl.crewbiq_id
-        join person_accounts pa on pa.auth_user_id = au.id
-       where adl.person_id = pa.person_id
-         and adl.effective_from <= dl.pickup
-         and (adl.effective_to is null or adl.effective_to > dl.pickup)
-    ) as candidate_driver_ids -- aggregate/count distinct in the real query;
-                              -- more than one distinct value => AMBIGUOUS
-  from driver_loads dl
-)
-select
-  count(*) filter (where candidate_driver_ids is not null)  as driver_id_proven_candidates,
-  count(*) filter (where candidate_driver_ids is null)      as driver_id_unresolved,
-  count(*)                                                   as total_legacy_loads
-from candidate;
-```
-
-This is a sketch, not a final tool: the real implementation must (a) detect
-and separately count the `AMBIGUOUS` case (more than one candidate resolves
-for the same record), (b) apply the identical pattern to `pti_log` and
-`fleet_loads`, and (c) compute the `truckId` side of the query against
-`driver_truck_assignments` — which, per Section 3, is expected to return
-`unresolved` for effectively the entire corpus until assignment history is
-addressed.
-
-## 5. What this discovery does NOT do
-
-- No query above has been executed against staging or production data. This
-  session's implementer role has GitHub repository access only, not
-  Railway/database credentials.
 - No `driverId`/`truckId` column, backfill write, or migration was added to
   any table.
-- No legacy business record was read, exported, or modified.
-- No production or staging action, deployment, or data mutation occurred.
+- No legacy business record was modified. Codex's dry-run was read-only,
+  proven by identical before/after canonical-table counts.
+- No production action, deployment, or data mutation occurred by either
+  agent.
 
-## 6. Recommended next bounded step
+## 5. Recommended next bounded step
 
-Whoever holds staging read access should execute the Section 4 query pattern
-(completed for all three domains: `driver_loads`, `pti_log`, `fleet_loads`)
-against the staging database only, read-only, and report the exact
-`PROVEN` / `AMBIGUOUS` / `UNRESOLVABLE` counts per domain. That result — not
-this design alone — is what would let a Product Owner decide whether the
-`driver_truck_assignments` historical-backfill question (Section 3) needs to
-be resolved before any `PROVEN`-only backfill tooling is built, or whether
-`driverId`-only backfill (leaving `truckId` unresolved) is an acceptable first
-increment.
+The measured result — zero `PROVEN` records across 44,000+ legacy rows in
+staging — is itself the answer needed for a Product Owner decision: whether
+to (a) invest in backfilling `driver_truck_assignments`/`account_driver_links`
+historical intervals themselves (a separate, larger, explicitly-scoped
+project) before any legacy Load/PTI backfill can produce non-trivial
+`PROVEN` counts, or (b) accept that legacy records will remain permanently
+unresolved and scope future canonical-identity work to new records only, as
+`IDENTITY_ATTRIBUTION_CONTRACT.md`'s slice 4B.1b.2 already does.
 
 No backfill implementation, migration, or data mutation is proposed or
 authorized by this document.
