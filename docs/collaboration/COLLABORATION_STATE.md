@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Attribution Backfill Dry-Run Discovery
+CrewBIQ ADR-0007 - Carrier Membership Topology Review
 
 Status:
-CLOSED / ACCEPT
+AUTHORIZED / AWAITING CLAUDE
 
 Current owner:
-Product Owner
+Claude
 
 Branch:
-agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
+agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93; architecture source crewbiq/crewbiq-docs claude/adr-0007-mvp-roles-and-phase4-backlog at 60e1b4c
 
 Product truth:
-The corrected read-only discovery is accepted. Staging contains 44,177 driver_loads, 44,183 pti_log rows, and 2 fleet_loads; all are UNRESOLVABLE for canonical driverId and truckId under full-UTC-day authoritative interval proof. Migrations 010/011 contain no historical backfill. No conclusion about production classifications and no backfill write are authorized.
+CrewBIQ production remains stable on main bcfd74a/cache v95. Legacy attribution reconstruction is closed for MVP: canonical attribution applies to new records; unprovable legacy records remain unchanged and are classified UNRESOLVABLE, with reconstruction deferred rather than declared impossible. Canonical staging identity coverage is already closed at 18/18 PASS. ADR-0007 remains PROPOSED and authorizes no runtime, schema, role-enforcement, or UI implementation.
 
 Latest implementation commit:
 00a6ab8963697d0f3e2078867f7e28e2c4779438
@@ -100,22 +100,22 @@ Latest review commit:
 a9342c68dfe2b49385bc3ec5e662d41ebacde8aa
 
 Latest state commit:
-8b59d74ca2e601602cc17806324f79c0a08fa508
+f5b7b4ecc8f14a46d8ed83662997b06b404944ce
 
 Blocking findings:
 NONE
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. SIDR vision and proposed CrewBIQ ADR-0007 are architecture notices only and authorize no current implementation.
+Historical attribution reconstruction is deferred post-production and may be reconsidered only for justified business, analytics, compliance, or audit requirements. GitHub Community Discussion #206480 may remain monitored. SIDR vision is canonical architecture context only and authorizes no current implementation.
 
 Decision gate:
-PRODUCT_OWNER_DECISION_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Product Owner
+Claude
 
 Next bounded action:
-Choose whether to authorize a separately bounded, initially read-only design for reconstructing authoritative historical AccountDriverLink/DriverTruckAssignment intervals, or close legacy attribution with existing records remaining UNRESOLVABLE and canonical attribution applying only to new records. No implementation, migration, production query, or historical mutation before that decision.
+In crewbiq/crewbiq-docs, independently review and document the ADR-0007 carrier membership topology clarification: carrier-role membership belongs in the carrier home workspace, while cross-fleet visibility derives only from active CarrierAssignment/authority relationships and never from client-supplied IDs. Keep ADR-0007 PROPOSED unless the review fully resolves the topology; publish documentation only for Codex review. Do not implement roles, schema, runtime, UI, ADR-0008-0016, SIDR, migration, merge, or deployment work.
 <!-- CURRENT_END -->
 
 
@@ -3501,4 +3501,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Staging evidence remains read-only: driver_loads 44,177; pti_log 44,183; fleet_loads 2; all UNRESOLVABLE; canonical table counts 1/1 before and after.
 - Runtime, migrations, deployments, production data, and historical records changed: NONE.
 - Product Owner decision required: authorize bounded read-only historical-interval reconstruction design, or close legacy attribution with old records unresolved and canonical attribution limited to new records.
+### 2026-09-01 - Product Owner - Legacy attribution closed for CrewBIQ MVP
+
+- Decision: no further release-cycle work on historical reconstruction; canonical attribution applies to new records going forward.
+- Existing legacy records remain unchanged. Currently unprovable records are classified `UNRESOLVABLE`, not permanently unrecoverable.
+- Historical reconstruction is deferred post-production and may be reconsidered only if future business, analytics, compliance, or audit requirements justify it.
+- Backfill implementation, reconstruction design, migration, production query, and historical mutation: NOT AUTHORIZED.
+- Corrected stale coordination: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` was already closed by `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`, isolated/full protected runs `33550873310` and `33550974453`, aggregate `18/18 PASS`, and Claude independent ACCEPT.
+- Next bounded roadmap action: Claude documentation-only review of ADR-0007 carrier-home-workspace topology; no implementation.
 

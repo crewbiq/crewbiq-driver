@@ -108,16 +108,16 @@ measured staging evidence rather than an inferred "universally empty" claim.
 - No production action, deployment, or data mutation occurred by either
   agent.
 
-## 5. Recommended next bounded step
+## 5. Product Owner decision for CrewBIQ MVP
 
-The measured result — zero `PROVEN` records across 44,000+ legacy rows in
-staging — is itself the answer needed for a Product Owner decision: whether
-to (a) invest in backfilling `driver_truck_assignments`/`account_driver_links`
-historical intervals themselves (a separate, larger, explicitly-scoped
-project) before any legacy Load/PTI backfill can produce non-trivial
-`PROVEN` counts, or (b) accept that legacy records will remain permanently
-unresolved and scope future canonical-identity work to new records only, as
-`IDENTITY_ATTRIBUTION_CONTRACT.md`'s slice 4B.1b.2 already does.
+The Product Owner closed historical attribution reconstruction for the
+CrewBIQ MVP release cycle. Canonical attribution applies to new records going
+forward. Existing legacy records remain unchanged, and any record that cannot
+be proven from authoritative effective-dated evidence is classified
+`UNRESOLVABLE`.
 
-No backfill implementation, migration, or data mutation is proposed or
-authorized by this document.
+`UNRESOLVABLE` does not mean permanently unrecoverable. Historical attribution
+reconstruction is deferred to the post-production backlog and may be revisited
+if future business, analytics, compliance, or audit requirements justify it.
+No backfill implementation, reconstruction design, migration, production
+query, or historical data mutation is authorized now.
