@@ -188,6 +188,14 @@ test(
       expect(rosterDrivers.length, 'LOAD-01 requires at least one canonical Driver fixture').toBeGreaterThan(0);
       await page.evaluate(token => orchestratorFinishLogin(token), writerToken);
       observations.push({ step: 'connected-pwa-orchestrator-session' });
+      const adapterRoster = await page.evaluate(() => readAuthorizedWorkspaceDriverRoster());
+      observations.push({
+        step: 'pwa-roster-adapter-read',
+        ok: adapterRoster?.ok === true,
+        code: String(adapterRoster?.code || ''),
+        driver_count: Array.isArray(adapterRoster?.drivers) ? adapterRoster.drivers.length : 0,
+      });
+      expect(adapterRoster?.ok, `PWA roster adapter failed closed: ${adapterRoster?.code || 'unknown'}`).toBe(true);
 
       // Per-run timestamp, not just a fixed marker: boot's restoreSession()
       // pulls this identity's existing server-side loads into the local
