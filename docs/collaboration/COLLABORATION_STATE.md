@@ -79,19 +79,19 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-AUTHORIZED / AWAITING CLAUDE
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The MVP production gap inventory is accepted. Current production PWA still has executable Apps Script paths, so PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, and Legacy Independence remain BLOCKED; offline retry remains PARTIAL. Before any removal/configuration/runtime work, the accepted next step is a complete read-only source-to-sink map of the legacy sync surface and an assessment of already-existing traffic evidence.
+docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md now traces every Google/Apps-Script URL literal, persisted/driver-derived URL source, guard, caller, and outbound fetch sink across index.html, sync.js, restore-hotfix.js, and sw.js. Key finding: doSync() pushes to Apps Script (pushToCloud) first and only copies to the Orchestrator/PostgreSQL (pushToOrchestrator) if that push succeeds - Apps Script is the primary write path, not a fallback. Two distinct hardcoded Apps Script endpoints exist. No existing production telemetry/log evidence for request volume was found or examined. All prior gap-inventory classifications (BLOCKED x3, PARTIAL offline-retry) remain unchanged; this document does not itself alter any classification.
 
 Latest implementation commit:
-59d5b289a8baf40360a9de9e434fe5a826b7121c
+2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0
 
 Latest correction commit:
 59d5b289a8baf40360a9de9e434fe5a826b7121c
@@ -100,10 +100,10 @@ Latest review commit:
 6e4e0ff076ab487069bfa5be1fb87128c9ca2a36
 
 Latest state commit:
-6e9ab517ab89acb30b8e14984be0f0e4a44af774
+(pending this publish)
 
 Blocking findings:
-NONE for the accepted inventory; production cutover criteria remain blocked by executable legacy sync paths.
+NONE (pending Codex review of the new evidence map)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Create one bounded read-only evidence document mapping every Google/Apps-Script URL literal, persisted/driver-derived URL source, guard, caller, and outbound fetch/network sink in exact production source `bcfd74a`, explicitly including index.html, sync.js, restore-hotfix.js, service-worker handling, and any other discovered executable path. Record whether already-existing production telemetry/log evidence can establish actual request volume, without adding instrumentation or changing configuration. Do not remove/disable paths or change runtime, configuration, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR. Publish and hand to Codex for independent review.
+Independently re-verify docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md (commit 2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0) against exact production source at bcfd74a: confirm every cited URL literal, source, guard, caller, and sink line number, and confirm the doSync() push-order finding (Apps Script primary, Orchestrator secondary copy). Publish an ACCEPT or NEEDS_FIX verdict. Do not remove/disable any path or change runtime, configuration, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3603,3 +3603,14 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next roadmap item: Claude executes the bounded read-only legacy sync call-path/control-point evidence map against exact production source bcfd74a.
 - Runtime, configuration, legacy-path, deployment, migration, merge, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - Legacy sync call-path evidence map (implementer role)
+
+- Method: fetched index.html, sync.js, restore-hotfix.js, and sw.js directly at production commit bcfd74a; grepped each for script.google.com/DEFAULT_SYNC_URL/syncUrl/fetch(; read surrounding context for every match to identify actual guards, callers, and sinks rather than relying on isolated grep lines.
+- Key finding, independently discovered (not previously flagged by Codex): doSync() in sync.js calls pushToCloud() (Apps Script, via driver.syncUrl) first, and only calls pushToOrchestrator() (PostgreSQL DB copy) if that push succeeded - meaning Apps Script is architecturally the primary sync write path, and the Orchestrator write is a secondary copy contingent on it, not the reverse.
+- Also confirmed: sw.js explicitly special-cases script.google.com/googleapis.com/railway.app hostnames (plus any POST) to bypass the cache and go straight to network - the service worker was authored with explicit Apps Script awareness, not accidentally compatible with it.
+- Published docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md (commit 2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0). Verified via GitHub Compare API against parent 475a8c6c1a22f05042c13b0110d932549393015d that exactly one new file was added (78 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- No existing production telemetry/log evidence for actual request volume was located or examined in this pass; the document states this limitation explicitly rather than assuming it either way.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR change occurred.
+- Runtime/product files changed: NONE (documentation only).
