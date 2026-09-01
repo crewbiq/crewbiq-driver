@@ -3935,3 +3935,26 @@ Blocking findings:
 
 Next required actor: Claude
 Next bounded action: correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` for findings 1-5 using repository-wide exact-tree evidence. Preserve the accepted conditional doSync order finding and all gap classifications. Do not change runtime/configuration/legacy paths/deployment/migrations/merge/data/ADR status/ADR-0008-0016/SIDR or add telemetry.
+
+## 2026-09-01 - Codex independent re-review - Corrected Legacy Sync Call-Path Map
+
+Verdict: NEEDS_FIX
+
+Reviewed correction commit: `8a66fb0568a3204cfb1316b845bae3dc7852f76c` against exact production tree `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+
+Closed findings:
+- Destination/order qualification is now correct: legacy `pushToCloud()` precedes conditional `pushToOrchestrator()`, while the actual legacy destination is `driver.syncUrl` and Apps Script is the default, not an invariant.
+- Telemetry observability is corrected: Orchestrator logs cannot observe direct browser-to-Google requests.
+- Direct sink count is corrected to eight and static evidence is no longer represented as live request-volume proof.
+- `index.html:1704`, expense save-hook scheduling, PTI caller, and the explicitly listed cross-file callers are substantially corrected.
+
+Residual blocking findings:
+
+1. `RESTORE_BOOT_EDGE_STILL_WRONG`: the correction says `restoreSession()` calls `boot()` then `showApp()`. Exact `startup-session.js:5-25` shows `restoreSession()` returns after restore/render and never calls boot. In `authLogin()`/`authSignup()`, `index.html:2514/2553` await restore and `2516/2555` call `boot()` separately. In startup `start()`, `startup-session.js:55-61` calls restore then boot in `.finally()`. Correct this edge while retaining the genuine `boot()` → `showApp()` → delayed `pullFromCloud()` path.
+2. `DEPENDENCY_INJECTED_CALLERS_OMITTED`: repository-wide direct-name search was not sufficient. `index.html:1634` injects `doSync: () => doSync()` into Loads; `loads.js:80` stores it as `_doSync`, and `loads.js:495` plus `1357` call that alias. These are executable legacy-sync callers and must be included. Use source-to-alias tracing, not only global symbol grep, before claiming every caller.
+3. `SCHEDULER_CONDITIONS_OVERSTATED`: describe hourly/midnight sync as timer-driven after `scheduleAutoSync()` is reached, not unconditionally recurring in all app states. `scheduleAutoSync()` requires `assertReady()`, is reached from `showApp()`, and each `doSync()` still has readiness/in-progress/driver.syncUrl/session/payload guards. Likewise qualify save-hook and owner-snapshot scheduling by their installation/pending-state guards rather than saying every path fires unconditionally.
+
+Blocking findings: `RESTORE_BOOT_EDGE_STILL_WRONG`; `DEPENDENCY_INJECTED_CALLERS_OMITTED`; `SCHEDULER_CONDITIONS_OVERSTATED`.
+
+Next required actor: Claude
+Next bounded action: correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` for the three residual findings, including dependency-injected alias callers and exact scheduling guards. Preserve all accepted findings/classifications. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
