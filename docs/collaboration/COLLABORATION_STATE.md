@@ -79,43 +79,43 @@ Phase:
 Main Publication Planning
 
 Status:
-MAIN_PUBLICATION_PLAN ACCEPTED - AWAITING PRODUCT OWNER AUTHORIZATION FOR PREP-THROUGH-PR
+MAIN PROMOTION PR PREPARED / CI GREEN / AWAITING CLAUDE REVIEW
 
 Current owner:
-ChatGPT
+Claude
 
 Branch:
-agent/pre-base44-audit; orchestrator accepted branch; inactive immutable control ref pages-actions-v95-66a7985
+agent/pre-base44-audit; promotion branch release-main-promotion-v95-66a7985; orchestrator accepted branch; inactive immutable control ref pages-actions-v95-66a7985
 
 Product truth:
-Production remains stable on legacy Pages main 86b8b4d/cache v79. MAIN_PUBLICATION_PLAN.md independently reviewed: every checkable fact (main SHA, branch protection absent, rulesets absent, 241/0 ancestry counts, the genuine v94/v95 cache-assertion mismatch, and the analytics.js unloaded-file nuance) verified directly against the live repository, not merely trusted. The curated allowlist, preparation procedure, CI requirements, expected publication behavior, and normal-revert rollback are all sound.
+Production remains stable on legacy Pages main 86b8b4d/cache v79. Curated promotion branch release-main-promotion-v95-66a7985 was created from exact main and PR #101 opened without merge. Commit e6ea441 contains exactly 39 allowlisted files; all 14 product blobs match accepted candidate 66a7985, no docs/prototype paths entered, and the sole candidate delta is the accepted CI cache assertion correction v94 to v95. PWA Auth Contract and E2E PR Smoke are green. No deployment occurred.
 
 Latest implementation commit:
-66a7985765b76e0702d015ca1e300390156f8ad6
+e6ea4418a303d24219bc0469c3aa1c36167c6c56
 
 Latest correction commit:
-NONE
+e6ea4418a303d24219bc0469c3aa1c36167c6c56
 
 Latest review commit:
 b8f47b8d36b91620bb37125234f7254604280c3a
 
 Latest state commit:
-a54822766d64a857e0d111b70d90ddb6b9f70db5
+11d8c5ebc99285946c76075ee8bf47f39cbea612
 
 Blocking findings:
-NONE. Plan ACCEPTED. The v94-to-v95 CI correction is confirmed genuinely necessary (independently verified: candidate sw.js declares v95, candidate's own pwa-auth-contract.yml still hardcodes a v94 grep assertion) and correctly scoped to exactly one line.
+NONE. PR #101 is open and unmerged. Required checks passed: PWA Auth Contract run 33539640742 / orchestrator-transport PASS; E2E PR Smoke run 33539640708 / smoke PASS.
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task. GitHub Community Discussion #206480 remains open/unanswered and does not block this plan.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Claude
 
 Next bounded action:
-Decision required: the main-publication design is independently reviewed and accepted as accurate and sound. Does the Product Owner authorize Codex to execute the preparation procedure through opening the PR (creating the curated promotion branch from the current exact main SHA, restoring only the reviewed allowlist, applying the one v94-to-v95 CI correction, and opening - not merging - a PR to main) - with the actual merge remaining a separate decision requiring a fresh Claude review of the real PR diff and its own explicit authorization? No branch creation, code change, PR, merge, deployment, migration, or production-data write is authorized until this decision is made.
+Independently review PR #101 and commit e6ea4418a303d24219bc0469c3aa1c36167c6c56: verify exact main base, 39-file allowlist, all 14 product blob identities, excluded docs/prototype paths, sole v94-to-v95 workflow delta, green runs 33539640742 and 33539640708, merge safety, and rollback boundary. Do not merge or deploy. If ACCEPT, set COORDINATOR_REQUIRED / ChatGPT for exact PR #101 merge authorization.
 <!-- CURRENT_END -->
 
 
@@ -3345,3 +3345,13 @@ Next required actor: Claude
 - No branch creation, code change, PR, merge, deployment, migration, or production-data write is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit b8f47b8d36b91620bb37125234f7254604280c3a).
 - Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Curated main promotion PR prepared
+
+Agent: Codex under standing Product Owner delegation
+
+Status: PREPARED / CI GREEN / AWAITING CLAUDE REVIEW
+
+Created branch release-main-promotion-v95-66a7985 from exact stable main 86b8b4d and published commit e6ea4418a303d24219bc0469c3aa1c36167c6c56. PR #101 is open at https://github.com/crewbiq/crewbiq-driver/pull/101 with explicit DO NOT MERGE scope. The diff contains exactly 39 allowlisted files; all 14 product blobs match accepted candidate 66a7985; docs/prototype paths are absent; the only candidate workflow delta is v94 to v95. PWA Auth Contract run 33539640742 passed in 17 seconds and E2E PR Smoke run 33539640708 passed in 48 seconds. No merge, Pages change, deployment, migration, or production-data mutation occurred.
+
+Next required actor: Claude

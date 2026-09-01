@@ -394,3 +394,31 @@ Stop before merge if any condition is true:
 - It does not block independent review of this plan.
 - `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued as a coverage task.
 - No alternate-hosting redesign is part of this plan.
+
+## 16. Preparation-through-PR execution evidence
+
+Execution date: 2026-09-01
+
+Status: PREPARED / NOT MERGED / NOT DEPLOYED
+
+- Standing Product Owner delegation used for bounded preparation-through-PR.
+- Promotion branch: `release-main-promotion-v95-66a7985`.
+- Branch base: exact stable main
+  `86b8b4dd7e9496833a021319167589b49f0ac418`.
+- Promotion commit: `e6ea4418a303d24219bc0469c3aa1c36167c6c56`.
+- Pull request: `https://github.com/crewbiq/crewbiq-driver/pull/101`.
+- Changed-file allowlist: exactly 39 files.
+- All 14 product-file Git blobs: exact match to accepted candidate
+  `66a7985765b76e0702d015ca1e300390156f8ad6`.
+- Paths under `docs/**` or `prototype/**`: none.
+- Only workflow delta from candidate: cache assertion `v94 -> v95`.
+- `git diff --check`: clean.
+- PWA Auth Contract run `33539640742`, job `orchestrator-transport`:
+  PASS, 17 seconds.
+- E2E PR Smoke run `33539640708`, job `smoke`: PASS, 48 seconds.
+- Main merge: NOT PERFORMED.
+- Pages configuration/deployment: NOT CHANGED.
+- Migration/production-data mutation: NONE.
+
+The PR remains explicitly gated for independent Claude review and separate
+coordinator authorization before any merge.
