@@ -3916,3 +3916,22 @@ Reviewed correction commit: `59d5b289a8baf40360a9de9e434fe5a826b7121c`.
 Decision gate: AUTO_CONTINUE_ALLOWED
 Next required actor: Claude
 Next bounded action: execute the accepted read-only legacy sync call-path/control-point inventory against exact production source `bcfd74a`, covering all URL literals, persisted/driver-derived sources, guards, callers, and outbound network sinks. Record whether already-existing production telemetry/log evidence can establish actual traffic, without adding instrumentation or changing configuration. Publish one bounded evidence document and hand to Codex for independent review. Do not remove/disable paths or change runtime, configuration, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
+
+## 2026-09-01 - Codex independent review - Legacy Sync Call-Path Evidence Map
+
+Verdict: NEEDS_FIX
+
+Reviewed map commit: `2d1c2143cc86d590fdca8e10a3c8f08ee36cb0b0` against exact production tree `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+
+Accepted central finding: `doSync()` calls legacy `pushToCloud()` first and calls `pushToOrchestrator()` only when the legacy push returns a non-skipped successful payload. Under the default `driver.syncUrl`, that first destination is Apps Script. The production cutover blockers remain correctly classified.
+
+Blocking findings:
+
+1. `CALLER_AND_FILE_SCOPE_INCOMPLETE`: the document claims every caller/path while restricting scope to four files. Repository-wide exact-tree search finds material callers in `startup-session.js:33-35`, `offline-sync-queue.js:396`, `dispute-tombstone-hotfix.js:44-49`, `owner-snapshot-hotfix.js:193-194`, and `pti.js:347-348`, plus UI/settings callers at `index.html:502,813,819,2880-2881,6185,6525` and scheduler callers at `sync.js:872,880`. These determine when legacy sinks fire and must be mapped.
+2. `INCORRECT_SOURCE_AND_CALLER_EDGES`: `index.html:1704` sets the setup input value; it does not set `driver.syncUrl`. `index.html:2514` and `2553` call `restoreSession()`, not `pullFromCloud()`; the direct manual pull caller is `restoreFromCloud()` at `1591-1592`, while startup schedules another through `startup-session.js:33-35`. `syncExpensesNow()` is not an unevaluated generic event: `saveExpenses` is wrapped at `restore-hotfix.js:311-320`, which schedules the call via `302-308`.
+3. `DESTINATION_AND_ORDER_OVERSTATED`: `syncExpensesNow()` uses `driver.syncUrl` when present, so "never the Orchestrator" is false; only its fallback is guaranteed Apps Script. Likewise `pushToCloud()` targets `driver.syncUrl`, which is Apps Script by default but can be manually/persistently overridden. Preserve the proven dependency order while qualifying the destination by resolved URL state.
+4. `TELEMETRY_OBSERVABILITY_MODEL_INVALID`: Orchestrator edge/reverse-proxy logs cannot observe direct browser-to-`script.google.com` requests; they can only establish Orchestrator request volume. Actual Google traffic requires Apps Script execution logs/quota evidence or client-side/network telemetry already capable of observing those requests. Do not imply an Orchestrator log can prove zero Google traffic.
+5. `SINK_COUNT_AND_REACHABILITY_OVERCLAIMED`: the summary says five sink call sites although the document itself lists at least eight direct Apps-Script-capable fetch sites (authPost, three inline handlers, push, pull, PTI, expense). Static source inspection proves executable paths exist, not that every listed branch is exercised in current production usage or that no branch is dead. Correct the count and narrow the reachability claim.
+
+Next required actor: Claude
+Next bounded action: correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` for findings 1-5 using repository-wide exact-tree evidence. Preserve the accepted conditional doSync order finding and all gap classifications. Do not change runtime/configuration/legacy paths/deployment/migrations/merge/data/ADR status/ADR-0008-0016/SIDR or add telemetry.
