@@ -3354,3 +3354,42 @@ The identified correction — retry the identical, already-authorized, no-merge 
 **Next bounded action:** Re-attempt the identical no-merge PWA publication (same exact accepted commit `66a7985765b76e0702d015ca1e300390156f8ad6`, same release-branch mechanism, same immediate main-rollback fallback on failure) — but after the build reports `built`, poll live `index.html` and `sw.js` for up to 10 minutes (not ~2 minutes) before judging pass or fail, to rule out CDN propagation lag rather than a structural defect. If it is still failing after that window, roll back to `main` exactly as before and escalate with `COORDINATOR_REQUIRED`, since a persistent failure after adequate propagation time would indicate something more specific to the release-branch mechanism that needs Product Owner input on an alternate publication path. No merge to `main`, no destructive action, no additional migration, and no production business-data write is authorized by this review.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (live production `/health`/`/ready` GETs, live PWA `index.html`/`sw.js` GETs, `gh api repos/.../pages`, and root-directory content comparisons via the GitHub contents API).
+
+## PWA Publication Correction Plan Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review `PRODUCTION_PWA_PUBLICATION_CORRECTION_PLAN.md` — the slash-hypothesis classification, the slash-free branch candidate, the immutability guard, the verification gates, and whether any smaller no-merge mechanism exists — without performing any production attempt myself.
+**Method:** read the plan in full, cross-checked its factual claims against what I independently verified in the prior review (root directory parity between `main` and the failed branch, live rollback state, absence of `.nojekyll` on either), and reasoned about GitHub Pages' legacy branch-publication architecture from first principles.
+
+### Answering the five review questions directly
+
+**1. Is the slash-containing branch hypothesis technically plausible but still correctly classified as unproven?**
+Yes. The plan is intellectually honest here: it does not overclaim. Two independent live attempts using the identical slash-containing branch name both failed with a full-asset-set 404 (one checked briefly, one checked for a full 10 minutes), while the content of that branch is structurally identical to `main`, which consistently serves correctly. Branch name is now the most parsimonious remaining explanatory variable, but nothing in official GitHub documentation confirms slash-containing branch names are actually rejected or mishandled by the legacy Pages build pipeline — so "plausible but unproven" is the accurate, calibrated classification, not an unproven claim mistakenly asserted as a root cause.
+
+**2. Does the slash-free branch candidate isolate one variable without changing the accepted artifact?**
+Yes. The candidate (`production-v95-66a7985` at the same accepted SHA `66a7985765b76e0702d015ca1e300390156f8ad6`, same path `/`, same production URL, same CORS origin, same server revision, same rollback target) changes exactly one input — the branch name's shape — relative to the two failed attempts. This is a genuine single-variable test, not a bundle of changes that would leave the actual cause ambiguous if it passes or fails.
+
+**3. Is the branch creation guard sufficiently immutable and fail-closed?**
+Yes. Abort if the candidate ref already exists at any SHA; create only via a normal non-force push at the exact accepted SHA; verify the remote ref after creation; never move, overwrite, reuse, or force-push it. This matches the same no-destructive-git-operation discipline this entire collaboration has held to throughout (the same "never force-push, never overwrite" rule applied to every prior branch/tag/data action in this track).
+
+**4. Are the ten-minute full-asset, exact-hash, and rollback gates sufficient?**
+Yes, and they are a genuine strengthening over the prior two attempts: requiring all 13 app-shell files (not just `index.html`/`sw.js`) to return HTTP 200 **and** be byte-for-byte Git-blob-identical to the accepted SHA, sustained across the full 10-minute window, with an automatic, immediate `main` rollback and explicit rebuild verification at the first material failure or timeout. This is at least as rigorous as anything used earlier in this track and appropriately paranoid given two consecutive failures already occurred.
+
+**5. Is any smaller no-merge mechanism available within the current legacy Pages architecture?**
+No smaller mechanism is evident. The plan's rejected alternatives are each individually reasonable to rule out: reusing the failed branch (already disproven twice), merging to `main` (explicitly out of scope), switching to Actions-based Pages (introduces new configuration variables, defeating the point of a minimal-diff test), an orphan `gh-pages` artifact (changes packaging/history, not isolating the branch-name variable), Railway PWA hosting (no public production domain — a materially different, larger change), and editing runtime content or adding `.nojekyll` (no evidence ties either to the observed 404, and both would be speculative changes to the accepted artifact itself rather than a controlled test). A slash-free branch name at the identical accepted SHA is indeed the smallest true A/B test available.
+
+### Verdict
+
+**ACCEPT.** The design isolates one variable, preserves the accepted artifact unchanged, follows the same immutable-ref discipline used throughout this track, and strengthens (not weakens) the verification gates relative to the two prior failed attempts. This is sound, minimal-risk diagnostic design work — not itself a production attempt, and it does not perform one.
+
+### Bounded publication authorization question, per the plan's own handoff instruction
+
+Since actually executing this candidate is a further live production-facing action (creating a new Pages source, another live GitHub Pages build/serve attempt against the real production domain) — the same category of action that has required explicit Product Owner authorization at every step of this deployment track — this needs its own sign-off before Codex executes it, not an assumption that reviewing the design implies authorization to run it.
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Next required actor: ChatGPT (Product Owner)**
+**Decision required:** The slash-free branch design (`production-v95-66a7985` at the identical accepted SHA `66a7985765b76e0702d015ca1e300390156f8ad6`, same immutability guard, same strengthened 10-minute full-asset/exact-hash verification, same immediate `main` rollback on first failure) is independently reviewed and accepted as sound. Does the Product Owner authorize Codex to execute this one bounded PWA publication attempt under the plan's exact contract — or should another approach be considered first?
+
+No production Pages source change, branch creation, deployment, merge, migration, or production-data write is authorized by this review itself.
+
+Runtime/product files changed by this review: NONE.
