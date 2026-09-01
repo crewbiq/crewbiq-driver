@@ -79,7 +79,7 @@ Phase:
 Production Deployment and Validation
 
 Status:
-ACTIONS DEPLOYMENT DESIGN ACCEPTED - PHASE A ASSIGNED TO CODEX
+IN_PROGRESS - ACTIONS PAGES PHASE A WORKFLOW CONTRACT
 
 Current owner:
 Codex
@@ -88,7 +88,7 @@ Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 + production-v95-66a7985 (inactive immutable failed Pages-source evidence)
 
 Product truth:
-Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79. PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md independently reviewed and ACCEPTED - the workflow_dispatch/default-branch conflict was independently verified against GitHub's own documentation (fetched directly, not merely cited), and the immutable-artifact/push-triggered-control-branch split, two-phase sequencing, permissions, and rollback contract are all sound.
+Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Claude accepted the Actions design and Codex is implementing only the non-triggering Phase A workflow and static contracts on the collaboration branch
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -115,7 +115,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-Implement Phase A only: add the workflow file to agent/pre-base44-audit with the exact trigger (push restricted to pages-actions-v95-66a7985 only), permissions (contents:read, pages:write, id-token:write), concurrency, and job steps specified in the plan, plus static contract tests asserting the branch filter cannot match the collaboration branch, the exact accepted SHA 66a7985765b76e0702d015ca1e300390156f8ad6 is checked out explicitly (never HEAD/github.sha/a mutable ref), permissions are exactly minimal, action references are pinned, and rollback is documented. Publish for independent review. Do not create the control branch, change Pages/environment configuration, or attempt a production deployment - Phase B remains a separate decision requiring both independent Claude ACCEPT of Phase A and explicit Product Owner authorization.
+Implement and test only the reviewed Phase A workflow contract on agent/pre-base44-audit; publish for Claude review without creating the control branch or changing Pages, environment policy, main, runtime, migrations, or production
 <!-- CURRENT_END -->
 
 
