@@ -3431,3 +3431,40 @@ Drafting a new design document is a bounded technical/coordination task with no 
 **Next bounded action:** Draft a new `PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md`, coordination/design-only, proposing an Actions-based GitHub Pages deployment as the next candidate: a workflow file (living on the immutable evidence branch, triggered via `workflow_dispatch` against the exact accepted SHA, never on `main`), the exact `actions/upload-pages-artifact`/`actions/deploy-pages` steps, the exact same all-13-asset byte-for-byte verification and immediate-rollback-to-`main`-if-any-failure discipline already proven twice, and an explicit note that changing `build_type` from `legacy` to `workflow` is itself a Pages configuration change requiring its own review and Product Owner authorization before any execution. No production attempt, Pages source change, `build_type` change, workflow execution, merge, migration, or production-data write is authorized by this review.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `environments`, `environments/github-pages/deployment-branch-policies`, and `pages/builds`).
+
+## Actions-Based PWA Deployment Correction Plan Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review `PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md` — the `workflow_dispatch`/default-branch conflict, the immutable-artifact/push-triggered-control-branch split, whether Phase A is genuinely incapable of triggering Pages, Phase B's ordering and rollback completeness, and whether the verification/permission gates are sufficient — without performing any implementation or production attempt.
+**Method:** read the plan in full; independently verified its single load-bearing factual claim against GitHub's own documentation via WebFetch rather than trusting the citation; reasoned through the trigger mechanics (`push` vs `workflow_dispatch` semantics) and the artifact/control-branch separation from first principles.
+
+### Answering the five review questions directly
+
+**1. Is the `workflow_dispatch`/default-branch conflict correctly identified?**
+Yes — independently confirmed via GitHub's own documentation (fetched directly, not merely cited): *"This event will only trigger a workflow run if the workflow file exists on the default branch."* This repository's default branch is `main`, and adding the workflow file to `main` or to either immutable exact-SHA evidence branch would violate the accepted no-merge/no-main boundary or the exact-SHA immutability guarantee, respectively. The plan's conclusion that `workflow_dispatch` is not a valid no-main mechanism here is factually correct, not an assumption.
+
+**2. Does the separate immutable artifact plus push-triggered control branch preserve exact application bytes without touching `main`?**
+Yes. `push`-triggered workflows do not carry the default-branch restriction — GitHub evaluates the workflow definition from the exact commit being pushed, so a workflow file first added on the collaboration branch (Phase A, inert) can later be placed on a brand-new, never-before-existing branch (Phase B's `pages-actions-v95-66a7985`) and correctly fire on that branch's creation push. Critically, the deployment job's checkout step pins the exact accepted SHA `66a7985765b76e0702d015ca1e300390156f8ad6` explicitly — never `HEAD`, `github.sha`, or the control branch's own tree — with an explicit `git rev-parse HEAD` runtime assertion as a second guard. This means the control branch's own content is irrelevant to what gets deployed; it exists purely as a trigger mechanism. `main` is never written to at any point in either phase.
+
+**3. Is Phase A genuinely non-production and incapable of triggering Pages?**
+Yes. The proposed workflow's only trigger is `on: push: branches: [pages-actions-v95-66a7985]` — a single exact branch name, not a wildcard or pattern. Adding this file to `agent/pre-base44-audit` (Phase A) cannot match that filter regardless of what else is pushed to the collaboration branch, so no Pages run can start from Phase A activity. Phase A is correctly scoped to workflow-file authoring plus static contract tests only, with an explicit prohibition on touching Pages settings, environment policy, `main`, release refs, or runtime files.
+
+**4. Are Phase B's configuration ordering and immediate legacy rollback complete?**
+Yes. The ordering (reconfirm current state → record existing config → add exactly one new deployment-branch-policy entry for the new control branch name → change `build_type` to `workflow` → create the control ref, which is itself the trigger → require successful run/deployment → verify all 13 assets byte-for-byte for up to 10 minutes → verify cache/CORS/session-rejection behavior) is sound and sequences configuration changes before the one action that actually executes anything. The rollback contract (stop rollout → revert `build_type` to `legacy` → restore `main` source → explicit rebuild → verify v79 restored → reconfirm orchestrator health) mirrors the same discipline already proven twice on the legacy mechanism, and correctly treats `build_type` and environment-policy changes as production configuration mutations requiring their own recorded evidence, not something this design document itself authorizes.
+
+**5. Are the permission, environment, concurrency, exact-SHA, and full-asset gates sufficient?**
+Yes. The workflow's permissions (`contents: read`, `pages: write`, `id-token: write`) are the documented minimal set for `actions/deploy-pages` — no broader `contents: write` or other scope that could enable unintended repository mutation. `concurrency: group: pages, cancel-in-progress: false` prevents overlapping deployment races. The in-workflow `git rev-parse HEAD` assertion is a genuine strengthening over the legacy mechanism (which had no equivalent runtime self-check), and the same all-13-asset byte-for-byte/10-minute-window/immediate-rollback discipline already validated twice carries forward unchanged.
+
+### Verdict
+
+**ACCEPT.** This is a well-reasoned, technically verified design that correctly identifies and works around a real GitHub Actions platform constraint, preserves the accepted artifact's exact bytes, never touches `main`, and matches or exceeds the verification rigor already demonstrated in this deployment track. It performs no implementation or execution itself.
+
+### Applying the autonomous handoff protocol
+
+Phase A (workflow authoring plus static contract tests, on the existing collaboration branch, provably incapable of triggering a Pages run) is a bounded technical implementation task with no production exposure and no business decision embedded.
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:** Implement Phase A only — add the workflow file to `agent/pre-base44-audit` with the exact trigger, permissions, concurrency, and job steps specified in the plan, plus static contract tests asserting: the branch filter does not match the collaboration branch, the exact accepted SHA is checked out (never `HEAD`/`github.sha`/a mutable ref), permissions are exactly the minimal set, action references are pinned per the repository's supply-chain convention, and the rollback procedure is documented. Publish for independent review. Do not create the control branch, change any Pages or environment configuration, or attempt a production deployment — Phase B remains a separate decision requiring both an independent Claude ACCEPT of Phase A and explicit Product Owner authorization.
+
+Runtime/product files changed by this review: NONE.
