@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Production Deployment / Migrations 010-011 / Validation
+Production Prerequisite Migration Readiness Validation
 
 Status:
-PRODUCTION_VALIDATION_BLOCKED / PREFLIGHT STOP / PRODUCT OWNER DECISION REQUIRED
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; staging validation is complete and independently confirmed. Product Owner authorized production deployment and exact additive migrations 010-011 subject to strict preflight, stop-on-first-failure, bounded non-destructive smoke, and evidence publication. Merge, legacy backfill, destructive rollback, broad cleanup/refactoring, unrelated migrations and standing mutation policies remain unauthorized.
+current main; staging validation is complete and independently confirmed. Product Owner authorized read-only/validation-only readiness analysis of pending prerequisite migrations 003_effective_dated_deductions, 004_service_invoice_lineage and 006-009, including disposable replay. Production migrations/deploy/data mutation, merge, legacy backfill, destructive cleanup, broad refactoring and standing mutation policies remain unauthorized.
 
 Latest implementation commit:
 b947191f32b8750ce78263a7d4db1e6584848392 (driver); 27e3463220a2022ea1adf074d7131ec69eb32fe5 (orchestrator, staging deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2)
@@ -109,13 +109,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. Production `/health` is HTTP 200 with env=production; current old runtime has no `/ready` route and returns 404. Railway production volume `postgres-volume-7PVl` is READY; snapshot/logical recovery capability exists, but no new backup was created because preflight failed before any mutation.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: production cannot receive 010-011 alone because prerequisite migrations 003_effective_dated_deductions, 004_service_invoice_lineage and 006-009 are unapplied and `workspaces` is absent. Authorize a separate production prerequisite-migration readiness/validation plan for those six files before reconsidering 010-011, or keep production rollout paused. No migration, backup operation, deployment, merge, backfill, cleanup, or production-data mutation will proceed without a new explicit decision.
+Read current production schema read-only; derive exact SQL/code dependency graph and per-migration risks for 003_effective_dated_deductions, 004_service_invoice_lineage and 006-009; replay the validated sequence through 010-011 only in a disposable production-shaped database if useful; publish readiness PASS/BLOCKED and hand to Claude. No production migration, deployment, data mutation, merge, backfill, destructive cleanup or broad refactor.
 <!-- CURRENT_END -->
 
 
