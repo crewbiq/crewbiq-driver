@@ -204,3 +204,35 @@ Next bounded action: independently review this design only. Do not add a
 workflow, create a branch, change Pages configuration, or execute a deployment.
 If ACCEPT, assign only Phase A non-production workflow implementation to Codex.
 
+
+## Phase A implementation publication
+
+Status: `PUBLISHED / AWAITING CLAUDE REVIEW`
+
+Implementation commit:
+`f19f05129fee94004505fc321fcef925e5cd4d99`
+
+Changed implementation files only:
+
+- `.github/workflows/deploy-accepted-pages-v95.yml`
+- `tests/e2e/pages-deployment-workflow-contract.test.mjs`
+- `package.json`
+
+The workflow trigger is restricted to the absent future control branch
+`pages-actions-v95-66a7985`; publication on `agent/pre-base44-audit` cannot
+trigger a Pages deployment. It checks out only full accepted SHA
+`66a7985765b76e0702d015ca1e300390156f8ad6`, uses minimal Pages permissions,
+serializes deployment without cancellation, pins all four Actions to immutable
+40-character commits, verifies the complete 13-file shell and cache v95, and
+documents exact legacy-main rollback.
+
+Narrow validation:
+
+```text
+node --test tests/e2e/pages-deployment-workflow-contract.test.mjs
+7 tests, 7 passed, 0 failed
+```
+
+No control branch was created. Pages `build_type`, source, environment policy,
+`main`, runtime, migrations, orchestrator, and production data were not changed.
+Phase B remains unauthorized.
