@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
+STAGING_VALIDATION_BLOCKED / ONE-ROW CORRECTION ACCEPTED / AWAITING PRODUCT OWNER DECISION ON REMAINING 7
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -63,22 +63,22 @@ Latest documentation commit:
 docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 12 at 983bd8f7dc7d155b9f528ed54e5a7af973b2a64f
 
 Latest review commit:
-5fe70f04ae88d39f59e13186b79e5b288dd6953e
+1a60d08ef6a216888c2281b002af63a3e6384808
 
 Blocking findings:
-STAGING_LOAD_ROSTER_MALFORMED_SYNTHETIC_EFFECTIVE_RANGES - refined workspace + roster-index predicate identified exactly the authorized index 14 row; one-row transaction changed only terminated_at from 2026-07-14 to 2026-07-17 and proved structural validity. Post-correction read-only evidence shows 7 additional DRIVER-CRUD synthetic reversed rows at roster indices 15-21. Live guard returns HTTP 502 malformed_driver_record, so LOAD-01 remains red by correct fail-closed behavior.
+STAGING_LOAD_ROSTER_MALFORMED_SYNTHETIC_EFFECTIVE_RANGES - ACCEPTED as correctly scoped and executed: refined workspace + roster-index predicate identified exactly the authorized index 14 row; one-row transaction changed only terminated_at from 2026-07-14 to 2026-07-17, required affected-row-count=1 before commit, and proved structural validity; no other field changed. Staging-only guard deployment and live HTTP 502 malformed_driver_record behavior confirmed correct. Post-correction read-only evidence shows 7 additional DRIVER-CRUD synthetic reversed rows at roster indices 15-21 (same signature: DRIVER-CRUD-01 marker, created_at::date=2026-07-17, terminated_at=2026-07-14) - this is a NEW scope, not covered by the prior one-row authorization, and requires its own explicit Product Owner decision.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33460281572 is 8 passed, 1 failed (LOAD-01 only); full all-role suite was not started because the mandatory LOAD-01 PASS prerequisite failed. No unexpected mutation occurred: authorized transaction affected exactly 1 row and post-correction malformed count changed from 8 to 7.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33460281572 is 8 passed, 1 failed (LOAD-01 only, expected given 7 rows remain unfixed); full all-role suite gated on all 8 rows being structurally valid.
 
 Decision gate:
-REVIEW_REQUIRED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-Independently review the refined one-row provenance proof and mutation guard, staging-only deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2, live 502 malformed_driver_record behavior, LOAD-01 failure in run 33460281572, and evidence for seven additional synthetic reversed rows. Determine the exact next decision boundary; do not implement, deploy, mutate additional rows, merge, migrate, backfill, or weaken validation.
+Decision required: the one authorized row (roster index 14) is now corrected and verified. Read-only evidence shows 7 more rows (indices 15-21) with the identical synthetic-defect signature in the same proven LOAD workspace. Does the Product Owner authorize extending the identical provenance-gated, one-transaction-per-row correction (each row individually matched by its own exact server roster index before any write, each requiring affected-row-count=1, each changing only terminated_at to no earlier than its own created_at, mandatory abort on any predicate mismatch - the same discipline already proven on the first row) to these 7 remaining rows, so LOAD-01 and the full protected suite can be re-run once all 8 are structurally valid? No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1464,4 +1464,17 @@ Next bounded action: independent classification review only.
 - Decision gate: AUTO_CONTINUE_ALLOWED for the safe server-side validation addition and the provenance investigation. Next required actor: Codex. Next bounded action: add the missing effective_to>=effective_from check; trace this row to a version-controlled seed script and fix there if found; otherwise escalate to COORDINATOR_REQUIRED for explicit Product Owner authorization before touching staging Driver-profile data.
 - No legacy mutation, date fabrication, record skipping, weakened validation, production action, merge, or deploy is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 5fe70f04ae88d39f59e13186b79e5b288dd6953e).
+- Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Claude - One-Row Staging Correction Independent Review - ACCEPT, new scope escalated
+
+- Method: read STAGING_VALIDATION_EVIDENCE.md sections 10-12 in full, evaluating the mutation-abort discipline (8-row predicate mismatch correctly aborted before UPDATE), the refined one-row predicate (workspace + exact server roster index 14), pre/post-update evidence, staging-only guard deployment, and live 502 behavior.
+- Confirmed the abort-on-mismatch behavior (matched_rows=8 when expecting 1 -> ROLLBACK, no write) is exactly the fail-closed discipline this protocol requires - this is what makes the subsequent one-row correction credible, not a rubber-stamp.
+- Confirmed the refined one-row correction is correctly scoped: matched exactly 1 row pre-update, required affected-row-count=1 in the UPDATE itself (guarding against a stale-read race), changed only terminated_at to equal the row's own created_at (no fabricated date), and left every other field untouched.
+- Confirmed the orchestrator guard deployment was staging-only (Railway crewbiq-orchestrator-staging, deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2) and the live HTTP 502 malformed_driver_record response in protected run 33460281572 is the deployed guard correctly rejecting the 7 still-reversed rows - expected, correct fail-closed behavior, not a new defect.
+- The 7 newly-discovered rows (roster indices 15-21, same DRIVER-CRUD-01/2026-07-17/2026-07-14 signature) are a genuinely NEW scope the prior authorization (explicitly "exactly one row") did not cover - per the standing per-action/per-scope authorization rule, this requires its own explicit Product Owner decision, not an assumed extension.
+- Verdict: ACCEPT the one-row correction, guard deployment, and live behavior as correctly executed and scoped. STAGING_VALIDATION_BLOCKED remains correct pending a decision on the remaining 7 rows.
+- Decision gate: COORDINATOR_REQUIRED. Next required actor: ChatGPT. Decision required: authorize extending the identical provenance-gated, one-transaction-per-row correction (same discipline as the first row) to the 7 remaining rows, so LOAD-01 and the full protected suite can be re-run once all 8 are structurally valid.
+- No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested or authorized by this review.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 1a60d08ef6a216888c2281b002af63a3e6384808).
 - Runtime/product files changed by this review: NONE.
