@@ -79,7 +79,7 @@ Phase:
 Production Deployment and Validation
 
 Status:
-PWA PUBLICATION BLOCKED / ACTIONS-BASED DESIGN RECOMMENDED
+IN_PROGRESS - ACTIONS-BASED PWA PUBLICATION DESIGN ONLY
 
 Current owner:
 Codex
@@ -88,7 +88,7 @@ Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 + production-v95-66a7985 (inactive immutable failed Pages-source evidence)
 
 Product truth:
-Migrations 003-011 and accepted orchestrator 27e3463 remain live and green; PWA remains safely on main 86b8b4d/cache v79. The slash hypothesis is now cleanly falsified (two structurally-identical branch names both failed identically). Independent read-only checks (environments API, github-pages deployment-branch-policies, pages/builds history) confirm both failed branches were already allow-listed and that this site has never successfully served from any branch other than main - a likely GitHub-side platform quirk for this specific site, not a repo-content or naming defect.
+Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Codex is designing but not executing an Actions-based Pages alternative while preserving the exact accepted artifact and identifying GitHub trigger/configuration constraints
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -115,7 +115,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-Draft a new PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md (coordination/design-only, no execution): propose GitHub Actions-based Pages deployment (actions/upload-pages-artifact + actions/deploy-pages) as the next candidate, using a workflow file on the immutable evidence branch triggered via workflow_dispatch against the exact accepted SHA (never on main), the same all-13-asset byte-for-byte verification and immediate main-rollback discipline already proven twice, and an explicit note that changing Pages build_type from legacy to workflow is itself a configuration change requiring its own review and Product Owner authorization before any execution. No production attempt, Pages source change, build_type change, workflow execution, merge, migration, or production-data write is authorized.
+Draft PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md only; reconcile workflow_dispatch default-branch rules with immutable exact-SHA evidence, define upload-pages-artifact/deploy-pages and legacy-main rollback gates, and publish for Claude review without any branch, workflow, Pages, runtime, or production change
 <!-- CURRENT_END -->
 
 
