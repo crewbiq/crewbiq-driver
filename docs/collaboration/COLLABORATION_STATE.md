@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / MUTATION ABORTED - PRODUCT OWNER DECISION REQUIRED
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
@@ -72,13 +72,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Local orchestrator suite is 318 passed, 2 skipped; driver tooling is 318 passed. Provenance Driver run is 8 passed, 1 failed (LOAD-01 only). Full protected all-role regression remains gated by the persisted synthetic malformed row.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: authorize a read-only refinement that correlates the 8 matching synthetic DRIVER-CRUD rows to the already-proven LOAD workspace and roster record, followed by UPDATE only if that refined predicate identifies exactly 1 row; or provide a different explicit staging-only correction boundary. No mutation, deploy, or further regression will occur before that decision.
+Perform the approved read-only correlation of the 8 synthetic matches to the proven LOAD workspace; execute the guarded staging-only correction only if the refined predicate identifies exactly one row; then deploy orchestrator guard commit 27e3463220a2022ea1adf074d7131ec69eb32fe5 to staging and run isolated LOAD-01 plus the full protected suite. Abort on any refined count other than one. No production action, merge, migration, backfill, broad cleanup, or real-business-record mutation.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
