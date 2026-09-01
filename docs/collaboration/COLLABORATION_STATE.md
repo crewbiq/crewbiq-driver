@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-IN_PROGRESS
+STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
@@ -54,7 +54,7 @@ Product truth:
 current main; staging-only corrections and validation evidence are published. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
 
 Latest implementation commit:
-b947191f32b8750ce78263a7d4db1e6584848392 (driver); ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6 (orchestrator)
+b947191f32b8750ce78263a7d4db1e6584848392 (driver); 27e3463220a2022ea1adf074d7131ec69eb32fe5 (orchestrator, staging deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2)
 
 Latest correction commit:
 driver 297f8b55645caa2f8cd4c3eba3dabe39f18d0b37; orchestrator 27e3463220a2022ea1adf074d7131ec69eb32fe5 on agent/account-driver-link-read
@@ -66,23 +66,36 @@ Latest review commit:
 5fe70f04ae88d39f59e13186b79e5b288dd6953e
 
 Blocking findings:
-STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - approved guarded staging transaction aborted before UPDATE because the authorized provenance predicate matched 8 synthetic DRIVER-CRUD rows, not exactly 1. Output: matched_rows=8, expectation=1, reason=authorized_synthetic_row_count_8. No row changed. Per Product Owner instruction, staging guard deploy and subsequent LOAD/full regressions did not proceed.
+STAGING_LOAD_ROSTER_MALFORMED_SYNTHETIC_EFFECTIVE_RANGES - refined workspace + roster-index predicate identified exactly the authorized index 14 row; one-row transaction changed only terminated_at from 2026-07-14 to 2026-07-17 and proved structural validity. Post-correction read-only evidence shows 7 additional DRIVER-CRUD synthetic reversed rows at roster indices 15-21. Live guard returns HTTP 502 malformed_driver_record, so LOAD-01 remains red by correct fail-closed behavior.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Local orchestrator suite is 318 passed, 2 skipped; driver tooling is 318 passed. Provenance Driver run is 8 passed, 1 failed (LOAD-01 only). Full protected all-role regression remains gated by the persisted synthetic malformed row.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33460281572 is 8 passed, 1 failed (LOAD-01 only); full all-role suite was not started because the mandatory LOAD-01 PASS prerequisite failed. No unexpected mutation occurred: authorized transaction affected exactly 1 row and post-correction malformed count changed from 8 to 7.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+REVIEW_REQUIRED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Perform the approved read-only correlation of the 8 synthetic matches to the proven LOAD workspace; execute the guarded staging-only correction only if the refined predicate identifies exactly one row; then deploy orchestrator guard commit 27e3463220a2022ea1adf074d7131ec69eb32fe5 to staging and run isolated LOAD-01 plus the full protected suite. Abort on any refined count other than one. No production action, merge, migration, backfill, broad cleanup, or real-business-record mutation.
+Independently review the refined one-row provenance proof and mutation guard, staging-only deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2, live 502 malformed_driver_record behavior, LOAD-01 failure in run 33460281572, and evidence for seven additional synthetic reversed rows. Determine the exact next decision boundary; do not implement, deploy, mutate additional rows, merge, migrate, backfill, or weaken validation.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Refined one-row remediation and staging guard validation
+
+- Product Owner authorized read-only correlation of the eight synthetic matches to the proven LOAD workspace/roster record and UPDATE only if the refined predicate matched exactly one row.
+- Read-only correlation reproduced server ordering and showed synthetic candidates at indices 14-21; the previously proven client failure record was uniquely index 14.
+- Refined transaction predicate: active LOAD workspace owner, roster index 14, `DRIVER-CRUD-01` marker, inactive status, `created_at::date=2026-07-17`, `terminated_at=2026-07-14`; pre-update count exactly 1.
+- Mutation result: exactly 1 row; only `terminated_at` changed to `created_at::date` (`2026-07-17`); ID and every unrelated field were preserved; structurally valid true.
+- Orchestrator staging deployment: commit `27e3463220a2022ea1adf074d7131ec69eb32fe5`, deployment `d7ae4afa-ca3b-49f4-a8cc-5595e36627d2`, status SUCCESS.
+- Protected Driver run `33460281572`: `8 passed, 1 failed`; LOAD-01 received live roster HTTP 502, confirming `malformed_driver_record` fail-closed guard behavior.
+- Post-correction read-only check: 7 additional synthetic DRIVER-CRUD reversed rows remain at roster indices 15-21; malformed count changed exactly from 8 to 7.
+- Full all-role suite: not run because required isolated LOAD-01 PASS was not achieved.
+- Result: STAGING_VALIDATION_BLOCKED; next actor Claude for independent review.
+- Production deploy/migration/data mutation, merge, legacy backfill, broad staging cleanup, real-business-record mutation, malformed-record skipping and validation weakening: NONE.
 
 ### 2026-09-01 - Codex - Approved staging mutation safely aborted
 

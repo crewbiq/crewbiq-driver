@@ -442,3 +442,97 @@ a different explicit staging-only correction boundary.
 No staging or production row was changed. No deploy, migration, merge,
 backfill, broad cleanup, malformed-record skipping, or validation weakening
 occurred.
+
+## 12. Refined one-row correction and staging guard result
+
+Date: 2026-09-01
+
+The Product Owner authorized read-only correlation of the eight synthetic
+matches to the already-proven LOAD workspace and roster record, followed by an
+UPDATE only if the refined predicate identified exactly one row.
+
+### Refined provenance proof
+
+The read-only query reproduced the server's `order by driver_profile_id`
+roster ordering inside the proven LOAD workspace. It found eight synthetic
+DRIVER-CRUD reversed rows at zero-based indices 14 through 21. The prior PWA
+evidence had specifically proven failure at index 14.
+
+The refined mutation predicate therefore required all of:
+
+```text
+proven active LOAD workspace owner
+server roster index = 14
+name contains DRIVER-CRUD-01
+is_active = false
+created_at::date = 2026-07-17
+terminated_at = 2026-07-14
+```
+
+Pre-update result:
+
+```text
+matched rows: 1
+expected rows: 1
+provenance marker: true
+current range: 2026-07-17 to 2026-07-14
+intended effectiveTo: 2026-07-17
+```
+
+The transaction locked the selected base row, repeated the identity and
+provenance predicates in the UPDATE, changed only `terminated_at`, and required
+an affected-row count of one before commit.
+
+Post-update result:
+
+```text
+affected rows: 1
+effectiveFrom: 2026-07-17
+effectiveTo: 2026-07-17
+structurally valid: true
+```
+
+No ID, name, workspace, status, rate, relationship, or other Driver field was
+changed.
+
+### Staging-only guard deployment
+
+Orchestrator commit `27e3463220a2022ea1adf074d7131ec69eb32fe5` was
+uploaded from a clean git archive only to Railway environment
+`crewbiq-orchestrator-staging`. Deployment
+`d7ae4afa-ca3b-49f4-a8cc-5595e36627d2` reached `SUCCESS`.
+
+### LOAD-01 result and live guard proof
+
+Protected run `33460281572` executed the Driver mission set:
+
+```text
+8 passed
+1 failed: LOAD-01
+authorized workspace roster expected HTTP 200, received HTTP 502
+```
+
+The 502 is the deployed server guard rejecting a reversed temporal interval
+with `malformed_driver_record`; fail-closed behavior remains intact.
+
+A post-run read-only correlation found seven additional synthetic
+DRIVER-CRUD rows with the same former fixture defect at roster indices 15-21.
+The malformed count changed exactly from eight to seven, consistent with the
+authorized one-row mutation and no broad cleanup.
+
+Because LOAD-01 did not pass, the required full protected all-role suite was
+not started.
+
+### Result and handoff
+
+Result: **STAGING_VALIDATION_BLOCKED**.
+
+Next required actor: **Claude**.
+
+Claude must independently review the one-row predicate and mutation evidence,
+the staging-only deployment, live guard behavior, LOAD-01 result, and the seven
+remaining synthetic rows before any further correction boundary is proposed.
+
+No production deployment, production migration, production-data mutation,
+merge, legacy backfill, broad staging cleanup, real-business-record mutation,
+malformed-record skipping, or validation weakening occurred.
