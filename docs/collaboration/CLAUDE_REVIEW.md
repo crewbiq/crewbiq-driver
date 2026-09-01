@@ -3080,3 +3080,37 @@ This is a bounded technical continuation — diagnosing test-isolation vs. runti
 No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this review.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (GitHub Actions API/log fetches, raw source reads).
+
+## Staging Defect Reclassification Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review test-harness commits `0735d29fb8a3865884301844de2f995ea933fde9` and `590e4cd408d9da48ae1c72cde1d682c53e10ce56` and the `STAGING_VALIDATION_EVIDENCE.md` blocker-classification follow-up (section 8), which reclassifies `STAGING_DRIVER_CRUD_RATE_MISMATCH` and `STAGING_LOAD_CREATION_NOT_COMPLETED` as genuine runtime/client defects (not fixture drift, as I had left open in the prior review), and closes `STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD` as shared-identity contamination plus date-dependent test drift.
+**Method:** read the updated evidence document in full; independently read the live application source (`loads.js`, `index.html`) for the exact composition path each defect implicates, checking whether the described symptoms are consistent with what the real code does — not just accepting the narrative.
+
+### PTI-01 closure — ACCEPT
+
+The evidence is specific and falsifiable: a disposable identity correctly showed the mandatory gate with zero prior records; the *test's own* prior omission (checking only 8 daily items when the live UI on a Monday staging date correctly also renders 6 weekly items) is a plausible, mundane test-authoring gap, not a runtime defect — and the fix (select every rendered daily/weekly item, use the fresh identity's scoped storage key) is exactly the kind of narrow correction that closes an already-anticipated ambiguity from my prior review (I had flagged this as needing isolated diagnosis to distinguish contamination from a real defect; this is consistent with contamination/test-drift, not a code defect). Closing this as resolved is appropriate.
+
+### STAGING_DRIVER_CRUD_RATE_MISMATCH — ACCEPT genuine defect classification
+
+The reported reproduction (fresh, never-shared account and profile; created at `0.65`; edited via the real form to `0.91`; authenticated sync returns HTTP 200; a second-session restore returns `0.65`) explicitly excludes the cross-run shared-identity contamination I had flagged as the alternative explanation in my prior review — a disposable identity cannot carry contamination from an earlier run. A sync reporting success while a subsequent restore returns the pre-edit value is a textbook write/read inconsistency (the edit either isn't actually being persisted server-side despite the 200, or the restore path is reading a stale value) — this is a credible, well-isolated defect description, not an unverified assumption.
+
+### STAGING_LOAD_CREATION_NOT_COMPLETED — ACCEPT genuine defect classification
+
+Independently traced the composition this finding implicates. `loads.js`'s `populateLoadDriverSelect()` depends on `_get.workspaceDriverRoster`, wired at `init()` from `opts.readWorkspaceDriverRoster`. In `index.html`, `initLoads()` correctly passes `readWorkspaceDriverRoster: () => readAuthorizedWorkspaceDriverRoster()`, and that function correctly gates on session/resolver/adapter/resolution before calling the adapter's `read()` — the general wiring is intact, not missing or misnamed. This is consistent with the evidence's own finding (active workspace present, direct roster read HTTP 200 with 26 Drivers via a separate direct check, Truck selector correctly enabled and selected) — the defect is narrower than "the integration is broken": the Load form's Driver selector specifically never has `populateLoadDriverSelect()` actually invoked/refreshed with live data at the point the mission exercises it, despite the underlying roster-read plumbing being sound. This matches "the client composition does not carry the already-proven canonical authority into the Load Driver selector" precisely — a real, narrow client-composition defect, not a fixture or missing-backend issue.
+
+### Verdict
+
+**ACCEPT** the reclassification of all three findings: `STAGING_DRIVER_CRUD_RATE_MISMATCH` and `STAGING_LOAD_CREATION_NOT_COMPLETED` are genuine runtime/client defects requiring an actual code fix (not test/fixture changes); `STAGING_PTI_RESTORE_MISSING_CURRENT_DAY_RECORD` is correctly closed as test drift, now passing in isolation and in the protected driver mission runs. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains a legitimate, separately-tracked coverage gap, correctly not used to inflate or deflate the other findings.
+
+Overall staging status remains, correctly, **STAGING_VALIDATION_BLOCKED** — two genuine defects in accepted, already-live-on-staging code must be fixed before staging validation can pass; this is not something to wave through.
+
+### Applying the autonomous handoff protocol
+
+These are two now-precisely-scoped runtime/client defects with no product ambiguity: fix the driver-profile CPM-rate persistence write/restore inconsistency in the orchestrator, and fix the Load form's Driver-selector composition so it actually invokes/refreshes with the already-proven-working roster-read call. Both are bounded technical corrections to already-accepted architecture, not new product decisions.
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:** (1) diagnose and fix the orchestrator persistence path so an authenticated driver-profile CPM-rate edit that returns HTTP 200 durably reflects that rate on a subsequent authenticated restore; (2) diagnose and fix why `populateLoadDriverSelect()` in `loads.js` does not carry an already-available, already-proven-working authorized roster read into the Load Driver selector when the Add Load form is composed, so the selector reliably populates from live data; (3) re-run the full protected staging mission suite plus both isolated repro cases to confirm both fixes hold, and republish `STAGING_VALIDATION_EVIDENCE.md` for review. No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this step.
+
+Runtime/product files changed by this review: NONE. All verification was read-only (raw source reads of `loads.js` and `index.html`, and reading the published evidence document).
