@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / PUBLISHED / AWAITING CLAUDE REVIEW
+STAGING_VALIDATION_BLOCKED / SEVEN-ROW CORRECTION ACCEPTED / AWAITING PRODUCT OWNER DECISION ON INDEX 22 + STANDING POLICY
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -63,22 +63,22 @@ Latest documentation commit:
 docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 13 at 0ab8b1917c42d817b06f2bbe10ff33edd2f6f279
 
 Latest review commit:
-1a60d08ef6a216888c2281b002af63a3e6384808
+35e4c2ec19f2303421bdbd38ed33dfc3b16a9bed
 
 Blocking findings:
-STAGING_LOAD_ROSTER_ADDITIONAL_MALFORMED_SYNTHETIC_RANGE - the authorized indices 15-21 were each corrected in separate exact-one-row transactions and targeted postflight is zero. Isolated run 33461262359 still receives HTTP 502. Read-only full-roster guard diagnosis found one different reversed synthetic row at index 22 with DRIVER-CRUD-01 and generic E2E markers, effectiveFrom 2026-07-18, effectiveTo 2026-07-14. Index 22 was outside the authorized 15-21 boundary and was not changed.
+STAGING_LOAD_ROSTER_ADDITIONAL_MALFORMED_SYNTHETIC_RANGE - ACCEPTED: the authorized indices 15-21 were each independently corrected via the identical per-row discipline as the first row (exact predicate match, affected-row-count=1 required, only terminated_at changed); targeted postflight confirms zero remaining malformed rows among 15-21. Index 22 (DRIVER-CRUD-01 marker true, effectiveFrom 2026-07-18, effectiveTo 2026-07-14 - same defect signature, different creation date, likely residue from an earlier stale CI run predating the fixture fix) was correctly left untouched, outside the authorized boundary. Live guard continues to correctly return HTTP 502 for this one remaining row.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33461262359 is 8 passed, 1 failed (LOAD-01 only). Full all-role suite was not started because the mandatory LOAD-01 PASS prerequisite failed. Authorized seven-row correction affected exactly seven rows; no broad cleanup occurred.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Protected run 33461262359 is 8 passed, 1 failed (LOAD-01 only, expected given index 22 remains unfixed). Full all-role suite gated on all rows being structurally valid.
 
 Decision gate:
-REVIEW_REQUIRED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-Independently review the seven exact transactions, isolated run 33461262359, live guard behavior, and the newly discovered synthetic index 22 row with distinct created_at date. Determine the exact next decision boundary. Do not mutate index 22, deploy, run the full suite, merge, migrate, backfill, skip malformed records, or weaken validation.
+Decision required: (1) authorize correcting index 22 via the identical per-row discipline proven eight times now (recompute roster order, match full marker/inactive-state/workspace-owner/date predicate, require affected-row-count=1, change only terminated_at to the row's own created_at::date, mandatory abort on mismatch); (2) separately, given this is now the third round of discovering additional rows with the identical positively-matched DRIVER-CRUD-01 signature, consider authorizing a STANDING policy instead of one-off asks: pre-authorize Codex to correct, via this same exact per-row safety discipline, any future row bearing this specific proven-synthetic signature without a fresh request each time one surfaces. No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
@@ -1489,4 +1489,17 @@ Next bounded action: independent classification review only.
 - Decision gate: COORDINATOR_REQUIRED. Next required actor: ChatGPT. Decision required: authorize extending the identical provenance-gated, one-transaction-per-row correction (same discipline as the first row) to the 7 remaining rows, so LOAD-01 and the full protected suite can be re-run once all 8 are structurally valid.
 - No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested or authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 1a60d08ef6a216888c2281b002af63a3e6384808).
+- Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Claude - Seven-Row Staging Correction Independent Review - ACCEPT
+
+- Method: read STAGING_VALIDATION_EVIDENCE.md section 13 in full, evaluating each of the seven per-row transactions against the same discipline verified on the first row, plus the newly discovered index 22 row.
+- Confirmed all seven corrections (indices 15-21) followed the identical rigor as the first row: recomputed server roster order inside the proven LOAD workspace, exact one-row match required per index, full marker/inactive-state/workspace-owner/date predicate repeated, only terminated_at changed to the row's own created_at::date, affected-row-count=1 required before commit. Targeted postflight confirms zero remaining malformed rows among 15-21.
+- Confirmed live guard's continued HTTP 502 in run 33461262359 is expected and correct - it is rejecting the one row (index 22) intentionally left untouched, not a new defect.
+- Index 22 classification: positively carries the DRIVER-CRUD-01 marker and the same reversed-interval signature, with a distinct creation date (2026-07-18) - consistent with residue from an additional stale CI run predating the fixture fix, not a new/different defect class. Codex correctly did not touch it, since it fell outside the authorized 15-21 boundary.
+- Verdict: ACCEPT the seven-row correction as correctly scoped and executed. STAGING_VALIDATION_BLOCKED remains correct - one more row of the same characterized defect class remains.
+- Process observation raised to the Product Owner: this is the third round of discovering additional rows with the identical, positively-matched signature (1, then 7, now 1 more). Recommended considering a standing, narrowly-scoped authorization (same per-row safety discipline, same specific signature) instead of continued one-off asks, to avoid an indefinite discovery-then-ask cycle - while making clear this does not broaden what can be touched, only removes the need to re-ask for an already-three-times-verified-safe signature.
+- Decision gate: COORDINATOR_REQUIRED. Next required actor: ChatGPT. Decision required: authorize index 22's correction, and separately decide whether to adopt the standing-policy recommendation.
+- No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested or authorized by this review.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 35e4c2ec19f2303421bdbd38ed33dfc3b16a9bed).
 - Runtime/product files changed by this review: NONE.
