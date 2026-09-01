@@ -79,10 +79,10 @@ Phase:
 Production Deployment / Migrations 010-011 / Validation
 
 Status:
-IN_PROGRESS
+PRODUCTION_VALIDATION_BLOCKED / PREFLIGHT STOP / PRODUCT OWNER DECISION REQUIRED
 
 Current owner:
-Codex
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -103,24 +103,38 @@ Latest review commit:
 7d809ae03b4c15dcb0ad5e63dad166c275d86e5d
 
 Blocking findings:
-NONE. STAGING_VALIDATION_PASS independently confirmed: fetched both GitHub Actions runs directly (33462317894, 33462406945 - both conclusion=success) and read the raw job log myself rather than trusting the summary - confirmed 6+9+1+1=17 passed, 0 failed, with LOAD-01/PTI-01/DRIVER-CRUD-01 all explicitly present and passing. Post-validation structural proof shows reversed_interval=0 across all 26 roster rows - a complete, not partial, resolution.
+PRODUCTION_MIGRATION_PREREQUISITES_MISSING - production DB `railway` on service `Postgres-IFbZ` has only six distinct applied repository migrations and lacks `workspaces`. Pending set is eight files: 003_effective_dated_deductions, 004_service_invoice_lineage, 006_truck_vin, 007_identity_workspace, 008_canonical_company_truck, 009_canonical_claim_approval, 010_driver_truck_assignments, 011_account_driver_links. This does not equal the authorized exact pending set 010-011, and 010 cannot satisfy its workspaces foreign key. Rollout stopped before backup, migration, deployment, or production data mutation.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a separately tracked coverage gap only; does not invalidate the pass. Standing mutation policy for future rows correctly was not authorized/assumed.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. Production `/health` is HTTP 200 with env=production; current old runtime has no `/ready` route and returns 404. Railway production volume `postgres-volume-7PVl` is READY; snapshot/logical recovery capability exists, but no new backup was created because preflight failed before any mutation.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+ChatGPT
 
 Next bounded action:
-Execute production preflight; only if unambiguous, follow the established order: verify backend readiness, apply exact additive migrations 010-011 only, verify schema/migration state, deploy accepted orchestrator commit 27e3463220a2022ea1adf074d7131ec69eb32fe5, verify health/readiness, deploy accepted PWA runtime b947191f32b8750ce78263a7d4db1e6584848392, and run bounded non-destructive production smoke. Stop at first material failure; publish exact evidence and hand to Claude. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued.
+Decision required: production cannot receive 010-011 alone because prerequisite migrations 003_effective_dated_deductions, 004_service_invoice_lineage and 006-009 are unapplied and `workspaces` is absent. Authorize a separate production prerequisite-migration readiness/validation plan for those six files before reconsidering 010-011, or keep production rollout paused. No migration, backup operation, deployment, merge, backfill, cleanup, or production-data mutation will proceed without a new explicit decision.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Production rollout preflight stop
+
+- Authorization: production deployment plus exact migrations 010-011, subject to strict preflight and first-failure stop.
+- Production targets confirmed distinct from staging: orchestrator project `happy-sparkle`, environment `production`, service `crewbiq-orchestrator`, DB service `Postgres-IFbZ`; PWA project `imaginative-flow`, environment `production`, service `crewbiq-driver`.
+- Pre-deployment revisions: orchestrator deployment `adeeb19b-4178-4e28-bc44-9358b153a538`, commit `8bc3214070670d79b5d1f8c419b2a992991b9024`; PWA deployment `0b129997-0a83-4311-bf6d-d85078a7f728`, commit `86b8b4dd7e9496833a021319167589b49f0ac418`.
+- Production health before rollout: `/health` HTTP 200, env production; `/ready` HTTP 404 on the current old runtime.
+- DB preflight: database `railway`; applied distinct migrations `001_init`, `002_business`, `003_pay_config`, `004_auth`, `004_fleet_restore_config`, `005_auth_owner_mappings`.
+- Unexpected pending set: `003_effective_dated_deductions`, `004_service_invoice_lineage`, `006_truck_vin`, `007_identity_workspace`, `008_canonical_company_truck`, `009_canonical_claim_approval`, `010_driver_truck_assignments`, `011_account_driver_links`.
+- Required prerequisite `workspaces` table is absent; 010-011 target tables are absent. Existing aggregate counts recorded: auth_users 1, fleet_driver_profiles 4, trucks 7, migration_runs 13.
+- Exact SHA-256: 010 `c890905446f2b06d3d4d273ec1bc9d20c4eddd40d382331e9f0fad9da3a5bd91`; 011 `2f055b2f3d7bbe0378d82a909622bb24e92471c0494d3f64dda3db9080edd737`.
+- Recovery capability: production volume `postgres-volume-7PVl` READY, 50 GB capacity, approximately 1.13 GB used; Railway supports volume snapshots and logical `pg_dump` recovery. A new backup was not created because rollout stopped before mutation.
+- Result: PRODUCTION_VALIDATION_BLOCKED at preflight. Migrations, deployments, production data mutation, merge, backfill and cleanup: NONE.
+- Decision gate: COORDINATOR_REQUIRED; Product Owner must decide whether to authorize separate prerequisite-migration readiness/validation for the six missing prerequisite files.
 
 ### 2026-09-01 - Codex - Index 22 correction and staging validation pass
 
