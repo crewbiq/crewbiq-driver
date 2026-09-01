@@ -79,31 +79,31 @@ Phase:
 Canonical Staging Journey Coverage
 
 Status:
-IN_PROGRESS - STAGING CANONICAL FIXTURE PROVISIONING
+STAGING_CANONICAL_IDENTITY_COVERAGE_PASS / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Production remains stable on main bcfd74a/cache v95, independently confirmed. CANONICAL_STAGING_JOURNEY_EVIDENCE.md independently reviewed: fetched the actual Actions run and job log directly, confirmed the exact 17 passed/1 failed breakdown and the literal account_driver_link_not_found error string live in the log. Correctly classified as a missing staging fixture, not a runtime regression - roster read/adapter succeeded, no fallback was introduced, and no other mission regressed.
+Production remains stable on main bcfd74a/cache v95. The exact protected staging AccountDriverLink and current DriverTruckAssignment fixtures were provisioned with reversible provenance/count guards; isolated canonical coverage is 1/1 and the full protected suite is 18/18 green.
 
 Latest implementation commit:
-a2639d8ce7bf0d040a3d22b3e76269bb53032496
+b963d317b393d9a6493c76581028870186a490e4
 
 Latest correction commit:
-e6ea4418a303d24219bc0469c3aa1c36167c6c56
+b963d317b393d9a6493c76581028870186a490e4
 
 Latest review commit:
 8a4a65a165317edc62f08c38f3160a2a6881a9a0
 
 Latest state commit:
-e8a97f1db2d60053a0ef3a60ac2a215969b2334a
+1d10d177c7eb36cb13e2ee44b9c269b68353c334
 
 Blocking findings:
-STAGING_CANONICAL_ACCOUNT_DRIVER_LINK_FIXTURE_MISSING - ACCEPTED classification. Roster read and adapter passed; protected Fleet A has no canonical AccountDriverLink; assignment and SELF cannot be proven without a fixture.
+NONE
 
 Queued non-blocking findings:
 GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-In progress: guarded, reversible staging-only provisioning for exact protected manifest generation staging-20260714, followed by isolated canonical identity and full protected suite runs. No runtime code change, production action, merge, migration, or production-data write.
+Independently review the exact fixture derivation, one-row guards, deterministic IDs/provenance/rollback predicate, isolated run 33550873310, full run 33550974453, and post-run DB evidence. No production action is required or authorized.
 <!-- CURRENT_END -->
 
 
@@ -3267,6 +3267,19 @@ Next required actor: Claude
 - Classification: `STAGING_CANONICAL_ACCOUNT_DRIVER_LINK_FIXTURE_MISSING`, a staging fixture blocker rather than a runtime regression.
 - Runtime/product files changed: NONE. Production actions, deployment, migration, merge, backfill, and production mutation: NONE.
 - Next required actor: Claude for independent review of evidence and the minimal reversible staging fixture continuation.
+
+### 2026-09-01 - Codex - Canonical staging identity coverage - PASS
+
+- Exact protected manifest generation `staging-20260714` was proven from artifact `9814803712`; account/workspace/Driver/Truck and zero-overlap predicates passed before mutation.
+- Guarded staging transaction inserted exactly one AccountDriverLink and one current DriverTruckAssignment with deterministic IDs and provenance marker; prepared rollback requires exact one-row matches and was not executed.
+- Isolation wiring commit: `b963d317b393d9a6493c76581028870186a490e4`; runtime/product files changed: NONE.
+- Narrow contracts: `32/32 PASS`.
+- Isolated canonical run `33550873310`: `1/1 PASS`, both jobs green.
+- Full protected run `33550974453`: Fleet 6/6, Driver 9/9, Canonical 1/1, Recovery 1/1, Security 1/1; aggregate `18/18 PASS`, both jobs green.
+- Post-run DB read found exactly the two expected provenance-marked fixture rows and no additional canonical mutation.
+- Result: `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`; `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed.
+- Production deployment/data/migration, merge, legacy backfill, runtime change, and destructive rollback: NONE.
+- Next required actor: Claude for independent verification.
 
 ### 2026-09-01 - Codex - Production PWA main publication - PASS
 
