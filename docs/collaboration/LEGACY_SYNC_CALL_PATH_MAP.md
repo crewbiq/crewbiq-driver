@@ -5,74 +5,168 @@ configuration, deployment, migration, merge, or data change. No new
 instrumentation or telemetry added.
 
 Prepared by: Claude (implementer role).
+Corrected by: Claude, after independently re-verifying every Codex NEEDS_FIX
+finding against the exact production tree.
 
 Scope: every Google/Apps-Script URL literal, persisted or driver-derived URL
 source, guard, caller, and outbound fetch/network sink in exact production
-source at commit `bcfd74a22449b974755b8b48bc01a3b261107b93` (`index.html`,
-`sync.js`, `restore-hotfix.js`, `sw.js`).
+tree at commit `bcfd74a22449b974755b8b48bc01a3b261107b93`. The first draft
+was scoped to four files only; this correction extends to every caller found
+by a repository-wide search: `index.html`, `sync.js`, `restore-hotfix.js`,
+`sw.js`, `startup-session.js`, `offline-sync-queue.js`,
+`dispute-tombstone-hotfix.js`, `owner-snapshot-hotfix.js`, `pti.js`.
 
-## 1. URL literals (sources)
+## Corrections applied from the first draft
+
+1. **`index.html:1704` misattributed.** The first draft implied this line
+   sets `driver.syncUrl`. Independently re-read: it only populates the
+   *setup form input's displayed value* (`setupSyncUrl`) from a profile
+   object's `syncUrl` field — it does not write `driver.syncUrl` itself.
+   Removed from the source-setter list.
+2. **`index.html:2514`/`2553` misattributed as `pullFromCloud()` callers.**
+   Independently re-read: both call `restoreSession({sessionToken, syncUrl,
+   silent:true})`, which delegates to `getStartupCoordinator().restoreSession()`
+   (defined in `startup-session.js:5-25`). That function's own direct network
+   sink is `authPost('auth_restore', ..., syncUrl)` — a *different* sink than
+   `pullFromCloud()`. The actual `pullFromCloud()` call after login/signup
+   happens indirectly: `restoreSession()` calls `boot()` → `showApp()`
+   (`startup-session.js:27-37`), which schedules
+   `pullFromCloud({silent:true})` via `setTimeout(..., 1000)` — one second
+   later, and only if `driver.syncUrl` is already set. The direct, immediate
+   manual "Pull from Cloud" caller is `restoreFromCloud()`, referenced at
+   `index.html:812` and invoked at `index.html:1591-1592`.
+3. **`syncExpensesNow()` caller was described as "an unevaluated generic
+   event."** Independently re-read `restore-hotfix.js:302-321`: it is
+   triggered deterministically. `installExpenseSaveHook()` wraps
+   `global.saveExpenses` so every call to it also calls
+   `scheduleExpenseSync()`, which debounces 900ms then calls
+   `syncExpensesNow()`. This is a real, regularly-firing hook, not a
+   hypothetical path.
+4. **Destination overstated as unconditional.** The first draft said
+   `syncExpensesNow()` "never" reaches the Orchestrator. Corrected:
+   `syncExpensesNow()` uses `driver.syncUrl` when it is set, falling back to
+   the hardcoded `crewbiq-expenses` Apps Script URL only when it is not.
+   `driver.syncUrl` is a free-form, persisted/overridable field — under the
+   default resolution chain it is Apps Script, but nothing in the code
+   itself guarantees it can never hold a different value if manually or
+   persistently overridden. The correct claim is: **the fallback literal is
+   guaranteed Apps Script; the primary destination is whatever `driver.syncUrl`
+   currently resolves to**, which is Apps Script by default. The same
+   qualification applies to `pushToCloud()`/`pullFromCloud()`/
+   `syncPTIEntry()`, all of which target `driver.syncUrl` directly.
+5. **Telemetry-observability claim was invalid.** The first draft's §5
+   suggested Orchestrator-side edge/reverse-proxy or CDN logs might establish
+   Apps Script request volume. This is incorrect: requests from the browser
+   directly to `script.google.com` never pass through the Orchestrator or
+   any CDN/proxy CrewBIQ controls — the Orchestrator cannot observe them at
+   all. Orchestrator logs can only ever establish Orchestrator (PostgreSQL
+   copy) request volume, not Google traffic. Corrected in §5 below.
+6. **Sink count and reachability overclaimed.** The first draft's summary
+   said "five distinct sink call sites" while the body actually listed eight
+   direct Apps-Script-capable fetch sites, and implied every listed branch is
+   exercised in current production usage. Corrected: the count is stated
+   precisely per call site (§4), and the claim is narrowed to "statically
+   reachable code paths" — this map proves reachability, not live execution
+   frequency or which branches actually fire in current production traffic.
+7. **Caller/file scope was incomplete.** Added an entire new caller class
+   (§4B): UI buttons, auto-sync schedulers, and cross-file hotfix hooks that
+   trigger the same sinks documented in the first draft. These determine
+   *when* the legacy sinks fire and were omitted from the first draft
+   entirely.
+
+## 1. URL literals (sources) — unchanged from first draft, re-confirmed
 
 | Literal | File:line | Notes |
 |---|---|---|
-| `https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec` | `index.html:1443` (`DEFAULT_SYNC_URL`) | The general-purpose Apps Script default. Read by 5 call sites (below). |
+| `https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec` | `index.html:1443` (`DEFAULT_SYNC_URL`) | The general-purpose Apps Script default. |
 | `https://script.google.com/macros/s/crewbiq-expenses/exec` | `restore-hotfix.js:283` | A second, distinct Apps Script endpoint, used only inside `syncExpensesNow()` as the fallback when `driver.syncUrl` is unset. |
 
-## 2. Persisted / driver-derived URL sources
+## 2. Persisted / driver-derived URL sources (corrected)
 
 | Source | File:line | Resolution order |
 |---|---|---|
 | `getAuthSyncUrl()` | `index.html:1761-1769` | Returns, in order: an explicit non-default form input value → `localStorage[K+'_savedSyncUrl']` → `driver.syncUrl` → the raw form input → `DEFAULT_SYNC_URL`. No Orchestrator-aware branch exists in this function. |
-| `localStorage[K+'_savedSyncUrl']` | written at `index.html:1808`, `2647`, `6032`, `6536`; read at `index.html:1763`, `2635`, `6441`, `6759` | Device-local persisted copy of whatever `syncUrl` was last used, seeded from Apps Script/manual input, not from the Orchestrator. |
-| `driver.syncUrl` | set at `index.html:1704`, `1997`, `2013`, `6033`, `6487`; read at `index.html:2635`, `2880`; read at `sync.js:585`, `607`, `651`, `666`, `763`, `835`, `843` | Populated at signup/login/restore time via `applyAuthRestoreData()` (`index.html:1955-2013`), which itself falls back to `DEFAULT_SYNC_URL` if no `syncUrl` argument is supplied. This is the field `sync.js`'s entire legacy push/pull surface reads directly — `sync.js` has no independent Apps-Script-awareness of its own; it inherits whatever `index.html` put in `driver.syncUrl`. |
-| `getOrchestratorSyncUrl()` | `sync.js:143` (definition), used at `sync.js:378`, `461`, `488` | A separate, distinct URL resolver for the PostgreSQL/Orchestrator DB-copy path. Confirmed structurally independent from `driver.syncUrl`/`getAuthSyncUrl()` — the two resolvers do not share code paths. |
+| `localStorage[K+'_savedSyncUrl']` | written at `index.html:1808`, `2647`, `6032`, `6536`; read at `index.html:1763`, `2635`, `6441`, `6759` | Device-local persisted copy of whatever `syncUrl` was last used. |
+| `driver.syncUrl` | set at `index.html:1997`, `2013`, `6033`, `6487` (NOT `1704` — that line only sets a form-input display value, corrected from the first draft); read at `index.html:2635`, `2880`; read at `sync.js:585`, `607`, `651`, `666`, `763`, `835`, `843` | Populated at signup/login/restore time via `applyAuthRestoreData()` (`index.html:1955-2013`), which itself falls back to `DEFAULT_SYNC_URL` if no `syncUrl` argument is supplied. `sync.js`'s legacy push/pull surface reads this field directly; it has no independent Apps-Script-awareness of its own. |
+| `getOrchestratorSyncUrl()` | `sync.js:143` (definition), used at `sync.js:378`, `461`, `488` | A separate, distinct URL resolver for the PostgreSQL/Orchestrator DB-copy path. Structurally independent from `driver.syncUrl`/`getAuthSyncUrl()`. |
 
-## 3. Guards
+## 3. Guards — unchanged from first draft, re-confirmed
 
 | Guard | File:line | Effect |
 |---|---|---|
 | `if (!(driver && driver.syncUrl))` | `sync.js:585, 651, 763, 835` | Blocks the corresponding legacy call only when `driver.syncUrl` is completely empty. Since `driver.syncUrl` defaults to `DEFAULT_SYNC_URL` at signup/login time (§2), this guard does not block the Apps Script path for any account that completed normal auth. |
-| `if (!token \|\| !identityKey(driver))` | `restore-hotfix.js:280` | Blocks `syncExpensesNow()` only when there is no session token or no resolvable driver identity — not specific to Apps Script vs. Orchestrator. |
-| Service-worker hostname/method match | `sw.js:94-102` | `url.hostname.includes('script.google.com')`, `googleapis.com`, `railway.app` (the Orchestrator host), or any POST request are all routed with `event.respondWith(fetch(event.request))` — i.e. sent straight to network, bypassing the cache entirely. This is a deliberate, explicit guard: the service worker was authored with knowledge that Apps Script traffic exists and must never be served from cache. |
+| `if (!token \|\| !identityKey(driver))` | `restore-hotfix.js:280` | Blocks `syncExpensesNow()` only when there is no session token or no resolvable driver identity. |
+| Service-worker hostname/method match | `sw.js:94-102` | `url.hostname.includes('script.google.com')`, `googleapis.com`, `railway.app` (the Orchestrator host), or any POST request are routed straight to network, bypassing cache. Deliberate, explicit Apps-Script-aware guard. |
 
-## 4. Callers → sinks
+## 4A. Direct callers → network sinks (from the first draft, re-confirmed with corrections)
 
 | Caller | File:line | Sink | Destination |
 |---|---|---|---|
-| `authPost()` | `index.html:1792-1808` | `fetch(syncUrl, ...)` at `index.html:1795` | `getAuthSyncUrl()` result — Apps Script by default (§2). Used by login (`index.html:2504`), signup (`2541`), and logout (`2637`). |
-| Three inline handlers (unnamed, `index.html:1817-1877`) | `index.html:1819, 1853, 1877` | `fetch(syncUrl, ...)` | Same `getAuthSyncUrl()` result. |
-| `pushToCloud()` | `sync.js:582-643` | `fetch(driver.syncUrl, ...)` at `sync.js:607` | `driver.syncUrl` — Apps Script by default. Called from `doSync()` (`sync.js:776`), which is the primary sync entry point. |
-| `pullFromCloud()` | `sync.js:645-` (fetch at `666`) | `fetch(driver.syncUrl, ...)` | Same. Called from `doSync()` (`sync.js:787`) and directly at login/signup restore (`index.html:2514`, `2553`). |
-| `syncPTIEntry()` | `sync.js:832-854` | `fetch(driver.syncUrl, ...)` at `sync.js:843` | Same. Independent single-entry sync path (PTI log), separate from `doSync()`. |
-| `syncExpensesNow()` | `restore-hotfix.js:277-299` | `previousFetch(driver.syncUrl \|\| '.../crewbiq-expenses/exec', ...)` at `restore-hotfix.js:283` | `driver.syncUrl` if set, else the second hardcoded Apps Script endpoint — never the Orchestrator. Caller at `restore-hotfix.js:305` (invoked on some triggering event inside the same file; a queued/deferred call, not evaluated further in this pass). |
-| `pushToOrchestrator()` | `sync.js:377-` | `postOrchestratorSync()` → `fetch(url, ...)` at `sync.js:370` | `getOrchestratorSyncUrl()` — structurally separate from all of the above. |
-| `doSync()` (the composite sync entry point) | `sync.js:750-824` | Calls, **in this order**: (1) `pushToCloud()` — Apps Script — at `776`; (2) only if that push succeeded, `pushToOrchestrator()` — PostgreSQL — at `782`; (3) `pullFromCloud()` — Apps Script — at `787`. | **This is the single most consequential finding of this map**: Apps Script is the primary write path and the Orchestrator/PostgreSQL write is architecturally a secondary "DB copy" contingent on the Apps Script push succeeding first. This is not a fallback relationship — it is the reverse of what "PWA communicates only with Orchestrator" would require. |
+| `authPost()` | `index.html:1792-1808` | `fetch(syncUrl, ...)` at `1795` | `getAuthSyncUrl()` result — Apps Script by default. Used by `authLogin()` (`2496-2497`), `authSignup()` (`2524-2525`), logout (`2635-2637`), and `restoreSession()` in `startup-session.js:10` (`auth_restore`). |
+| Three inline handlers | `index.html:1817-1877` | `fetch(syncUrl, ...)` at `1819, 1853, 1877` | Same `getAuthSyncUrl()` result. |
+| `pushToCloud()` | `sync.js:582-643` | `fetch(driver.syncUrl, ...)` at `607` | `driver.syncUrl` — Apps Script by default under the standard resolution chain; the code itself does not prevent this from being a different URL if `driver.syncUrl` is ever set to one. |
+| `pullFromCloud()` | `sync.js:645-` (fetch at `666`) | `fetch(driver.syncUrl, ...)` | Same. Called directly at `index.html:1592` (manual pull, via `restoreFromCloud()`) and indirectly, 1 second after login/signup/boot, via `showApp()`'s `setTimeout` in `startup-session.js:31-36`. |
+| `syncPTIEntry()` | `sync.js:832-854` | `fetch(driver.syncUrl, ...)` at `843` | Same. Triggered fire-and-forget from `pti.js:347-348` immediately after a PTI submission completes. |
+| `syncExpensesNow()` | `restore-hotfix.js:277-299` | `previousFetch(driver.syncUrl \|\| '.../crewbiq-expenses/exec', ...)` at `283` | `driver.syncUrl` if set (not guaranteed Apps Script — see correction 4 above), else the second hardcoded Apps Script endpoint. Deterministically triggered by `scheduleExpenseSync()` (`302-308`), itself invoked by every call to `global.saveExpenses` via the hook installed in `installExpenseSaveHook()` (`311-321`). |
+| `pushToOrchestrator()` | `sync.js:377-` | `postOrchestratorSync()` → `fetch(url, ...)` at `370` | `getOrchestratorSyncUrl()` — structurally separate from all Apps-Script sinks above. |
+| `doSync()` (composite entry point) | `sync.js:750-824` | Calls, in order: (1) `pushToCloud()` — Apps Script by default — at `776`; (2) only if that push succeeded and was not skipped, `pushToOrchestrator()` — PostgreSQL — at `782`; (3) `pullFromCloud()` — Apps Script by default — at `787`. | Codex's accepted conditional finding: Apps Script (under the default `driver.syncUrl`) is the primary write path; the Orchestrator/PostgreSQL write is a secondary copy contingent on the legacy push succeeding, not the reverse — but this ordering, not the specific hostname, is what is proven; the first destination could differ from Apps Script only if `driver.syncUrl` were explicitly overridden away from its default. |
 
-## 5. Existing production telemetry / log evidence
+## 4B. Indirect/scheduling/UI callers that trigger the above sinks (new — missing from the first draft)
 
-No evidence of actual request volume, existing logs, or telemetry for either
-the Apps Script endpoints or the `railway.app` Orchestrator endpoint was
-located or examined in this pass. This map is a static source-to-sink trace
-only; it does not establish how often each path fires in live usage, only
-that every path listed above is reachable code with no dead branches. No new
-instrumentation was added, per the bounded scope of this task. Determining
-actual production request volume would require either (a) real-time access
-to the Google Apps Script project's own execution logs/quota dashboard
-(outside this session's access), or (b) Orchestrator-side edge/reverse-proxy
-or CDN logs capturing outbound requests to `script.google.com`/
-`googleapis.com` from deployed clients, if such logging exists — neither was
-available to check in this pass.
+| Caller | File:line | Triggers |
+|---|---|---|
+| `scheduleAutoSync()` | `sync.js:869-883` | Calls `doSync()` every hour (`setInterval`, `872`) and once at local midnight (`880`) — an unconditional recurring background scheduler, not just a user-initiated action. |
+| Home screen "Sync Now" button | `index.html:502` | `onclick="doSync()"` |
+| Settings "Full Sync" button | `index.html:813` | `onclick="saveAdvancedSyncSettings(false); forceFullSync()"` |
+| Settings bottom "Sync" button | `index.html:819` | `onclick="doSync()"` |
+| Settings "Pull from Cloud" button | `index.html:812` | `onclick="restoreFromCloud()"`, which calls `pullFromCloud()` directly at `1591-1592` |
+| Dynamically-built Settings "Sync" action | `index.html:6185` | `appendSettingsAction('Sync', doSync, ...)` |
+| Device sign-out flow | `index.html:6525` | `forceFullSync()` called before clearing the driver from the device |
+| `queueFleetConfigSync()` | `index.html:2876-2885` | Debounced (800ms) auto-trigger of `forceFullSync()` whenever fleet configuration changes, guarded only by `driver && driver.syncUrl` (`2880`) |
+| `offline-sync-queue.js:390-398` | Browser `online` event listener calls `global.doSync({reason:'online'})` after a 250ms debounce whenever the device reconnects and a pending queue exists |
+| `dispute-tombstone-hotfix.js:43-55` (`syncWithBusyRetry`) | Retries `global.doSync({forceAll:true})` up to 5 times on `sync_in_progress` |
+| `owner-snapshot-hotfix.js:190-198` (`scheduleFullSync`) | Debounced (default 250ms) call to `global.forceFullSync()` |
 
-## 6. Summary
+Every entry in §4B ultimately reaches the same `doSync()`/`pushToCloud()`/
+`pullFromCloud()`/`forceFullSync()` sinks documented in §4A — none of them
+introduce a new network endpoint, but they materially affect *how often* and
+*under what conditions* those sinks fire, which is why file scope had to be
+widened to cover them.
+
+## 5. Existing production telemetry / log evidence (corrected)
+
+Requests from the browser directly to `script.google.com` never pass through
+the Orchestrator, any CDN, or any reverse proxy CrewBIQ controls — they are
+a direct client-to-Google network call. **Orchestrator-side logs (edge,
+reverse-proxy, or application logs) cannot observe this traffic at all,
+under any circumstance**, and cannot be used to establish or disprove Google
+traffic volume; they can only ever establish Orchestrator/PostgreSQL-copy
+request volume (the `pushToOrchestrator()` sink), which is a different,
+already-intended path.
+
+Determining actual Apps Script request volume would require one of: (a)
+direct access to the Google Apps Script project's own execution logs or
+quota/usage dashboard (outside this session's access), or (b) new
+client-side telemetry that does not currently exist in the reviewed source.
+No such evidence was located or examined in this pass, and none is proposed
+or added by this document.
+
+## 6. Summary (corrected)
 
 Every criterion this map was commissioned to inform remains **BLOCKED** as
-previously classified in `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`: the
-Apps Script path is not only reachable, it is the primary sync write path
-that the Orchestrator/PostgreSQL write depends on succeeding. Two distinct
-hardcoded Apps Script endpoints exist (`DEFAULT_SYNC_URL` and the
-`crewbiq-expenses` endpoint), five distinct sink call sites read
-`driver.syncUrl`/`getAuthSyncUrl()` with no Orchestrator-aware branch, and
-the service worker itself was authored with explicit Apps Script hostname
-awareness. No removal, disabling, or configuration change is proposed here;
-this document exists solely to give a future de-risked removal effort a
-complete, evidence-backed starting map.
+classified in `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`. Precisely: two
+distinct hardcoded Apps Script endpoints exist; eight direct call sites
+(`authPost` + 3 inline handlers + `pushToCloud` + `pullFromCloud` +
+`syncPTIEntry` + `syncExpensesNow`) can reach an Apps Script URL under the
+default resolution chain; at least ten additional callers (§4B) —
+schedulers, UI actions, and cross-file hotfix hooks — trigger those same
+sinks under a variety of conditions, several of them unconditionally
+recurring (hourly/midnight auto-sync) or reconnect-triggered rather than
+purely user-initiated. `doSync()`'s push order (Apps Script first,
+Orchestrator second, contingent on the first succeeding) is confirmed. This
+is static reachability evidence only: it does not establish live execution
+frequency, which specific branches actually fire in current production
+traffic, or actual Apps Script request volume — for which no observation
+mechanism accessible in this pass exists (§5). No removal, disabling, or
+configuration change is proposed here; this document exists solely to give
+a future de-risked removal effort a complete, evidence-backed starting map.
