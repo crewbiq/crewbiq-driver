@@ -1,0 +1,67 @@
+name: Deploy accepted CrewBIQ PWA v95 to Pages
+
+# Phase B only. Creating pages-actions-v95-66a7985 is the separately authorized
+# execution trigger. Phase A publication on agent/pre-base44-audit cannot run it.
+# Rollback contract: restore Pages build_type=legacy and source main at /, then
+# rebuild 86b8b4dd7e9496833a021319167589b49f0ac418 and require live cache v79.
+
+on:
+  push:
+    branches:
+      - pages-actions-v95-66a7985
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout exact accepted PWA artifact
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: 66a7985765b76e0702d015ca1e300390156f8ad6
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Require exact immutable artifact and app shell
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "66a7985765b76e0702d015ca1e300390156f8ad6"
+          test -f index.html
+          test -f sw.js
+          test -f core.js
+          test -f core-runtime.js
+          test -f startup-session.js
+          test -f workspace-attribution.js
+          test -f workspace-driver-roster.js
+          test -f driver-truck-assignment.js
+          test -f account-driver-link.js
+          test -f driver-self.js
+          test -f loads.js
+          test -f pti.js
+          test -f manifest.json
+          grep -q "crewbiq-driver-v95" sw.js
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Upload exact static Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: .
+
+      - name: Deploy exact artifact to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+
