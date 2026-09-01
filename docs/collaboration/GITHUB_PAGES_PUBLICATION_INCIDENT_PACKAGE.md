@@ -10,7 +10,7 @@ Ticket URL: `https://support.github.com/ticket/personal/0/4718739`
 
 Submitted from account: `crewbiq`
 
-GitHub authoritative status after submission: `open`
+GitHub authoritative status after submission: `closed`
 
 Repository: `crewbiq/crewbiq-driver`
 
@@ -156,3 +156,12 @@ Actions workflow problems, and GitHub migrations. No CC, attachment,
 credential, customer record, or private production data was included. GitHub
 confirmed successful submission and listed ticket `#4718739` as `open` for
 account `crewbiq`.
+
+### GitHub Support disposition
+
+Within approximately ten minutes, GitHub Support automatically closed ticket
+`#4718739`. The response states that the support resources available to the
+current account are self-service only and directs the account to GitHub
+Community Discussions, GitHub Docs, and GitHub Skills. The ticket UI does not
+permit reopening/commenting. No GitHub-side Pages investigation or technical
+root-cause finding was provided.
