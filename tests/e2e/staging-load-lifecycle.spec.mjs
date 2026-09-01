@@ -193,9 +193,10 @@ test(
         step: 'pwa-roster-adapter-read',
         ok: adapterRoster?.ok === true,
         code: String(adapterRoster?.code || ''),
+        details: adapterRoster?.details || null,
         driver_count: Array.isArray(adapterRoster?.drivers) ? adapterRoster.drivers.length : 0,
       });
-      expect(adapterRoster?.ok, `PWA roster adapter failed closed: ${adapterRoster?.code || 'unknown'}`).toBe(true);
+      expect(adapterRoster?.ok, `PWA roster adapter failed closed: ${adapterRoster?.code || 'unknown'} ${JSON.stringify(adapterRoster?.details || {})}`).toBe(true);
 
       // Per-run timestamp, not just a fixed marker: boot's restoreSession()
       // pulls this identity's existing server-side loads into the local
