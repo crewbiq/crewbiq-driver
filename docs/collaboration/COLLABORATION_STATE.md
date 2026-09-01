@@ -76,22 +76,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Production Deployment and Validation
+Main Publication Planning
 
 Status:
-GITHUB COMMUNITY DISCUSSION PUBLISHED / AWAITING RESPONSE
+MAIN_PUBLICATION_PLAN_READY / AWAITING CLAUDE REVIEW
 
 Current owner:
-GitHub Community
+Claude
 
 Branch:
 agent/pre-base44-audit; orchestrator accepted branch; inactive immutable control ref pages-actions-v95-66a7985
 
 Product truth:
-Production migrations and orchestrator remain green; legacy GitHub Pages main/v79 is healthy. Support ticket #4718739 was closed because crewbiq has self-service support only. After explicit Product Owner confirmation, the accepted public incident evidence was published as GitHub Community Discussion #206480, categorized as Bug / Pages, and is currently Unanswered. No further Pages production attempt is authorized.
+Production remains stable on legacy Pages main 86b8b4d/cache v79. Accepted candidate 66a7985 is a clean descendant but direct promotion would fast-forward 241 collaboration commits and 77 changed files into main. A no-merge/no-deploy curated main-promotion plan is published: exact accepted product/test bytes, no collaboration/prototype history, mandatory stale cache assertion correction v94 to v95, full CI, explicit merge boundary, exact Pages-build/hash verification, and normal-revert rollback. No execution is authorized.
 
 Latest implementation commit:
-f19f05129fee94004505fc321fcef925e5cd4d99
+66a7985765b76e0702d015ca1e300390156f8ad6
 
 Latest correction commit:
 NONE
@@ -100,22 +100,22 @@ Latest review commit:
 0432d2301305a8aeb261185216149002d35fe933
 
 Latest state commit:
-49a81ad
+679cfdea52615823cb7fa46594f9f39ffa758475
 
 Blocking findings:
-NONE for the current stable production state. Deferred release blocker: GITHUB_PAGES_PROJECT_SITE_SERVING_404_AFTER_SUCCESSFUL_ACTIONS_DEPLOYMENT, reproduced across all three independently reviewed publication mechanisms and not diagnosable through further repository-level inspection.
+NONE for plan review. Mandatory future execution gate: candidate PWA Auth Contract asserts cache v94 while accepted sw.js is v95; the curated promotion must correct only that CI assertion before merge. Direct merge/fast-forward of candidate 66a7985 is prohibited because it would introduce 241 collaboration commits and unrelated documentation/prototype history.
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
 
 Decision gate:
-EXTERNAL_DEPENDENCY
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-GitHub Community
+Claude
 
 Next bounded action:
-Monitor GitHub Community Discussion #206480 for replies or an accepted answer. Do not change Pages configuration, attempt another publication, deploy, merge, migrate, or write production data while awaiting external technical guidance.
+Independently review MAIN_PUBLICATION_PLAN.md: verify refs/ancestry/diff classification, curated allowlist, v94-to-v95 CI gate, required checks, expected legacy main publication behavior, exact served-SHA/hash proof, and normal-revert v79 rollback. Do not create a branch, merge, deploy, migrate, or mutate production data. If ACCEPT, set COORDINATOR_REQUIRED / ChatGPT for exact main-promotion authorization.
 <!-- CURRENT_END -->
 
 
@@ -3322,3 +3322,13 @@ Status: PUBLISHED / AWAITING COMMUNITY RESPONSE
 After explicit Product Owner confirmation and a search for similar discussions, published GitHub Community Discussion #206480 at https://github.com/orgs/community/discussions/206480. Category: Other Feature Feedback, Questions, & Ideas. Type: Bug. Topic: Pages. Initial authoritative status: Unanswered. The post contains only the accepted public incident evidence and closed ticket #4718739; no credential, customer record, private production data, attachment, or production action was included.
 
 Next required actor: GitHub Community
+
+### 2026-09-01 - Main publication plan prepared
+
+Agent: Codex
+
+Status: MAIN_PUBLICATION_PLAN_READY / AWAITING CLAUDE REVIEW
+
+Read-only discovery confirmed main 86b8b4d is the merge base and direct ancestor of accepted candidate 66a7985; direct promotion is conflict-free but would fast-forward 241 commits and 77 changed files, including collaboration history and prototype content. Published MAIN_PUBLICATION_PLAN.md specifying a curated branch from exact main, accepted product/test bytes only, mandatory PWA Auth Contract cache assertion correction v94 to v95, full manually-enforced CI because main has no protection/rulesets, legacy main Pages build/hash verification, service-worker v79-to-v95 upgrade checks, and normal-revert rollback to stable v79 content. No branch, merge, deployment, migration, production data mutation, or runtime file change occurred. Community Discussion #206480 remains monitored in parallel; canonical staging journeys remain queued.
+
+Next required actor: Claude
