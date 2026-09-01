@@ -3831,3 +3831,17 @@ Residual limitation: the counts characterize staging only. They do not establish
 Decision gate: PRODUCT_OWNER_DECISION_REQUIRED
 
 Decision required: choose whether to authorize a separately bounded, initially read-only design for reconstructing authoritative historical AccountDriverLink/DriverTruckAssignment intervals, or to close legacy attribution with existing records remaining UNRESOLVABLE and canonical attribution applying only to new records.
+
+## 2026-09-01 - Codex independent review - ADR-0007 carrier membership topology clarification
+
+Verdict: NEEDS_FIX
+
+Reviewed architecture commit: `b093e3ffbd61ae1b16af9f96f1a3c12ed874ecaa` in `crewbiq/crewbiq-docs` branch `claude/adr-0007-mvp-roles-and-phase4-backlog`.
+
+- Architecture semantics ACCEPTED: the carrier-role membership exists only in the carrier home workspace; cross-fleet visibility derives exclusively from active CarrierAssignment authority; client-supplied IDs and fleet-workspace membership do not grant access.
+- ADR consistency ACCEPTED: ADR-0006 defines CarrierAssignment as effective-dated and Truck-scoped, and the added ADR-0007 summary, resolved topology paragraph, and validation bullet are coherent with it.
+- Status/scope ACCEPTED: ADR-0007 remains Proposed; no role, schema, runtime, UI, migration, merge, or deployment implementation occurred.
+- B1 BLOCKING - DOCUMENT_WIDE_LINE_ENDING_CHURN: the commit reports 305 additions and 284 deletions for a 284-line document because it changed line endings across the whole file. `git diff --ignore-space-at-eol` proves the intended semantic change is limited to the three topology additions. Publish a follow-up commit that restores the pre-existing line-ending representation for all untouched lines while preserving exactly those semantic additions. Do not rewrite or squash `b093e3ff`; no architecture wording expansion.
+
+Next required actor: Claude
+Next bounded action: correct only the ADR-0007 line-ending churn in a normal follow-up commit, preserving the accepted topology wording and Proposed status, then hand back to Codex for re-review.
