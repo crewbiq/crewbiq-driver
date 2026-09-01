@@ -79,10 +79,10 @@ Phase:
 Canonical Staging Journey Coverage
 
 Status:
-IN_PROGRESS
+STAGING_CANONICAL_IDENTITY_COVERAGE_BLOCKED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
@@ -91,7 +91,7 @@ Product truth:
 GitHub Pages serves exact main merge bcfd74a with cache v95. Independently re-verified at the deepest available level: confirmed the merge commit is a genuine two-parent merge (86b8b4d + e6ea441, not a squash/rebase); confirmed the live Pages build record reports commit=bcfd74a with no error; made live HTTP GETs confirming all 13 required assets return 200; downloaded every live file myself and recomputed its git blob SHA-1 hash locally, comparing against the merge commit's actual tree - all 13 match exactly. Orchestrator /health and /ready confirmed green.
 
 Latest implementation commit:
-bcfd74a22449b974755b8b48bc01a3b261107b93
+a2639d8ce7bf0d040a3d22b3e76269bb53032496
 
 Latest correction commit:
 e6ea4418a303d24219bc0469c3aa1c36167c6c56
@@ -100,10 +100,10 @@ Latest review commit:
 de97fb4ca3a93cbc6ff8a1434a807df61350d7a1
 
 Latest state commit:
-b349db31fef20345bf720c23bcc15ed273fbad08
+7a20326c7ff81b9765ed78b3204098df64290d1a
 
 Blocking findings:
-NONE. Production deployment independently confirmed fully successful: migrations 003-011 applied, accepted orchestrator commit live and healthy, accepted PWA now genuinely live on main with byte-exact content independently recomputed and verified.
+STAGING_CANONICAL_ACCOUNT_DRIVER_LINK_FIXTURE_MISSING. Roster read and adapter passed, but protected Fleet A has no canonical AccountDriverLink; assignment and SELF cannot be proven without fallback.
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task. GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Execute only the previously queued CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED coverage task against staging, using existing protected journey tooling and non-destructive evidence rules. Do not modify production, deploy, migrate, merge, backfill, or broaden product scope.
+Independently review commit a2639d8 and run 33544063949; verify the roster evidence, exact account_driver_link_not_found blocker, 17/17 existing journey result, no-fallback behavior, and the proposed minimal reversible staging fixture continuation.
 <!-- CURRENT_END -->
 
 
@@ -3257,6 +3257,16 @@ Next required actor: Claude
 - Under standing Product Owner delegation, treated the routine ChatGPT checkpoint as a protocol stall and selected the safest already queued bounded continuation: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED`.
 - Scope is staging-only protected journey execution and evidence collection using existing tooling. Production mutation, deployment, migration, merge, legacy backfill, runtime change, and product-scope expansion remain prohibited.
 - Current owner: Codex. Decision gate: `AUTO_CONTINUE_ALLOWED`.
+
+### 2026-09-01 - Codex - Canonical staging identity coverage - BLOCKED
+
+- Published test commit `a2639d8ce7bf0d040a3d22b3e76269bb53032496` adding read-only roster, AccountDriverLink, DriverTruckAssignment, and Driver SELF journeys to the existing protected driver mission.
+- Narrow contracts passed `32/32`; Playwright discovery found the new test without parse/config errors.
+- Protected run `33544063949`: harness job passed; all 17 existing staging journeys passed; the new canonical journey failed at its first missing dependency with exact code `account_driver_link_not_found`.
+- Roster direct read and PWA adapter passed with workspace-scoped deterministic IDs. No Driver/Truck fallback was used; assignment and SELF remained unproven because the protected Fleet A account lacks a canonical link fixture.
+- Classification: `STAGING_CANONICAL_ACCOUNT_DRIVER_LINK_FIXTURE_MISSING`, a staging fixture blocker rather than a runtime regression.
+- Runtime/product files changed: NONE. Production actions, deployment, migration, merge, backfill, and production mutation: NONE.
+- Next required actor: Claude for independent review of evidence and the minimal reversible staging fixture continuation.
 
 ### 2026-09-01 - Codex - Production PWA main publication - PASS
 
