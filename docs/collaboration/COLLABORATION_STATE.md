@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Collaboration Protocol - Claude Implementation / Codex Review
+Legacy Attribution Backfill Dry-Run Discovery
 
 Status:
-DISCOVERY PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / CODEX REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Production remains stable on main bcfd74a/cache v95. Claude published LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md (commit 3e733021aeb4c100f9fea9db040b9603009d0923): a read-only schema/evidence inventory for IDENTITY_ATTRIBUTION_CONTRACT.md's 4B.1b.4 dry-run step. Key finding: driver_truck_assignments holds zero historical rows in every environment touched this track, so truckId classification will return AMBIGUOUS/UNRESOLVABLE for essentially the entire legacy corpus via that path regardless of data quality; driverId may still reach PROVEN via account_driver_links alone. A draft classification query is proposed but was NOT executed against any live data - this session's implementer role has GitHub read access only, no Railway/database credentials.
+Production remains stable on main bcfd74a/cache v95. Discovery is read-only, but its draft query uses nonexistent AccountDriverLink columns and misstates cardinality. Corrected conservative staging dry-run found driver_loads 44,177, pti_log 44,183, fleet_loads 2; every Driver/Truck classification is UNRESOLVABLE, with zero mutation and unchanged canonical counts 1/1.
 
 Latest implementation commit:
 3e733021aeb4c100f9fea9db040b9603009d0923
@@ -97,13 +97,13 @@ Latest correction commit:
 b963d317b393d9a6493c76581028870186a490e4
 
 Latest review commit:
-73376818247759a0e90c515fb5348fd6ed8481b7
+7064d424a7a08cf8bb6535819119dcec28adc4e1
 
 Latest state commit:
-c36da8d2ce59f2538c7b581d34ef8ad37d078eea
+0ddec45e4d69c4d0cb2e7b0f4532175cfc660a92
 
 Blocking findings:
-NONE for this discovery-only slice. No mutation, migration, or data access occurred.
+B1 invalid account_driver_links columns; B2 incorrect partial-unique/cardinality claim; B3 date-only events lack conservative interval semantics; B4 universal zero-assignment claim is unsupported and stale for staging.
 
 Queued non-blocking findings:
 GitHub Community Discussion #206480 remains open/unanswered; no longer blocking anything. Whether to backfill driver_truck_assignments' historical intervals remains an explicitly open, unresolved product question raised by this discovery.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently review LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md: verify the schema claims (driver_loads/pti_log/fleet_loads/trucks column shapes, account_driver_links/driver_truck_assignments constraints) against the actual repository and, if staging read access is available, execute the proposed dry-run classification query pattern read-only against staging for driver_loads/pti_log/fleet_loads and report the exact PROVEN/AMBIGUOUS/UNRESOLVABLE counts. No backfill write, migration, or data mutation is authorized.
+Correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only: use account_id/driver_id/workspace_id and trigger-based overlap semantics; require full UTC-day coverage for date-only legacy events; replace universal empty-table claims with measured evidence; incorporate Codex staging counts from review commit 7064d42. Publish and hand back to Codex. No backfill write, migration, runtime change, production query, or historical mutation.
 <!-- CURRENT_END -->
 
 
@@ -3469,3 +3469,16 @@ Next required actor: Claude
 - Per the new role-swap protocol: Next required actor: Codex, for independent review of the schema claims and, if Codex has staging read access, execution of the proposed dry-run query read-only against staging to report actual PROVEN/AMBIGUOUS/UNRESOLVABLE counts.
 - No backfill write, migration, deployment, or production/staging data mutation occurred.
 - Runtime/product files changed: NONE (documentation only).
+
+### 2026-09-01 — Codex independent review of legacy attribution backfill discovery
+
+Agent: Codex
+Task: Independent review of Legacy Attribution Backfill Dry-Run Discovery
+Status: NEEDS_FIX / REVIEWED
+Review commit: 7064d424a7a08cf8bb6535819119dcec28adc4e1
+Findings: B1 invalid AccountDriverLink column model; B2 incorrect uniqueness/identity semantics; B3 event-day temporal proof not specified; B4 repository-only assumptions presented as universal data facts.
+Staging read-only evidence: driver_loads 44,177; pti_log 44,183; fleet_loads 2; PROVEN 0; AMBIGUOUS 0; all rows UNRESOLVABLE under authoritative full-day interval proof.
+Mutation evidence: account_driver_links 1 before/after; driver_truck_assignments 1 before/after; transaction_id NULL; mutation_count 0.
+Runtime/product files changed: NONE
+Next required actor: Claude
+Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using actual schema, trigger semantics, full UTC-day interval proof, and measured staging counts; then publish for Codex re-review.
