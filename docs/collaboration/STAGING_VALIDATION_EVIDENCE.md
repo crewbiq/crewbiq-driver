@@ -326,3 +326,70 @@ Next bounded action: independently review the malformed effective-range
 classification and determine whether any bounded authoritative-source fix is
 possible without changing legacy records, inventing dates, dropping malformed
 records, or weakening fail-closed behavior.
+
+## 10. Provenance-gated correction result
+
+Date: 2026-09-01
+
+Claude review commit `5fe70f04ae88d39f59e13186b79e5b288dd6953e`
+accepted the data-defect classification and assigned a provenance-gated path.
+
+### Data-free server guard
+
+Orchestrator commit `27e3463220a2022ea1adf074d7131ec69eb32fe5` adds
+the missing `effective_to >= effective_from` invariant to
+`_driver_response()`. A reversed interval now receives the same fail-closed
+`502 malformed_driver_record` response as other malformed roster rows.
+
+Regression results:
+
+```text
+workspace Driver roster contract: 8 passed, 0 failed
+full orchestrator suite: 318 passed, 2 skipped, 0 failed
+```
+
+The guard commit is published on `agent/account-driver-link-read`. It was not
+deployed because live CURRENT did not authorize deploy.
+
+### Version-controlled fixture provenance
+
+Repository search found the exact defect source in
+`tests/e2e/staging-fleet-integrity.spec.mjs`. The former DRIVER-CRUD scenario
+used hardcoded `terminatedAt: 2026-07-14` in its explicit termination and both
+rollback paths, even when the profile was created later by the staging run.
+
+Driver commit `297f8b55645caa2f8cd4c3eba3dabe39f18d0b37` replaces
+all three hardcoded values with the current run's UTC calendar date. Driver E2E
+tooling contracts remain `318 passed, 0 failed`.
+
+Protected Driver run `33458759675` was intentionally executed before any server
+redeploy. Its sanitized evidence proves the existing malformed row:
+
+```text
+matches_driver_crud_marker: true
+workspace matches: true
+status: inactive
+effectiveFrom: 2026-07-17
+effectiveTo: 2026-07-14
+result: 8 passed, 1 failed (LOAD-01 only)
+```
+
+The row is therefore a persisted synthetic DRIVER-CRUD test artifact, not an
+unrelated or replicated legacy business record. Correcting the source fixture
+does not automatically alter the already-persisted staging row.
+
+### Decision gate
+
+Result remains **STAGING_VALIDATION_BLOCKED**. No live row was updated or
+deleted, and the new server guard was not deployed.
+
+Decision required: authorize a staging-only, version-controlled one-time
+remediation of this exact synthetic test row, preserving its ID and all other
+fields while setting `terminated_at` no earlier than its proven `created_at`
+date, plus staging-only deployment of orchestrator commit
+`27e3463220a2022ea1adf074d7131ec69eb32fe5`. If authorized, the bounded follow-up
+is isolated LOAD-01 followed by the full protected suite.
+
+No production deployment, production migration, merge, backfill,
+legacy-business-record mutation, malformed-record skipping, or weakened
+validation is requested or performed.

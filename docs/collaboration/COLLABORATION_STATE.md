@@ -42,10 +42,10 @@ Phase:
 Staging Provisioning / Migrations 010-011 / Integration Validation
 
 Status:
-STAGING_VALIDATION_BLOCKED / DATA DEFECT CLASSIFIED - PROVENANCE-GATED FIX PATH
+STAGING_VALIDATION_BLOCKED / PRODUCT OWNER DECISION REQUIRED
 
 Current owner:
-Codex
+ChatGPT
 
 Branch:
 agent/pre-base44-audit
@@ -57,7 +57,7 @@ Latest implementation commit:
 b947191f32b8750ce78263a7d4db1e6584848392 (driver); ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6 (orchestrator)
 
 Latest correction commit:
-driver e6837a8291864ae4aba1f6206c8d4a3c4ca07d5; orchestrator ef2738a0cb011af43ecdc709fdd7d3b23d8c1ad6 on agent/account-driver-link-read
+driver 297f8b55645caa2f8cd4c3eba3dabe39f18d0b37; orchestrator 27e3463220a2022ea1adf074d7131ec69eb32fe5 on agent/account-driver-link-read
 
 Latest documentation commit:
 docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 9 at c0a1dd45bdcbe63b0576db7eedce5f1e72da1d54
@@ -66,23 +66,34 @@ Latest review commit:
 5fe70f04ae88d39f59e13186b79e5b288dd6953e
 
 Blocking findings:
-STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - CONFIRMED genuine authoritative-source data defect, root cause traced to app/routers/workspace_drivers.py: effective_from/effective_to are sourced directly from fleet_driver_profiles.created_at/terminated_at, and this row's terminated_at (2026-07-14) precedes its own created_at (2026-07-17) - an impossible row, not a mapping bug. The PWA correctly fails closed (workspace-driver-roster.js). ALSO FOUND: the orchestrator's _driver_response() validates one cross-field rule (is_active + effective_to) but has no check that effective_to >= effective_from - a safe, data-free server-side gap worth closing regardless of the data question. DRIVER-CRUD-01 and PTI-01 are closed (DRIVER-CRUD-01 was a harness race with startup restore, not an Orchestrator defect).
+STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE - provenance proven synthetic: protected run 33458759675 reports matches_driver_crud_marker=true for the exact reversed interval. The version-controlled DRIVER-CRUD fixture's three hardcoded 2026-07-14 termination paths are corrected to the run UTC date. The already-persisted malformed staging row remains unchanged because live staging-data mutation is not authorized. Server guard commit 27e3463220a2022ea1adf074d7131ec69eb32fe5 rejects reversed intervals with 502 malformed_driver_record and is published but not deployed.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Full protected all-role regression was not run after isolated LOAD-01 remained red. Migrations 010-011, backend readiness, CORS, auth/session, tenant isolation, offline retry, Fleet 6/6 and fresh-identity PTI passed.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage gap only. Local orchestrator suite is 318 passed, 2 skipped; driver tooling is 318 passed. Provenance Driver run is 8 passed, 1 failed (LOAD-01 only). Full protected all-role regression remains gated by the persisted synthetic malformed row.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+ChatGPT
 
 Next bounded action:
-(1) add the missing effective_to >= effective_from consistency check to _driver_response() in app/routers/workspace_drivers.py (mirroring the existing is_active/effective_to check, same 502 malformed_driver_record response) - safe, data-free, confirm full orchestrator suite still passes; (2) determine this specific malformed row's provenance - if it traces to a version-controlled staging seed/fixture script, correct that script's dates (not a live manual data edit), redeploy staging, and confirm LOAD-01 plus the full protected suite go green; (3) if no version-controlled source exists, or the row appears to reflect real replicated legacy business data rather than synthetic staging fixture data, do NOT correct it - instead escalate with Decision gate: COORDINATOR_REQUIRED and an explicit question to the Product Owner about authorization to correct staging Driver-profile data. No legacy-record mutation, date fabrication, malformed-record skipping, weakened validation, production action, merge, or deploy is authorized.
+Decision required: authorize a staging-only, version-controlled one-time remediation of the exact synthetic DRIVER-CRUD-01 malformed row (preserve ID and all other fields; set terminated_at no earlier than its proven created_at date), plus staging-only deployment of orchestrator commit 27e3463220a2022ea1adf074d7131ec69eb32fe5, followed by isolated LOAD-01 and the full protected suite? No production action, merge, migration, legacy-business-record mutation, malformed-record skipping, or weakened validation is requested.
 <!-- CURRENT_END -->
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-01 - Codex - Malformed roster provenance and guard publication
+
+- Orchestrator branch `agent/account-driver-link-read`, commit `27e3463220a2022ea1adf074d7131ec69eb32fe5`: `_driver_response()` now rejects `effective_to < effective_from` with the existing `502 malformed_driver_record`; one exact contract case added.
+- Orchestrator tests: roster `8 passed`; full suite `318 passed, 2 skipped, 0 failed`.
+- Driver branch `agent/pre-base44-audit`, commit `297f8b55645caa2f8cd4c3eba3dabe39f18d0b37`: all three DRIVER-CRUD termination/rollback paths now use the current run UTC date instead of hardcoded `2026-07-14`; sanitized provenance flag added.
+- Driver tooling: `318 passed, 0 failed`.
+- Protected provenance run `33458759675`: `8 passed, 1 failed`; LOAD-01 alone failed and proved `matches_driver_crud_marker=true`, correct workspace, inactive status, `effectiveFrom=2026-07-17`, `effectiveTo=2026-07-14`.
+- Classification: the blocker row is an already-persisted synthetic artifact from the former version-controlled DRIVER-CRUD fixture, not replicated customer/legacy business data.
+- Live row correction/deletion: NONE. Orchestrator staging deployment of the new guard: NONE. Production action, merge, migration, backfill, malformed-record skipping and validation weakening: NONE.
+- Decision gate: COORDINATOR_REQUIRED; exact Product Owner authorization is required for staging-only fixture-row remediation and staging guard deployment before regressions can continue.
 
 ### 2026-09-01 - Codex - Staging blocker correction follow-up publication
 
