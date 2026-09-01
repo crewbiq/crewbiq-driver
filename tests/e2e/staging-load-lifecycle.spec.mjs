@@ -189,14 +189,26 @@ test(
       await page.evaluate(token => orchestratorFinishLogin(token), writerToken);
       observations.push({ step: 'connected-pwa-orchestrator-session' });
       const adapterRoster = await page.evaluate(() => readAuthorizedWorkspaceDriverRoster());
+      const invalidRosterIndex = Number.isInteger(adapterRoster?.details?.index) ? adapterRoster.details.index : -1;
+      const invalidWireDriver = invalidRosterIndex >= 0 ? rosterDrivers[invalidRosterIndex] : null;
+      const invalidWireShape = invalidWireDriver ? {
+        has_driver_id: !!String(invalidWireDriver.driver_id || '').trim(),
+        has_workspace_id: !!String(invalidWireDriver.workspace_id || '').trim(),
+        workspace_matches: String(invalidWireDriver.workspace_id || '').trim() === activeWorkspaceId,
+        has_name: !!String(invalidWireDriver.name || '').trim(),
+        status: String(invalidWireDriver.status || ''),
+        effective_from: invalidWireDriver.effective_from || null,
+        effective_to: invalidWireDriver.effective_to || null,
+      } : null;
       observations.push({
         step: 'pwa-roster-adapter-read',
         ok: adapterRoster?.ok === true,
         code: String(adapterRoster?.code || ''),
         details: adapterRoster?.details || null,
+        invalid_wire_shape: invalidWireShape,
         driver_count: Array.isArray(adapterRoster?.drivers) ? adapterRoster.drivers.length : 0,
       });
-      expect(adapterRoster?.ok, `PWA roster adapter failed closed: ${adapterRoster?.code || 'unknown'} ${JSON.stringify(adapterRoster?.details || {})}`).toBe(true);
+      expect(adapterRoster?.ok, `PWA roster adapter failed closed: ${adapterRoster?.code || 'unknown'} ${JSON.stringify(adapterRoster?.details || {})} ${JSON.stringify(invalidWireShape || {})}`).toBe(true);
 
       // Per-run timestamp, not just a fixed marker: boot's restoreSession()
       // pulls this identity's existing server-side loads into the local
