@@ -79,6 +79,10 @@ async function seedFleetUi(page, config, token, fleet, authCrewbiqId = config.fl
     truckKey: fleetStorageKey(authCrewbiqId, 'trucks'),
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => {
+    const app = document.getElementById('app');
+    return !!(app && app.classList.contains('show'));
+  }, undefined, { timeout: 20_000 });
   await page.evaluate(() => {
     if (typeof showPage === 'function') showPage('drivers');
     if (typeof renderDriversPage === 'function') renderDriversPage();
