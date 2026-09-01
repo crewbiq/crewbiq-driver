@@ -2,6 +2,16 @@
 
 Status: DRAFT FOR INDEPENDENT REVIEW - NOT SUBMITTED
 
+Submission status: SUBMITTED TO GITHUB SUPPORT
+
+Ticket: `#4718739`
+
+Ticket URL: `https://support.github.com/ticket/personal/0/4718739`
+
+Submitted from account: `crewbiq`
+
+GitHub authoritative status after submission: `open`
+
 Repository: `crewbiq/crewbiq-driver`
 
 Production project site: `https://crewbiq.github.io/crewbiq-driver/`
@@ -136,3 +146,13 @@ configuration mutation, migration, merge, or production-data write.
 - Detailed records: `PRODUCTION_PWA_PUBLICATION_CORRECTION_PLAN.md`,
   `PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md`, and
   `CLAUDE_REVIEW.md`.
+
+## Submission record
+
+On 2026-09-01, after explicit action-time Product Owner confirmation, the
+accepted package was submitted through the authenticated GitHub Support
+Repositories form. The selected issue type was bugs/problems/API rate limits,
+Actions workflow problems, and GitHub migrations. No CC, attachment,
+credential, customer record, or private production data was included. GitHub
+confirmed successful submission and listed ticket `#4718739` as `open` for
+account `crewbiq`.
