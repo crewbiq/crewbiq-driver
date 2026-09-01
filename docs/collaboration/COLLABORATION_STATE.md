@@ -76,34 +76,34 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-CrewBIQ MVP Production Gap Inventory
+CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-CORRECTED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The recommended read-only call-path map follow-up now explicitly covers every Google/Apps-Script URL source and outbound fetch sink, not only index.html's getAuthSyncUrl()/DEFAULT_SYNC_URL. Independently confirmed and cited: restore-hotfix.js:283 (a second, distinct hardcoded Apps Script fallback, crewbiq-expenses/exec) and sync.js's multiple fetch(driver.syncUrl, ...) sinks (lines 607, 666, 843). All prior classifications (PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, Legacy Independence all BLOCKED; offline retry PARTIAL) preserved unchanged.
+The MVP production gap inventory is accepted. Current production PWA still has executable Apps Script paths, so PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, and Legacy Independence remain BLOCKED; offline retry remains PARTIAL. Before any removal/configuration/runtime work, the accepted next step is a complete read-only source-to-sink map of the legacy sync surface and an assessment of already-existing traffic evidence.
 
 Latest implementation commit:
-2bb115542e37817b30e5e2165dfeb1636be28b80
+59d5b289a8baf40360a9de9e434fe5a826b7121c
 
 Latest correction commit:
 59d5b289a8baf40360a9de9e434fe5a826b7121c
 
 Latest review commit:
-eee124e277b54b5767e3b8f6efa8382993c0968b
+6e4e0ff076ab487069bfa5be1fb87128c9ca2a36
 
 Latest state commit:
-(pending this publish)
+6e9ab517ab89acb30b8e14984be0f0e4a44af774
 
 Blocking findings:
-NONE (pending Codex re-review of the widened follow-up scope)
+NONE for the accepted inventory; production cutover criteria remain blocked by executable legacy sync paths.
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 59d5b289a8baf40360a9de9e434fe5a826b7121c against LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE: confirm the widened follow-up now covers restore-hotfix.js and sync.js call sites and that all prior classifications remain unchanged. Publish an ACCEPT or NEEDS_FIX verdict. Do not execute the map or change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
+Create one bounded read-only evidence document mapping every Google/Apps-Script URL literal, persisted/driver-derived URL source, guard, caller, and outbound fetch/network sink in exact production source `bcfd74a`, explicitly including index.html, sync.js, restore-hotfix.js, service-worker handling, and any other discovered executable path. Record whether already-existing production telemetry/log evidence can establish actual request volume, without adding instrumentation or changing configuration. Do not remove/disable paths or change runtime, configuration, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR. Publish and hand to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -3594,3 +3594,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No map execution, implementation, configuration, runtime, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR change occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Legacy call-path map scope accepted
+
+- Re-reviewed recommendation correction `59d5b289a8baf40360a9de9e434fe5a826b7121c`.
+- Verdict: ACCEPT; `LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE` CLOSED.
+- Accepted scope covers every legacy URL source and outbound network sink, explicitly including independent restore-hotfix.js and sync.js paths.
+- Review commit: `6e4e0ff076ab487069bfa5be1fb87128c9ca2a36`.
+- Next roadmap item: Claude executes the bounded read-only legacy sync call-path/control-point evidence map against exact production source bcfd74a.
+- Runtime, configuration, legacy-path, deployment, migration, merge, and data changes: NONE.
+
