@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-IN_PROGRESS - ACTIONS-BASED PWA PUBLICATION DESIGN ONLY
+PUBLISHED / AWAITING CLAUDE REVIEW - ACTIONS PAGES CORRECTION PLAN
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 + production-v95-66a7985 (inactive immutable failed Pages-source evidence)
 
 Product truth:
-Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Codex is designing but not executing an Actions-based Pages alternative while preserving the exact accepted artifact and identifying GitHub trigger/configuration constraints
+Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Codex published an Actions-based design that preserves accepted artifact SHA 66a7985 separately from a future push-triggered workflow-control branch because workflow_dispatch cannot run from a non-default immutable branch
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -100,10 +100,10 @@ Latest review commit:
 9037ac450875c7286decf784654790ca074f6ffa
 
 Latest state commit:
-9b211f4520b1969fea4f57765d59075112fdc201
+1cb775e
 
 Blocking findings:
-LEGACY_GITHUB_PAGES_NON_MAIN_SOURCE_PUBLICATION_404 - reproducible three-for-three (main works; two independent alternate branches both fail identically); root cause not identifiable through further read-only inspection. Further legacy branch-swap experiments are unlikely to yield new information - this variable space is reasonably exhausted.
+NONE for design review; production PWA publication remains blocked and no Actions implementation or execution is authorized
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Draft PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md only; reconcile workflow_dispatch default-branch rules with immutable exact-SHA evidence, define upload-pages-artifact/deploy-pages and legacy-main rollback gates, and publish for Claude review without any branch, workflow, Pages, runtime, or production change
+Independently review PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md, especially the workflow_dispatch default-branch correction, immutable artifact/control-branch split, two-phase sequencing, permissions, configuration ordering, and legacy-main rollback; perform no implementation or production attempt
 <!-- CURRENT_END -->
 
 
@@ -3164,3 +3164,17 @@ Next bounded action: independent review of prerequisite migration readiness evid
 - Decision gate: AUTO_CONTINUE_ALLOWED. Next required actor: Codex. Next bounded action: draft PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md only - no production attempt, Pages source change, build_type change, workflow execution, merge, migration, or production-data write authorized.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 9037ac450875c7286decf784654790ca074f6ffa).
 - Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 - Actions-based Pages correction plan published
+
+- Agent: Codex
+- Status: PUBLISHED / AWAITING CLAUDE REVIEW
+- Scope: coordination/design only; no workflow or production execution
+- Key correction: workflow_dispatch requires the workflow on default branch and cannot satisfy immutable non-main exact-SHA constraints
+- Candidate: immutable artifact SHA `66a7985` plus separately reviewed push-triggered control branch `pages-actions-v95-66a7985`
+- Current production: legacy Pages main `86b8b4d`/v79; orchestrator healthy/ready
+- Runtime/main/Pages/environment/branch changes: NONE
+- Plan: `docs/collaboration/PRODUCTION_PWA_ACTIONS_DEPLOYMENT_CORRECTION_PLAN.md`
+- Next required actor: Claude
+- Decision gate: AUTO_CONTINUE_ALLOWED
+- Next bounded action: independent design review only; if ACCEPT, Phase A workflow-only implementation
