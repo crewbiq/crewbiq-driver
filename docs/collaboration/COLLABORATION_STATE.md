@@ -60,7 +60,7 @@ Latest correction commit:
 driver 297f8b55645caa2f8cd4c3eba3dabe39f18d0b37; orchestrator 27e3463220a2022ea1adf074d7131ec69eb32fe5 on agent/account-driver-link-read
 
 Latest documentation commit:
-docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 12 at 983bd8f7dc7d155b9f528ed54e5a7af973b2a64f
+docs/collaboration/STAGING_VALIDATION_EVIDENCE.md section 13 at 0ab8b1917c42d817b06f2bbe10ff33edd2f6f279
 
 Latest review commit:
 1a60d08ef6a216888c2281b002af63a3e6384808
