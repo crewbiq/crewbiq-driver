@@ -3712,3 +3712,31 @@ This closes the bounded technical execution. No further action is required to co
 No further production action is authorized or required by this review.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `branches/main`, `commits`, `pages/builds/latest`, `git/trees`; live HTTP GETs to the production PWA and orchestrator; local SHA-1 computation of downloaded file bytes).
+
+## Canonical Staging Journey Coverage Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review commit `a2639d8ce7bf0d040a3d22b3e76269bb53032496` and protected run `33544063949` — verify the roster evidence, the exact `account_driver_link_not_found` blocker, the 17/17 existing-journey result, no-fallback behavior, and the proposed minimal reversible staging fixture continuation.
+**Method:** fetched the actual Actions run and its job list directly rather than trusting the summary; downloaded and read the real job log for the exact error string and pass/fail breakdown.
+
+### Independent verification
+
+`gh api repos/.../actions/runs/33544063949` → `conclusion: failure` at the exact commit `a2639d8...`; jobs: `harness: success`, `staging-journeys: failure` — matches exactly. Downloaded the actual job log and confirmed directly: `6 passed` (Fleet) + `9 passed` with `1 failed` (Driver, containing the new canonical identity journey) + `1 passed` (Recovery) + `1 passed` (Security) = 17 existing missions green, 1 new journey red — matching the claimed `17 passed, 1 failed` aggregate exactly. The log contains the literal string `Error: AccountDriverLink: account_driver_link_not_found` — the exact blocking assertion cited, not a paraphrase.
+
+### Classification assessment
+
+This is correctly classified as missing fixture data, not a runtime regression: the roster read and PWA adapter both succeeded in the same authenticated workspace (proving transport, auth, and adapter logic all work), and the failure is a specific, domain-meaningful `account_driver_link_not_found` response — not a network error, an authorization failure, or a malformed response that would suggest a code defect. The accepted AccountDriverLink adapter correctly failed closed exactly as designed (consistent with the same no-fallback, no-inference discipline this project has held to throughout) rather than silently guessing a Driver or Truck. All 17 previously-protected missions remained green, confirming no regression was introduced elsewhere.
+
+### Verdict
+
+**ACCEPT.** The evidence is accurate and independently reproduced from the live CI log, not merely summarized. The blocker is correctly classified as a staging fixture gap.
+
+### Applying the autonomous handoff protocol
+
+Provisioning a missing canonical `AccountDriverLink` (and, if needed, one effective `DriverTruckAssignment`) for an existing protected staging fixture account is a bounded, reversible, staging-only data action — not a production action, and consistent with the same fixture-provisioning discipline already used multiple times earlier in this staging track (with the same abort-on-ambiguity, provenance-recorded, no-guessing safeguards).
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:** Provision only the missing canonical `AccountDriverLink` (and one effective current `DriverTruckAssignment` if absent) for the exact protected Fleet A staging fixture, using an explicit, reversible, provenance-recorded staging fixture procedure that aborts unless the target account, workspace, Driver, and Truck each resolve uniquely from the protected fixture contract. Then re-run the isolated canonical identity journey and the full protected suite, and publish results for review. No runtime code change, production action, merge, migration, or production-data write is authorized.
+
+Runtime/product files changed by this review: NONE.
