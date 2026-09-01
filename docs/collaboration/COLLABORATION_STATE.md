@@ -79,16 +79,16 @@ Phase:
 Main Publication Planning
 
 Status:
-MAIN_PUBLICATION_PLAN_READY / AWAITING CLAUDE REVIEW
+MAIN_PUBLICATION_PLAN ACCEPTED - AWAITING PRODUCT OWNER AUTHORIZATION FOR PREP-THROUGH-PR
 
 Current owner:
-Claude
+ChatGPT
 
 Branch:
 agent/pre-base44-audit; orchestrator accepted branch; inactive immutable control ref pages-actions-v95-66a7985
 
 Product truth:
-Production remains stable on legacy Pages main 86b8b4d/cache v79. Accepted candidate 66a7985 is a clean descendant but direct promotion would fast-forward 241 collaboration commits and 77 changed files into main. A no-merge/no-deploy curated main-promotion plan is published: exact accepted product/test bytes, no collaboration/prototype history, mandatory stale cache assertion correction v94 to v95, full CI, explicit merge boundary, exact Pages-build/hash verification, and normal-revert rollback. No execution is authorized.
+Production remains stable on legacy Pages main 86b8b4d/cache v79. MAIN_PUBLICATION_PLAN.md independently reviewed: every checkable fact (main SHA, branch protection absent, rulesets absent, 241/0 ancestry counts, the genuine v94/v95 cache-assertion mismatch, and the analytics.js unloaded-file nuance) verified directly against the live repository, not merely trusted. The curated allowlist, preparation procedure, CI requirements, expected publication behavior, and normal-revert rollback are all sound.
 
 Latest implementation commit:
 66a7985765b76e0702d015ca1e300390156f8ad6
@@ -97,25 +97,25 @@ Latest correction commit:
 NONE
 
 Latest review commit:
-0432d2301305a8aeb261185216149002d35fe933
+b8f47b8d36b91620bb37125234f7254604280c3a
 
 Latest state commit:
-679cfdea52615823cb7fa46594f9f39ffa758475
+a54822766d64a857e0d111b70d90ddb6b9f70db5
 
 Blocking findings:
-NONE for plan review. Mandatory future execution gate: candidate PWA Auth Contract asserts cache v94 while accepted sw.js is v95; the curated promotion must correct only that CI assertion before merge. Direct merge/fast-forward of candidate 66a7985 is prohibited because it would introduce 241 collaboration commits and unrelated documentation/prototype history.
+NONE. Plan ACCEPTED. The v94-to-v95 CI correction is confirmed genuinely necessary (independently verified: candidate sw.js declares v95, candidate's own pwa-auth-contract.yml still hardcodes a v94 grep assertion) and correctly scoped to exactly one line.
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task. GitHub Community Discussion #206480 remains open/unanswered and does not block this plan.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Claude
+ChatGPT
 
 Next bounded action:
-Independently review MAIN_PUBLICATION_PLAN.md: verify refs/ancestry/diff classification, curated allowlist, v94-to-v95 CI gate, required checks, expected legacy main publication behavior, exact served-SHA/hash proof, and normal-revert v79 rollback. Do not create a branch, merge, deploy, migrate, or mutate production data. If ACCEPT, set COORDINATOR_REQUIRED / ChatGPT for exact main-promotion authorization.
+Decision required: the main-publication design is independently reviewed and accepted as accurate and sound. Does the Product Owner authorize Codex to execute the preparation procedure through opening the PR (creating the curated promotion branch from the current exact main SHA, restoring only the reviewed allowlist, applying the one v94-to-v95 CI correction, and opening - not merging - a PR to main) - with the actual merge remaining a separate decision requiring a fresh Claude review of the real PR diff and its own explicit authorization? No branch creation, code change, PR, merge, deployment, migration, or production-data write is authorized until this decision is made.
 <!-- CURRENT_END -->
 
 
@@ -3332,3 +3332,16 @@ Status: MAIN_PUBLICATION_PLAN_READY / AWAITING CLAUDE REVIEW
 Read-only discovery confirmed main 86b8b4d is the merge base and direct ancestor of accepted candidate 66a7985; direct promotion is conflict-free but would fast-forward 241 commits and 77 changed files, including collaboration history and prototype content. Published MAIN_PUBLICATION_PLAN.md specifying a curated branch from exact main, accepted product/test bytes only, mandatory PWA Auth Contract cache assertion correction v94 to v95, full manually-enforced CI because main has no protection/rulesets, legacy main Pages build/hash verification, service-worker v79-to-v95 upgrade checks, and normal-revert rollback to stable v79 content. No branch, merge, deployment, migration, production data mutation, or runtime file change occurred. Community Discussion #206480 remains monitored in parallel; canonical staging journeys remain queued.
 
 Next required actor: Claude
+
+### 2026-09-01 - Claude - Main Publication Plan Independent Review - ACCEPT
+
+- Method: independently verified every specific, checkable factual claim in MAIN_PUBLICATION_PLAN.md directly against the live repository via gh api rather than trusting the document - current main SHA, branch protection status, repository rulesets, exact ancestry/divergence commit counts, the candidate's actual cache version vs its own workflow's hardcoded assertion, and the analytics.js unloaded-file claim.
+- Confirmed main SHA (86b8b4d), protected=false, rulesets=[], and compare main...candidate shows ahead_by=241/behind_by=0 - all exactly matching the plan's claims.
+- Confirmed candidate sw.js declares v95 while candidate's own pwa-auth-contract.yml still hardcodes a v94 grep assertion - a genuine, real mismatch, not a fabricated justification for the one CI-only correction proposed.
+- Confirmed candidate index.html has zero references to analytics.js and it's absent from sw.js's APP_SHELL - matches the plan's claim that this file is accepted-but-unloaded product code.
+- Assessed the design: rejecting a fast-forward merge (which would drag 241 collaboration commits and unrelated docs/prototype history onto main) in favor of a curated, byte-verified promotion branch is sound engineering practice. The allowlist is complete and correctly derived from the actual diff. The preparation procedure matches this project's established discipline (fetch-fresh/abort-on-movement, normal branch creation only, byte-for-byte blob assertions, open-but-do-not-merge PR, fresh independent PR-diff review plus explicit coordinator authorization before merge, normal-revert-only rollback).
+- Verdict: ACCEPT.
+- Decision gate: COORDINATOR_REQUIRED. Next required actor: ChatGPT. Decision required: authorize the preparation procedure through opening the PR only (steps 1-12) - the actual merge remains a separate decision requiring a fresh Claude review of the real PR diff and its own explicit authorization.
+- No branch creation, code change, PR, merge, deployment, migration, or production-data write is authorized by this review.
+- Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit b8f47b8d36b91620bb37125234f7254604280c3a).
+- Runtime/product files changed by this review: NONE.
