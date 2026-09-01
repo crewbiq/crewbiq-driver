@@ -488,6 +488,7 @@ test(
     let originalProfileDeactivated = false;
     let originalProfile = null;
     let freshCrewbiqId = '';
+    const terminationDate = new Date().toISOString().slice(0, 10);
 
     try {
       assertEmptyStorage(await openFreshApplication(page, context, config));
@@ -651,7 +652,7 @@ test(
       });
 
       const terminateSync = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
-        driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
+        driverProfiles: [{ ...addedProfile, active: false, terminatedAt: terminationDate }],
       }, 'DRIVER-CRUD-01', 'terminate');
       expect(terminateSync.status).toBe(200);
       const afterTerminate = activePwaOwnerSnapshot(await restorePwa(recoveryPage, config, recoveryToken));
@@ -669,7 +670,7 @@ test(
       if (addedProfile && writerToken && !addedProfileTerminated) {
         await cleanupStep('driver-crud-added-profile-rollback', observations, async () => {
           const rollback = await pushIdentityOwnerData(page, config, writerToken, freshCrewbiqId, {
-            driverProfiles: [{ ...addedProfile, active: false, terminatedAt: '2026-07-14' }],
+            driverProfiles: [{ ...addedProfile, active: false, terminatedAt: terminationDate }],
           }, 'DRIVER-CRUD-01', 'rollback');
           expect.soft(rollback.status).toBe(200);
         });
@@ -680,7 +681,7 @@ test(
             driverProfiles: [{
               ...originalProfile,
               active: false,
-              terminatedAt: '2026-07-14',
+              terminatedAt: terminationDate,
             }],
           }, 'DRIVER-CRUD-01', 'original-rollback');
           expect.soft(rollback.status).toBe(200);

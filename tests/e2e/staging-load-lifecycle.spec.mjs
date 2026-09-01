@@ -196,6 +196,7 @@ test(
         has_workspace_id: !!String(invalidWireDriver.workspace_id || '').trim(),
         workspace_matches: String(invalidWireDriver.workspace_id || '').trim() === activeWorkspaceId,
         has_name: !!String(invalidWireDriver.name || '').trim(),
+        matches_driver_crud_marker: String(invalidWireDriver.name || '').includes('DRIVER-CRUD-01'),
         status: String(invalidWireDriver.status || ''),
         effective_from: invalidWireDriver.effective_from || null,
         effective_to: invalidWireDriver.effective_to || null,
