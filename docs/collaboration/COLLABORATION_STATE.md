@@ -79,7 +79,7 @@ Phase:
 Production Deployment and Validation
 
 Status:
-ACCEPTED - PATIENCE-BASED PWA RETRY ASSIGNED TO CODEX
+IN_PROGRESS - PATIENCE-BASED PWA RETRY
 
 Current owner:
 Codex
@@ -88,7 +88,7 @@ Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); agent/production-release-20260901-v95 (inactive PWA release evidence)
 
 Product truth:
-Migrations 003-011 and accepted orchestrator commit 27e3463 are live and green (independently confirmed via live /health and /ready); PWA remains safely rolled back to main commit 86b8b4d/cache v79 (independently confirmed live). GITHUB_PAGES_RELEASE_SOURCE_404 root-caused as likely CDN propagation delay, not a structural defect - both branches have identical root file structure.
+Migrations 003-011 and accepted orchestrator commit 27e3463 are live and green; Claude accepted the prior rollback evidence and assigned Codex one identical no-merge Pages retry with a full 10-minute propagation window and immediate main fallback
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
@@ -115,7 +115,7 @@ Next required actor:
 Codex
 
 Next bounded action:
-Re-attempt the identical no-merge PWA publication (same accepted commit 66a7985765b76e0702d015ca1e300390156f8ad6, same release-branch mechanism, same immediate main-rollback fallback) - but after the build reports built, poll live index.html/sw.js for up to 10 minutes (not ~2 minutes) before judging pass or fail, to rule out CDN propagation lag rather than a structural defect. If still failing after that window, roll back to main exactly as before and escalate with COORDINATOR_REQUIRED. No merge to main, no destructive action, no additional migration, and no production business-data write is authorized.
+Re-attempt the identical release-branch Pages publication at 66a7985765b76e0702d015ca1e300390156f8ad6, wait up to 10 minutes after built for live index.html/sw.js, and either complete bounded smoke or restore main immediately and publish the exact result
 <!-- CURRENT_END -->
 
 
