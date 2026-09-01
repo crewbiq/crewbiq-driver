@@ -3668,3 +3668,47 @@ Merging this PR is the single most consequential action in this entire deploymen
 No merge, deployment, migration, or production-data write is authorized by this review itself.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `pulls/101`, `pulls/101/files`, `git/trees` for both the PR head and candidate, `contents` for both workflow files, `actions/runs`, and `commits/.../check-runs`).
+
+## Production PWA Main Publication Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently verify the production main merge, exact Pages build commit, all 13 live asset hashes, cache `v95`, orchestrator health/readiness, and overall production state following the merge of PR #101 into `main`. Given this deployment track's repeated prior pattern of "reported success, actually 404," every claim here was independently re-derived from first principles, not trusted.
+**Method:** fetched `main`'s live branch SHA and the merge commit's actual parent list directly; fetched the live Pages build record; made live HTTP GETs against every one of the 13 required app-shell assets; **downloaded each live file myself and computed its git blob SHA-1 hash locally** (the same `blob <size>\0<content>` hashing scheme Git itself uses), comparing against the actual merge commit's tree fetched independently — not comparing against any summary or claim; checked live cache version and orchestrator `/health`/`/ready`.
+
+### Merge integrity — confirmed genuine, correctly formed
+
+`gh api repos/.../branches/main` → `86b8b4d...` → now `bcfd74a22449b974755b8b48bc01a3b261107b93`. Fetched the merge commit directly: two parents, `86b8b4dd7e9496833a021319167589b49f0ac418` (prior `main`) and `e6ea4418a303d24219bc0469c3aa1c36167c6c56` (the reviewed PR head) — a genuine, normal two-parent merge commit, not a squash or rebase, exactly as the accepted plan required for a clean revert boundary.
+
+### Pages build — confirmed matches the exact merge commit
+
+`gh api repos/.../pages/builds/latest` → `commit: bcfd74a22449b974755b8b48bc01a3b261107b93`, `status: built`, `error: null` — the live Pages build record reports the exact new merge commit, with no error, exactly as the plan specified as the correct verification (build-commit match, since the served commit could never literally equal the candidate SHA under this curated, non-fast-forward design).
+
+### Live asset availability — all 13 confirmed HTTP 200
+
+Made a live GET against every required file directly: `index.html`, `sw.js`, `core.js`, `core-runtime.js`, `startup-session.js`, `workspace-attribution.js`, `workspace-driver-roster.js`, `driver-truck-assignment.js`, `account-driver-link.js`, `driver-self.js`, `loads.js`, `pti.js`, `manifest.json` — **every single one returned HTTP 200**, genuinely different from every one of the three prior failed publication attempts in this track.
+
+### Byte-exact content — independently recomputed, not merely compared
+
+This is the strongest possible verification available: downloaded all 13 live files myself, computed each one's SHA-1 hash using Git's own blob-hashing scheme (`"blob {len}\0" + content`), and compared against the merge commit's tree (fetched independently via `gh api git/trees/bcfd74a...`). **All 13 files match exactly.** This is not trusting any reported hash or any summary — it is an independently recomputed cryptographic proof that the live bytes being served are identical to the accepted, reviewed content.
+
+### Cache and orchestrator state — confirmed live
+
+Live `sw.js` declares `CACHE_NAME = 'crewbiq-driver-v95'` — the correct, new cache version. Live orchestrator `/health` → `{"ok":true,...,"env":"production"}`; `/ready` → `{"ok":true,"database":{"connected":true},...,"missing_migrations":[]}` — both green, unaffected by the PWA-only change (the orchestrator commit was not part of this merge).
+
+### Verdict
+
+**ACCEPT — PRODUCTION_VALIDATION_PASS independently confirmed at the deepest available level of verification.**
+
+Every claim was re-derived from first principles rather than trusted: the merge commit's structure, the Pages build record, live HTTP availability of all 13 assets, and — critically — an independently recomputed byte-for-byte cryptographic hash match for every single served file against the actual merge tree. This is the successful conclusion of the entire production deployment track that began with the original B1–B4 readiness review: migrations 003–011 are live, the accepted orchestrator commit is live and healthy, and the accepted PWA artifact is now genuinely, verifiably serving from production `main` with zero discrepancy between what was reviewed and what is live.
+
+### Applying the autonomous handoff protocol
+
+This closes the bounded technical execution. No further action is required to correct or verify this deployment. Any next step (closing the GitHub Community Discussion, addressing `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED`, or moving to new product work) is a fresh, distinct decision the Product Owner should make with a clean slate, not an extension of this already-concluded verification.
+
+**Decision gate: COORDINATOR_REQUIRED**
+**Next required actor: ChatGPT (Product Owner)**
+**Decision required:** Production deployment is independently confirmed fully successful at the byte level — migrations applied, orchestrator healthy, and the accepted PWA now genuinely live on `main` with verified byte-exact content. Does the Product Owner consider this deployment track closed, or is there a next priority (the open GitHub Community Discussion, the deferred `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` coverage task, or new product work) to take up next?
+
+No further production action is authorized or required by this review.
+
+Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `branches/main`, `commits`, `pages/builds/latest`, `git/trees`; live HTTP GETs to the production PWA and orchestrator; local SHA-1 computation of downloaded file bytes).
