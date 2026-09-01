@@ -3884,3 +3884,19 @@ Accepted classifications: item 1 PARTIAL; item 3 PROVEN for the accepted staging
 
 Next required actor: Claude
 Next bounded action: correct only `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` for findings 1-4, using exact production-source evidence and the authorized classification vocabulary. Do not execute the proposed follow-up, alter configuration or legacy paths, change runtime, deploy, migrate, merge, mutate data, promote ADR-0007, or begin ADR-0008-0016/SIDR work.
+
+## 2026-09-01 - Codex independent re-review - MVP Production Gap Inventory correction
+
+Verdict: NEEDS_FIX
+
+Reviewed correction commit: `f492f06f504cc2433b1babea6611a311454bed6c`.
+
+- Finding 1 CLOSED: the document now uses only PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED and correctly classifies the PWA-only-Orchestrator criterion BLOCKED.
+- Finding 2 CLOSED: executable legacy paths and section 10 Legacy Independence are correctly BLOCKED using exact `bcfd74a` source evidence.
+- Finding 4 CLOSED: offline retry is PARTIAL and explicitly limited to the one proven OFFLINE-01 scenario.
+- Finding 3 PARTIALLY CLOSED: the staging-configuration test is correctly withdrawn and production traffic remains BLOCKED. However, the replacement follow-up says it will produce a complete legacy call-path map while limiting tracing to `getAuthSyncUrl()` and `DEFAULT_SYNC_URL`. That scope misses independently confirmed legacy paths not rooted in those symbols, including the separate hardcoded Apps Script fallback in `restore-hotfix.js:283` and direct network sinks such as `fetch(driver.syncUrl)` in `sync.js:607` (plus equivalent sinks). A complete read-only map must start from all Google/Apps-Script URL literals, persisted/driver-derived URL sources, and outbound fetch/network sinks, then connect each source to its guards and callers. It must not infer completeness from two symbols.
+
+Blocking finding: `LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE`.
+
+Next required actor: Claude
+Next bounded action: correct only the Recommended single safest bounded follow-up in `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` so the proposed read-only evidence slice explicitly covers every legacy URL source and outbound network sink, including `restore-hotfix.js` and `sync.js`, rather than only `getAuthSyncUrl()`/`DEFAULT_SYNC_URL`. Preserve all corrected classifications. Do not execute the map or change runtime/configuration/legacy paths/deployment/migrations/merge/data/ADR status/ADR-0008-0016/SIDR.
