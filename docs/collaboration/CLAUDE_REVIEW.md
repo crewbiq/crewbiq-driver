@@ -3114,3 +3114,49 @@ These are two now-precisely-scoped runtime/client defects with no product ambigu
 **Next bounded action:** (1) diagnose and fix the orchestrator persistence path so an authenticated driver-profile CPM-rate edit that returns HTTP 200 durably reflects that rate on a subsequent authenticated restore; (2) diagnose and fix why `populateLoadDriverSelect()` in `loads.js` does not carry an already-available, already-proven-working authorized roster read into the Load Driver selector when the Add Load form is composed, so the selector reliably populates from live data; (3) re-run the full protected staging mission suite plus both isolated repro cases to confirm both fixes hold, and republish `STAGING_VALIDATION_EVIDENCE.md` for review. No production deployment, migration, merge, destructive rollback, or legacy backfill is authorized by this step.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (raw source reads of `loads.js` and `index.html`, and reading the published evidence document).
+
+## Malformed Roster Record Independent Review — 2026-09-01
+
+**Agent:** Claude
+**Task:** Independently review `STAGING_VALIDATION_EVIDENCE.md` section 9 and classify `STAGING_LOAD_ROSTER_MALFORMED_LEGACY_EFFECTIVE_RANGE`, determining whether a bounded authoritative-source correction exists without mutating legacy records, fabricating dates, skipping malformed records, or weakening fail-closed validation.
+**Method:** read `workspace-driver-roster.js`'s validation logic in full; fetched and read `app/routers/workspace_drivers.py` (orchestrator, branch `agent/account-driver-link-read`) to trace exactly where `effective_from`/`effective_to` originate.
+
+### Client-side fail-closed behavior — confirmed correct, not a bug
+
+`workspace-driver-roster.js`'s `normalizeDriver()` (line 36) rejects any record where `effectiveTo` parses before `effectiveFrom`, and `validateResponse()` (line 54) fails the **entire** response — not just the offending record — when any single record fails normalization. This matches the established fail-closed, no-silent-skip design already accepted for `AccountDriverLink`/`DriverTruckAssignment` earlier in this project. The client is behaving exactly as designed; this is not a client defect.
+
+### Root cause traced to source
+
+`app/routers/workspace_drivers.py`'s `_driver_response()` sources `effective_from` from `fleet_driver_profiles.created_at` and `effective_to` from `fleet_driver_profiles.terminated_at`. The malformed record (roster index 14) therefore has a row in `fleet_driver_profiles` whose `terminated_at` (2026-07-14) precedes its own `created_at` (2026-07-17) — a genuinely impossible row in the legacy Driver-profile table, not a mapping bug in the roster endpoint.
+
+### A related, independently-found gap worth fixing regardless of the data question
+
+`_driver_response()` already validates one cross-field consistency rule (`is_active and effective_to is not None` → `502 malformed_driver_record`, line 59-60) but has **no check at all** that `effective_to >= effective_from` when both are present — the endpoint currently ships this impossible interval to the client instead of catching it server-side, relying entirely on the client's own validation to reject it. Adding this one check (mirroring the existing pattern, same `502 malformed_driver_record` response) is a safe, narrow, code-only fix — it touches no data, only makes the server fail fast on the same condition instead of forwarding a malformed record. This should be added regardless of how the underlying data question resolves.
+
+### The data question — cannot be resolved from code alone, must be gated correctly
+
+Whether this row's underlying `created_at`/`terminated_at` values can be corrected as a bounded technical action depends entirely on their provenance, which I cannot determine from the client/server code alone:
+
+- If this specific row originates from a version-controlled staging seed/fixture script (test data authored for this staging environment, not derived from real historical business records), correcting that seed script's dates and redeploying is an ordinary, safe, bounded technical fix — not "legacy mutation" in the prohibited sense, since no real business record is being altered.
+- If this row instead reflects replicated/derived real legacy business data (or there is no version-controlled source to trace it to and it exists only as a live database row), correcting its dates would mean deciding what the "true" historical dates should have been — a data-quality judgment call on a real business record, which is exactly the kind of "legacy mutation" this protocol has consistently required Product Owner authorization for, even in a staging environment that may be seeded from realistic legacy history.
+
+I am not in a position to determine which of these is true without inspecting the staging seed/fixture source (if any exists in the repository) — this is the correct next diagnostic step, not a guess I should make.
+
+### Verdict
+
+**STAGING_VALIDATION_BLOCKED confirmed correct** — this is a genuine authoritative-source data defect, not a client or server mapping bug, and Codex's evidence document accurately declines to work around it via skipping, fabrication, or weakened validation.
+
+### Applying the autonomous handoff protocol
+
+The investigative step (trace this row's provenance to a version-controlled seed file, if one exists) and the safe server-side validation addition are both bounded technical continuations with no product ambiguity.
+
+**Decision gate: AUTO_CONTINUE_ALLOWED**
+**Next required actor: Codex**
+**Next bounded action:**
+1. Add the missing `effective_to >= effective_from` consistency check to `_driver_response()` in `app/routers/workspace_drivers.py`, raising `502 malformed_driver_record` exactly like the existing `is_active`/`effective_to` check — a safe, data-free code fix, and confirm the orchestrator test suite still passes in full.
+2. Determine this specific malformed row's provenance: if it traces to a version-controlled staging seed/fixture script, correct that script's dates (not a live manual data edit), redeploy staging, and confirm `LOAD-01` and the full protected mission suite go green.
+3. If no version-controlled source exists, or the row appears to reflect real replicated legacy business data rather than synthetic staging fixture data, **do not correct it** — instead escalate with `Decision gate: COORDINATOR_REQUIRED` and an explicit question to the Product Owner: does this staging environment's Driver-profile data require Product Owner authorization before any date correction, given it may reflect real legacy business history rather than disposable test fixtures?
+
+No legacy-record mutation, date fabrication, malformed-record skipping, weakened validation, production action, merge, or deploy is authorized by this review.
+
+Runtime/product files changed by this review: NONE. All verification was read-only (raw source reads of `workspace-driver-roster.js` and `app/routers/workspace_drivers.py`).
