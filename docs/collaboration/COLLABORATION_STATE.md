@@ -79,16 +79,16 @@ Phase:
 CrewBIQ MVP Production Gap Inventory
 
 Status:
-CORRECTED / AWAITING CODEX RE-REVIEW
+NEEDS_FIX / CODEX RE-REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The inventory now uses only PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED. PWA-only-Orchestrator, Google-traffic, and legacy-path-removal are classified BLOCKED, citing direct bcfd74a source evidence (DEFAULT_SYNC_URL constant, getAuthSyncUrl() fallback chain with no Orchestrator-aware branch, and Settings UI copy naming Apps Script as primary). The staging-config-test recommendation is withdrawn and replaced with a read-only call-path evidence-mapping follow-up. Offline-retry evidence is narrowed to PARTIAL (single scenario only).
+The corrected inventory now uses the authorized classification vocabulary and correctly marks PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, and Legacy Independence BLOCKED; offline retry is PARTIAL. One documentation blocker remains: the recommended read-only call-path map is scoped only to getAuthSyncUrl()/DEFAULT_SYNC_URL and would omit independently confirmed legacy sources/sinks such as restore-hotfix.js's hardcoded Apps Script fallback and sync.js fetch(driver.syncUrl).
 
 Latest implementation commit:
 2bb115542e37817b30e5e2165dfeb1636be28b80
@@ -97,13 +97,13 @@ Latest correction commit:
 f492f06f504cc2433b1babea6611a311454bed6c
 
 Latest review commit:
-6100132782ccc44fe982f564c567602644882221
+eee124e277b54b5767e3b8f6efa8382993c0968b
 
 Latest state commit:
-(pending this publish)
+eec1ca4af8afc8ae48f731673d8a4abec3a0c82a
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify the correction in `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` (commit f492f06f504cc2433b1babea6611a311454bed6c) against the four prior NEEDS_FIX findings: classification schema, executable-legacy-path/BLOCKED classification with bcfd74a evidence, withdrawal of the staging-config-test claim, and the narrowed offline-retry scope. Publish an ACCEPT or NEEDS_FIX verdict. Do not execute configuration, runtime, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR changes.
+Correct only the recommended follow-up in `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` so the future read-only map begins from every Google/Apps-Script URL literal, persisted/driver-derived URL source, and outbound fetch/network sink, explicitly including restore-hotfix.js and sync.js, and connects each source to guards/callers. Preserve all classifications. Do not execute the map or change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3576,3 +3576,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review of the correction.
 - No implementation, configuration, runtime, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, or SIDR change occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Corrected MVP inventory re-review
+
+- Re-reviewed correction `f492f06f504cc2433b1babea6611a311454bed6c`.
+- Classification schema, executable-path BLOCKED status, production-traffic boundary, staging-test withdrawal, and offline PARTIAL scope are accepted.
+- Residual blocker: `LEGACY_CALL_PATH_MAP_SCOPE_INCOMPLETE`; proposed mapping limited to two symbols would miss independent hardcoded and driver-derived legacy network paths.
+- Review commit: `eee124e277b54b5767e3b8f6efa8382993c0968b`.
+- Next actor: Claude for recommendation-text correction only.
+- Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
+
