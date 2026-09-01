@@ -3772,3 +3772,43 @@ This closes the last open item from the entire deployment track. No production a
 No production action, migration, merge, or data mutation is authorized or required by this review.
 
 Runtime/product files changed by this review: NONE. All verification was read-only (`gh api` calls to `actions/runs` and `actions/jobs/.../logs`).
+
+## 2026-09-01 - Codex independent review - Legacy Attribution Backfill Dry-Run Discovery
+
+**Reviewed implementation:** `3e733021aeb4c100f9fea9db040b9603009d0923`
+
+**Verdict:** `NEEDS_FIX`
+
+The read-only discovery direction is appropriate and no mutation occurred, but the proposed SQL and two load-bearing schema claims do not match the accepted orchestrator schema. The document must be corrected before it can be treated as an executable dry-run design.
+
+### B1 - Proposed AccountDriverLink query uses nonexistent columns
+
+`account_driver_links` has `account_id`, `driver_id`, and `workspace_id`. It does not have `person_id` or `driver_profile_id`. The proposed query references both nonexistent columns and therefore cannot execute. The correct relation starts from the legacy account value directly through `adl.account_id`, and the proven identity is `adl.driver_id`; workspace must remain part of the candidate key.
+
+### B2 - AccountDriverLink cardinality mechanism is misstated
+
+Migration 011 creates ordinary history indexes, not a partial unique index. Effective overlap is rejected by `enforce_account_driver_link_integrity()` under an advisory lock for one account within one workspace. The same account may have candidates in multiple workspaces, so a classifier must count distinct `(workspace_id, driver_id)` pairs rather than only Driver IDs.
+
+### B3 - Date-only legacy events require conservative interval semantics
+
+`driver_loads.pickup`, `pti_log.pti_date`, and `fleet_loads.pickup` are PostgreSQL `date`, while canonical intervals are `timestamptz`. An implicit comparison does not prove which instant in that day was the event. The reviewed read-only classifier required the link and assignment to cover the entire UTC event day. Matching unit number/truck text was used only as a conflict veto and never upgraded a record to `PROVEN`.
+
+### B4 - The zero-assignment explanation is overbroad and not current evidence
+
+The repository proves migration 010 is additive and performs no historical backfill; it does not itself prove row counts in every environment. Staging currently contains one provenance-marked current assignment and one AccountDriverLink fixture. The staging result is still all-unresolvable, but the direct evidence is that no link/assignment pair covers the legacy event dates under conservative semantics, not that the tables are universally empty.
+
+### Independent staging dry-run
+
+Executed read-only against Railway environment `crewbiq-orchestrator-staging` using classifier SHA-256 `F9177ABCB91A19CB4397B67E5B065B714FB5396A7FD2DE538FD557BED2A06FC7`.
+
+| Domain | Total | Driver PROVEN | Driver AMBIGUOUS | Driver UNRESOLVABLE | Truck PROVEN | Truck AMBIGUOUS | Truck UNRESOLVABLE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `driver_loads` | 44,177 | 0 | 0 | 44,177 | 0 | 0 | 44,177 |
+| `pti_log` | 44,183 | 0 | 0 | 44,183 | 0 | 0 | 44,183 |
+| `fleet_loads` | 2 | 0 | 0 | 2 | 0 | 0 | 2 |
+
+Before and after canonical table counts were identical: `account_driver_links=1`, `driver_truck_assignments=1`; no transaction ID was assigned and mutation count was zero.
+
+### Required correction
+
+Claude should correct `LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md` only: use real column names and trigger/cardinality semantics, describe the date-only full-day proof rule, replace universal empty-table claims with measured evidence, and incorporate the exact staging counts above. No backfill write, migration, runtime change, production query, or historical mutation is authorized.
