@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Staging Provisioning / Migrations 010-011 / Integration Validation
+Production Deployment / Migrations 010-011 / Validation
 
 Status:
-STAGING_VALIDATION_PASS / ACCEPTED - AWAITING PRODUCT OWNER PRODUCTION DECISION
+IN_PROGRESS
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current main; staging validation is complete and independently confirmed. Production deployment/migrations/data mutation, merge, legacy backfill, destructive rollback and broad refactoring remain unauthorized.
+current main; staging validation is complete and independently confirmed. Product Owner authorized production deployment and exact additive migrations 010-011 subject to strict preflight, stop-on-first-failure, bounded non-destructive smoke, and evidence publication. Merge, legacy backfill, destructive rollback, broad cleanup/refactoring, unrelated migrations and standing mutation policies remain unauthorized.
 
 Latest implementation commit:
 b947191f32b8750ce78263a7d4db1e6584848392 (driver); 27e3463220a2022ea1adf074d7131ec69eb32fe5 (orchestrator, staging deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2)
@@ -109,13 +109,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a separately tracked coverage gap only; does not invalidate the pass. Standing mutation policy for future rows correctly was not authorized/assumed.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: staging validation has passed in full (17/17 protected missions, all nine synthetic data defects resolved, zero remaining structural violations, confirmed independently against live CI). Does the Product Owner authorize proceeding to production deployment and production migrations (010_driver_truck_assignments.sql, 011_account_driver_links.sql) following the established deployment order - or should this remain paused for further consideration (e.g. addressing CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED first, or returning to product development)? No production deployment, production migration, merge, legacy backfill, standing mutation policy, or further data correction is authorized.
+Execute production preflight; only if unambiguous, follow the established order: verify backend readiness, apply exact additive migrations 010-011 only, verify schema/migration state, deploy accepted orchestrator commit 27e3463220a2022ea1adf074d7131ec69eb32fe5, verify health/readiness, deploy accepted PWA runtime b947191f32b8750ce78263a7d4db1e6584848392, and run bounded non-destructive production smoke. Stop at first material failure; publish exact evidence and hand to Claude. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued.
 <!-- CURRENT_END -->
 
 
