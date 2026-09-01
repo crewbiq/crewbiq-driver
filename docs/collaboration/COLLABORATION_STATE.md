@@ -79,16 +79,16 @@ Phase:
 CrewBIQ MVP Production Gap Inventory
 
 Status:
-GAP_INVENTORY_PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / CODEX REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
-agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93; ADR-0007 clarification crewbiq/crewbiq-docs 54fb0aec2c79340c09d2530cca6cd3597eeec372
+agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Published CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md (commit 2bb115542e37817b30e5e2165dfeb1636be28b80), evaluating every CREWBIQ_ARCHITECTURE_V1.md section 14 Definition-of-Done criterion and the section 10 legacy-independence criterion against this session's own independently-verified evidence (not the architecture doc's own stale section 6 entity table). PROVEN: clean-device restore, offline idempotent retry, tenant isolation/CORS. PARTIAL: entity persistence coverage (6 entities remain Audit-required per the source doc), bot communication path (not evaluated), production monitoring depth. NOT_VERIFIED: whether Google Apps Script/Sheets traffic has actually stopped in production - the literal cutover-defining criterion, not yet tested. Recommended follow-up: a reversible staging-only test disabling the Apps Script URL and re-running the full acceptance suite to answer this directly.
+The inventory correctly identifies several partial/proven areas but misclassifies live legacy connectivity. Exact production PWA main bcfd74a/cache v95 still contains executable direct Apps Script authentication/sync/fallback paths and a hardcoded script.google.com default. Therefore PWA-only-Orchestrator, executable legacy-path removal, and legacy independence are BLOCKED, not merely unverified. Production traffic remains unproven and cannot be established by a staging-only invalid-URL test.
 
 Latest implementation commit:
 2bb115542e37817b30e5e2165dfeb1636be28b80
@@ -97,25 +97,25 @@ Latest correction commit:
 54fb0aec2c79340c09d2530cca6cd3597eeec372 (crewbiq-docs)
 
 Latest review commit:
-1a667e026bbf20a905bf673b488c9a62216c0720
+6100132782ccc44fe982f564c567602644882221
 
 Latest state commit:
-a898733ace5f401597916b37611ac8a4c32c3ee3
+7d74ebc275e3976b9ae554f88959b16dfe64fe65
 
 Blocking findings:
-NONE for this documentation-only slice.
+CLASSIFICATION_SCHEMA_AND_PWA_ONLY_CLAIM_WRONG; EXECUTABLE_LEGACY_PATH_MISCLASSIFIED; PRODUCTION_TRAFFIC_NOT_PROVABLE_BY_STAGING_CONFIG_TEST; OFFLINE_PROOF_SCOPE_OVERSTATED
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether Google Apps Script traffic has stopped in production is the single most consequential open Definition-of-Done question.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently review CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md: verify each PROVEN classification against the cited evidence, confirm the PARTIAL/NOT_VERIFIED classifications are not overstated or understated, and assess whether the recommended staging-only Apps-Script-disable test is the correct safest next step. If ACCEPT, set Next required actor: Claude with the next bounded CrewBIQ MVP roadmap item. No implementation, legacy-path change, migration, merge, deployment, or production mutation is authorized.
+Correct only `docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`: use only PROVEN/PARTIAL/BLOCKED/NOT_REQUIRED; classify production PWA-only-Orchestrator and executable legacy-path removal from exact bcfd74a source evidence; keep production traffic BLOCKED pending authoritative production evidence; replace the insufficient staging-config recommendation with a read-only legacy call-path/control-point evidence slice; narrow offline retry to PARTIAL unless universal idempotency evidence is cited. Do not execute follow-up work or change configuration, runtime, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3558,3 +3558,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No implementation, legacy-path change, migration, merge, deployment, or production mutation occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - MVP production gap inventory review
+
+- Reviewed inventory commit `2bb115542e37817b30e5e2165dfeb1636be28b80` and verified cited Actions runs `33550873310`/`33550974453` are green.
+- Exact production source `bcfd74a` contains a hardcoded live Apps Script default plus executable auth, sync, and expense fallback fetch paths.
+- Verdict: NEEDS_FIX. Items 2/7 and Legacy Independence are BLOCKED; production traffic cannot be proven by staging; offline evidence covers one operation path, not the full surface; authorized classification vocabulary must be restored.
+- Review commit: `6100132782ccc44fe982f564c567602644882221`.
+- Runtime, configuration, deployment, migration, merge, and data changes: NONE.
+- Next actor: Claude for document correction only.
+
