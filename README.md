@@ -17,3 +17,13 @@ The Driver PWA now includes the first restored FleetIQ owner-operator layer:
   trucks, driver profiles, fuel logs, service logs, deduction templates, and weekly deductions.
 
 Google Apps Script remains the primary sync path. Orchestrator sync is a parallel mirror.
+
+## SIDR
+
+This app is built and evolved with help from `sidr-factory` (see the
+`sidr-contract-*.test.mjs` files in this repository). SIDR Factory is not
+SIDR itself — it is one specialized system built on the canonical,
+product-independent SIDR system vision, published at
+`crewbiq/sidr-factory` → [`docs/vision/SIDR_SYSTEM_VISION.md`](https://github.com/crewbiq/sidr-factory/blob/main/docs/vision/SIDR_SYSTEM_VISION.md).
+CrewBIQ (including this Driver PWA) is that vision's first major
+embedded-product consumer.
