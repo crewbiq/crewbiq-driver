@@ -2,8 +2,10 @@ import { test, expect } from './fixtures/observability.mjs';
 import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
 import {
   attachSafeObservations,
+  browserJson,
   loginFleetA,
   openFreshApplication,
+  readMe,
   restorePwa,
   revokeSession,
 } from './support/staging-api.mjs';
@@ -161,6 +163,29 @@ test(
         throw error;
       });
       observations.push({ step: 'app-ready' });
+
+      const me = await readMe(page, config, writerToken);
+      expect(me.status).toBe(200);
+      const activeWorkspaceId = String(me?.body?.user?.active_workspace_id || '').trim();
+      observations.push({
+        step: 'canonical-workspace-resolved',
+        has_active_workspace: !!activeWorkspaceId,
+      });
+      expect(activeWorkspaceId, 'LOAD-01 requires a canonical active workspace fixture').toBeTruthy();
+      const roster = await browserJson(
+        page,
+        config.orchestratorUrl,
+        `/v1/workspaces/${encodeURIComponent(activeWorkspaceId)}/drivers`,
+        { token: writerToken },
+      );
+      const rosterDrivers = Array.isArray(roster?.body?.drivers) ? roster.body.drivers : [];
+      observations.push({
+        step: 'canonical-driver-roster-read',
+        status: roster.status,
+        driver_count: rosterDrivers.length,
+      });
+      expect(roster.status).toBe(200);
+      expect(rosterDrivers.length, 'LOAD-01 requires at least one canonical Driver fixture').toBeGreaterThan(0);
 
       // Per-run timestamp, not just a fixed marker: boot's restoreSession()
       // pulls this identity's existing server-side loads into the local
