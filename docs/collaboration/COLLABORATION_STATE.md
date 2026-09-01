@@ -79,43 +79,43 @@ Phase:
 Production Prerequisite Migration Readiness Validation
 
 Status:
-IN_PROGRESS
+PUBLISHED / AWAITING CLAUDE REVIEW
 
 Current owner:
-Codex
+Claude
 
 Branch:
-agent/pre-base44-audit
+agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-current main; staging validation is complete and independently confirmed. Product Owner authorized read-only/validation-only readiness analysis of pending prerequisite migrations 003_effective_dated_deductions, 004_service_invoice_lineage and 006-009, including disposable replay. Production migrations/deploy/data mutation, merge, legacy backfill, destructive cleanup, broad refactoring and standing mutation policies remain unauthorized.
+current accepted branch tips; production schema traced read-only
 
 Latest implementation commit:
-b947191f32b8750ce78263a7d4db1e6584848392 (driver); 27e3463220a2022ea1adf074d7131ec69eb32fe5 (orchestrator, staging deployment d7ae4afa-ca3b-49f4-a8cc-5595e36627d2)
+27e3463220a2022ea1adf074d7131ec69eb32fe5
 
 Latest correction commit:
-driver 297f8b55645caa2f8cd4c3eba3dabe39f18d0b37; orchestrator 27e3463220a2022ea1adf074d7131ec69eb32fe5 on agent/account-driver-link-read
-
-Latest documentation commit:
-docs/collaboration/PRODUCTION_VALIDATION_EVIDENCE.md at decbc80a5ea176125cc956f81abc1dd8b8b060e3
+NONE — validation/documentation only
 
 Latest review commit:
-7d809ae03b4c15dcb0ad5e63dad166c275d86e5d
+PENDING CLAUDE REVIEW
+
+Latest state commit:
+db3f6ce654176c38330cfce0a5f00a36876e5707
 
 Blocking findings:
-PRODUCTION_MIGRATION_PREREQUISITES_MISSING - production DB `railway` on service `Postgres-IFbZ` has only six distinct applied repository migrations and lacks `workspaces`. Pending set is eight files: 003_effective_dated_deductions, 004_service_invoice_lineage, 006_truck_vin, 007_identity_workspace, 008_canonical_company_truck, 009_canonical_claim_approval, 010_driver_truck_assignments, 011_account_driver_links. This does not equal the authorized exact pending set 010-011, and 010 cannot satisfy its workspaces foreign key. Rollout stopped before backup, migration, deployment, or production data mutation.
+NONE
 
 Queued non-blocking findings:
-CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. Production `/health` is HTTP 200 with env=production; current old runtime has no `/ready` route and returns 404. Railway production volume `postgres-volume-7PVl` is READY; snapshot/logical recovery capability exists, but no new backup was created because preflight failed before any mutation.
+CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+PENDING INDEPENDENT REVIEW
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Read current production schema read-only; derive exact SQL/code dependency graph and per-migration risks for 003_effective_dated_deductions, 004_service_invoice_lineage and 006-009; replay the validated sequence through 010-011 only in a disposable production-shaped database if useful; publish readiness PASS/BLOCKED and hand to Claude. No production migration, deployment, data mutation, merge, backfill, destructive cleanup or broad refactor.
+independently review production prerequisite migration readiness evidence and classifications
 <!-- CURRENT_END -->
 
 
@@ -2988,3 +2988,17 @@ Next bounded action: independent classification review only.
 - No production deployment, production migration, merge, legacy backfill, standing mutation policy, or further data correction is authorized by this review.
 - Full findings: docs/collaboration/CLAUDE_REVIEW.md (commit 7d809ae03b4c15dcb0ad5e63dad166c275d86e5d).
 - Runtime/product files changed by this review: NONE.
+
+### 2026-09-01 — Production prerequisite migration readiness published
+
+Agent: Codex
+
+Result: `PRODUCTION_PREREQUISITE_MIGRATION_READINESS_PASS`
+
+Evidence commit: `8174971`
+
+Validated read-only production schema state and exact dependency order for migrations `003_effective_dated_deductions`, `004_service_invoice_lineage`, `006_truck_vin`, `007_identity_workspace`, `008_canonical_company_truck`, and `009_canonical_claim_approval` before `010-011`. Classified `003/004/006` READY and `007/008/009` READY_WITH_PRECONDITIONS. Disposable production-shape replay and idempotent re-run passed; targeted tests were `65 passed, 2 skipped`, and the dedicated real-PostgreSQL constraint rerun was `2 passed`. Recovery restore produced an identical normalized schema hash. No production migration, deployment, data mutation, merge, cleanup, or legacy backfill occurred.
+
+Next required actor: Claude
+
+Next bounded action: independent review of prerequisite migration readiness evidence.
