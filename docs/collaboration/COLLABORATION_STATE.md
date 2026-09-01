@@ -76,46 +76,46 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Production Prerequisite Migration Readiness Validation
+Production Expanded Prerequisite Migration Execution
 
 Status:
-PUBLISHED / AWAITING CLAUDE REVIEW
+IN_PROGRESS
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator)
 
 Product truth:
-current accepted branch tips; production schema traced read-only
+Product Owner authorized exact production migration order 003, 004, 006, 007, 008, 009, 010, 011 subject to all accepted safety gates
 
 Latest implementation commit:
 27e3463220a2022ea1adf074d7131ec69eb32fe5
 
 Latest correction commit:
-NONE — validation/documentation only
+NONE
 
 Latest review commit:
-PENDING CLAUDE REVIEW
+466f51064d4e30d72769a99ae09bff4f5c4711a7
 
 Latest state commit:
-db3f6ce654176c38330cfce0a5f00a36876e5707
+4ab75db
 
 Blocking findings:
-NONE
+NONE at authorization; stop immediately on any preflight, backup, hash, lock, migration, health, or schema mismatch
 
 Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task
 
 Decision gate:
-PENDING INDEPENDENT REVIEW
+AUTO_CONTINUE_ALLOWED within the exact authorized production execution scope
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-independently review production prerequisite migration readiness evidence and classifications
+reconfirm production target/hashes/schema/health, create and verify fresh production backup, quiesce writes, execute exact ordered migration transaction, and stop on first mismatch
 <!-- CURRENT_END -->
 
 
@@ -3002,3 +3002,9 @@ Validated read-only production schema state and exact dependency order for migra
 Next required actor: Claude
 
 Next bounded action: independent review of prerequisite migration readiness evidence.
+### 2026-09-01 - Product Owner - Expanded production migration sequence authorized
+
+- Authorized exact production sequence: `003_effective_dated_deductions`, `004_service_invoice_lineage`, `006_truck_vin`, `007_identity_workspace`, `008_canonical_company_truck`, `009_canonical_claim_approval`, `010_driver_truck_assignments`, `011_account_driver_links`.
+- Mandatory gates remain binding: target separation, exact hash reconfirmation, fresh read-only preflight, verified fresh backup/snapshot before mutation, write quiescence, transaction-wide runner ordering, and stop on first mismatch.
+- Still excluded: unrelated migrations, legacy backfill, broad cleanup/refactor, merge, and destructive rollback.
+- Current owner: Codex.
