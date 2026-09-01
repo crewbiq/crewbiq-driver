@@ -2,8 +2,9 @@ import { test, expect } from './fixtures/observability.mjs';
 import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
 import {
   attachSafeObservations,
-  loginFleetA,
+  loginIdentity,
   openFreshApplication,
+  registerFreshIdentity,
   restorePwa,
   revokeSession,
 } from './support/staging-api.mjs';
@@ -11,6 +12,7 @@ import {
 const prerequisites = resolveStagingPrerequisites();
 
 const DAILY_ITEM_IDS = ['tires', 'lights', 'brakes', 'mirrors', 'coupling', 'cargo', 'gauges', 'horn'];
+const WEEKLY_ITEM_IDS = ['oil', 'coolant', 'def', 'washer', 'belts', 'battery'];
 
 test.use({
   screenshot: 'off',
@@ -63,7 +65,7 @@ async function forceSyncWithRetry(page, { attempts = 5, retryDelayMs = 1000 } = 
   return last || { ok: false, reason: 'sync_retry_exhausted' };
 }
 
-async function seedDriverIdentity(page, config, token) {
+async function seedDriverIdentity(page, config, token, authCrewbiqId) {
   // Caller must already have run openFreshApplication() and loginFleetA() on this
   // page — localStorage is only reachable after a real navigation has happened,
   // not from the default about:blank document (PWA_APP_REFERENCE.md section 4).
@@ -85,11 +87,11 @@ async function seedDriverIdentity(page, config, token) {
     localStorage.setItem('fiqD_sessionToken', sessionToken);
     localStorage.setItem(ptiLogKey, '[]');
   }, {
-    authId: config.fleetA.authCrewbiqId,
+    authId: authCrewbiqId,
     email: 'e2e-redacted@example.test',
     syncUrl: `${config.orchestratorUrl}/v1/sync`,
     sessionToken: token,
-    ptiLogKey: ptiLogStorageKey(config.fleetA.authCrewbiqId),
+    ptiLogKey: ptiLogStorageKey(authCrewbiqId),
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
 }
@@ -125,13 +127,19 @@ test(
       expect(recoveryInitialState.cookies).toEqual([]);
       expect(recoveryInitialState.origins).toEqual([]);
 
-      writerToken = (await loginFleetA(page, config)).body.session_token;
-      expect(writerToken).toBeTruthy();
-      recoveryToken = (await loginFleetA(recoveryPage, config)).body.session_token;
+      const freshIdentity = await registerFreshIdentity(page, config, 'pti-01');
+      expect(freshIdentity.status).toBe(201);
+      expect(freshIdentity.token).toBeTruthy();
+      expect(freshIdentity.crewbiqId).toBeTruthy();
+      expect(freshIdentity.roles).toContain('driver');
+      writerToken = freshIdentity.token;
+      const recoveryLogin = await loginIdentity(recoveryPage, config, freshIdentity.credentials);
+      expect(recoveryLogin.status).toBe(200);
+      recoveryToken = recoveryLogin.body.session_token;
       expect(recoveryToken).toBeTruthy();
 
-      await seedDriverIdentity(page, config, writerToken);
-      observations.push({ step: 'seeded-driver-identity' });
+      await seedDriverIdentity(page, config, writerToken, freshIdentity.crewbiqId);
+      observations.push({ step: 'seeded-fresh-driver-identity', previously_touched: false });
 
       // boot() calls showPTIBlocker() (adds 'show' to #ptiBlocker, removes it
       // from #app) instead of showApp() when needsPTI() is true. A same-day
@@ -147,34 +155,34 @@ test(
       }, undefined, { timeout: 20_000 }).then(handle => handle.jsonValue());
       observations.push({ step: 'gate-resolved', ...gateState });
 
-      if (gateState.blocked) {
-        for (const itemId of DAILY_ITEM_IDS) {
-          await page.locator(`#pti_${itemId}`).click();
-        }
-        await page.locator('#ptiOdometer').fill('612340');
-        const submitEnabled = await page.evaluate(() => !document.getElementById('ptiSubmitBtn').disabled);
-        expect(submitEnabled).toBe(true);
-        observations.push({ step: 'checklist-complete', submit_enabled: submitEnabled });
+      expect(gateState.blocked).toBe(true);
+      expect(gateState.appShown).toBe(false);
 
-        await page.evaluate(() => {
-          const button = document.getElementById('ptiSubmitBtn');
-          if (!button) throw new Error('PTI submit button is missing');
-          button.click();
-        });
-        observations.push({ step: 'clicked-submit-pti' });
-
-        await page.waitForFunction(() => {
-          const app = document.getElementById('app');
-          return !!(app && app.classList.contains('show'));
-        }, undefined, { timeout: 20_000 });
-        observations.push({ step: 'app-unblocked-after-submit' });
-
-        const syncResult = await forceSyncWithRetry(page);
-        expect(syncResult && syncResult.ok).toBe(true);
-        observations.push({ step: 'forced-sync', sync_ok: true });
-      } else {
-        observations.push({ step: 'gate-already-satisfied-same-day', note: 'app shown directly; verifying existing record only' });
+      for (const itemId of [...DAILY_ITEM_IDS, ...WEEKLY_ITEM_IDS]) {
+        const item = page.locator(`#pti_${itemId}`);
+        if (await item.count()) await item.click();
       }
+      await page.locator('#ptiOdometer').fill('612340');
+      const submitEnabled = await page.evaluate(() => !document.getElementById('ptiSubmitBtn').disabled);
+      expect(submitEnabled).toBe(true);
+      observations.push({ step: 'checklist-complete', submit_enabled: submitEnabled });
+
+      await page.evaluate(() => {
+        const button = document.getElementById('ptiSubmitBtn');
+        if (!button) throw new Error('PTI submit button is missing');
+        button.click();
+      });
+      observations.push({ step: 'clicked-submit-pti' });
+
+      await page.waitForFunction(() => {
+        const app = document.getElementById('app');
+        return !!(app && app.classList.contains('show'));
+      }, undefined, { timeout: 20_000 });
+      observations.push({ step: 'app-unblocked-after-submit' });
+
+      const syncResult = await forceSyncWithRetry(page);
+      expect(syncResult && syncResult.ok).toBe(true);
+      observations.push({ step: 'forced-sync', sync_ok: true });
 
       const restore = await restorePwa(recoveryPage, config, recoveryToken);
       expect(restore.status).toBe(200);

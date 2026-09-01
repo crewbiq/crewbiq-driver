@@ -3,8 +3,16 @@ name: PWA Auth Contract
 on:
   pull_request:
     paths:
+      - index.html
+      - navigation-model.js
+      - loads.js
       - core.js
       - core-runtime.js
+      - workspace-attribution.js
+      - workspace-driver-roster.js
+      - driver-truck-assignment.js
+      - account-driver-link.js
+      - driver-self.js
       - offline-sync-queue.js
       - restore-hotfix.js
       - settings-hotfix.js
@@ -39,13 +47,29 @@ on:
       - tests/ocr_service_invoice_review.test.mjs
       - tests/service_invoice_legacy_upgrade.test.mjs
       - tests/dispute_tombstone_hotfix.test.mjs
+      - tests/hotfix-load-order-contract.test.mjs
+      - tests/first-truck-fallback.test.mjs
+      - tests/navigation-contract.test.mjs
+      - tests/workspace-attribution.test.mjs
+      - tests/workspace-driver-roster.test.mjs
+      - tests/driver-truck-assignment.test.mjs
+      - tests/account-driver-link.test.mjs
+      - tests/driver-self-ui.test.mjs
       - .github/workflows/pwa-auth-contract.yml
   push:
     branches:
       - main
     paths:
+      - index.html
+      - navigation-model.js
+      - loads.js
       - core.js
       - core-runtime.js
+      - workspace-attribution.js
+      - workspace-driver-roster.js
+      - driver-truck-assignment.js
+      - account-driver-link.js
+      - driver-self.js
       - offline-sync-queue.js
       - restore-hotfix.js
       - settings-hotfix.js
@@ -80,6 +104,14 @@ on:
       - tests/ocr_service_invoice_review.test.mjs
       - tests/service_invoice_legacy_upgrade.test.mjs
       - tests/dispute_tombstone_hotfix.test.mjs
+      - tests/hotfix-load-order-contract.test.mjs
+      - tests/first-truck-fallback.test.mjs
+      - tests/navigation-contract.test.mjs
+      - tests/workspace-attribution.test.mjs
+      - tests/workspace-driver-roster.test.mjs
+      - tests/driver-truck-assignment.test.mjs
+      - tests/account-driver-link.test.mjs
+      - tests/driver-self-ui.test.mjs
       - .github/workflows/pwa-auth-contract.yml
 
 permissions:
@@ -147,6 +179,18 @@ jobs:
       - name: Run durable dispute deletion contract
         run: node tests/dispute_tombstone_hotfix.test.mjs
 
+      - name: Run hotfix load-order contract (core.js sequence)
+        run: node --test tests/hotfix-load-order-contract.test.mjs
+
+      - name: Run explicit truck-assignment contract
+        run: node --test tests/first-truck-fallback.test.mjs
+
+      - name: Run navigation and role-menu contract
+        run: node --test tests/navigation-contract.test.mjs
+
+      - name: Run canonical identity and assignment contracts
+        run: node --test tests/workspace-attribution.test.mjs tests/workspace-driver-roster.test.mjs tests/driver-truck-assignment.test.mjs tests/account-driver-link.test.mjs tests/driver-self-ui.test.mjs
+
       - name: Verify loader and service-worker cache rotation
         run: |
           grep -q "core-runtime.js" core.js
@@ -168,7 +212,10 @@ jobs:
           grep -q "service-invoice-legacy-upgrade.js" core.js
           grep -q "dispute-tombstone-hotfix.js?v=20260716-dispute-delete-v1" core.js
           grep -q "fleet-load-resolution.js?v=20260730-issue20-v1" index.html
-          grep -q "crewbiq-driver-v79" sw.js
+          grep -q "startup-session.js?v=20260830-slice1b-v1" index.html
+          grep -q "links.js?v=20260830-slice2b-v1" index.html
+          grep -q "navigation-model.js?v=20260830-slice3b-v1" index.html
+          grep -q "crewbiq-driver-v95" sw.js
           grep -q "offline-sync-queue.js" sw.js
           grep -q "owner-snapshot-hotfix.js" sw.js
           grep -q "load-order-hotfix.js" sw.js
@@ -176,6 +223,9 @@ jobs:
           grep -q "settlement-week-hotfix.js" sw.js
           grep -q "deduction-trip-resolution.js" sw.js
           grep -q "fleet-load-resolution.js" sw.js
+          grep -q "startup-session.js" sw.js
+          grep -q "links.js" sw.js
+          grep -q "navigation-model.js" sw.js
           grep -q "accounting-action-guard.js" sw.js
           grep -q "ocr-service-invoice-review.js" sw.js
           grep -q "service-invoice-legacy-upgrade.js" sw.js

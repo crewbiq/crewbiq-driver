@@ -73,6 +73,42 @@ export async function loginFleetB(page, config, env = process.env) {
   return persistAuthenticatedSession(page, response);
 }
 
+export async function loginIdentity(page, config, credentials) {
+  const response = await browserJson(page, config.orchestratorUrl, '/v1/auth/login', {
+    method: 'POST',
+    body: credentials,
+  });
+  return persistAuthenticatedSession(page, response);
+}
+
+export async function registerFreshIdentity(page, config, scenarioId) {
+  const scenario = String(scenarioId || 'identity')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32) || 'identity';
+  const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const credentials = {
+    email: `e2e-${scenario}-${nonce}@example.test`,
+    password: `CrewBIQ-Staging-${nonce}-X`,
+  };
+  const response = await browserJson(page, config.orchestratorUrl, '/v1/auth/register', {
+    method: 'POST',
+    body: { ...credentials, nickname: `E2E ${scenario}` },
+  });
+  await persistAuthenticatedSession(page, response);
+  const token = String(response?.body?.session_token || '').trim();
+  const me = token ? await readMe(page, config, token) : { status: 0, body: {} };
+  return {
+    status: response.status,
+    ok: response.ok,
+    token,
+    credentials,
+    crewbiqId: String(me?.body?.user?.crewbiq_id || '').trim(),
+    roles: Array.isArray(me?.body?.user?.roles) ? me.body.user.roles : [],
+  };
+}
+
 export async function readMe(page, config, token) {
   return browserJson(page, config.orchestratorUrl, '/v1/me', { token });
 }
@@ -107,6 +143,14 @@ export function deterministicProbeRecordId(config, scenarioId) {
 }
 
 export async function pushOwnerData(page, config, token, ownerData, scenarioId, phase) {
+  return pushIdentityOwnerData(
+    page, config, token, config.fleetA.authCrewbiqId, ownerData, scenarioId, phase,
+  );
+}
+
+export async function pushIdentityOwnerData(
+  page, config, token, authCrewbiqId, ownerData, scenarioId, phase,
+) {
   const recordId = makeRecordId(config, scenarioId, phase);
   return browserJson(page, config.orchestratorUrl, '/v1/sync/pwa', {
     method: 'POST',
@@ -116,7 +160,7 @@ export async function pushOwnerData(page, config, token, ownerData, scenarioId, 
       type: 'driver_report',
       deviceId: `e2e-${scenarioId.toLowerCase()}-${phase}`,
       driver: {
-        crewId: config.fleetA.authCrewbiqId,
+        crewId: authCrewbiqId,
         email: 'e2e-redacted@example.test',
       },
       loads: [],

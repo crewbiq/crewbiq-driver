@@ -2,8 +2,10 @@ import { test, expect } from './fixtures/observability.mjs';
 import { resolveStagingPrerequisites } from './support/staging-prerequisites.mjs';
 import {
   attachSafeObservations,
+  browserJson,
   loginFleetA,
   openFreshApplication,
+  readMe,
   restorePwa,
   revokeSession,
 } from './support/staging-api.mjs';
@@ -162,6 +164,53 @@ test(
       });
       observations.push({ step: 'app-ready' });
 
+      const me = await readMe(page, config, writerToken);
+      expect(me.status).toBe(200);
+      const activeWorkspaceId = String(me?.body?.user?.active_workspace_id || '').trim();
+      observations.push({
+        step: 'canonical-workspace-resolved',
+        has_active_workspace: !!activeWorkspaceId,
+      });
+      expect(activeWorkspaceId, 'LOAD-01 requires a canonical active workspace fixture').toBeTruthy();
+      const roster = await browserJson(
+        page,
+        config.orchestratorUrl,
+        `/v1/workspaces/${encodeURIComponent(activeWorkspaceId)}/drivers`,
+        { token: writerToken },
+      );
+      const rosterDrivers = Array.isArray(roster?.body?.drivers) ? roster.body.drivers : [];
+      observations.push({
+        step: 'canonical-driver-roster-read',
+        status: roster.status,
+        driver_count: rosterDrivers.length,
+      });
+      expect(roster.status).toBe(200);
+      expect(rosterDrivers.length, 'LOAD-01 requires at least one canonical Driver fixture').toBeGreaterThan(0);
+      await page.evaluate(token => orchestratorFinishLogin(token), writerToken);
+      observations.push({ step: 'connected-pwa-orchestrator-session' });
+      const adapterRoster = await page.evaluate(() => readAuthorizedWorkspaceDriverRoster());
+      const invalidRosterIndex = Number.isInteger(adapterRoster?.details?.index) ? adapterRoster.details.index : -1;
+      const invalidWireDriver = invalidRosterIndex >= 0 ? rosterDrivers[invalidRosterIndex] : null;
+      const invalidWireShape = invalidWireDriver ? {
+        has_driver_id: !!String(invalidWireDriver.driver_id || '').trim(),
+        has_workspace_id: !!String(invalidWireDriver.workspace_id || '').trim(),
+        workspace_matches: String(invalidWireDriver.workspace_id || '').trim() === activeWorkspaceId,
+        has_name: !!String(invalidWireDriver.name || '').trim(),
+        matches_driver_crud_marker: String(invalidWireDriver.name || '').includes('DRIVER-CRUD-01'),
+        status: String(invalidWireDriver.status || ''),
+        effective_from: invalidWireDriver.effective_from || null,
+        effective_to: invalidWireDriver.effective_to || null,
+      } : null;
+      observations.push({
+        step: 'pwa-roster-adapter-read',
+        ok: adapterRoster?.ok === true,
+        code: String(adapterRoster?.code || ''),
+        details: adapterRoster?.details || null,
+        invalid_wire_shape: invalidWireShape,
+        driver_count: Array.isArray(adapterRoster?.drivers) ? adapterRoster.drivers.length : 0,
+      });
+      expect(adapterRoster?.ok, `PWA roster adapter failed closed: ${adapterRoster?.code || 'unknown'} ${JSON.stringify(adapterRoster?.details || {})} ${JSON.stringify(invalidWireShape || {})}`).toBe(true);
+
       // Per-run timestamp, not just a fixed marker: boot's restoreSession()
       // pulls this identity's existing server-side loads into the local
       // `loads` array BEFORE the test ever touches the form. A fixed marker
@@ -178,6 +227,33 @@ test(
       // passing on a load that was never actually re-saved.
       const marker = `${config.displayPrefix}LOAD-01-${Date.now()}`.slice(0, 60).toUpperCase().replace(/[^A-Z0-9-]/g, '');
       await page.evaluate(() => { if (typeof showPage === 'function') showPage('load'); });
+
+      const truckId = config.fleetA.activeTruckIds[0];
+      await page.waitForFunction(expectedTruckId => {
+        const select = document.getElementById('loadTruckSelect');
+        return !!(select && !select.disabled
+          && Array.from(select.options).some(option => option.value === expectedTruckId));
+      }, truckId, { timeout: 20_000 });
+      await page.locator('#loadTruckSelect').selectOption({ value: truckId });
+
+      await page.waitForFunction(() => {
+        const select = document.getElementById('loadDriverSelect');
+        return !!(select && !select.disabled
+          && Array.from(select.options).some(option => String(option.value || '').trim()));
+      }, undefined, { timeout: 20_000 });
+      const canonicalDriverIds = await page.locator('#loadDriverSelect option').evaluateAll(options => (
+        options.map(option => String(option.value || '').trim()).filter(Boolean).sort()
+      ));
+      expect(canonicalDriverIds.length).toBeGreaterThan(0);
+      const driverId = canonicalDriverIds[0];
+      await page.locator('#loadDriverSelect').selectOption({ value: driverId });
+      expect(await page.locator('#loadTruckSelect').inputValue()).toBe(truckId);
+      expect(await page.locator('#loadDriverSelect').inputValue()).toBe(driverId);
+      observations.push({
+        step: 'explicit-canonical-attribution-selected',
+        truck_id: truckId,
+        driver_id: driverId,
+      });
 
       await page.locator('#loadId').fill(marker);
       await page.locator('#loadedMiles').fill('612');
@@ -219,6 +295,8 @@ test(
       // unrecognized client fields instead of silently dropping them.
       expect(matches[0].pickupLocation).toBe('Buffalo, NY');
       expect(matches[0].deliveryLocation).toBe('Lancaster, PA');
+      expect(matches[0].truckId).toBe(truckId);
+      expect(matches[0].driverId).toBe(driverId);
       observations.push({
         step: 'verified-recovery-restore',
         stable_id_preserved: matches[0].id === addedLoadId,
@@ -226,6 +304,8 @@ test(
         gross_match: Number(matches[0].gross) === 1850,
         pickup_location_match: matches[0].pickupLocation === 'Buffalo, NY',
         delivery_location_match: matches[0].deliveryLocation === 'Lancaster, PA',
+        truck_id_match: matches[0].truckId === truckId,
+        driver_id_match: matches[0].driverId === driverId,
       });
     } finally {
       if (addedLoadId) {
