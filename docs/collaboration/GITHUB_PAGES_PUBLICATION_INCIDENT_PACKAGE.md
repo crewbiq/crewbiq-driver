@@ -165,3 +165,16 @@ current account are self-service only and directs the account to GitHub
 Community Discussions, GitHub Docs, and GitHub Skills. The ticket UI does not
 permit reopening/commenting. No GitHub-side Pages investigation or technical
 root-cause finding was provided.
+
+### GitHub Community escalation
+
+After explicit Product Owner confirmation, the same public technical evidence
+was published as GitHub Community Discussion `#206480`:
+
+`https://github.com/orgs/community/discussions/206480`
+
+The discussion is categorized under Other Feature Feedback, Questions, &
+Ideas with Discussion Type `Bug` and Feature/Topic Area `Pages`. A search for
+similar discussions was performed before publication. The initial
+authoritative state is `Unanswered`. No credential, customer record, private
+production data, attachment, or new production action was included.
