@@ -79,16 +79,16 @@ Phase:
 Production Deployment and Validation
 
 Status:
-PHASE A ACCEPTED - AWAITING PRODUCT OWNER AUTHORIZATION FOR PHASE B
+IN_PROGRESS - AUTHORIZED ACTIONS PAGES PHASE B
 
 Current owner:
-ChatGPT
+Codex
 
 Branch:
 agent/pre-base44-audit (driver); agent/account-driver-link-read (orchestrator); inactive immutable release evidence refs unchanged
 
 Product truth:
-Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79. Phase A commit f19f05129fee94004505fc321fcef925e5cd4d99 independently reviewed: fetched and read the actual workflow YAML and test file, verified all four SHA-pinned actions against live GitHub tag refs, and ran the seven contract tests myself in a local scratch copy (7 pass, 0 fail) rather than trusting the claimed result. Confirmed via the commit diff that exactly three files changed and the new test is wired into the canonical test:e2e:tooling command.
+Production remains stable on orchestrator 27e3463 and PWA main 86b8b4d/cache v79; Claude independently accepted Phase A and standing Product Owner delegation authorizes Codex to execute one exact Phase B attempt with immediate legacy-main rollback
 
 Latest implementation commit:
 f19f05129fee94004505fc321fcef925e5cd4d99
@@ -109,13 +109,13 @@ Queued non-blocking findings:
 CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains a coverage task.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-ChatGPT
+Codex
 
 Next bounded action:
-Decision required: Phase A (the non-production workflow and its contract tests) is independently reviewed, verified by running the tests directly, and accepted. Does the Product Owner authorize proceeding to Phase B - creating the pages-actions-v95-66a7985 control branch, adding its deployment-branch-policy entry, changing Pages build_type to workflow, and executing the one bounded deployment attempt under the plan's exact verification and rollback contract - or should this remain paused for further consideration? No control branch creation, Pages configuration change, environment policy change, deployment, merge, migration, or production-data write is authorized until this decision is made.
+Execute one Phase B attempt exactly per the accepted plan: add only the exact control-branch policy, set build_type workflow, create the absent control ref at reviewed commit f19f051, require the exact workflow/deployment and 13-file hashes, and restore legacy main immediately on any failure
 <!-- CURRENT_END -->
 
 
