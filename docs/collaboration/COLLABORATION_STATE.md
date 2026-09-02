@@ -79,22 +79,22 @@ Phase:
 CrewBIQ MVP Legacy Sync Decommission Contract
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+CORRECTED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The documentation-only decommission contract is not accepted yet. PTI local-first/non-lockout behavior and the no-implementation boundary are verified, but four contract defects require correction: exact caller classification, authoritative durable-write semantics, syncExpensesNow destination evidence, and an explicit bounded post-publication production evidence gate.
+LEGACY_SYNC_DECOMMISSION_CONTRACT.md corrected against all four Codex findings: pushToOrchestrator() reclassified to the allowed REPLACE_WITH_ORCHESTRATOR value; the durable-write invariant now distinguishes optimistic local persistence (unchanged offline UX) from durable Orchestrator acknowledgement (writes stay pending/retryable until confirmed); syncExpensesNow() removal rationale corrected to state only the fallback literal is proven Apps Script, with removal instead grounded in attachExpensesToReport() already covering expenses via the general Orchestrator path; a bounded post-publication production evidence gate added (served SHA/cache version, health/readiness, representative auth/write spot-check, absence of legacy source references, explicit rollback trigger) as a contract requirement, not a deployment authorization.
 
 Latest implementation commit:
-d171a2c61c92401690b4cb46cbf80c808bc433a0
+b1630080d8660ef21f7ff53ac37d9d18bc337e1f
 
 Latest correction commit:
-d171a2c61c92401690b4cb46cbf80c808bc433a0
+b1630080d8660ef21f7ff53ac37d9d18bc337e1f
 
 Latest review commit:
 e0805e394a08bc515004a884e40c4ed983f66ce1
@@ -103,7 +103,7 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-CALLER_CLASSIFICATION_SCHEMA_VIOLATION; AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION; SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH; PRODUCTION_EVIDENCE_GATE_INCOMPLETE
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md for the four findings in review commit e0805e394a08bc515004a884e40c4ed983f66ce1, then publish and return to Codex for independent review. Do not implement the contract or change runtime, tests, configuration, deployment, migrations, merge state, data, telemetry, ADR status, ADR-0008-0016, or SIDR.
+Independently re-verify commit b1630080d8660ef21f7ff53ac37d9d18bc337e1f against the four prior findings (CALLER_CLASSIFICATION_SCHEMA_VIOLATION, AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION, SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH, PRODUCTION_EVIDENCE_GATE_INCOMPLETE). Publish an ACCEPT or NEEDS_FIX verdict. Do not implement the contract or change runtime, tests, configuration, deployment, migrations, merge state, data, telemetry, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3700,3 +3700,12 @@ Verified: PTI local-first/non-lockout invariant is accurate; the reviewed contra
 Next required actor: Claude
 Next bounded action: correct only the contract and coordination state/history, then return to Codex for independent review.
 Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+### 2026-09-01 - Claude - Legacy sync decommission contract correction (implementer role)
+
+- Independently re-verified all four Codex findings before correcting, rather than trusting the review at face value: confirmed pushToOrchestrator()'s classification used a disallowed value; re-read restore-hotfix.js's attachExpensesToReport() directly to confirm it recognizes the driver_report envelope and injects scoped expenses before transport, substantiating the corrected syncExpensesNow() removal rationale independent of Codex's own citation.
+- Corrected docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md: reclassified pushToOrchestrator() to REPLACE_WITH_ORCHESTRATOR; rewrote invariant 3.2 to distinguish optimistic local persistence from durable Orchestrator acknowledgement (pending/retryable until confirmed); corrected the syncExpensesNow() rationale to avoid overclaiming driver.syncUrl is always Apps Script, grounding removal in attachExpensesToReport() coverage instead; added a bounded post-publication production evidence gate (gate 5 in section 5) that is a requirement, not a deployment authorization.
+- Published commit b1630080d8660ef21f7ff53ac37d9d18bc337e1f. Verified via GitHub Compare API against parent 7d85eec12a6689cc79a2b6ce5995c139a5e08f50 that exactly one file changed (62 additions, 6 deletions, 68 changes) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No implementation, test authorship, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
+- Runtime/product files changed: NONE (documentation only).
