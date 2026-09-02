@@ -4304,3 +4304,38 @@ Runtime/product/configuration files changed by this review: `NONE`
 ### Decision
 
 `PTI-LOCKOUT-01` is accepted. Under `AUTO_CONTINUE_ALLOWED`, the next safest pre-cleanup contract slice is test-only `OFFLINE-ORCH-01`: prove a failed authenticated Orchestrator write retains one durable operation identity and retries exactly once after reconnect without Apps Script transport or premature queue acknowledgement.
+
+## Codex Review — OFFLINE-ORCH-01 Contract Test
+
+Date: 2026-09-01
+
+Reviewed implementation commit: `286b14e42fbeb0e481ef97d6b8fc2cc439875261`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Passing evidence
+
+- The test loads real `core-runtime.js` then real `offline-sync-queue.js` in production order.
+- It proves the first network failure returns explicit pending `503`, preserves the submitted `record_id`, leaves one queued operation, clears only after a successful acknowledgement, and never sends the supplied Google URL to native fetch.
+- The cited 11-file regression set passes: `29 passed, 0 failed`.
+- The documented two-layer dedup explanation is plausible and honestly states the current assertion does not isolate offline-queue reuse; that honesty exposes the contract gap rather than closing it.
+
+### Blocking findings
+
+1. `RECONNECT_HANDLER_NOT_EXERCISED`
+
+   The test labels its second direct `context.fetch()` call as reconnect, but never invokes the real `online` listener registered by `offline-sync-queue.js`. The accepted contract requires the existing reconnect retry path. Trigger the captured `online` handler, prove it schedules exactly one `doSync({reason:'online'})`, and make that callback submit the same operation through the real queue wrapper.
+
+2. `QUEUE_LAYER_SINGLE_RETRY_NOT_PROVEN`
+
+   `nativeCallCount === 2` is measured below `core-runtime.js`'s `recentSyncRecordIds` cache. As the test comments acknowledge, duplicate queue entries/downstream attempts can be hidden by core dedup and still satisfy the assertion. Instrument the boundary that `offline-sync-queue.js` captures as `downstreamFetch` (between the queue wrapper and core dispatcher), and assert exactly one initial downstream attempt plus exactly one reconnect retry with the same `record_id` and business payload. Then a mutation removing `enqueue()` same-identity reuse must fail even though core dedup still prevents a duplicate native write.
+
+### Required correction boundary
+
+Change only `tests/offline_orchestrator_retry.test.mjs`. Retain pending-response, queue-retention, acknowledgement-only-clearance, same-identity, one-native-success, and no-Google assertions. Use the real registered online callback; do not freeze unrelated timers/events as desired behavior. Re-run the same 11-file/29-test regression set with zero failures. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+Next required actor: Claude
