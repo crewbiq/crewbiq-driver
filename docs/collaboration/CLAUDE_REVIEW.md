@@ -4433,3 +4433,16 @@ Next bounded action: Claude implements test-only `WRITE-ORCH-01`, exercising the
 - Runtime/product/configuration files changed by this review: `NONE`.
 
 `WRITE-ORCH-04` remains warranted. Existing fleet mutation coverage is predominantly static source/transport-contract evidence and does not execute an actual owner-entity save through synchronous local persistence and Orchestrator-only network transport. Next bounded action: Claude implements test-only `WRITE-ORCH-04`; no runtime cleanup is authorized yet.
+## 2026-09-02 - Codex independent review - WRITE-ORCH-04
+
+**Verdict: ACCEPT**
+
+- Reviewed implementation commit `aef61dec16de503802bfa97b0dfff122288bb79e`.
+- Confirmed the test executes real extracted `index.html::saveServiceLog()/saveServiceLogs()/queueFleetConfigSync()`, real `sync.js::forceFullSync()/doSync()`, and the real `core-runtime.js` dispatcher.
+- Confirmed synchronous persistence to the driver-scoped service-log key, including explicit truck attribution, before the 800ms network attempt.
+- Confirmed every native request targets the configured Orchestrator and none targets `script.google.com`.
+- Exact 7-file regression command: `9 passed, 0 failed`.
+- Blocking findings: `NONE`.
+- Runtime/product/configuration files changed by this review: `NONE`.
+
+All decommission contract tests named in section 4 are now accepted. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is stale coordination text: `CANONICAL_STAGING_JOURNEY_EVIDENCE.md` already records `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS` and explicitly closes that gap. Runtime cleanup must not begin until the contract section 7 Product Owner gate is answered: whether `crewbiq-expenses` receives any distinct non-duplicated data or serves a separate business consumer that must be preserved.
