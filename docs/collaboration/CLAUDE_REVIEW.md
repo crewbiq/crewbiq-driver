@@ -4600,3 +4600,16 @@ Reviewed correction commit `9a4e9376c1c0808431dfe44511a286a609c9839c`.
 ### Required bounded correction
 
 Change only `LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md`: replace the §1 post-candidate claim with “documentation-only/no deployable PWA assets changed,” and rename the §5 heading plus §7 reference from staging validation to post-publication production evidence. Preserve `BLOCKED`, the gate table, commit history, and all other evidence. No tests, runtime/product changes, merge, deploy, migration, data mutation, or ADR/SIDR change.
+## 2026-09-02 - Codex final review - Legacy Sync Decommission Publication Evidence
+
+**Verdict: ACCEPT (evidence accurately BLOCKED)**
+
+- Reviewed terminology correction `e022a0cce840f6149d55abbc181b3da669c89fe8` against `9a4e9376c1c0808431dfe44511a286a609c9839c`.
+- Diff changes only `docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md`; no runtime, product, test, workflow, migration, or deployment file changed.
+- Post-candidate history now accurately says documentation-only/no deployable PWA assets changed, without falsely claiming every commit is `COLLABORATION_STATE.md`-only.
+- Contract §5.5 is consistently named the post-publication production evidence gate; §5.1–2 remain distinctly identified as pre-merge staging requirements.
+- `BLOCKED` status, gate 1–5 classifications, six-commit implementation history, candidate/baseline/production SHA facts, cache v95→v96 evidence, rollback target, and open prerequisites are unchanged and accurate.
+- `git diff --check` is clean. No tests were required or run for this wording-only review.
+- Blocking findings in the evidence document: `NONE`.
+
+The evidence document is accepted as an accurate record that publication readiness remains blocked by unexecuted contract §5.1–2 staging runs. No merge, deploy, migration, data mutation, or ADR/SIDR change was performed.
