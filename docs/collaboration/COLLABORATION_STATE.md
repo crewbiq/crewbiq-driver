@@ -75,33 +75,20 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Legacy Sync Decommission Pre-Merge Staging Gate Evidence
-
-Status: PUBLISHED / AWAITING CODEX REVIEW
-
-Current owner: Codex
-
+Phase: Pre-Main Publication CI Cache Contract Correction
+Status: AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
-Product truth: Corrected the false gate-1 workflow-reference claim and closed gate 1 with real CI execution evidence per Codex's authorized closure. Added exactly one new step ("Run legacy sync decommission contract set") to the EXISTING .github/workflows/e2e-harness-manual.yml (no new workflow file, no runtime/product/package.json/test file changed), running the exact 9 accepted contract files verbatim via node --test, published as commit b9e44f1f (diff: +3-0, one file). Re-verified this commit remains code-identical to candidate 5c6cfdaa outside that one intentional workflow-file change. Dispatched the updated workflow: run 33664713713 (https://github.com/crewbiq/crewbiq-driver/actions/runs/33664713713), head_sha b9e44f1f, started 2026-09-02T18:01:56Z, completed 2026-09-02T18:02:54Z, conclusion success. The new step reported verbatim in the job log: "# tests 15", "# pass 15", "# fail 0" - all 9 files' subtests present by name (RESTORE-ORCH-01 x3, SW-NO-LEGACY-01 x5, plus the 4 remaining file-level entries and 3 write_orchestrator_* files), matching the accepted count exactly. Gate 2 evidence reproduced unchanged from the already-Codex-accepted run 33659423754 (tooling 325/325 on a real CI runner; 18/18 live staging role-mission scenarios including AUTH-01, LEGACY-01, OFFLINE-01, TENANT-01). Also corrected the prior document's false claim precisely: pwa-auth-contract.yml does reference a sed-derived copy of orchestrator_transport.test.mjs (not the file itself, and that workflow is independently stale, still asserting crewbiq-driver-v94 in sw.js) - documented accurately rather than repeated. Overall verdict: STAGING_GATE_PASS - both contract section 5 gates 1 and 2 now satisfied with real, independently-verifiable execution evidence.
-
+Product truth: current main
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-
 Latest correction commit: f99502643e82ceb8659dc12cabecb213c4029e2c
-
-Latest review commit: 5230aae60dee1136eb96de73b1ef15a3d785b0a6
-
-Latest state commit: (pending this publication)
-
-Blocking findings: NONE (pending Codex review of the closed staging gate)
-
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. Pinned v96 production publication workflow absent (per Product Owner direction, should use the proven main-based/legacy-branch-source path, separate not-yet-started work). GitHub Discussion #206480 (Pages Actions-deploy 404) remains recorded as known non-blocking platform issue. pwa-auth-contract.yml is independently stale (still targets crewbiq-driver-v94) - out of scope for this correction, flagged for whoever owns that workflow.
-
+Latest review commit: a4a5e3369181dccf1380b29170c2219d2eb4b4e9
+Latest state commit: 52b4f41204cac56a74a727ea1033ff17af44eafe
+Blocking findings: PWA_AUTH_CI_CACHE_ASSERTION_STALE_FOR_V96
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; pinned v96 main-based production publication mechanism absent; GitHub Discussion #206480
 Decision gate: AUTO_CONTINUE_ALLOWED
-
-Next required actor: Codex
-
-Next bounded action: Independently review docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md (commit f99502643e82ceb8659dc12cabecb213c4029e2c) and workflow runs 33664713713 and 33659423754 directly: confirm the new gate-1 step ran the exact 9 accepted files verbatim (not a derivative or subset), confirm the 15/15 result is genuine and the run's head_sha is code-identical to the candidate outside the one authorized workflow-file change, and confirm gate 2's reproduced evidence is accurately carried over. Publish an updated verdict - STAGING_GATE_PASS confirmed, or NEEDS_FIX naming any remaining inaccuracy. If confirmed, the next real step (not authorized by this cycle) is establishing the pinned v96 production publication mechanism via the proven main-based path, which requires its own separate authorization and review. No production deploy, merge to main, migration, data mutation, further workflow file change, or ADR/SIDR status change is authorized regardless of verdict.
+Next required actor: Claude
+Next bounded action: Change only the stale crewbiq-driver-v94 assertion to crewbiq-driver-v96 in the existing .github/workflows/pwa-auth-contract.yml; do not alter triggers, jobs, runtime/product/package/test files, merge, or deploy. Run only the narrow existing workflow/service-worker contract checks, publish exact results, update CURRENT/HISTORY, and hand to Codex for review.
 <!-- CURRENT_END -->
 
 
@@ -4277,3 +4264,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit f99502643e82ceb8659dc12cabecb213c4029e2c on top of b9e44f1f. Verified via GitHub Compare API that the diff is exactly the one document, fully replaced (+99-128).
 - Per the role-swap protocol: Next required actor: Codex, for independent review of both the workflow change and the final evidence document.
 - No production deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred. The one change (adding a step to an existing, already-authorized-to-modify workflow) was explicitly authorized by Codex's own bounded action in the prior review cycle.
+### 2026-09-02 — Codex accepts legacy sync decommission staging gate
+
+- Verdict: ACCEPT; final staging verdict STAGING_GATE_PASS.
+- Review commit: $review.
+- Gate 1: Actions run 33664713713, job 100363494989, exact nine files, 15/15 passed with zero failures.
+- Gate 2: Actions run 33659423754, tooling 325/325, harness self-test 1/1, live staging journeys 18/18.
+- Candidate identity: no unauthorized differences from 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc; only the authorized workflow step and collaboration documentation differ.
+- New bounded prerequisite authorized: correct only the stale v94 cache assertion in pwa-auth-contract.yml to accepted v96 before main-promotion CI is relied upon.
+- Runtime/product files changed by review: NONE.
+- Next actor: Claude.
