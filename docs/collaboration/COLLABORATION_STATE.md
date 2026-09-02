@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Restore Orchestrator Contract Test
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-OFFLINE-ORCH-01 is CLOSED / ACCEPT by Codex review 1ec755ba29c25c545f4eae244729827367b286a1: same record_id and business payload survive the real reconnect path, queue-layer retry count is isolated, and 29/29 regressions pass. Together with PTI-LOCKOUT-01 this closes the local-first/offline test slice. Before runtime cleanup, the next slice is test-only RESTORE-ORCH-01 through actual auth/restore/startup caller composition.
+Added tests/restore_orchestrator_transport.test.mjs (RESTORE-ORCH-01). Extracts the bounded auth-transport slice of index.html (getSavedSessionToken through authPost, inclusive) by source location - the same section()-slicing convention already used by index-startup-composition.test.mjs and auth-session-startup-contract.test.mjs - and executes it in a vm alongside the real core-runtime.js dispatcher and the real startup-session.js coordinator. Proves: the real authPost() (login/restore/logout/signup) reaches only the configured Orchestrator, never script.google.com or crewbiq-expenses; the real startup coordinator, wired to this real authPost() (not the mock the existing coordinator test uses), performs exactly one auth restore and one delayed pull per startup with identity from the actual Orchestrator response reaching applyAuthRestoreData; PTI gating/graceful degradation preserved. Verified via mutation that removing core-runtime.js's auth_login dispatch branch makes the test fail with an actual attempted call to script.google.com. Full 10-file/22-test regression set passes clean.
 
 Latest implementation commit:
-6f46ce78de20bd3b506580d92a488fab417daada
+52d2ad9390e440f4fd84fb8531215eb75b475b0d
 
 Latest correction commit:
-6f46ce78de20bd3b506580d92a488fab417daada
+52d2ad9390e440f4fd84fb8531215eb75b475b0d
 
 Latest review commit:
 1ec755ba29c25c545f4eae244729827367b286a1
@@ -103,7 +103,7 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the new test)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope. Newly observed: the no-duplicate-write guarantee for offline retries is defended at two independent layers (offline-sync-queue.js identity reuse + core-runtime.js recentSyncRecordIds cache) - not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement only RESTORE-ORCH-01 from the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md using existing lightweight Node/vm and inline-script extraction conventions; do not add a browser framework. Exercise actual authPost/restoreSession/startup coordinator caller composition from a clean localStorage state with a supplied legacy sync URL, using real core-runtime.js and restore/startup adapters. Cover login and session restore (and signup/logout only where the same bounded harness naturally supports them); assert native requests reach only the configured/default Orchestrator endpoints, never script.google.com/crewbiq-expenses, session/identity are persisted before optional fleet restore/render settlement, and one startup invocation causes no duplicate auth restore or delayed pull. Preserve PTI gating and graceful degradation. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry. Add minimal existing npm/CI wiring only if required by repository convention. Run the new test plus directly relevant auth/startup/full-restore/transport/index-parse/load-order/PTI/offline regressions, publish, and return to Codex.
+Independently re-verify commit 52d2ad9390e440f4fd84fb8531215eb75b475b0d: run the new test and the cited 10-file regression set, confirm the extracted auth-transport slice and dispatcher/coordinator wiring genuinely exercise real index.html/core-runtime.js/startup-session.js code rather than restating claims about them. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, WRITE-ORCH-01..04 (the remaining open contract test from the accepted decommission contract) or the dead-literal/dedup-simplification cleanup itself, or Product Owner scope routing, becomes the next candidate bounded action - state which. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3973,3 +3973,14 @@ Runtime/product/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/restore/startup caller composition; no runtime cleanup.
+
+### 2026-09-01 - Claude - RESTORE-ORCH-01 contract test (implementer role)
+
+- Implemented the authorized RESTORE-ORCH-01 test using the local clone: read index.html's authPost()/getAuthSyncUrl()/authLogin() and their direct dependencies in full first to identify a cleanly-extractable, self-contained source slice (getSavedSessionToken through authPost, ~100 lines, external deps limited to document/localStorage/driver/K/DEFAULT_SYNC_URL/fetch), following the existing section()-slicing convention from index-startup-composition.test.mjs and auth-session-startup-contract.test.mjs rather than inventing a new extraction approach or loading all of index.html.
+- Wrote a test extracting that slice via vm.runInContext alongside the real core-runtime.js (loaded first, matching production's actual load order) and the real startup-session.js coordinator, with deps.authPost wired to the REAL extracted authPost() rather than the mock fixture the existing coordinator test uses.
+- Iteratively fixed three real integration issues surfaced only by running this end-to-end, not by static reading: (1) the native fetch mock needed real Orchestrator response shapes for /v1/auth/login, /v1/auth/bootstrap, /v1/me, /v1/fleet/config, /v1/auth/logout; (2) start()'s guard (savedSession && (savedUrl || driver.syncUrl)) requires a truthy savedUrl on a clean device with no driver yet; (3) the real adaptRestore() response spreads legacyProfile() fields directly (data.crewId), not a nested data.user object, and showApp()'s delayed-pull gate requires driver.syncUrl to be truthy - both had to match the real code's actual shape, not an assumed one.
+- Verified the test has teeth: temporarily removed core-runtime.js's auth_login dispatch branch, confirmed the test correctly failed with an ACTUAL attempted native call to script.google.com (not just an assertion mismatch), restored via git checkout.
+- Ran the full 10-file/22-test regression set (restore_orchestrator_transport, startup-session-coordinator, auth-session-startup-contract, index-startup-composition, full_restore_transport, orchestrator_transport, pti_lockout_orchestrator_unavailable, offline_orchestrator_retry, dosync_orchestrator_dedup, hotfix-load-order-contract) - all pass, zero regressions.
+- Published commit 52d2ad9390e440f4fd84fb8531215eb75b475b0d. Verified via GitHub Compare API against parent 4e075dd6879b2ce141e5d7b57ba8825e508d32d1 that exactly one new file was added (273 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
