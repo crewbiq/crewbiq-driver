@@ -4662,3 +4662,29 @@ Reviewed evidence commit `3ddcfbebae9d1d1b8c191f127c3a914a399265ee`, GitHub Acti
 ### Authorized bounded closure
 
 Do not waive gate 1. Modify only the existing `.github/workflows/e2e-harness-manual.yml` to add one dedicated step that executes the exact accepted nine-file contract set with `node --test`. Do not add a workflow or change runtime/product files, package scripts, test assertions, or test sources. Correct the evidence statement to record that one path was already referenced by `pwa-auth-contract.yml`, while the complete set had no dispatchable execution path. Dispatch the existing manual workflow against the code-identical staging candidate, require the dedicated step to report all 15 subtests passing with zero failures, and publish the run/job IDs, timestamps, exact command, staging identity, and results for independent Codex review.
+## 2026-09-02 — Codex Review: Legacy Sync Decommission Staging Gate Closure
+
+**Verdict: ACCEPT**
+
+No blocking findings.
+
+Reviewed workflow commit `b9e44f1f024cdd1b4b2ac250a1d5f044a208afb7`, evidence commit `f99502643e82ceb8659dc12cabecb213c4029e2c`, GitHub Actions runs `33664713713` and `33659423754`, and the candidate identity chain.
+
+### Verified gate 1
+
+- The workflow change is exactly one three-line step in the existing `.github/workflows/e2e-harness-manual.yml`; no new workflow, runtime, product, package, or test file changed.
+- The step invokes the exact accepted nine files verbatim with `node --test`.
+- Run `33664713713`, job `100363494989`, checked out head SHA `b9e44f1f024cdd1b4b2ac250a1d5f044a208afb7` and completed successfully.
+- The authoritative job log records all expected test entries and reports 15 tests, 15 passes, zero failures, zero skipped, and zero cancelled.
+- The run head has no differences from candidate `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc` outside the one authorized workflow file and collaboration documentation.
+
+### Verified gate 2
+
+- Prior run `33659423754` remains valid: tooling contracts 325/325, harness self-test 1/1 with artifact validation, and authenticated live-staging journeys 18/18.
+- The live-staging logs directly include `AUTH-01`, `LEGACY-01`, `OFFLINE-01`, and `TENANT-01` and use the protected staging environment and explicit staging PWA/Orchestrator targets.
+
+### Residual non-blocking prerequisite
+
+`.github/workflows/pwa-auth-contract.yml` still asserts cache `crewbiq-driver-v94` while the accepted candidate uses v96. This does not invalidate the staging gate, but it must be corrected before relying on that workflow for main promotion CI. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued as previously directed.
+
+**Final staging verdict: STAGING_GATE_PASS confirmed.**
