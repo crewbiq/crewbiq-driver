@@ -76,21 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Final Legacy-Path Removal
+Legacy Sync Decommission Final Static-Gate Correction
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / CODEX REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Corrected all five blocking findings from Codex's third NEEDS_FIX on commit 8e0c181e. (1) DEFAULT_SYNC_URL_COUPLING_REMAINS: renamed DEFAULT_SYNC_URL to ORCHESTRATOR_BASE_URL throughout index.html, and went further than a rename - authPost() no longer accepts a syncUrlOverride parameter at all (it always resolves against ORCHESTRATOR_BASE_URL internally), removing the overridable-abstraction shape itself, not just its name. All former callers (authLogin, authSignup, logoutDevice, restoreFromCloud, the 3 workspace-read adapters) simplified to match; several now-dead local syncUrl variables and their `if(!syncUrl)` guards removed along with them since they'd become permanently-true no-ops referencing a variable that no longer existed. startup-session.js's restoreSession()/showApp()/start() simplified correspondingly. (2) DEDICATED_EXPENSE_SYNC_REMAINS: syncExpensesNow() deleted outright from restore-hotfix.js (the first cleanup commit had only repointed its fallback URL, never removed the function itself - a real gap that persisted through two review rounds undetected until this one). scheduleExpenseSync() now debounce-triggers forceFullSync() - deliberately not doSync(), since doSync() skips the write entirely when nothing else is pending, which would have silently stranded an expense-only save; attachExpensesToReport() already injects this driver's scoped expenses into every driver_report call the general sync path makes, confirmed via source tracing (payload.type at the top level of pushToOrchestrator()'s wrapped body matches attachExpensesToReport()'s own routedFetch() interception check). (3) REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED: syncPTIEntry() retargeted from driver.syncUrl onto sync.js's own getOrchestratorSyncUrl() resolver - traced core-runtime.js's dispatcher first to confirm this preserves the exact same top-level body.type === 'pti_report' match and interception path (unlike a naive retarget onto pushToOrchestrator()'s wrapped envelope shape, which would have sent an unproven wire format never exercised against the real backend - deliberately avoided). Also found and fixed a second, independent ad-hoc syncUrl resolution in logoutDevice() (`(driver&&driver.syncUrl)||localStorage.getItem(K+'_savedSyncUrl')||''`) that getAuthSyncUrl()'s removal in the prior round had missed entirely, since it didn't call getAuthSyncUrl() by name. (4) STALE_GOOGLE_PRIMARY_UI_COPY: fixed the literal user-facing lie "Optional support setting. Google Apps Script sync remains primary." next to the Orchestrator Sync URL field - this string predated the entire decommission project and had never been touched by any prior round. (5) SW_NO_LEGACY_STATIC_GATE_INCOMPLETE: broadened SW-NO-LEGACY-01's PWA-wide static scan from 2 hostname-only checks to 5 constructs (added the crewbiq-expenses literal and getAuthSyncUrl()/syncExpensesNow() function DEFINITIONS specifically, not mere name mentions, so the gate does not choke on legitimate historical-note comments that name the removed functions) - this broadened scan is what caught finding (4) above.
-
-Ran the full accepted 9-file contract set (15/15) and npm run test:e2e:tooling (325/325) before publishing; the full tooling run surfaced 5 additional pre-existing static-contract test regressions from this same change (stale source-text markers in tests/auth-session-startup-contract.test.mjs and tests/index-startup-composition.test.mjs referencing authPost()'s and start()'s old signatures) - all fixed and re-verified.
+Runtime removal in aeaee2d6 is accepted; one test-only static-gate omission remains.
 
 Latest implementation commit:
 aeaee2d6ad300edec642d2a1694e5385464cdc00
@@ -99,25 +97,25 @@ Latest correction commit:
 aeaee2d6ad300edec642d2a1694e5385464cdc00
 
 Latest review commit:
-0da31eee5675a9c815c849287391fde90eee8ace
+b7bef201d100f45d7d5f4e54f089aa02c5752f16
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of this correction)
+SW_NO_LEGACY_DEFAULT_CONSTANT_GATE_MISSING
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations and are not part of this correction. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. Unrelated stale prototype hash pins (tests/ui-shell-prototype.test.mjs) remain with their owning track - diverge further with each round's real index.html edits, expected, not in scope. driver.syncUrl the FIELD (as distinct from the removed DEFAULT_SYNC_URL/getAuthSyncUrl abstraction) is deliberately retained: still legitimately read by the Advanced Settings display field and by startup-session.js/index.html UI-prefill code, all harmless.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit aeaee2d6ad300edec642d2a1694e5385464cdc00 against baseline 174cc795: confirm the diff is narrow and matches only the described edits (index.html +28-48, restore-hotfix.js +19-35, startup-session.js +9-13, sync.js +5-2, and 8 test files), confirm no encoding corruption, confirm authPost()'s signature simplification is genuinely behavior-preserving for every caller, confirm syncExpensesNow()'s removal truly has no distinct behavior lost (attachExpensesToReport()'s injection point reached by every doSync()-triggered write), confirm syncPTIEntry()'s retarget preserves the exact same core-runtime.js interception path rather than introducing an unproven wire shape, and confirm the broadened SW-NO-LEGACY-01 gate's construct list is itself complete against the full accepted decommission contract's REMOVE/REPLACE_WITH_ORCHESTRATOR table. Re-run the full regression (accepted 9-file contract set plus npm run test:e2e:tooling). Publish an ACCEPT or NEEDS_FIX verdict. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
+Change only tests/sw_no_legacy_hostname.test.mjs so the existing PWA-wide LEGACY_CONSTRUCTS gate also rejects the DEFAULT_SYNC_URL identifier. Preserve all current checks, make no runtime/product changes, run the accepted 9-file contract set and npm run test:e2e:tooling, publish, and hand back to Codex.
 <!-- CURRENT_END -->
 
 
@@ -4153,3 +4151,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit aeaee2d6ad300edec642d2a1694e5385464cdc00 on top of 174cc795. Verified via GitHub Compare API that the diff is exactly the 12 described file changes with no unintended scope: index.html +28-48, restore-hotfix.js +19-35, startup-session.js +9-13, sync.js +5-2, tests/auth-session-startup-contract.test.mjs +5-6, tests/driver_projections.test.mjs +1-1, tests/e2e/staging-expenses-lifecycle.spec.mjs +13-8, tests/index-startup-composition.test.mjs +1-1, tests/pti_lockout_orchestrator_unavailable.test.mjs +12-11, tests/restore_orchestrator_transport.test.mjs +22-24, tests/sw_no_legacy_hostname.test.mjs +25-3, tests/write_orchestrator_expense_save.test.mjs +35-7.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
+
+### 2026-09-02 - Codex fourth review: final removal needs one static-gate correction
+
+- Reviewed implementation eaee2d6ad300edec642d2a1694e5385464cdc00; verdict NEEDS_FIX.
+- Runtime removal accepted; no runtime/product defect remains in this review.
+- Blocking finding: SW_NO_LEGACY_DEFAULT_CONSTANT_GATE_MISSING.
+- Evidence: accepted contract set 15/15; tooling 325/325.
+- Review commit: $reviewSha.
+- Next actor: Claude for the one-file test-only correction.
