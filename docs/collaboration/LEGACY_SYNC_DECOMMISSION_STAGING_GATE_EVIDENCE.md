@@ -1,20 +1,16 @@
 # Legacy Sync Decommission — Pre-Merge Staging Gate Evidence
 
-Status: **STAGING_GATE_BLOCKED** (partial — one gate genuinely closed with
-real execution evidence, one gate remains open with a precisely named
-infrastructure limitation, not a vague or overclaimed one)
+Status: **STAGING_GATE_PASS**
 
-This corrects the prior version of this document (commit `4082970c`),
-which Codex correctly rejected: `LOCAL_CHECKOUT_IS_NOT_STAGING_EXECUTION`
-and `STAGING_EXECUTION_EVIDENCE_INCOMPLETE`. Running tests against a local
-checkout verified byte-identical to what's deployed on staging is not the
-same as executing them in a real, independent, verifiable staging/CI
-context — even with that limitation disclosed. This version replaces that
-approach with genuine execution evidence: two real GitHub Actions job runs,
-with real run IDs and timestamps, one of them making live network calls
-against the actual staging deployment.
+This corrects the prior version of this document (commit `3ddcfbeb`),
+which Codex reviewed and found one blocking evidence error:
+`GATE1_EXISTING_WORKFLOW_REFERENCE_MISSTATED` — the claim "no existing
+workflow references any of the 9 accepted contract-set paths" was false
+(see §4). Gate 2's evidence from that prior version stands and is
+reproduced here unchanged; gate 1 is now closed with real CI execution
+evidence per Codex's authorized closure.
 
-## 1. Candidate and staging target (unchanged from the prior version)
+## 1. Candidate and staging target (unchanged)
 
 - **Candidate:** `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc` on
   `agent/pre-base44-audit`.
@@ -22,128 +18,103 @@ against the actual staging deployment.
   `staging` / service `sublime-learning`
   (`https://crewbiq-driver-staging.up.railway.app/`), Orchestrator
   counterpart `crewbiq-orchestrator-crewbiq-orchestrator-staging.up.railway.app`.
-  Confirmed still serving `crewbiq-driver-v96` and reachable (unchanged
-  from the prior version's §3).
+  Re-confirmed still serving `crewbiq-driver-v96` at time of this
+  correction.
 
-## 2. What was actually run, and by what mechanism
+## 2. Correction: the CI-wiring gap, precisely stated and closed
 
-Dispatched the **existing** `E2E Harness Manual`
-(`.github/workflows/e2e-harness-manual.yml`) workflow via
-`gh workflow run` — no new or modified workflow file. This is the only
-workflow in this repository that (a) runs in a real, independent GitHub
-Actions execution context (not a local machine) and (b) has an
-authenticated path to the real staging environment via GitHub's `staging`
-environment secrets.
+The prior version's claim was corrected to what is actually true:
+`.github/workflows/pwa-auth-contract.yml` (a `pull_request`/`push:main`
+-triggered workflow, never run against this branch's commits since no PR
+was opened) *does* reference one of the 9 accepted files —
+`tests/orchestrator_transport.test.mjs` — but only via a `sed`-transformed
+temporary copy (`s#../core.js#../core-runtime.js#`), not the file itself,
+and via plain `node`, not `node --test`. The other 8 accepted files are
+not referenced by that workflow or any other. That workflow is also
+independently stale (its final step still asserts `crewbiq-driver-v94`
+in `sw.js`), reinforcing that it was never a live gate for this branch.
 
-- **Run:** [`33659423754`](https://github.com/crewbiq/crewbiq-driver/actions/runs/33659423754)
-- **Trigger:** `workflow_dispatch`, ref `agent/pre-base44-audit`,
-  inputs `run_staging_journeys=true`, `mission_role=all`,
-  `app_deployment_commit=03f1d67edbae92b642ff3d2a88ed15e4308cad94`
-  (the commit confirmed live on staging).
-- **Run commit (`head_sha`):** `b492943eee5df38dbbf7ae8568d55bccf3c064ca`.
-  Independently verified (`git diff --stat 5c6cfdaa b492943e -- .
-  ':!docs/collaboration'`, empty output) to be code-identical to the
-  candidate — the branch advanced by further `docs/collaboration`-only
-  commits between the candidate and this dispatch, none of which touch
-  runtime/product/test files.
-- **Started:** 2026-09-02T17:10:24Z. **Completed:** 2026-09-02T17:12:42Z.
-  **Conclusion:** `success` (both jobs).
+**Per Codex's authorized closure**, added exactly one new step to the
+**existing** `.github/workflows/e2e-harness-manual.yml` workflow (no new
+workflow file, no runtime/product/package.json/test file changed):
 
-## 3. Gate 2 — full accepted acceptance suite: SATISFIED, with real evidence
+```yaml
+- name: Run legacy sync decommission contract set
+  run: node --test tests/orchestrator_transport.test.mjs tests/dosync_orchestrator_dedup.test.mjs tests/pti_lockout_orchestrator_unavailable.test.mjs tests/offline_orchestrator_retry.test.mjs tests/restore_orchestrator_transport.test.mjs tests/write_orchestrator_load_save.test.mjs tests/write_orchestrator_expense_save.test.mjs tests/write_orchestrator_owner_entity_save.test.mjs tests/sw_no_legacy_hostname.test.mjs
+```
 
-Two independent pieces of real execution evidence, both from this run:
+Placed in the `harness` job immediately after the existing
+"Run test-tooling contracts" step. Published as commit
+`b9e44f1f024cdd1b4b2ac250a1d5f044a208afb7`
+(diff: `.github/workflows/e2e-harness-manual.yml` `+3 -0`, verified via
+GitHub Compare API). Re-confirmed after publishing that this commit is
+still code-identical to the candidate outside this one workflow file
+(`git diff --stat 5c6cfdaa b9e44f1f -- . ':!docs/collaboration'
+':!.github/workflows/e2e-harness-manual.yml'` → empty).
 
-**(a) `harness` job — `npm run test:e2e:tooling`, run on a real GitHub
-Actions runner** (not a local machine): step "Run test-tooling contracts"
-reported `# tests 325`, `# pass 325`, `# fail 0` verbatim in the job log.
-This is the full existing accepted acceptance suite, executed
-independently of any machine I have local access to, with a verifiable
-run ID and timestamp.
+## 3. Gate 1 — accepted §4 contract set: now SATISFIED, with real CI evidence
 
-**(b) `staging-journeys` job — `npm run test:e2e:missions -- --role=all`,
-making real authenticated network calls against the live staging
-Orchestrator and PWA** using the `staging` GitHub environment's real
-credentials (`CREWBIQ_E2E_FLEET_A/B_EMAIL/PASSWORD`,
-`CREWBIQ_E2E_BASE_URL`, `CREWBIQ_E2E_ORCHESTRATOR_URL`). All 18 scenarios
-across all 5 role sets passed against live staging:
+Dispatched the updated workflow: [`run 33664713713`](https://github.com/crewbiq/crewbiq-driver/actions/runs/33664713713),
+`workflow_dispatch` on `agent/pre-base44-audit`, `head_sha`
+`b9e44f1f024cdd1b4b2ac250a1d5f044a208afb7` (code-identical to the
+candidate per §2). Started 2026-09-02T18:01:56Z, completed
+2026-09-02T18:02:54Z, conclusion `success`.
 
-| Role | Scenarios | Result |
-|---|---|---|
-| fleet | 6 | 6 passed (31.9s) |
-| driver | 9, including `AUTH-01 login preserves application role and effective owner` and `LEGACY-01 Orchestrator failure does not start silent Google fallback` | 9 passed (40.5s) |
-| canonical | 1 | 1 passed (4.6s) |
-| recovery | 1, `OFFLINE-01 failed authenticated mutation retries with one durable operation identity` | 1 passed (4.2s) |
-| security | 1 | 1 passed (5.2s) |
+The new "Run legacy sync decommission contract set" step reported,
+verbatim in the job log:
 
-`AUTH-01`, `LEGACY-01`, and `OFFLINE-01` are the **exact named scenarios**
-contract §5 gate 2 cites as precedent ("the same one already used for
-prior `AUTH-01`/`TENANT-01`/`OFFLINE-01`/etc. evidence"). `LEGACY-01`
-specifically ("Orchestrator failure does not start silent Google fallback")
-is directly on-topic for this decommission and passed against live staging
-running the candidate's code.
+```
+# tests 15
+# pass 15
+# fail 0
+```
 
-**Gate 2 is satisfied**: a real staging run of the full existing accepted
-acceptance suite (both its CI-executed tooling half and its live-network
-role-mission half) passed with zero regressions, with a genuine,
-independently-verifiable run ID and timestamp.
+All 9 files' subtests are present in the log by name, including the exact
+contract-test identifiers this cycle's decommission work established:
+`RESTORE-ORCH-01` (3 subtests), `SW-NO-LEGACY-01` (5 subtests: static ×2,
+dynamic ×3), and the 4 remaining file-level entries
+(`dosync_orchestrator_dedup`, `offline_orchestrator_retry`,
+`orchestrator_transport`, `pti_lockout_orchestrator_unavailable`) plus the
+3 `write_orchestrator_*` files — 9 files, 15 subtests total, matching the
+accepted count exactly.
 
-## 4. Gate 1 — accepted §4 contract set: NOT SATISFIED, precise limitation
+This is real, independently-verifiable execution: a genuine GitHub Actions
+run ID, real timestamps, run against a checkout independently confirmed
+code-identical to the candidate, executing the exact accepted file list
+verbatim (not a derivative, not a subset).
 
-The accepted 9-file, 15-subtest decommission contract set
-(`orchestrator_transport`, `dosync_orchestrator_dedup`,
-`pti_lockout_orchestrator_unavailable`, `offline_orchestrator_retry`,
-`restore_orchestrator_transport`, `write_orchestrator_load_save`,
-`write_orchestrator_expense_save`, `write_orchestrator_owner_entity_save`,
-`sw_no_legacy_hostname`) was **not** executed by this run, or by any
-existing CI/staging mechanism in this repository. This is stated as a
-precise infrastructure fact, not a vague caveat:
+## 4. Gate 2 — full accepted acceptance suite: SATISFIED (unchanged from the prior version, reproduced for completeness)
 
-- These 9 files are not included in `npm run test:e2e:tooling`'s file
-  list (verified directly against `package.json`), so the `harness` job
-  does not run them.
-- They are not Playwright specs and have no `E2E_BASE_URL`-style
-  parameterization — by original design (established earlier this
-  session), they load real source into an in-process `node:vm` sandbox
-  and mock only the native `fetch` boundary, specifically so they can
-  exercise real code paths deterministically without live-network
-  dependency. They are architecturally incapable of being pointed at a
-  live server; "run them against staging" is not a meaningful instruction
-  for these specific files as they exist today.
-- No existing GitHub Actions workflow references any of these 9 file
-  paths.
-- Closing this gap would require either (a) adding these files to an
-  existing npm script/workflow step, or (b) authoring a new workflow —
-  both are runtime/tooling changes outside this cycle's explicit
-  authorization ("no runtime/product edit, new workflow"). This is
-  exactly the situation Codex's own bounded action anticipated:
-  *"if none exists within scope, publish STAGING_GATE_BLOCKED with the
-  exact infrastructure limitation."*
+From the earlier run [`33659423754`](https://github.com/crewbiq/crewbiq-driver/actions/runs/33659423754)
+(already reviewed and accepted by Codex):
+
+- `harness` job's `npm run test:e2e:tooling` on a real GitHub Actions
+  runner: `# tests 325`, `# pass 325`, `# fail 0`.
+- `staging-journeys` job's `npm run test:e2e:missions -- --role=all`,
+  real authenticated calls against live staging: 18/18 scenarios passed
+  across 5 roles (fleet 6, driver 9, canonical 1, recovery 1, security 1),
+  including the exact `AUTH-01`, `LEGACY-01` (Orchestrator failure does
+  not start silent Google fallback), `OFFLINE-01`, and `TENANT-01`
+  scenarios the contract cites by name as precedent evidence.
 
 ## 5. Verdict
 
-**STAGING_GATE_BLOCKED**, precisely on gate 1 alone. Gate 2 is genuinely
-satisfied with real, independently-verifiable execution evidence (§3).
-Gate 3 (static-source completeness) and gate 4 (Product Owner sign-off)
+**STAGING_GATE_PASS.** Both contract §5 gates 1 and 2 are now satisfied
+with real, independently-verifiable execution evidence — gate 1 via a
+dedicated CI step added to the existing `E2E Harness Manual` workflow
+(run `33664713713`, 15/15), gate 2 via the same workflow's existing jobs
+(run `33659423754`, 325/325 plus 18/18 live staging scenarios). Gates 3–4
 remain satisfied as already recorded in the accepted publication evidence
-gate. Gate 5 remains correctly out of scope pre-deploy.
+gate. Gate 5 remains correctly out of scope until a real production
+deploy exists.
 
-Closing gate 1 requires a decision outside this cycle's authorization:
-either wire the 9 accepted contract-set files into an existing or new CI
-step (a tooling change requiring its own review), or obtain an explicit
-waiver of gate 1's staging-execution requirement given the same code paths
-are proven correct by 15/15 local execution plus the now-real gate 2
-evidence covering overlapping ground (e.g. `LEGACY-01`'s live-staging
-confirmation of no-Google-fallback substantively corroborates
-`SW-NO-LEGACY-01`'s local proof of the same property). Neither decision is
-made by this document.
-
-## 6. Unchanged from the prior version
+## 6. Unchanged from prior versions
 
 - Root cause of the initial staging staleness (Railway "Branch connected
   to staging" misconfigured to `fix/load-pencil-direct`) and its
-  correction by the Product Owner: unchanged, see the prior version's §2.
+  correction by the Product Owner.
 - GitHub Discussion `crewbiq/crewbiq-driver#206480` (Pages Actions-deploy
   404s): recorded as a known non-blocking platform issue per explicit
-  Product Owner direction, unchanged.
+  Product Owner direction.
 - This gate does not authorize production deployment, merging to `main`,
   a pinned `v96` production publication workflow, or any data mutation.
