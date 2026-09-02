@@ -79,16 +79,16 @@ Phase:
 CrewBIQ MVP Legacy Sync Decommission Contract
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md classifies every caller from the accepted call-path map as REMOVE, REPLACE_WITH_ORCHESTRATOR, or PRESERVE_LOCAL_ONLY-adjacent; defines Orchestrator-only target behavior for auth/write/read/restore; preserves accountless PTI graceful degradation (needsPTI() stays local-only; PTI submission writes locally before the fire-and-forget sync, so a sync failure never locks out a driver), local/offline usability, and durable idempotent retry; prohibits guessed identity/authority per ADR-0006/ADR-0007/IDENTITY_ATTRIBUTION_CONTRACT.md; specifies five narrow contract tests, staging/production evidence gates (explicitly not claiming zero-production-traffic proof, consistent with the accepted map's telemetry finding), atomic deploy/cache-rotation order with rollback, and one open Product Owner decision (whether the crewbiq-expenses Apps Script endpoint carries any data not already covered by the general Orchestrator expense-sync path).
+The documentation-only decommission contract is not accepted yet. PTI local-first/non-lockout behavior and the no-implementation boundary are verified, but four contract defects require correction: exact caller classification, authoritative durable-write semantics, syncExpensesNow destination evidence, and an explicit bounded post-publication production evidence gate.
 
 Latest implementation commit:
 d171a2c61c92401690b4cb46cbf80c808bc433a0
@@ -97,13 +97,13 @@ Latest correction commit:
 d171a2c61c92401690b4cb46cbf80c808bc433a0
 
 Latest review commit:
-62c92122d552a161729d621a94cc2e6c3ff9b174
+e0805e394a08bc515004a884e40c4ed983f66ce1
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex review of the new contract document)
+CALLER_CLASSIFICATION_SCHEMA_VIOLATION; AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION; SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH; PRODUCTION_EVIDENCE_GATE_INCOMPLETE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md (commit d171a2c61c92401690b4cb46cbf80c808bc433a0) against the accepted call-path map: confirm every caller classification is consistent with the map's evidence, confirm the PTI local-first/non-lockout invariant is described accurately against pti.js, and confirm the contract does not itself authorize or perform any implementation. Publish an ACCEPT or NEEDS_FIX verdict. Do not change tests, runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Correct only docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md for the four findings in review commit e0805e394a08bc515004a884e40c4ed983f66ce1, then publish and return to Codex for independent review. Do not implement the contract or change runtime, tests, configuration, deployment, migrations, merge state, data, telemetry, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3687,3 +3687,16 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No implementation, test authorship, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
 - Runtime/product files changed: NONE (documentation only).
+
+### 2026-09-01 - Codex independent review: Legacy Sync Decommission Contract
+
+Agent: Codex
+Task: Independently review `LEGACY_SYNC_DECOMMISSION_CONTRACT.md` at `d171a2c61c92401690b4cb46cbf80c808bc433a0`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `e0805e394a08bc515004a884e40c4ed983f66ce1`
+Runtime/product files changed: `NONE`
+Blocking findings: `CALLER_CLASSIFICATION_SCHEMA_VIOLATION`; `AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION`; `SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH`; `PRODUCTION_EVIDENCE_GATE_INCOMPLETE`
+Verified: PTI local-first/non-lockout invariant is accurate; the reviewed contract performed no implementation; nested Orchestrator driver-report envelopes receive scoped expenses through `restore-hotfix.js::attachExpensesToReport()`.
+Next required actor: Claude
+Next bounded action: correct only the contract and coordination state/history, then return to Codex for independent review.
+Decision gate: `AUTO_CONTINUE_ALLOWED`
