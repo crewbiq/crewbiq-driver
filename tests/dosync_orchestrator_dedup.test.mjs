@@ -117,4 +117,23 @@ const firstBody = JSON.parse(nativeSyncCalls[0].body);
 const firstRecordId = firstBody.payload ? firstBody.payload.record_id : firstBody.record_id;
 assert.ok(firstRecordId, 'the deduplicated real call must still carry the original record_id');
 
+// The one-native-call count alone doesn't prove the second push actually ran
+// and was deduplicated — it would also be 1 if pushToOrchestrator() were
+// never called at all. Assert directly on doSync()'s own returned
+// orchestratorCopy so a regression that silently drops the second push is
+// caught, not just a regression that removes dedup.
+assert.ok(result.orchestratorCopy, 'doSync() must return an orchestratorCopy from its second push step');
+assert.equal(result.orchestratorCopy.ok, true, 'the second push step must have succeeded (been deduplicated, not skipped or failed)');
+assert.equal(result.orchestratorCopy.skipped, undefined, 'the second push step must not have been skipped (e.g. no_orchestrator_url)');
+assert.equal(
+  result.orchestratorCopy.result && result.orchestratorCopy.result.client_deduplicated,
+  true,
+  'the second push step must have been recognized as a duplicate of the first by record_id, not treated as a distinct new write',
+);
+assert.equal(
+  result.orchestratorCopy.result && result.orchestratorCopy.result.record_id,
+  firstRecordId,
+  'the deduplicated second push must reference the same record_id as the one real native write',
+);
+
 console.log('doSync() Orchestrator dedup contract: ok (native /v1/sync calls: ' + nativeSyncCalls.length + ')');
