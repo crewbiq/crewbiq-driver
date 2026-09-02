@@ -4543,3 +4543,17 @@ Reviewed correction commit `aeaee2d6ad300edec642d2a1694e5385464cdc00` against ba
 ### Required bounded correction
 
 Change only the existing PWA-wide static gate to reject the `DEFAULT_SYNC_URL` identifier, without weakening its current hostname, `crewbiq-expenses`, `getAuthSyncUrl()` definition, or `syncExpensesNow()` definition checks. Re-run the same accepted 9-file contract set and `npm run test:e2e:tooling`. No runtime/product changes, deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
+## 2026-09-02 - Codex final review - Legacy Sync Decommission Static Gate
+
+**Verdict: ACCEPT**
+
+- Reviewed correction commit `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc` against baseline `b4ef460163ef1d58be5cb456a78bdf74e258e49c`.
+- Diff is exactly one insertion in `tests/sw_no_legacy_hostname.test.mjs`; no runtime, product, configuration, migration, or deployment file changed.
+- The added `/const\s+DEFAULT_SYNC_URL\s*=/` matcher closes `SW_NO_LEGACY_DEFAULT_CONSTANT_GATE_MISSING`, detects a live legacy constant declaration, and intentionally ignores historical prose mentions.
+- Existing hostname, `crewbiq-expenses`, `getAuthSyncUrl()` definition, and `syncExpensesNow()` definition guards remain intact.
+- `git diff --check` is clean.
+- Accepted 9-file contract set: `15 passed, 0 failed`.
+- `npm run test:e2e:tooling`: `325 passed, 0 failed`.
+- Blocking findings: `NONE`.
+
+The accepted Legacy Sync Decommission implementation scope is complete. No merge, deployment, migration, production-data mutation, ADR/SIDR change, or unrelated cleanup was performed by this review.
