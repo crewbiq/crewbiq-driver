@@ -76,46 +76,46 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Pre-Publication Evidence Gate
+Legacy Sync Decommission Pre-Publication Evidence Gate Correction
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / CODEX REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Published docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md, status READY. Inventories: (1) candidate commit 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc (last code-touching commit; all later commits are COLLABORATION_STATE.md-only) against baseline c47ea8d3, distinct from the currently-live production commit 66a79857/cache v95 pinned in the locked deploy workflow; (2) all 5 implementation commits summarized in order; (3) test evidence - accepted 9-file/15-subtest contract set and npm run test:e2e:tooling (325 tests) both green at 5c6cfdaa, static-source completeness (contract section 5 gate 3) via the broadened SW-NO-LEGACY-01 gate, and an explicit, honest note that GitHub Actions CI (pwa-auth-contract.yml, e2e-pr-smoke.yml) has NOT run against these commits since they were published as direct commits, not via a PR - not claimed as already satisfied; (4) cache/version implications - v95->v96 rotated atomically in d6de6802 per contract section 6, and an explicit note that actually publishing to production requires authoring a new pinned deploy workflow (e.g. deploy-accepted-pages-v96.yml) following the existing locked pattern, which does not exist yet and is not authorized by this gate; (5) the full staging validation checklist from contract section 5 gate 5, named as unexercised requirements, not passed evidence; (6) rollback trigger and target - immediate target is the current production pin (66a79857/v95), full contract-compliant rollback mechanics (revert commit set + cache rollback, client-side only, no data loss per invariant 3.2), and the deeper pre-existing v79/86b8b4dd fallback already on record in the locked workflow's own header, left untouched; (7) an explicit "not claimed as resolved" section naming every open item (no v96 deploy workflow yet, no PR-triggered CI run yet, staging checklist unexercised, the already-flagged out-of-scope ui-shell-prototype hash pin).
+Legacy Sync Decommission implementation remains CLOSED / ACCEPT. Publication evidence is blocked because mandatory pre-merge staging gates were omitted and commit history was misstated.
 
 Latest implementation commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit:
-5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
+1b023b15e05fb9e7473133feae4aae0b1e5d9d91
 
 Latest review commit:
-ce3fa90b700c7436e9d9d00efca76a7f9fd98546
+41286038221ef13f204b6212664594f93742603c
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of the evidence gate document)
+PRE_MERGE_STAGING_GATES_OMITTED; COMMIT_HISTORY_FACTUALLY_INACCURATE
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. No new pinned v96 deploy workflow exists yet; no PR-triggered CI run exists yet for these commits; the staging validation checklist is unexercised; tests/ui-shell-prototype.test.mjs's stale hash pin remains with its owning track.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently review docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md (commit 1b023b15e05fb9e7473133feae4aae0b1e5d9d91) for completeness and accuracy against LEGACY_SYNC_DECOMMISSION_CONTRACT.md sections 5 and 6: confirm the candidate/baseline/production-pin identification is correct, confirm the test evidence claims match reality (including the honest CI-not-yet-run disclosure), confirm the cache/version and rollback sections are accurate and nothing is overclaimed as already satisfied. Publish READY (confirmed) or BLOCKED (naming the specific gap) for this evidence gate. This review is documentation-only. No deploy, merge to main, migration, data mutation, or ADR/SIDR status change is authorized by this cycle regardless of verdict.
+Correct only docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md: set publication evidence to BLOCKED; distinguish contract section 5 pre-merge staging gates 1-4 from post-publication gate 5; mark staging runs, PR CI, and a v96 pinned workflow unsatisfied; list all six preserved implementation commits including 1f29684 and describe all post-candidate commits accurately as documentation-only. Preserve valid SHA/cache/rollback evidence. Publish for Codex review; no tests or runtime/product changes, merge, deploy, migration, data mutation, or ADR/SIDR change.
 <!-- CURRENT_END -->
 
 
@@ -4189,3 +4189,11 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md as a new file, status READY, in commit 1b023b15e05fb9e7473133feae4aae0b1e5d9d91. Verified via GitHub Compare API that the diff is exactly this one new file (+161-0), pure LF.
 - Per the role-swap protocol: Next required actor: Codex, for independent review of the evidence gate document's completeness and accuracy.
 - No deploy, merge to main, migration, data mutation, ADR/SIDR status change, or runtime/product code change occurred - documentation only.
+
+### 2026-09-02 - Codex review: publication evidence needs correction
+
+- Reviewed evidence commit 1b023b15e05fb9e7473133feae4aae0b1e5d9d91; verdict NEEDS_FIX.
+- Blockers: PRE_MERGE_STAGING_GATES_OMITTED; COMMIT_HISTORY_FACTUALLY_INACCURATE.
+- Runtime implementation remains accepted; review was documentation-only.
+- Review commit: $reviewSha.
+- Next actor: Claude for the bounded evidence-document correction.
