@@ -4703,3 +4703,38 @@ Reviewed correction commit `e8bcafa865e1169c7f0f0dd20e8556db211cc27f`.
 - The narrow assertion check passes.
 
 The correction is accepted. The workflow remains pull-request/main-triggered and has not been represented as executed on the collaboration branch.
+## 2026-09-02 — Codex Review: Pinned v96 Main Publication Plan
+
+**Verdict: NEEDS_FIX**
+
+Reviewed `MAIN_PUBLICATION_PLAN_V96.md` at commit `ffcf4e113b49fdaf5c658a0588cae4350387cc61` against current `origin/main`, candidate `e8bcafa865e1169c7f0f0dd20e8556db211cc27f`, the v95 precedent, current GitHub Pages state, and the referenced test/workflow files.
+
+### Blocking findings
+
+1. **PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI**
+
+   The allowlist restores `tests/e2e/pages-deployment-workflow-contract.test.mjs` and candidate `package.json`, whose `test:e2e:tooling` command executes that test, while explicitly excluding `.github/workflows/deploy-accepted-pages-v95.yml`. The workflow is absent from current `main`, and the test synchronously reads it at module load. Therefore the proposed promotion tree necessarily fails its own required `npm run test:e2e:tooling` gate before any assertions run. The plan must not claim `READY` until the obsolete Actions-publication workflow contract and its package wiring are reconciled in a separately reviewed bounded change, or a different internally consistent allowlist is proven.
+
+2. **GATE1_PREMERGE_CI_HAS_NO_PROMOTED_EXECUTION_PATH**
+
+   Section 9 requires the complete nine-file Legacy Sync Decommission set in future PR CI, but the plan excludes the only accepted workflow modification that runs that exact set (`e2e-harness-manual.yml` at `b9e44f1f`). Candidate `package.json`, `E2E PR Smoke`, and `PWA Auth Contract` do not run the complete set. Prior staging evidence remains valid, but it is not the plan's claimed future-PR execution. The plan must select and review one exact mechanism rather than require a check no promoted CI path performs.
+
+3. **ANCESTRY_AND_MERGE_CONFLICT_EVIDENCE_INACCURATE**
+
+   Fresh full-history commands produce `origin/main...e8bcafa8 = 2/481`, not `2/452`. `git merge-tree --write-tree origin/main e8bcafa8` reports 16 conflicting paths, not one: the workflow plus `index.html`, `package.json`, `sidr-contract-resolver-integration-v1.test.mjs`, `startup-session.js`, `sw.js`, and ten contract-test files. The curated-promotion conclusion remains sound, but the evidence used to support it must be corrected.
+
+4. **CANDIDATE_AND_DIFF_INVENTORY_MISSTATED**
+
+   `e8bcafa8` is 30 commits after `5c6cfdaa`, not one. Two non-document workflow commits occur in that interval: `b9e44f1f` and `e8bcafa8`. The candidate reference can remain `e8bcafa8` if exclusions are explicit, but its relationship must be stated accurately. The 91-file total and shortstat are correct; the category detail is not: 39 `docs/collaboration/**` paths differ, not 25.
+
+### Confirmed facts
+
+- Current `main` and the latest successful Pages build are both `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+- Pages remains legacy `main:/`, status `built`, HTTPS enforced; live `sw.js` serves cache v95.
+- The merge base is `86b8b4dd7e9496833a021319167589b49f0ac418`; current `main` has exactly the two v95 promotion commits after it.
+- The six product/runtime paths listed by the plan are the complete main-to-candidate product delta.
+- The main-based curated-promotion strategy, served-SHA verification, v96 cache gates, and normal-revert rollback model remain appropriate.
+
+### Required bounded correction
+
+Documentation only. Change the plan result to `MAIN_PUBLICATION_PLAN_V96_BLOCKED`, correct the ancestry/conflict/category evidence, and explicitly define the two unresolved tooling prerequisites: an internally consistent disposition for the obsolete Pages Actions workflow contract/package entry, and one real pre-merge execution path for the exact nine-file decommission set. Do not edit workflows, package, tests, runtime/product files, GitHub settings, or execute a merge/deploy. Publish the corrected plan and hand it back for Codex review.
