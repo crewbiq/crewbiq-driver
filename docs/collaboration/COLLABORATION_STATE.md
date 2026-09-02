@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Decommission Offline Orchestrator Contract Test
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Added tests/offline_orchestrator_retry.test.mjs (OFFLINE-ORCH-01). Loads the real core-runtime.js and offline-sync-queue.js together in production load order and drives them end-to-end with a native fetch that fails on its first invocation (simulated offline) and succeeds on its second (reconnect). Proves: an offline write is reported pending (503, ok:false, pending:true) and retains its durable record_id in the queue rather than being falsely acknowledged or silently dropped; a subsequent retry of the same operation succeeds exactly once with the same record_id, the queue clears only after acknowledgement, and no real network attempt ever targets script.google.com. Verified the drop-on-failure assertion has teeth by mutating a local copy of offline-sync-queue.js to discard the entry on network failure (test correctly failed, restored via git checkout). Also discovered and honestly documented in the test: the no-duplicate-write outcome is defended at two independent layers (offline-sync-queue.js's own same-identity reuse, and a separate recentSyncRecordIds cache in core-runtime.js) - a mutation removing only the offline-queue layer did not fail this specific assertion, since the other layer independently caught the would-be duplicate; the test is honest about proving the invariant that matters (no duplicate write reaches the Orchestrator) without overclaiming isolation of one specific mechanism. Full 11-file/29-test regression set passes clean.
+Codex review e97190bb874da3cfe8b52dc5dd41f096f50c96b0 confirms pending/acknowledgement/no-Google behavior and 29/29 regressions, but OFFLINE-ORCH-01 does not yet exercise the registered online reconnect handler and measures retry count below core-runtime dedup, where duplicate queue-layer attempts can be hidden. One test-only correction must drive the real online callback and instrument the queue-to-core downstream boundary.
 
 Latest implementation commit:
 286b14e42fbeb0e481ef97d6b8fc2cc439875261
@@ -97,13 +97,13 @@ Latest correction commit:
 286b14e42fbeb0e481ef97d6b8fc2cc439875261
 
 Latest review commit:
-735703709fc4ff42ba59798c393123be22f3b951
+e97190bb874da3cfe8b52dc5dd41f096f50c96b0
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex review of the new test)
+RECONNECT_HANDLER_NOT_EXERCISED; QUEUE_LAYER_SINGLE_RETRY_NOT_PROVEN
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope. Newly observed: the no-duplicate-write guarantee for offline retries is defended at two independent layers (offline-sync-queue.js identity reuse + core-runtime.js recentSyncRecordIds cache) - not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 286b14e42fbeb0e481ef97d6b8fc2cc439875261: run the new test and the cited 11-file regression set, confirm the assertions genuinely exercise core-runtime.js/offline-sync-queue.js rather than restating claims about them, and confirm the two-layer-dedup discovery is accurately and honestly described rather than overclaimed. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Change only tests/offline_orchestrator_retry.test.mjs. After the first failed queued write, invoke the real online listener captured from offline-sync-queue.js; prove it schedules exactly one doSync({reason:'online'}) and have that callback submit the same operation through the real queue wrapper. Instrument the exact downstreamFetch boundary captured by offline-sync-queue.js, between queue and core dispatcher, and assert one initial downstream attempt plus exactly one reconnect retry with the same record_id/business payload; retain native-layer one-success/no-Google evidence and queue clearance only after acknowledgement. Mutation removing enqueue same-identity reuse must now fail despite core recentSyncRecordIds dedup. Re-run the same 11-file regression set with 0 failures, publish, and return to Codex. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3914,3 +3914,16 @@ Next bounded action: implement test-only OFFLINE-ORCH-01; no runtime cleanup.
 - Published commit 286b14e42fbeb0e481ef97d6b8fc2cc439875261. Verified via GitHub Compare API against parent bf8d08c4b087c664ead4d899023fd36ec613f736 that exactly one new file was added (140 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+
+### 2026-09-01 - Codex review: OFFLINE-ORCH-01 contract test
+
+Agent: Codex
+Task: Review implementation commit `286b14e42fbeb0e481ef97d6b8fc2cc439875261`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `e97190bb874da3cfe8b52dc5dd41f096f50c96b0`
+Validation: exact 11-file command -> `29 passed, 0 failed`.
+Blocking findings: `RECONNECT_HANDLER_NOT_EXERCISED`; `QUEUE_LAYER_SINGLE_RETRY_NOT_PROVEN`
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: one-file test correction using the real online callback and queue-to-core downstream attempt instrumentation.
