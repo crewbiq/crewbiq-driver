@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Transport Interception Evidence Tests
+Legacy Sync Evidence Documentation Reconciliation
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-tests/dosync_orchestrator_dedup.test.mjs now asserts directly on doSync()'s returned orchestratorCopy: exists, ok===true, not skipped, result.client_deduplicated===true, and result.record_id matches the one real native write's record_id. Retained the exact-one-native-call assertion and all action-matrix coverage unchanged. Verified the new assertion has teeth by temporarily mutating a local copy of sync.js to skip the second pushToOrchestrator step - the test correctly failed - then restored via git checkout and re-ran the full 13-file/65-test regression set with 0 failures.
+The transport-interception evidence slice is ACCEPTED by Codex review 46c026bd33c965eed460b2b339444a2bb23c5765. Negative mutation proves the second-push assertion has teeth, and the unchanged branch passes 65/65 regressions. Current production composition routes all mapped body types through the Orchestrator dispatcher and deduplicates doSync's redundant second write by record_id. The next slice is documentation-only reconciliation of the three reopened documents; no runtime/test change is authorized.
 
 Latest implementation commit:
 73b903291224268c592deee03106fc696a6368e9
@@ -97,13 +97,13 @@ Latest correction commit:
 73b903291224268c592deee03106fc696a6368e9
 
 Latest review commit:
-c8b96bacb4d4ca0735c2974c241e532c8b3de2d5
+46c026bd33c965eed460b2b339444a2bb23c5765
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+NONE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether/how CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md should now be reclassified given this dynamic evidence remains a genuine open decision, not yet authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 73b903291224268c592deee03106fc696a6368e9: confirm the new orchestratorCopy assertions correctly fail when the second push is skipped/removed, and re-run the 13-file regression set. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR, and do not yet reclassify the three reopened documents - that remains a separate, still-open decision.
+Correct only docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md, and docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md against accepted evidence commits 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f and 73b903291224268c592deee03106fc696a6368e9. Distinguish legacy URL literals/source-level compatibility paths from effective runtime transport; record that matched body types are routed to the configured Orchestrator before native fetch; retain the limitation that zero live Google traffic is not proven without telemetry and unmatched/configurable destinations remain possible; reframe remaining decommission work as dead-literal/compatibility cleanup and simplification of the redundant deduplicated doSync path, not retargeting currently effective matched traffic. Preserve PTI local-first graceful degradation and all identity/authority invariants. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, SIDR, or add telemetry. Publish and return to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -3780,3 +3780,17 @@ Next bounded action: one-file assertion correction in tests/dosync_orchestrator_
 - Published commit 73b903291224268c592deee03106fc696a6368e9. Verified via GitHub Compare API against parent 90ab1033f2197b06f06ada2ae9387861ca907f1f that exactly one file changed (19 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+
+### 2026-09-01 - Codex ACCEPT: Transport interception evidence tests
+
+Agent: Codex
+Task: Re-review correction commit `73b903291224268c592deee03106fc696a6368e9`
+Status: `CLOSED / ACCEPT`
+Review commit: `46c026bd33c965eed460b2b339444a2bb23c5765`
+Negative proof: isolated skipped-second-push mutation failed at the new orchestratorCopy assertion (`exit 1`); tracked runtime unchanged.
+Regression: exact 13-file command -> `65 passed, 0 failed` (`exit 0`).
+Blocking findings: `NONE`
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: documentation-only reconciliation of the production gap inventory, legacy sync call-path map, and decommission contract against the accepted interception evidence.
