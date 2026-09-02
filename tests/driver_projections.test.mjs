@@ -204,7 +204,7 @@ test('Step 3: an account switch never inherits the previous person\'s local driv
   assert.match(html, /\(previousDriverForFallback&&previousDriverForFallback\.name\)/);
   // syncUrl is deliberately NOT gated — it's device/environment config (which Orchestrator
   // this device talks to), not personal user data.
-  assert.match(html, /syncUrl:syncUrl \|\| DEFAULT_SYNC_URL,/);
+  assert.match(html, /syncUrl:syncUrl \|\| ORCHESTRATOR_BASE_URL,/);
 });
 
 test('saveSettings never treats its own identity-key change as an account switch', () => {

@@ -30,7 +30,27 @@ test('SW-NO-LEGACY-01 static: sw.js source contains no Apps Script hostname refe
 // APP_SHELL array is the canonical, already-existing list of exactly which
 // files are shipped — reuse it directly rather than re-deriving or
 // hand-maintaining a second list that could drift from it.
-test('SW-NO-LEGACY-01 static (PWA-wide): every shipped app-shell file is free of Apps Script hostname references', () => {
+//
+// Broadened beyond the two hostnames to every construct the decommission
+// contract classified REMOVE: the crewbiq-expenses literal, and the
+// getAuthSyncUrl()/syncExpensesNow() functions themselves (not just their
+// call sites) — a completeness gate for the accepted legacy surface, not
+// only its two most obvious hostname strings.
+// Definitions (function declarations), not mere name mentions — explanatory
+// historical-note comments legitimately name these removed functions (e.g.
+// "the former getAuthSyncUrl() resolution chain has been removed"), and
+// flagging prose would make this gate impossible to keep passing while still
+// documenting the cleanup honestly. A live function DEFINITION, in contrast,
+// can only mean the construct still exists.
+const LEGACY_CONSTRUCTS = [
+  { name: 'script.google.com hostname', pattern: /script\.google\.com/ },
+  { name: 'googleapis.com hostname', pattern: /googleapis\.com/ },
+  { name: 'crewbiq-expenses literal', pattern: /crewbiq-expenses/ },
+  { name: 'getAuthSyncUrl() (removed resolution machinery)', pattern: /function\s+getAuthSyncUrl\s*\(/ },
+  { name: 'syncExpensesNow() (removed dedicated expense write)', pattern: /function\s+syncExpensesNow\s*\(/ },
+];
+
+test('SW-NO-LEGACY-01 static (PWA-wide): every shipped app-shell file is free of all accepted legacy constructs', () => {
   const appShellMatch = swSource.match(/const APP_SHELL = \[([\s\S]*?)\];/);
   assert.ok(appShellMatch, 'sw.js must define APP_SHELL as the canonical shipped-file list');
   const shippedPaths = [...appShellMatch[1].matchAll(/'\/crewbiq-driver\/([^']*)'/g)]
@@ -44,10 +64,12 @@ test('SW-NO-LEGACY-01 static (PWA-wide): every shipped app-shell file is free of
     const abs = path.join(repoRoot, rel);
     if (!fs.existsSync(abs)) continue; // manifest.json etc. are covered by other contract tests' existence checks
     const source = fs.readFileSync(abs, 'utf8');
-    if (/script\.google\.com|googleapis\.com/.test(source)) offenders.push(rel);
+    for (const construct of LEGACY_CONSTRUCTS) {
+      if (construct.pattern.test(source)) offenders.push(rel + ' (' + construct.name + ')');
+    }
   }
 
-  assert.deepEqual(offenders, [], 'no shipped app-shell file may contain an Apps Script hostname reference: ' + JSON.stringify(offenders));
+  assert.deepEqual(offenders, [], 'no shipped app-shell file may contain an accepted-for-removal legacy construct: ' + JSON.stringify(offenders));
 });
 
 function buildSandbox() {

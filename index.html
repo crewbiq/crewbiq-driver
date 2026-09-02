@@ -797,7 +797,7 @@
         <div class="sfield">
           <div class="slabel">Orchestrator Sync URL</div>
           <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync" onchange="saveAdvancedSyncSettings(false)">
-          <div style="font-size:10px;color:var(--mu);margin-top:2px">Optional support setting. Google Apps Script sync remains primary.</div>
+          <div style="font-size:10px;color:var(--mu);margin-top:2px">The Orchestrator is the sole cloud authority. The legacy "Sync URL" field above has no effect and is kept only for CrewBIQ support.</div>
         </div>
         <div class="sfield">
           <div class="slabel">Orchestrator Secret</div>
@@ -1440,17 +1440,12 @@ function runLaunchCleanResetOnce() {
   Object.keys(saved).forEach(function(k) { localStorage.setItem(k, saved[k]); });
   localStorage.setItem(key, LAUNCH_CLEAN_RESET_VERSION);
 }
-// Historical note: this constant used to name a Google Apps Script endpoint.
-// core-runtime.js's transport dispatcher (loaded before this script runs)
-// routes every authenticated action-envelope call by JSON body type to the
-// Orchestrator, ignoring the URL argument entirely, so this value is never
-// actually requested for any of those calls. It still needs to be a
-// non-empty string: several call sites guard on `if (!syncUrl) throw ...`
-// before making a matched call. The former getAuthSyncUrl() resolution
-// chain (login-field override / localStorage / driver.syncUrl) has been
-// removed since none of it ever changed the actual network destination;
-// every former caller now uses this constant directly.
-const DEFAULT_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app';
+// The Orchestrator's base URL. authPost() and its adapters send every
+// authenticated action envelope here (core-runtime.js's dispatcher matches
+// by JSON body type regardless of URL, but the destination is explicit and
+// real regardless). Named for what it is now, not for the Google Apps
+// Script endpoint it used to be a drop-in replacement for.
+const ORCHESTRATOR_BASE_URL = 'https://crewbiq-orchestrator-production.up.railway.app';
 function migrateStorage(){
   let v = parseInt(localStorage.getItem(K+'schemaVersion')||'1');
   if(v < 2){
@@ -1589,7 +1584,7 @@ async function restoreFromCloud(){
   if(sessionToken){
     setLoginStatus('Restoring cloud data...');
     try{
-      var restored = await restoreSession({sessionToken:sessionToken, syncUrl:DEFAULT_SYNC_URL, silent:false});
+      var restored = await restoreSession({sessionToken:sessionToken, silent:false});
       boot();
       return restored;
     }catch(e){
@@ -1790,10 +1785,8 @@ function showAuthTab(tab){
   if(signupTab) signupTab.className = 'btn ' + (isSignup ? 'primary' : 'ghost');
   setLoginStatus('');
 }
-async function authPost(type, payload={}, syncUrlOverride=''){
-  const syncUrl=String(syncUrlOverride || DEFAULT_SYNC_URL).trim();
-  if(!syncUrl) throw new Error('Sync URL is required');
-  const resp=await fetch(syncUrl, {
+async function authPost(type, payload={}){
+  const resp=await fetch(ORCHESTRATOR_BASE_URL, {
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
     body:JSON.stringify({type, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
@@ -1806,7 +1799,6 @@ async function authPost(type, payload={}, syncUrlOverride=''){
   if(!resp.ok || data.ok === false || data.error) {
     throw endpointError(type, data.error || data.reason || ('HTTP '+resp.status));
   }
-  if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
   return data;
 }
 let workspaceDriverRosterAdapter = null;
@@ -1815,9 +1807,7 @@ function getWorkspaceDriverRosterAdapter(){
     workspaceDriverRosterAdapter = window.CrewBIQWorkspaceDriverRoster.create({
       request: async function(action, payload){
         if(action !== 'workspace_driver_roster_read') throw new Error('Unsupported roster action');
-        const syncUrl=String(DEFAULT_SYNC_URL || '').trim();
-        if(!syncUrl) throw new Error('Sync URL is required');
-        const resp=await fetch(syncUrl, {
+        const resp=await fetch(ORCHESTRATOR_BASE_URL, {
           method:'POST',
           headers:{'Content-Type':'text/plain;charset=utf-8'},
           body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
@@ -1849,9 +1839,7 @@ function getDriverTruckAssignmentAdapter(){
       request: async function(action, payload){
         const supported=['driver_truck_assignment_current_read','driver_truck_assignment_history_read','driver_truck_assignment_as_of_read'];
         if(!supported.includes(action)) throw new Error('Unsupported DriverTruckAssignment action');
-        const syncUrl=String(DEFAULT_SYNC_URL || '').trim();
-        if(!syncUrl) throw new Error('Sync URL is required');
-        const resp=await fetch(syncUrl, {
+        const resp=await fetch(ORCHESTRATOR_BASE_URL, {
           method:'POST',
           headers:{'Content-Type':'text/plain;charset=utf-8'},
           body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
@@ -1873,9 +1861,7 @@ function getAccountDriverLinkAdapter(){
     accountDriverLinkAdapter = window.CrewBIQIdentityLink.create({
       request: async function(action, payload){
         if(action !== 'account_driver_link_read') throw new Error('Unsupported AccountDriverLink action');
-        const syncUrl=String(DEFAULT_SYNC_URL || '').trim();
-        if(!syncUrl) throw new Error('Sync URL is required');
-        const resp=await fetch(syncUrl, {
+        const resp=await fetch(ORCHESTRATOR_BASE_URL, {
           method:'POST',
           headers:{'Content-Type':'text/plain;charset=utf-8'},
           body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
@@ -1995,7 +1981,7 @@ function applyAuthRestoreData(data, syncUrl){
     name:'Driver', email:'', nickname:'', crewId:'', driverId:'', ownerKey:'',
     company:'', truckName:'', unitNumber:'', plate:'',
     teamDriver:'', teamRate:0, payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded',
-    syncUrl:syncUrl || DEFAULT_SYNC_URL, ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
+    syncUrl:syncUrl || ORCHESTRATOR_BASE_URL, ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
   };
   driver={
     ...base,
@@ -2009,7 +1995,7 @@ function applyAuthRestoreData(data, syncUrl){
     name:profileDriver.name || nickname || (email ? email.split('@')[0] : '') || (previousDriverForFallback&&previousDriverForFallback.name) || 'Driver',
     // syncUrl is device/environment config (which Orchestrator this device talks to), not
     // personal user data — left ungated on purpose; only personal fields are guarded.
-    syncUrl:syncUrl || DEFAULT_SYNC_URL,
+    syncUrl:syncUrl || ORCHESTRATOR_BASE_URL,
     assignments:data.assignments || profile.assignments || [],
     currentAssignment:assignment,
     currentAssignmentId:(assignment&&assignment.assignmentId) || profile.currentAssignmentId || profileDriver.currentAssignmentId || ''
@@ -2465,7 +2451,7 @@ function getStartupCoordinator(){
     getDriver:()=>driver,
     setFleetRestoreSettled,
     getSavedSessionToken,
-    defaultSyncUrl:DEFAULT_SYNC_URL,
+    defaultSyncUrl:ORCHESTRATOR_BASE_URL,
     endpointError,
     authPost,
     applyAuthRestoreData,
@@ -2493,14 +2479,12 @@ function restoreSession(options={}){
   return getStartupCoordinator().restoreSession(options);
 }
 async function authLogin(){
-  const syncUrl=DEFAULT_SYNC_URL;
   const emailOrNickname=((document.getElementById('authLoginId')||{}).value || '').trim();
   const password=((document.getElementById('authLoginPassword')||{}).value || '').trim();
-  if(!syncUrl) return setLoginStatus('Sync URL is required','err');
   if(!emailOrNickname || !password) return setLoginStatus('Email or nickname and password are required','err');
   try{
     setLoginStatus('Logging in...');
-    const loginRaw=await authPost('auth_login', {emailOrNickname, password}, syncUrl);
+    const loginRaw=await authPost('auth_login', {emailOrNickname, password});
     console.log('[CrewBIQ Auth] auth_login response:', loginRaw);
     const login=unwrapAuthResponse(loginRaw);
     const sessionToken=extractSessionToken(login);
@@ -2509,8 +2493,8 @@ async function authLogin(){
       throw endpointError('auth_login', 'sessionToken missing from response');
     }
     saveSessionToken(sessionToken);
-    applyAuthRestoreData(login, syncUrl);
-    const restored=await restoreSession({sessionToken, syncUrl, silent:true});
+    applyAuthRestoreData(login, ORCHESTRATOR_BASE_URL);
+    const restored=await restoreSession({sessionToken, silent:true});
     document.getElementById('setupScreen').style.display='none';
     boot();
     setLoginStatus('Logged in. Restored '+formatRestoreSummary(restored, restored.fleetRestore),'ok');
@@ -2521,11 +2505,9 @@ async function authLogin(){
   }
 }
 async function authSignup(){
-  const syncUrl=DEFAULT_SYNC_URL;
   const email=((document.getElementById('authSignupEmail')||{}).value || '').trim();
   const nickname=((document.getElementById('authSignupNickname')||{}).value || '').trim();
   const password=((document.getElementById('authSignupPassword')||{}).value || '').trim();
-  if(!syncUrl) return setLoginStatus('Sync URL is required','err');
   if(!email || !nickname || !password) return setLoginStatus('Email, nickname and password are required','err');
   const assignment={
     company:((document.getElementById('authSignupCompany')||{}).value || '').trim(),
@@ -2537,11 +2519,11 @@ async function authSignup(){
   let sessionToken;
   try{
     setLoginStatus('Creating account...');
-    signup=await authPost('auth_signup', {email, nickname, password, assignment}, syncUrl);
+    signup=await authPost('auth_signup', {email, nickname, password, assignment});
     sessionToken=extractSessionToken(signup);
     if(!sessionToken) throw endpointError('auth_signup', 'sessionToken missing from response');
     saveSessionToken(sessionToken);
-    applyAuthRestoreData(signup, syncUrl);
+    applyAuthRestoreData(signup, ORCHESTRATOR_BASE_URL);
   }catch(e){
     setLoginStatus('Sign up failed at '+formatAuthError(e),'err');
     return;
@@ -2549,7 +2531,7 @@ async function authSignup(){
 
   try{
     setLoginStatus('Account created. Restoring cloud data...');
-    const restored=await restoreSession({sessionToken, syncUrl, silent:true});
+    const restored=await restoreSession({sessionToken, silent:true});
     document.getElementById('setupScreen').style.display='none';
     boot();
     setLoginStatus('Account created. Restored '+formatRestoreSummary(restored, restored.fleetRestore),'ok');
@@ -2631,9 +2613,8 @@ async function logoutDevice(){
   }
   if(outgoingPayArchive.legacyCleared) localStorage.removeItem(K+'paySettings');
   const sessionToken=getSavedSessionToken();
-  const syncUrl=(driver&&driver.syncUrl)||localStorage.getItem(K+'_savedSyncUrl')||'';
-  if(sessionToken && syncUrl){
-    try{ await authPost('auth_logout', {sessionToken}, syncUrl); }
+  if(sessionToken){
+    try{ await authPost('auth_logout', {sessionToken}); }
     catch(e){ console.warn('[CrewBIQ Auth] logout failed:', e.message); }
   }
   try{
@@ -2643,7 +2624,6 @@ async function logoutDevice(){
     getFleetConfigKeys().forEach(function(k){ var v=localStorage.getItem(k); if(v) fleetSaved[k]=v; });
     localStorage.removeItem(K+'driver');
     clearSessionToken();
-    if(syncUrl) localStorage.setItem(K+'_savedSyncUrl', syncUrl);
     if(sched)   localStorage.setItem(K+'_savedPtiSched', sched);
     Object.keys(fleetSaved).forEach(function(k){ localStorage.setItem(k, fleetSaved[k]); });
   }catch(e){}
@@ -2876,7 +2856,7 @@ function queueFleetConfigSync(){
   if(_suppressFleetConfigSync) return;
   clearTimeout(window._fleetConfigSyncTimer);
   window._fleetConfigSyncTimer = setTimeout(function(){
-    if(typeof forceFullSync === 'function' && driver && driver.syncUrl){
+    if(typeof forceFullSync === 'function' && driver){
       forceFullSync().catch(function(e){
         console.warn('[CrewBIQ Fleet] config sync failed:', e && e.message ? e.message : e);
       });
@@ -6437,7 +6417,7 @@ function renderSettingsPage(resetNavigation){
   document.getElementById('setGrossPct').value = driver.grossPercent||'';
   document.getElementById('setCpmBase').value = driver.cpmBase||'loaded';
   document.getElementById('setPtiSchedule').value = driver.ptiSchedule||'daily';
-  document.getElementById('setSyncUrl').value = driver.syncUrl || localStorage.getItem(K+'_savedSyncUrl') || DEFAULT_SYNC_URL;
+  document.getElementById('setSyncUrl').value = driver.syncUrl || localStorage.getItem(K+'_savedSyncUrl') || ORCHESTRATOR_BASE_URL;
   document.getElementById('setOrchestratorUrl').value = getStoredOrchestratorUrl();
   document.getElementById('setOrchestratorSecret').value = getStoredOrchestratorSecret();
   renderOrchestratorSettingsStatus();
@@ -6483,7 +6463,7 @@ function saveSettings(){
   });
   driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
   saveAdvancedSyncSettings(false);
-  driver.syncUrl = document.getElementById('setSyncUrl').value.trim() || DEFAULT_SYNC_URL;
+  driver.syncUrl = document.getElementById('setSyncUrl').value.trim() || ORCHESTRATOR_BASE_URL;
   const newIdentityKey = getDriverIdentityKey(driver);
   // This is always a PROFILE CHANGE (the signed-in account editing its own crewId/email),
   // never an account switch — accountId is intentionally left untouched here, unlike the
@@ -6764,7 +6744,7 @@ if(_savedUrl && document.getElementById('loginSyncUrl'))
 if(_savedSched && document.getElementById('setupPtiSchedule'))
   document.getElementById('setupPtiSchedule').value = _savedSched;
 document.getElementById('pickupDate').value = today();
-getStartupCoordinator().start({savedUrl:_savedUrl});
+getStartupCoordinator().start();
 </script>
 </body>
 </html>

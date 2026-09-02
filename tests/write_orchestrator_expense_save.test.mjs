@@ -9,13 +9,18 @@ import vm from 'node:vm';
 // index.html (extracted by source location, the same convention used by
 // tests/restore_orchestrator_transport.test.mjs and
 // tests/index-startup-composition.test.mjs), the REAL
-// installExpenseSaveHook()/syncExpensesNow() from restore-hotfix.js (which
-// wraps the real saveExpenses(), exactly as production's script load order
-// does), and the real core-runtime.js dispatcher.
+// installExpenseSaveHook()/scheduleExpenseSync() from restore-hotfix.js
+// (which wraps the real saveExpenses(), exactly as production's script load
+// order does), the real sync.js forceFullSync()/doSync(), and the real
+// core-runtime.js dispatcher. The former dedicated syncExpensesNow() write
+// was removed as redundant (attachExpensesToReport() already injects scoped
+// expenses into every driver_report call the general sync path makes);
+// scheduleExpenseSync() now debounce-triggers forceFullSync() instead.
 
 const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const restoreHotfixSource = fs.readFileSync(new URL('../restore-hotfix.js', import.meta.url), 'utf8');
 const runtimeSource = fs.readFileSync(new URL('../core-runtime.js', import.meta.url), 'utf8');
+const syncSource = fs.readFileSync(new URL('../sync.js', import.meta.url), 'utf8');
 
 function section(source, start, end) {
   const startAt = source.indexOf(start);
@@ -113,6 +118,28 @@ function buildContext() {
   assert.equal(typeof context.saveExpenses, 'function', 'the vm must expose the real extracted saveExpenses()');
   assert.equal(typeof context.addExpense, 'function', 'the vm must expose the real extracted addExpense()');
 
+  // sync.js, loaded and initialized so scheduleExpenseSync()'s forceFullSync()
+  // trigger has something real to call. init()'s accessors are written as vm
+  // source (not Node-side closures) because `driver` here is a lexical
+  // binding created via vm.runInContext, invisible as a property from
+  // outside the vm - a Node-side `() => driver` would read the wrong scope.
+  vm.runInNewContext(syncSource, context, { filename: 'sync.js' });
+  assert.ok(context.CrewBIQSync, 'sync.js must expose CrewBIQSync on the shared context');
+  vm.runInContext(`
+    CrewBIQSync.init({
+      getDriver: () => driver,
+      getLoads: () => [],
+      setLoads: () => {},
+      getPtiLog: () => [],
+      setPtiLog: () => {},
+      getDisputes: () => [],
+      setDisputes: () => {},
+      saveAll: () => {},
+      getTimer: () => null,
+      setTimer: () => {},
+    });
+  `, context, { filename: 'expense-test-sync-init.js' });
+
   return { context, localStorage, elements, nativeCalls };
 }
 
@@ -128,9 +155,10 @@ const driverFixture = {
 };
 vm.runInContext('driver = ' + JSON.stringify(driverFixture) + ';', context);
 context.localStorage.setItem('fiqD_sessionToken', 'token-write-exp-1');
-// restore-hotfix.js's syncExpensesNow() reads the driver via storedDriver(),
-// which parses localStorage['fiqD_driver'] directly - a separate read path
-// from the in-memory `driver` variable index.html's own code uses. Real
+// restore-hotfix.js's attachExpensesToReport() reads the driver via
+// storedDriver(), which parses localStorage['fiqD_driver'] directly - a
+// separate read path from the in-memory `driver` variable index.html's own
+// code (and sync.js's CrewBIQSync.init() getDriver accessor) uses. Real
 // saveAll() persists both in sync; this test must too.
 context.localStorage.setItem('fiqD_driver', JSON.stringify(driverFixture));
 
@@ -153,7 +181,7 @@ assert.equal(persisted[0].amount, 42.5, 'the entered amount must be persisted ex
 assert.equal(persisted[0].type, 'fuel');
 assert.equal(persisted[0].synced, false, 'a freshly-saved expense must not be marked synced until the Orchestrator confirms it');
 
-// syncExpensesNow() is scheduled with a 900ms debounce (scheduleExpenseSync);
+// forceFullSync() is scheduled with a 900ms debounce (scheduleExpenseSync);
 // wait past it so the fire-and-forget network attempt actually fires before
 // asserting on its destination.
 await new Promise((resolve) => setTimeout(resolve, 950));

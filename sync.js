@@ -808,7 +808,6 @@
   async function syncPTIEntry(entry) {
     if (!assertReady()) return;
     const driver = _get.driver();
-    if (!(driver && driver.syncUrl)) return;
     const sessionToken = getSessionToken();
     if (!sessionToken) {
       console.warn('[CrewBIQ Sync] syncPTIEntry skipped: missing session token');
@@ -816,7 +815,11 @@
     }
 
     try {
-      const resp = await fetch(driver.syncUrl, {
+      // Retargeted onto the Orchestrator's own resolver instead of the legacy
+      // driver.syncUrl field — same request shape/interception path as before
+      // (core-runtime.js still dispatches this pti_report envelope by body
+      // type), just without depending on a per-driver "sync URL" value.
+      const resp = await fetch(getOrchestratorSyncUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({

@@ -42,7 +42,7 @@ test('index contains one restoreSession compatibility shim and no stale implemen
 test('startup coordinator is the single owner of PTI and showApp routing', () => {
   const shell = section(html, 'function renderStartupShell(){', 'function boot(){');
   assert.doesNotMatch(shell, /needsPTI|showPTIBlocker|showApp/);
-  const boot = section(coordinator, 'function boot() {', 'function start(options = {}) {');
+  const boot = section(coordinator, 'function boot() {', 'function start() {');
   assert.equal(boot.match(/deps\.needsPTI\(\)/g)?.length, 1);
   assert.equal(boot.match(/deps\.showPTIBlocker\(\)/g)?.length, 1);
   assert.equal(boot.match(/showApp\(\)/g)?.length, 1);

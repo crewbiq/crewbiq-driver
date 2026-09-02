@@ -85,7 +85,7 @@ const ptiSource = fs.readFileSync(new URL('../pti.js', import.meta.url), 'utf8')
 vm.runInNewContext(ptiSource, context, { filename: 'pti.js' });
 assert.ok(context.CrewBIQPTI, 'pti.js must expose CrewBIQPTI on the shared context');
 
-const driver = { crewId: 'CBQ-LOCKOUT', ptiEnabled: true, ptiSchedule: 'daily', syncUrl: 'https://script.google.com/macros/s/example/exec' };
+const driver = { crewId: 'CBQ-LOCKOUT', ptiEnabled: true, ptiSchedule: 'daily' };
 let loads = [];
 let ptiLog = [];
 let ptiCustom = [];
@@ -127,18 +127,19 @@ assert.doesNotThrow(() => context.submitPTI(), 'submitPTI() must not throw even 
 await new Promise((resolve) => setTimeout(resolve, 0));
 
 // The required path: syncPTIEntry() must actually have attempted its real
-// Orchestrator sync call (to a /v1/sync-family URL — core-runtime.js's
-// dispatcher routes the pti_report envelope there, never to the
-// script.google.com URL literally passed as driver.syncUrl) and failed
-// gracefully rather than silently skipping or crashing. This asserts only
-// the required call by URL, not a total count — a redundant extra call
-// from sync.js's registerEventForwarders() reacting to 'pti:submitted' via
-// forwardEventToOrchestrator() (observed during development, targeting a
-// separate /v1/events URL) is not asserted here as required or desired
-// behavior; it is tracked separately below purely as an observation.
+// Orchestrator sync call (to a /v1/sync-family URL, resolved via sync.js's
+// own getOrchestratorSyncUrl() rather than the legacy driver.syncUrl field -
+// no driver.syncUrl is even set in this fixture, proving the call no longer
+// depends on it) and failed gracefully rather than silently skipping or
+// crashing. This asserts only the required call by URL, not a total count -
+// a redundant extra call from sync.js's registerEventForwarders() reacting
+// to 'pti:submitted' via forwardEventToOrchestrator() (observed during
+// development, targeting a separate /v1/events URL) is not asserted here as
+// required or desired behavior; it is tracked separately below purely as an
+// observation.
 const syncCall = nativeFetchUrls.find((url) => url.includes('/v1/sync'));
 assert.ok(syncCall, 'syncPTIEntry() must have attempted its real Orchestrator /v1/sync call: observed calls were ' + JSON.stringify(nativeFetchUrls));
-assert.equal(syncCall.includes('script.google.com'), false, 'the attempted call must not target the literal script.google.com URL despite driver.syncUrl naming it');
+assert.equal(syncCall.includes('script.google.com'), false, 'the attempted call must not target a legacy script.google.com URL');
 
 // Observation only (not asserted as required): whether the separate
 // pti:submitted event-forwarder also fired. Recording it here keeps this
