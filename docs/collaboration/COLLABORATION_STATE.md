@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Decommission Write Orchestrator Contract Tests
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Added tests/write_orchestrator_expense_save.test.mjs (WRITE-ORCH-03). Exercises the REAL addExpense() from index.html (three small independently-located source slices: identity/scoped-storage, general utils, Expenses module), the REAL installExpenseSaveHook()/syncExpensesNow() from restore-hotfix.js loaded in production order (wraps the real saveExpenses(), not a mock), and the real core-runtime.js dispatcher. Proves the expense persists synchronously to the driver-scoped local storage key with synced:false, and the debounced (900ms) sync reaches only the configured Orchestrator, never script.google.com or crewbiq-expenses. Surfaced two real integration facts while running it: vm.runInContext-declared let bindings aren't reachable via context.property assignment from outside the vm (driver had to be reassigned via vm code), and syncExpensesNow() reads the driver via a separate storedDriver()/localStorage['fiqD_driver'] path, not the in-memory driver variable. Verified via two mutations (bypassing the wrapped fetch; disabling core-runtime.js's dispatch, producing a genuine caught leak to script.google.com). Full 8-file/10-test regression set passes clean.
+WRITE-ORCH-03 accepted as test-only expense-save evidence; production/runtime remains unchanged.
 
 Latest implementation commit:
 af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f
@@ -97,25 +97,25 @@ Latest correction commit:
 af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f
 
 Latest review commit:
-eb9e3b0e3f72893615f6420b6d9d46ebfdec6573
+15c59c03ac38b13b3da41afd8127c6b59c8afec9
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of the new test)
+NONE
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued. `WRITE-ORCH-04` remains queued for later evidence assessment. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work.
+Historical attribution reconstruction remains deferred post-production. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f: run the new test and the cited regression set, confirm it genuinely exercises real index.html/restore-hotfix.js/core-runtime.js code. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, decide whether WRITE-ORCH-04 (owner-entity save coverage) remains warranted or whether the decommission-contract test slice is now sufficiently covered and the dead-literal/dedup-simplification cleanup itself (or Product Owner scope routing) becomes the next candidate. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR/SIDR status, or telemetry.
+Implement test-only `WRITE-ORCH-04`: execute one actual owner-entity save workflow and prove immediate local persistence plus Orchestrator-only network transport. Do not change runtime, legacy paths, configuration, deployment, migrations, merge state, data, ADR/SIDR status, or begin dead-literal/dedup cleanup. After publication hand back to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -4025,3 +4025,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f. Verified via GitHub Compare API against parent e690cbd46d42e646026a2d1bb490dab0d1809f3d that exactly one new file was added (173 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR/SIDR status, or telemetry change occurred; test file only.
+### 2026-09-01 - Codex ACCEPT: WRITE-ORCH-03
+
+- Reviewed implementation commit `af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f`; review commit `15c59c03ac38b13b3da41afd8127c6b59c8afec9`.
+- Confirmed real expense-save persistence, real restore-hotfix debounce/hook, and real Orchestrator dispatcher composition.
+- Exact 8-file regression set: `10 passed, 0 failed`.
+- Verdict: `CLOSED / ACCEPT`; blocking findings: `NONE`.
+- `WRITE-ORCH-04` remains warranted because existing fleet mutation evidence does not dynamically execute the full owner-entity save/persist/transport workflow.
+- Next required actor: Claude; next bounded action: test-only `WRITE-ORCH-04`.
+- Runtime/product/configuration files changed by review: `NONE`.
