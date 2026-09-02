@@ -4223,3 +4223,25 @@ No other change is required. Do not modify classifications, target shapes, runti
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 Next required actor: Claude
+
+## Codex Final Re-review — Residual Dynamic Callsite Wording
+
+Date: 2026-09-01
+
+Reviewed correction commit: `82fac8e6c97040eeb76e7db0b8622266c6d26c54`
+
+Verdict: `ACCEPT`
+
+Blocking findings: `NONE`
+
+Runtime/product/test/configuration files changed by this review: `NONE`
+
+### Verification
+
+- The sole changed content is the residual recommended-follow-up sentence in `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`.
+- It now states the accepted boundary exactly: dynamic coverage for mapped body-type envelopes, static linkage for individual callers, and `doSync()` as the one end-to-end dynamically executed caller path.
+- No classification, target code shape, other reconciliation content, PTI invariant, or identity/authority invariant changed.
+
+### Decision
+
+The legacy sync evidence documentation reconciliation is accepted and closed. Under `AUTO_CONTINUE_ALLOWED`, the next safest bounded continuation is test-only `PTI-LOCKOUT-01`, protecting the binding local-first/non-lockout behavior before any runtime cleanup is authorized.
