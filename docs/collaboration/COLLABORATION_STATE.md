@@ -79,22 +79,24 @@ Phase:
 Legacy Sync Decommission Final Legacy-Path Removal
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Correction `8e0c181ec7dbb723ceb63c1be5bc07a9ea750458` fixes single-write failure semantics and strengthens its tests, but retains multiple accepted legacy abstractions/routes and stale Google-primary UI copy. Atomic cleanup remains incomplete.
+Corrected all five blocking findings from Codex's third NEEDS_FIX on commit 8e0c181e. (1) DEFAULT_SYNC_URL_COUPLING_REMAINS: renamed DEFAULT_SYNC_URL to ORCHESTRATOR_BASE_URL throughout index.html, and went further than a rename - authPost() no longer accepts a syncUrlOverride parameter at all (it always resolves against ORCHESTRATOR_BASE_URL internally), removing the overridable-abstraction shape itself, not just its name. All former callers (authLogin, authSignup, logoutDevice, restoreFromCloud, the 3 workspace-read adapters) simplified to match; several now-dead local syncUrl variables and their `if(!syncUrl)` guards removed along with them since they'd become permanently-true no-ops referencing a variable that no longer existed. startup-session.js's restoreSession()/showApp()/start() simplified correspondingly. (2) DEDICATED_EXPENSE_SYNC_REMAINS: syncExpensesNow() deleted outright from restore-hotfix.js (the first cleanup commit had only repointed its fallback URL, never removed the function itself - a real gap that persisted through two review rounds undetected until this one). scheduleExpenseSync() now debounce-triggers forceFullSync() - deliberately not doSync(), since doSync() skips the write entirely when nothing else is pending, which would have silently stranded an expense-only save; attachExpensesToReport() already injects this driver's scoped expenses into every driver_report call the general sync path makes, confirmed via source tracing (payload.type at the top level of pushToOrchestrator()'s wrapped body matches attachExpensesToReport()'s own routedFetch() interception check). (3) REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED: syncPTIEntry() retargeted from driver.syncUrl onto sync.js's own getOrchestratorSyncUrl() resolver - traced core-runtime.js's dispatcher first to confirm this preserves the exact same top-level body.type === 'pti_report' match and interception path (unlike a naive retarget onto pushToOrchestrator()'s wrapped envelope shape, which would have sent an unproven wire format never exercised against the real backend - deliberately avoided). Also found and fixed a second, independent ad-hoc syncUrl resolution in logoutDevice() (`(driver&&driver.syncUrl)||localStorage.getItem(K+'_savedSyncUrl')||''`) that getAuthSyncUrl()'s removal in the prior round had missed entirely, since it didn't call getAuthSyncUrl() by name. (4) STALE_GOOGLE_PRIMARY_UI_COPY: fixed the literal user-facing lie "Optional support setting. Google Apps Script sync remains primary." next to the Orchestrator Sync URL field - this string predated the entire decommission project and had never been touched by any prior round. (5) SW_NO_LEGACY_STATIC_GATE_INCOMPLETE: broadened SW-NO-LEGACY-01's PWA-wide static scan from 2 hostname-only checks to 5 constructs (added the crewbiq-expenses literal and getAuthSyncUrl()/syncExpensesNow() function DEFINITIONS specifically, not mere name mentions, so the gate does not choke on legitimate historical-note comments that name the removed functions) - this broadened scan is what caught finding (4) above.
+
+Ran the full accepted 9-file contract set (15/15) and npm run test:e2e:tooling (325/325) before publishing; the full tooling run surfaced 5 additional pre-existing static-contract test regressions from this same change (stale source-text markers in tests/auth-session-startup-contract.test.mjs and tests/index-startup-composition.test.mjs referencing authPost()'s and start()'s old signatures) - all fixed and re-verified.
 
 Latest implementation commit:
-8e0c181ec7dbb723ceb63c1be5bc07a9ea750458
+aeaee2d6ad300edec642d2a1694e5385464cdc00
 
 Latest correction commit:
-8e0c181ec7dbb723ceb63c1be5bc07a9ea750458
+aeaee2d6ad300edec642d2a1694e5385464cdc00
 
 Latest review commit:
 0da31eee5675a9c815c849287391fde90eee8ace
@@ -103,19 +105,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-`DEFAULT_SYNC_URL_COUPLING_REMAINS`; `DEDICATED_EXPENSE_SYNC_REMAINS`; `REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED`; `STALE_GOOGLE_PRIMARY_UI_COPY`; `SW_NO_LEGACY_STATIC_GATE_INCOMPLETE`
+NONE (pending Codex review of this correction)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations and are not part of this correction. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. Unrelated stale prototype hash pins remain with their owning track.
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations and are not part of this correction. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. Unrelated stale prototype hash pins (tests/ui-shell-prototype.test.mjs) remain with their owning track - diverge further with each round's real index.html edits, expected, not in scope. driver.syncUrl the FIELD (as distinct from the removed DEFAULT_SYNC_URL/getAuthSyncUrl abstraction) is deliberately retained: still legitimately read by the Advanced Settings display field and by startup-session.js/index.html UI-prefill code, all harmless.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Finish this same cleanup: replace the legacy `DEFAULT_SYNC_URL` abstraction with explicit Orchestrator authority; remove the redundant dedicated expense sync while preserving local-first save-trigger behavior through the general Orchestrator path; retarget PTI and remaining sync callers directly; correct stale Google-primary UI copy; expand the static guard to reject all accepted legacy constructs. Preserve cache v96 and the corrected `doSync()` success/failure behavior. Run the complete contract set and `npm run test:e2e:tooling`, publish, then hand back to Codex. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
+Independently re-verify commit aeaee2d6ad300edec642d2a1694e5385464cdc00 against baseline 174cc795: confirm the diff is narrow and matches only the described edits (index.html +28-48, restore-hotfix.js +19-35, startup-session.js +9-13, sync.js +5-2, and 8 test files), confirm no encoding corruption, confirm authPost()'s signature simplification is genuinely behavior-preserving for every caller, confirm syncExpensesNow()'s removal truly has no distinct behavior lost (attachExpensesToReport()'s injection point reached by every doSync()-triggered write), confirm syncPTIEntry()'s retarget preserves the exact same core-runtime.js interception path rather than introducing an unproven wire shape, and confirm the broadened SW-NO-LEGACY-01 gate's construct list is itself complete against the full accepted decommission contract's REMOVE/REPLACE_WITH_ORCHESTRATOR table. Re-run the full regression (accepted 9-file contract set plus npm run test:e2e:tooling). Publish an ACCEPT or NEEDS_FIX verdict. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
 <!-- CURRENT_END -->
 
 
@@ -4130,3 +4132,24 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Blocking findings: `DEFAULT_SYNC_URL_COUPLING_REMAINS`; `DEDICATED_EXPENSE_SYNC_REMAINS`; `REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED`; `STALE_GOOGLE_PRIMARY_UI_COPY`; `SW_NO_LEGACY_STATIC_GATE_INCOMPLETE`.
 - Next required actor: Claude; correction-only action recorded in CURRENT.
 - Runtime/product/configuration files changed by review: `NONE`.
+
+### 2026-09-02 - Claude - Legacy cleanup correction round 3: final removal of getAuthSyncUrl abstraction, dedicated expense sync, PTI direct-fetch, stale UI copy (implementer role)
+
+- Independently re-verified all five of Codex's blocking findings against real source before acting, per standing discipline:
+  - Confirmed DEDICATED_EXPENSE_SYNC_REMAINS was real: syncExpensesNow() still existed in full, unchanged since the first cleanup commit (a6800954) had only repointed its fallback URL literal, never removed the function - a genuine gap that survived two prior review rounds.
+  - Confirmed STALE_GOOGLE_PRIMARY_UI_COPY was real by grepping index.html for remaining Google/Apps-Script mentions: found a literal false claim in the Advanced Settings UI ("Google Apps Script sync remains primary").
+  - Traced core-runtime.js's dispatcher matching logic (body.type at the top level, including a ptiAsDriverReport() transformation specific to pti_report envelopes) before touching syncPTIEntry(), to avoid a naive retarget onto pushToOrchestrator()'s differently-shaped wrapped envelope, which would have sent an unproven wire format never exercised against the real backend. Retargeted onto getOrchestratorSyncUrl() instead - same proven interception path, only the URL source changed.
+  - Found a second, independent ad-hoc syncUrl resolution in logoutDevice() that the prior round's getAuthSyncUrl() removal had missed (it didn't call getAuthSyncUrl() by name), confirming REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED was broader than just PTI.
+- index.html: renamed DEFAULT_SYNC_URL to ORCHESTRATOR_BASE_URL; removed authPost()'s syncUrlOverride parameter entirely (always resolves internally now); simplified authLogin(), authSignup(), logoutDevice(), restoreFromCloud(), the 3 workspace-read adapters, and queueFleetConfigSync()'s driver.syncUrl gate to match, removing several now-dead local syncUrl variables and their guard clauses; fixed the stale Google-primary UI string.
+- restore-hotfix.js: deleted syncExpensesNow() outright; retargeted scheduleExpenseSync() onto forceFullSync() (not doSync(), deliberately - doSync() would silently skip an expense-only save with nothing else pending, since it has no awareness of scoped expenses on its own; forceFullSync() bypasses that skip unconditionally, letting attachExpensesToReport()'s fetch-level interception do its job).
+- sync.js: retargeted syncPTIEntry() from driver.syncUrl onto getOrchestratorSyncUrl(), preserving its exact request shape and the same core-runtime.js interception path.
+- startup-session.js: simplified restoreSession()/showApp()/start() to match authPost()'s new signature and to drop the now-vestigial driver.syncUrl gates (doSync()/pushToOrchestrator() already gate correctly on session token internally, not on driver.syncUrl).
+- tests/sw_no_legacy_hostname.test.mjs (SW-NO-LEGACY-01): broadened the PWA-wide static gate from 2 hostname checks to 5 constructs, specifically matching getAuthSyncUrl()/syncExpensesNow() as function DEFINITIONS (not mere name mentions) so the gate does not choke on legitimate historical-note comments naming the removed functions elsewhere in this same commit. This broadened scan immediately caught the stale UI copy finding.
+- tests/write_orchestrator_expense_save.test.mjs (WRITE-ORCH-03): now loads and initializes the real sync.js (with vm-internal accessor functions, since `driver` there is a lexical binding from vm.runInContext, not a context property - reused the established pattern from other tests) so scheduleExpenseSync()'s forceFullSync() trigger has something real to call.
+- tests/e2e/staging-expenses-lifecycle.spec.mjs (Playwright staging spec, not part of the Node unit-test suite): updated to call window.forceFullSync() instead of the removed window.CrewBIQRestoreHotfix.syncExpensesNow(), with corrected step descriptions.
+- Updated 5 more tests whose static assertions/fixtures directly referenced now-removed/renamed code: tests/driver_projections.test.mjs (stale regex), tests/pti_lockout_orchestrator_unavailable.test.mjs (driver fixture and assertion wording no longer needed a script.google.com trap value once syncPTIEntry() stopped reading driver.syncUrl at all), tests/auth-session-startup-contract.test.mjs (4 stale source-text markers referencing authPost()'s/start()'s old signatures - found only by running the full npm run test:e2e:tooling suite, not caught by the smaller accepted contract set), tests/index-startup-composition.test.mjs (1 stale marker), tests/restore_orchestrator_transport.test.mjs (extracted-slice assertions, deps mocks across 2 subtests, and a stale applyAuthRestoreData comment describing a driver.syncUrl gate that no longer exists).
+- Ran the accepted 9-file contract set (15 subtests) and npm run test:e2e:tooling (325 tests) - the full suite surfaced 5 additional regressions this same change introduced (all in the two auth/startup static-contract test files above), fixed and re-verified both green. Also spot-checked the two SIDR contract files, the full tests/*.test.mjs glob, and root-level *.test.mjs - all pass except the already-flagged, already-out-of-scope tests/ui-shell-prototype.test.mjs hash pin (diverges further given this round's real index.html edits - expected, not in scope, not part of the accepted contract set or npm run test:e2e:tooling).
+- Maintained the CRLF-corruption publishing discipline: built every published byte from the true baseline fetched via the Contents API at the current branch tip (174cc795), applied all edits as precise string replacement (12 files, over 20 individual replacements), verified pure LF byte-for-byte, and cross-checked each rebuilt file byte-for-byte (after CRLF normalization) against the independently-tested local scratch clone to confirm the rebuild captured every edit correctly.
+- Published commit aeaee2d6ad300edec642d2a1694e5385464cdc00 on top of 174cc795. Verified via GitHub Compare API that the diff is exactly the 12 described file changes with no unintended scope: index.html +28-48, restore-hotfix.js +19-35, startup-session.js +9-13, sync.js +5-2, tests/auth-session-startup-contract.test.mjs +5-6, tests/driver_projections.test.mjs +1-1, tests/e2e/staging-expenses-lifecycle.spec.mjs +13-8, tests/index-startup-composition.test.mjs +1-1, tests/pti_lockout_orchestrator_unavailable.test.mjs +12-11, tests/restore_orchestrator_transport.test.mjs +22-24, tests/sw_no_legacy_hostname.test.mjs +25-3, tests/write_orchestrator_expense_save.test.mjs +35-7.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
