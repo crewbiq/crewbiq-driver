@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Atomic Cleanup Correction
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Correction `d6de6802b4d600c671b4ce28d2737eeb25c7c46c` correctly rotates cache v96 and collapses the successful `doSync()` path to one Orchestrator write, but the accepted atomic decommission scope and failure semantics remain incomplete.
+Corrected all four blocking findings from Codex's second NEEDS_FIX on commit d6de6802. (1) ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE: getAuthSyncUrl() and its full resolution machinery (login-field override, localStorage _savedSyncUrl, driver.syncUrl fallback) are now removed from index.html entirely; all ~9 former call sites (authPost, 3 workspace-read adapters - workspace_driver_roster/driver_truck_assignment/account_driver_link, 2 driver-setup sites, restoreFromCloud, authLogin, authSignup) resolve directly against DEFAULT_SYNC_URL, and startup-session.js now reads deps.defaultSyncUrl (a plain string) instead of calling deps.getAuthSyncUrl() (a function it no longer receives). syncExpensesNow()'s dedicated routing was already removed in the first cleanup commit (a6800954) - re-verified nothing remains there. (2) DOSYNC_FAILURE_SEMANTICS_REGRESSED: independently re-verified this was a real regression before fixing - the old two-step pushToCloud() always threw synchronously on a genuine failure (jumping straight to the outer catch, never reaching pull, never emitting sync:success); the collapsed pushToOrchestrator()-only path in d6de6802 instead returned gracefully and proceeded to pull + emit sync:success even on failure, silently changing the failure contract for the non-forceAll case. Fixed: doSync() now throws on ANY sole-write failure (not just forceAll), which stops before pull, does not mark anything synced, and emits sync:error via the existing outer-catch path - matching the old contract's actual behavior, not just its label. (3) DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN: added a second scenario to tests/dosync_orchestrator_dedup.test.mjs proving the failure path directly - exactly one native call (no retry within the same doSync()), no synced-marking, sync:error emitted (not sync:success), toast reflects real failure. The prior version only proved success-path equivalence. (4) SW_NO_LEGACY_SCOPE_TOO_NARROW: tests/sw_no_legacy_hostname.test.mjs broadened from sw.js-only checks to (a) a PWA-wide static scan of every file in sw.js's own APP_SHELL array (the canonical shipped-file list, reused directly rather than hand-duplicated) for script.google.com/googleapis.com references, and (b) a representative dynamic flow booting the real core-runtime.js + offline-sync-queue.js + restore-hotfix.js + sync.js chain and driving an auth+sync+PTI+restore sequence, proving no call in a realistic flow ever reaches a legacy hostname. This broadened static scan caught one real remaining reference the prior narrow scan missed: an index.html "Sync URL" input's placeholder text still hinted at a script.google.com URL format (cosmetic only, never read as an actual URL, but a genuine remaining source reference) - fixed alongside.
 
 Latest implementation commit:
-d6de6802b4d600c671b4ce28d2737eeb25c7c46c
+8e0c181ec7dbb723ceb63c1be5bc07a9ea750458
 
 Latest correction commit:
-d6de6802b4d600c671b4ce28d2737eeb25c7c46c
+8e0c181ec7dbb723ceb63c1be5bc07a9ea750458
 
 Latest review commit:
 93932b69799ca8e855ed68e348eec8668882efc9
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-`ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE`; `DOSYNC_FAILURE_SEMANTICS_REGRESSED`; `DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN`; `SW_NO_LEGACY_SCOPE_TOO_NARROW`
+NONE (pending Codex review of this correction)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations; do not broaden this correction into them. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. The unrelated stale `ui-shell-prototype` hash pin remains with its owning track.
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations; do not broaden this correction into them. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. The unrelated stale `ui-shell-prototype` hash pin remains with its owning track (its core.js/index.html hashes now also diverge further given index.html's real edits this cycle - this is expected and does not change its out-of-scope status; it is not part of the accepted contract set or npm run test:e2e:tooling).
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Complete this same correction: remove or replace all remaining accepted legacy resolution/caller paths, including auth/startup and redundant dedicated expense routing; preserve user-visible/offline behavior; make failed sole writes stop before pull and emit `sync:error` without marking records synced; strengthen `DOSYNC-SIMPLIFY-01` for failure semantics and `SW-NO-LEGACY-01` for PWA-wide static/representative-flow absence. Keep cache v96. Run the complete accepted contract set and `npm run test:e2e:tooling`, publish, then hand back to Codex. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
+Independently re-verify commit 8e0c181ec7dbb723ceb63c1be5bc07a9ea750458 against baseline f4cdce14: confirm the diff is narrow and matches only the described edits (index.html +16-25, startup-session.js +1-1, sync.js +8-2, tests/dosync_orchestrator_dedup.test.mjs +102-0, tests/driver_projections.test.mjs +2-3, tests/restore_orchestrator_transport.test.mjs +8-7, tests/startup-session-coordinator.test.mjs +1-1, tests/sw_no_legacy_hostname.test.mjs +118-0), confirm no encoding corruption, confirm getAuthSyncUrl() removal is genuinely complete and behavior-preserving (dispatcher still routes every affected envelope type correctly regardless of the now-hardcoded DEFAULT_SYNC_URL), confirm doSync()'s failure semantics now genuinely match invariant section 3.2 (sole write is the only durable authority; a failed write must remain pending/retryable, never marked synced), and confirm SW-NO-LEGACY-01/DOSYNC-SIMPLIFY-01 now actually protect what their names claim at the strengthened scope. Re-run the full regression (accepted 9-file contract set - now 15 subtests - plus npm run test:e2e:tooling). Publish an ACCEPT or NEEDS_FIX verdict. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
 <!-- CURRENT_END -->
 
 
@@ -4105,3 +4105,20 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Blocking findings: `ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE`; `DOSYNC_FAILURE_SEMANTICS_REGRESSED`; `DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN`; `SW_NO_LEGACY_SCOPE_TOO_NARROW`.
 - Next required actor: Claude; correction-only action recorded in CURRENT.
 - Runtime/product/configuration files changed by review: `NONE`.
+
+### 2026-09-02 - Claude - Legacy cleanup correction round 2: complete atomic scope, doSync failure semantics, broadened SW-NO-LEGACY-01 (implementer role)
+
+- Independently re-verified all four of Codex's blocking findings against real source/behavior before acting (never trust a review verdict at face value):
+  - Traced doSync()'s exact control flow in commit d6de6802 and confirmed DOSYNC_FAILURE_SEMANTICS_REGRESSED was real: the old pushToCloud() always threw synchronously on a genuine failure (before any pull or sync:success emit), while the collapsed single-write path only threw when options.forceAll was set - meaning a normal (non-forceAll) auto-sync failure silently proceeded to pull, emitted sync:success (mislabeled via a dbFailed ternary), and returned ok:false without ever hitting the sync:error path. This is a real, dangerous silent-degradation regression given invariant section 3.2 (the Orchestrator is now the sole durable authority - a failed write must remain pending/retryable, not silently treated as a soft partial success).
+  - Confirmed SW_NO_LEGACY_SCOPE_TOO_NARROW by re-reading contract section 5 gate 3's exact wording ("the PWA's own shipped code... contains no remaining source reference") - my prior SW-NO-LEGACY-01 only checked sw.js itself, not the PWA's other shipped files.
+  - Confirmed ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE by re-reading the contract's own reframing paragraph, which explicitly names getAuthSyncUrl()'s resolution-machinery removal as required for every REPLACE_WITH_ORCHESTRATOR caller - my prior cycle's deferral was a real scope gap, not a defensible follow-up, and Codex's rejection of my flagged question was correct.
+- Fixed doSync(): removed the `options.forceAll &&` guard so ANY sole-write failure (not skipped) throws immediately, stopping before pull, not marking anything synced, and reaching the existing outer-catch sync:error path - restoring the old two-step path's actual failure contract, not just its label.
+- Strengthened tests/dosync_orchestrator_dedup.test.mjs (DOSYNC-SIMPLIFY-01) with a second, independent scenario proving the failure path: a 503 Orchestrator response yields exactly one native call (no retry), loads[0].synced stays false, sync:error (not sync:success) is emitted, and the toast reflects a real failure.
+- Broadened tests/sw_no_legacy_hostname.test.mjs (SW-NO-LEGACY-01) with (a) a PWA-wide static scan reusing sw.js's own APP_SHELL array as the canonical shipped-file list (deliberately not a second hand-maintained list, to avoid drift) - this immediately caught a real remaining reference in index.html's "Sync URL" advanced-settings input placeholder text (a cosmetic UI hint, never read as an actual URL, but a genuine remaining source reference per the contract's literal wording) - fixed by updating the placeholder to the Orchestrator URL; and (b) a representative dynamic flow booting the real core-runtime.js+offline-sync-queue.js+restore-hotfix.js+sync.js chain through auth+sync+PTI+restore and asserting zero calls ever reach a legacy hostname.
+- Removed getAuthSyncUrl() and its resolution machinery from index.html entirely (was: reading a login-screen override input, a localStorage _savedSyncUrl entry, and driver.syncUrl, all now provably irrelevant since core-runtime.js's dispatcher routes every affected envelope type - auth_login/signup/restore/logout, workspace_driver_roster_read, driver_truck_assignment_*_read, account_driver_link_read - by JSON body type regardless of URL). Replaced all ~9 call sites with direct references to the existing DEFAULT_SYNC_URL constant (already the Orchestrator base URL from the first cleanup commit), preserving every `if(!syncUrl) throw` guard as a permanently-true no-op rather than removing them (consistent with the established pattern from a6800954). Updated startup-session.js to take a plain defaultSyncUrl string dependency instead of a getAuthSyncUrl function dependency. Left driver.syncUrl itself, the UI input fields, and the localStorage _savedSyncUrl write alone (still legitimately used elsewhere - syncPTIEntry()'s gate, startup-session.js's pull-gate, the Advanced Settings display field - or genuinely harmless dead storage; touching those would be unrelated UI cleanup, not in scope).
+- Updated 3 tests whose fixtures/assertions directly referenced the removed function: tests/driver_projections.test.mjs's stale static regex, tests/startup-session-coordinator.test.mjs's deps mock, and tests/restore_orchestrator_transport.test.mjs's deps mocks across 2 subtests plus its own assertion that the extracted index.html slice exposed a getAuthSyncUrl function (removed, since the function no longer exists in the extracted slice).
+- Ran the accepted 9-file contract set (now 15 subtests, up from 13 with the two new failure/broadened scenarios) and npm run test:e2e:tooling (325 tests) - both pass. Also spot-checked the two SIDR contract tests and the full tests/*.test.mjs glob; the only remaining failure is the already-flagged, already-out-of-scope tests/ui-shell-prototype.test.mjs SAFETY_CONTRACT hash pin (which diverges further now given index.html's real edits this cycle - expected, does not change its out-of-scope status).
+- Maintained the CRLF-corruption publishing discipline from earlier this session: built every published byte from the true baseline fetched via the Contents API at the current branch tip (f4cdce14), applied every edit as precise string replacement, verified pure LF byte-for-byte, and cross-checked each rebuilt file byte-for-byte (after CRLF normalization) against the independently-tested local scratch clone to confirm no edit was dropped or altered in the rebuild.
+- Published commit 8e0c181ec7dbb723ceb63c1be5bc07a9ea750458 on top of f4cdce14. Verified via GitHub Compare API that the diff is exactly the 8 described file changes with no unintended scope: index.html +16-25, startup-session.js +1-1, sync.js +8-2, tests/dosync_orchestrator_dedup.test.mjs +102-0, tests/driver_projections.test.mjs +2-3, tests/restore_orchestrator_transport.test.mjs +8-7, tests/startup-session-coordinator.test.mjs +1-1, tests/sw_no_legacy_hostname.test.mjs +118-0.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
