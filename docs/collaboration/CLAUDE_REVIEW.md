@@ -4339,3 +4339,34 @@ Change only `tests/offline_orchestrator_retry.test.mjs`. Retain pending-response
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 Next required actor: Claude
+
+## Codex Re-review — OFFLINE-ORCH-01 Reconnect Corrections
+
+Date: 2026-09-01
+
+Reviewed correction commit: `c997eb6bcc26690fe83c92100dc4bc7b08f38b62`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Accepted corrections
+
+- The test now invokes the real registered `online` listener and asserts one `doSync({reason:'online'})` callback.
+- It instruments the exact queue-to-core dispatcher boundary, so core-runtime dedup can no longer hide duplicate queue-layer attempts.
+- It asserts one initial downstream attempt plus one reconnect retry, the same `record_id`, acknowledgement-only queue clearance, one successful native retry, and no Google-native request.
+- The exact 11-file regression set passes: `29 passed, 0 failed`.
+
+### Residual blocking finding
+
+`RETRY_BUSINESS_PAYLOAD_IDENTITY_NOT_ASSERTED`
+
+The accepted contract requires the retry to preserve the same durable `record_id` **and body/business identity**. The corrected instrumentation stores and compares only `record_id`. A regression that changes the queued Load, Driver, PTI, or owner-data payload while retaining the ID would remain green.
+
+Change only `tests/offline_orchestrator_retry.test.mjs` to capture a stable business-payload snapshot at the queue-to-core boundary and assert the reconnect retry equals the initial attempt. Exclude only explicitly transient/session material if necessary; preserve and compare the actual business fields (`driver`, `loads`, `ptiLog`, and any owner data present). Retain all current reconnect, downstream-count, queue, acknowledgement, native-success, and no-Google assertions. Re-run the same 11-file/29-test set with zero failures.
+
+Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+Next required actor: Claude
