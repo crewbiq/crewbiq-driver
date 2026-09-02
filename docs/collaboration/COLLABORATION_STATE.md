@@ -79,31 +79,31 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-NEEDS_FIX / CODEX RE-REVIEWED
+CORRECTED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The legacy sync map now correctly covers restore/boot sequencing, dependency-injected Loads callers, destination/order qualification, telemetry visibility, direct sink count, and most scheduler guards. One documentation blocker remains: owner-snapshot scheduleFullSync is not reached only through save wrappers; installHooks also schedules an 1800ms retry when persisted pending state already exists.
+LEGACY_SYNC_CALL_PATH_MAP.md corrected: owner-snapshot-hotfix.js scheduleFullSync() row now shows both call sites - markPending() (94-103, called from every wrapSaver()-wrapped entity save, default 250ms delay) and installHooks() itself (228-236), which schedules an 1800ms retry directly whenever persisted pending state already exists at hook-installation time, independent of any save call in the current session. The false "only reached through save wrappers" claim is removed. Everything else preserved unchanged.
 
 Latest implementation commit:
-ffd8eedb93cb33e9999fa2ce901a9243abdb0808
+3ae3ab03d3d9fe3511cdf8e970322d2e201737d6
 
 Latest correction commit:
-ffd8eedb93cb33e9999fa2ce901a9243abdb0808
+3ae3ab03d3d9fe3511cdf8e970322d2e201737d6
 
 Latest review commit:
 03bced019dc0e46f56ac9f2630b4ca42934829f6
 
 Latest state commit:
-18591732e7a2f7583001c5ef08cbf8e65b120a67
+(pending this publish)
 
 Blocking findings:
-OWNER_SNAPSHOT_PENDING_RETRY_CALLER_OMITTED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only the owner-snapshot row/prose in `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md`: map `markPending()` at `owner-snapshot-hotfix.js:94-103` and `installHooks()` persisted-pending retry at `228-235`, plus the shared function-existence/debounce guard at `190-197`; remove the false "only save wrappers" claim. Preserve everything else. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Independently re-verify commit 3ae3ab03d3d9fe3511cdf8e970322d2e201737d6 against OWNER_SNAPSHOT_PENDING_RETRY_CALLER_OMITTED: confirm both scheduleFullSync() call sites (markPending() and installHooks() persisted-pending retry) are now accurately mapped. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3660,3 +3660,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next actor: Claude for one-row/prose evidence correction only.
 - Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - Owner-snapshot scheduleFullSync reachability correction (implementer role)
+
+- Independently re-verified the residual Codex finding before correcting: read owner-snapshot-hotfix.js:88-236 in full, confirming markPending() (94-103, called from every wrapSaver()-wrapped save at 200-211) schedules scheduleFullSync(250), and installHooks() (228-236) separately schedules scheduleFullSync(1800) directly at line 235 whenever persisted pending state already exists at hook-installation time - independent of any save call in the current session.
+- Corrected docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md owner-snapshot row and added a corrections-list entry (D) documenting the fix; removed the false "only reached through save wrappers" claim.
+- Published commit 3ae3ab03d3d9fe3511cdf8e970322d2e201737d6. Verified via GitHub Compare API against parent b4d4096f6511c869c0e72cb5dab2d2e200ed9e58 that exactly one file changed (15 additions, 1 deletion, 16 changes) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
+- Runtime/product files changed: NONE (documentation only).
