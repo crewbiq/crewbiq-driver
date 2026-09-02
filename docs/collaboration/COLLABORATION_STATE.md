@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Evidence Documentation Reconciliation
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Reconciled all three documents against accepted evidence commits 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f and 73b903291224268c592deee03106fc696a6368e9. Gap inventory items 2, 6, 7, and Legacy Independence reclassified BLOCKED to PARTIAL (not PROVEN: mapped-call-site evidence only, no live-traffic observability). Evidence map now distinguishes source-level reachability from effective runtime destination for every documented caller, and notes doSync()'s two-step push is redundant-but-safe, not sequential. Decommission contract reframed: target end-state is already true at runtime; remaining work is dead-literal/dead-branch cleanup and collapsing the redundant deduplicated double-write, not retargeting live traffic; marked which of its 5 contract tests are already substantially satisfied vs. still open. PTI local-first invariant and identity/authority invariants preserved verbatim; the open Product Owner decision (crewbiq-expenses redundancy) is unaffected and remains open.
+Codex review 1f32824e458d338b03488b8d0ff7719afcf204c3 accepts the PARTIAL reclassifications, unchanged REMOVE/REPLACE target code shapes, PTI graceful degradation, and identity invariants. Three documentation-only evidence overclaims require correction: tests dynamically cover mapped body types rather than every caller; they prove the default production Orchestrator base rather than every configurable base; and dead/no-risk/safe language must be limited to mapped matched envelopes and one tested doSync run/runtime dedup window.
 
 Latest implementation commit:
 b53f6769cfc63eddb1064da781ccfc76b856ba9d
@@ -97,13 +97,13 @@ Latest correction commit:
 b53f6769cfc63eddb1064da781ccfc76b856ba9d
 
 Latest review commit:
-46c026bd33c965eed460b2b339444a2bb23c5765
+1f32824e458d338b03488b8d0ff7719afcf204c3
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex review of the reconciliation)
+DYNAMIC_CALLSITE_COVERAGE_OVERSTATED; CONFIGURED_DESTINATION_OVERSTATED_AS_REAL_ORCHESTRATOR; DEAD_AND_SAFE_SCOPE_OVERSTATED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract).
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit b53f6769cfc63eddb1064da781ccfc76b856ba9d against the reconciliation instructions: confirm the PARTIAL reclassifications and their rationale are accurate and not overstated toward PROVEN; confirm the evidence map's source-vs-runtime-destination distinction is correctly drawn for every caller; confirm the decommission contract's reframing does not silently change any REMOVE/REPLACE_WITH_ORCHESTRATOR classification's target code shape, only its rationale. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, or SIDR.
+Correct only docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md, and docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md for review commit 1f32824e458d338b03488b8d0ff7719afcf204c3. Replace dynamic-every-caller claims with dynamic body-type coverage plus static caller/envelope/load-order linkage; state matched envelopes route to getOrchestratorBase(), whose tested/default base is production Orchestrator but configurable overrides are not host-validated; qualify dead/no-risk/safe claims to mapped matched envelopes and the single tested doSync run/runtime dedup window; state client calls remain sequential although no second native write occurs in that tested composition; and limit WRITE test satisfaction to transport dispatch unless actual save workflows are exercised. Preserve all PARTIAL statuses, REMOVE/REPLACE target shapes, PTI and identity invariants. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, SIDR, or telemetry. Publish and return to Codex.
 <!-- CURRENT_END -->
 
 
@@ -3803,3 +3803,16 @@ Next bounded action: documentation-only reconciliation of the production gap inv
 - Published commit b53f6769cfc63eddb1064da781ccfc76b856ba9d. Verified via GitHub Compare API against parent 8306aa4124083eb21bee2e8960ca65aaec0fb414 that exactly the three intended documents changed - no unintended scope. Confirmed pure-LF encoding on all three before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No runtime, test, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; documentation only.
+
+### 2026-09-01 - Codex review: Legacy sync evidence documentation reconciliation
+
+Agent: Codex
+Task: Review reconciliation commit `b53f6769cfc63eddb1064da781ccfc76b856ba9d`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `1f32824e458d338b03488b8d0ff7719afcf204c3`
+Accepted: PARTIAL reclassifications; unchanged REMOVE/REPLACE target shapes; PTI local-first and identity/authority invariants.
+Blocking findings: `DYNAMIC_CALLSITE_COVERAGE_OVERSTATED`; `CONFIGURED_DESTINATION_OVERSTATED_AS_REAL_ORCHESTRATOR`; `DEAD_AND_SAFE_SCOPE_OVERSTATED`
+Runtime/product/test/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: correct evidence-level wording only in the same three documents, preserving classifications and target code shapes.
