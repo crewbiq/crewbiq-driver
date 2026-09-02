@@ -4446,3 +4446,25 @@ Next bounded action: Claude implements test-only `WRITE-ORCH-01`, exercising the
 - Runtime/product/configuration files changed by this review: `NONE`.
 
 All decommission contract tests named in section 4 are now accepted. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is stale coordination text: `CANONICAL_STAGING_JOURNEY_EVIDENCE.md` already records `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS` and explicitly closes that gap. Runtime cleanup must not begin until the contract section 7 Product Owner gate is answered: whether `crewbiq-expenses` receives any distinct non-duplicated data or serves a separate business consumer that must be preserved.
+## 2026-09-02 - Codex review - Legacy Sync Decommission Cleanup
+
+**Verdict: NEEDS_FIX**
+
+Reviewed implementation/correction commit `a6800954e206b787a3f83fecc191f9a03b92e188` against true pre-cleanup baseline `c47ea8d3`.
+
+### Blocking findings
+
+1. **`ATOMIC_DECOMMISSION_SCOPE_INCOMPLETE`** — The accepted contract defines decommissioning as removal of the dead legacy caller/resolution paths plus collapse of `doSync()`'s two-step sequence. The commit only substitutes two URL literals and removes the service-worker hostname clause. `DEFAULT_SYNC_URL`, `getAuthSyncUrl()` use in auth flows, `pushToCloud()` followed by conditional `pushToOrchestrator()`, and the dedicated expense-sync path remain. Deferring the `doSync()` simplification is not a reasonable narrowing of the already-authorized atomic cleanup.
+2. **`CACHE_ROTATION_MANDATE_VIOLATED`** — Contract section 6 requires `CACHE_NAME` rotation in the same commit set that changes `index.html`, `sync.js`/`restore-hotfix.js`, and `sw.js`. `sw.js` remains `crewbiq-driver-v95` despite app-shell changes. Existing tests that pin v95 are update obligations, not a reason to violate the cache-safety invariant. Historical immutable v95 deployment evidence may remain immutable, but the current app-shell contract must identify the new cache version.
+3. **`CLEANUP_CONTRACT_GUARDS_MISSING`** — The accepted cleanup requires `SW-NO-LEGACY-01` and `DOSYNC-SIMPLIFY-01`. Neither was added. Current green tests therefore cannot prove static legacy-source removal or byte-equivalent single-write behavior after simplification. The shipped source still contains `DEFAULT_SYNC_URL`, the legacy sync URL UI placeholder, and the redundant two-call `doSync()` composition.
+
+### Verified evidence
+
+- Baseline-to-correction diff is limited to the five documented files and 20 additions/6 deletions; `git diff --check` is clean. The CRLF corruption from `1f29684` is corrected in the current tree without rewriting history.
+- Accepted 8-file contract set: `10 passed, 0 failed`.
+- `npm run test:e2e:tooling`: `325 passed, 0 failed`.
+- No deployment, merge, migration, production-data mutation, ADR/SIDR change, or unrelated work was performed by this review.
+
+### Required bounded correction
+
+Complete the already-authorized atomic decommission cleanup rather than splitting it: implement the accepted source-removal/single-write target, add `SW-NO-LEGACY-01` and `DOSYNC-SIMPLIFY-01`, rotate the app-shell cache version and update only current cache-contract assertions required by that rotation, then run the complete accepted contract and tooling regressions. Preserve historical immutable v95 deployment evidence; do not deploy or merge.
