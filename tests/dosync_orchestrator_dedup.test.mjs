@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-// Proves the doSync() two-step push (pushToCloud() then, conditionally,
-// pushToOrchestrator()) does not produce two real writes to the Orchestrator
-// for the same record. Both steps ultimately call the SAME core-runtime.js
-// routedFetch (installed as global.fetch before sync.js ever runs), which
-// deduplicates by record_id within a short window and returns
-// client_deduplicated:true for the second call without making a second
-// request to the real Orchestrator. This test asserts that dynamically by
-// counting actual native network calls, not by re-reading the source.
+// DOSYNC-SIMPLIFY-01: doSync()'s two-step push (formerly pushToCloud() then,
+// conditionally, pushToOrchestrator() — both reaching the same real
+// Orchestrator /v1/sync surface and deduplicated by record_id) is now
+// collapsed into a single call to pushToOrchestrator(). This proves the
+// simplified path produces the same observable request/response behavior as
+// the real (non-duplicate) write of the former two-step path: exactly one
+// real native call, carrying the same request/response shape, for the same
+// inputs — a regression guard for the cleanup itself, not a new behavior.
 
 const storageMap = new Map();
 const localStorage = {
@@ -44,7 +44,7 @@ async function nativeFetchMock(url, init = {}) {
       status: 200, headers: { 'Content-Type': 'application/json' },
     });
   }
-  throw new Error('Unexpected native fetch call in dedup test: ' + call.method + ' ' + call.url);
+  throw new Error('Unexpected native fetch call in DOSYNC-SIMPLIFY-01 test: ' + call.method + ' ' + call.url);
 }
 
 const CoreEventsStub = {
@@ -84,7 +84,7 @@ assert.ok(context.CrewBIQSync, 'sync.js must expose CrewBIQSync on the shared co
 
 localStorage.setItem('fiqD_sessionToken', 'token-dedup-1');
 
-const driver = { crewId: 'CBQ-DEDUP', syncUrl: 'https://script.google.com/macros/s/example/exec' };
+const driver = { crewId: 'CBQ-DEDUP' };
 let loads = [{ id: 'load_1', synced: false, gross: 100 }];
 let ptiLog = [];
 let disputes = [];
@@ -111,29 +111,35 @@ assert.equal(
   1,
   'expected exactly ONE real network call to the Orchestrator /v1/sync surface for one doSync() run, got ' + nativeSyncCalls.length,
 );
-assert.equal(nativeSyncCalls[0].url.includes('script.google.com'), false);
 
 const firstBody = JSON.parse(nativeSyncCalls[0].body);
 const firstRecordId = firstBody.payload ? firstBody.payload.record_id : firstBody.record_id;
-assert.ok(firstRecordId, 'the deduplicated real call must still carry the original record_id');
+assert.ok(firstRecordId, 'the single real call must carry a record_id');
+assert.equal(firstBody.source, 'crewbiq_driver', 'the request wrapper shape (source/deviceId/sentAt/payload) must be unchanged by the collapse');
+assert.ok(firstBody.deviceId, 'the request wrapper must still carry deviceId');
+assert.ok(firstBody.sentAt, 'the request wrapper must still carry sentAt');
+assert.equal(firstBody.payload.loads.length, 1, 'the single write must carry the same payload shape (loads array) as before');
 
-// The one-native-call count alone doesn't prove the second push actually ran
-// and was deduplicated — it would also be 1 if pushToOrchestrator() were
-// never called at all. Assert directly on doSync()'s own returned
-// orchestratorCopy so a regression that silently drops the second push is
-// caught, not just a regression that removes dedup.
-assert.ok(result.orchestratorCopy, 'doSync() must return an orchestratorCopy from its second push step');
-assert.equal(result.orchestratorCopy.ok, true, 'the second push step must have succeeded (been deduplicated, not skipped or failed)');
-assert.equal(result.orchestratorCopy.skipped, undefined, 'the second push step must not have been skipped (e.g. no_orchestrator_url)');
+// The single-native-call count alone doesn't prove pushToOrchestrator() was
+// actually invoked and its result surfaced — it would also be 1 if a bug
+// silently swallowed the write's own confirmation. Assert directly on
+// doSync()'s own returned orchestratorCopy so a regression that silently
+// drops or misreports the write is caught.
+assert.ok(result.orchestratorCopy, 'doSync() must return an orchestratorCopy from its (sole) push step');
+assert.equal(result.orchestratorCopy.ok, true, 'the sole push step must have succeeded');
+assert.equal(result.orchestratorCopy.skipped, undefined, 'the sole push step must not have been skipped (e.g. no_orchestrator_url)');
 assert.equal(
   result.orchestratorCopy.result && result.orchestratorCopy.result.client_deduplicated,
-  true,
-  'the second push step must have been recognized as a duplicate of the first by record_id, not treated as a distinct new write',
+  undefined,
+  'a single collapsed write is a fresh write, not a dedup of a prior legacy call — client_deduplicated must not be set',
 );
 assert.equal(
   result.orchestratorCopy.result && result.orchestratorCopy.result.record_id,
   firstRecordId,
-  'the deduplicated second push must reference the same record_id as the one real native write',
+  'the returned orchestratorCopy must reference the same record_id as the one real native write',
 );
+assert.equal(result.push.pushedLoads, 1, 'push bookkeeping (pushedLoads) must still reflect the pushed record count after the collapse');
+assert.equal(loads[0].synced, true, 'the local record must be marked synced after a successful sole write, exactly as the former two-step path did');
+assert.equal(savedAllCount > 0, true, 'local state must still be persisted after a successful write');
 
-console.log('doSync() Orchestrator dedup contract: ok (native /v1/sync calls: ' + nativeSyncCalls.length + ')');
+console.log('DOSYNC-SIMPLIFY-01: ok (single collapsed Orchestrator write, native /v1/sync calls: ' + nativeSyncCalls.length + ')');

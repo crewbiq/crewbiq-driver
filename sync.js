@@ -578,80 +578,17 @@
   }
 
   // ── MAIN SYNC ──────────────────────────────────────────────────────────────
-
-  async function pushToCloud(forceAll = false) {
-    const driver = _get.driver();
-
-    if (!(driver && driver.syncUrl)) {
-      setSyncUI('idle', 'No sync URL');
-      return { ok: false, skipped: true, reason: 'no_sync_url' };
-    }
-
-    const sessionToken = getSessionToken();
-    if (!sessionToken) {
-      setSyncUI('err', 'Login required');
-      return { ok: false, skipped: true, reason: 'missing_session_token' };
-    }
-
-    const payload = buildSyncPayload(forceAll);
-
-    if ((payload.loads.length + payload.ptiLog.length + payload.disputes.length) === 0 && !payload.ownerData && !forceAll) {
-      Core.events.emit('sync:skip', { reason: 'nothing_to_push' });
-      return { ok: true, skipped: true, reason: 'nothing_to_push' };
-    }
-
-    const syncedLoadIds    = new Set(payload.loads.map(x => x.id));
-    const syncedPtiIds     = new Set(payload.ptiLog.map(x => x.id));
-    const syncedDisputeIds = new Set(payload.disputes.map(x => x.id));
-
-    const resp = await fetch(driver.syncUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload),
-      redirect: 'follow',
-    });
-
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
-    const text = await resp.text();
-    let result = {};
-    try { result = JSON.parse(text); } catch (e) {}
-    if (result.error || result.ok === false) throw new Error(result.error || result.reason || 'Cloud returned error');
-
-    _set.loads(_get.loads().map(x =>
-      syncedLoadIds.has(x.id) ? { ...x, synced: true } : x
-    ));
-    _set.ptiLog(_get.ptiLog().map(p =>
-      syncedPtiIds.has(p.id) ? { ...p, synced: true } : p
-    ));
-    if (_get.disputes && _set.disputes) {
-      _set.disputes(_get.disputes().map(d =>
-        syncedDisputeIds.has(d.id) ? { ...d, synced: true } : d
-      ));
-    }
-
-    _saveAll();
-
-    return {
-      ok: true,
-      pushedLoads: syncedLoadIds.size,
-      pushedPti: syncedPtiIds.size,
-      pushedDisputes: syncedDisputeIds.size,
-      payload,
-      result,
-    };
-  }
+  //
+  // Historical note: this module used to push via a legacy Apps Script write
+  // (pushToCloud()) before also copying to the Orchestrator (pushToOrchestrator()).
+  // pushToOrchestrator() is now the sole durable write — see doSync() below.
+  // Restore is retargeted onto the Orchestrator's own restore surface: pullFromCloud()
+  // now calls restore-hotfix.js's fullRestore() directly instead of a legacy fetch.
 
   async function pullFromCloud(options = {}) {
     if (!assertReady()) return { ok: false, reason: 'not_ready' };
-    const driver = _get.driver();
     const silent = !!options.silent;
     const sessionToken = getSessionToken(options);
-
-    if (!(driver && driver.syncUrl)) {
-      if (!silent) setSyncUI('idle', 'No sync URL');
-      return { ok: false, reason: 'no_sync_url' };
-    }
 
     if (!sessionToken) {
       if (!silent) {
@@ -661,20 +598,18 @@
       return { ok: false, reason: 'missing_session_token', error: 'Login required to restore cloud data.' };
     }
 
+    const restoreFn = global.CrewBIQRestoreHotfix && global.CrewBIQRestoreHotfix.fullRestore;
+    if (typeof restoreFn !== 'function') {
+      if (!silent) {
+        setSyncUI('err', 'Restore unavailable');
+        Core.toast('Cloud restore is not available.', 'err');
+      }
+      return { ok: false, reason: 'restore_unavailable' };
+    }
+
     try {
       if (!silent) setSyncUI('busy', 'Pulling cloud...');
-      const resp = await fetch(driver.syncUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          type: 'auth_restore',
-          sessionToken,
-          client: 'crewbiq-driver-pwa',
-          deviceId: getDeviceId(),
-        }),
-        cache: 'no-store',
-        redirect: 'follow',
-      });
+      const resp = await restoreFn({ sessionToken });
 
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const data = await resp.json();
@@ -758,11 +693,11 @@
     _syncInProgress = true;
 
     try {
-    const driver = _get.driver();
+    const sessionToken = getSessionToken();
 
-    if (!(driver && driver.syncUrl)) {
-      setSyncUI('idle', 'No sync URL');
-      return { ok: false, reason: 'no_sync_url' };
+    if (!sessionToken) {
+      setSyncUI('err', 'Login required');
+      return { ok: false, reason: 'missing_session_token' };
     }
 
     setSyncUI('busy', 'Syncing...');
@@ -773,17 +708,52 @@
         global.saveAdvancedSyncSettings(false);
       }
 
-      const push = await pushToCloud(!!options.forceAll);
-      if (push && push.reason === 'missing_session_token') {
-        throw new Error('Login required to restore cloud data.');
-      }
+      // Single durable write: pushToOrchestrator() is now the sole push,
+      // replacing the former pushToCloud()-then-pushToOrchestrator() pair.
+      const payload = buildSyncPayload(!!options.forceAll);
+      const nothingToPush = (payload.loads.length + payload.ptiLog.length + payload.disputes.length) === 0
+        && !payload.ownerData && !options.forceAll;
+
+      let push;
       let orchestratorCopy = null;
-      if (push && push.ok && !push.skipped && push.payload) {
-        orchestratorCopy = await pushToOrchestrator(push.payload);
+
+      if (nothingToPush) {
+        Core.events.emit('sync:skip', { reason: 'nothing_to_push' });
+        push = { ok: true, skipped: true, reason: 'nothing_to_push', pushedLoads: 0, pushedPti: 0, pushedDisputes: 0 };
+      } else {
+        const syncedLoadIds    = new Set(payload.loads.map(x => x.id));
+        const syncedPtiIds     = new Set(payload.ptiLog.map(x => x.id));
+        const syncedDisputeIds = new Set(payload.disputes.map(x => x.id));
+
+        orchestratorCopy = await pushToOrchestrator(payload);
         if (options.forceAll && orchestratorCopy && !orchestratorCopy.ok && !orchestratorCopy.skipped) {
           throw new Error('PostgreSQL copy failed: ' + describeOrchestratorCopy(orchestratorCopy));
         }
+
+        if (orchestratorCopy.ok) {
+          _set.loads(_get.loads().map(x =>
+            syncedLoadIds.has(x.id) ? { ...x, synced: true } : x
+          ));
+          _set.ptiLog(_get.ptiLog().map(p =>
+            syncedPtiIds.has(p.id) ? { ...p, synced: true } : p
+          ));
+          if (_get.disputes && _set.disputes) {
+            _set.disputes(_get.disputes().map(d =>
+              syncedDisputeIds.has(d.id) ? { ...d, synced: true } : d
+            ));
+          }
+          _saveAll();
+        }
+
+        push = {
+          ok: !!orchestratorCopy.ok,
+          pushedLoads: syncedLoadIds.size,
+          pushedPti: syncedPtiIds.size,
+          pushedDisputes: syncedDisputeIds.size,
+          payload,
+        };
       }
+
       const pull = await pullFromCloud({ silent: true });
 
       const timeStr = new Date().toLocaleTimeString();
@@ -889,7 +859,6 @@
     init,
     buildSyncPayload,
     doSync,
-    pushToCloud,
     pullFromCloud,
     forceFullSync,
     forceFleetConfigSync,
@@ -904,7 +873,6 @@
 
   // Backward compat — index.html calls these by name directly
   global.doSync           = doSync;
-  global.pushToCloud      = pushToCloud;
   global.pullFromCloud    = pullFromCloud;
   global.forceFullSync    = forceFullSync;
   global.forceFleetConfigSync = forceFleetConfigSync;

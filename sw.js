@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v95';
+const CACHE_NAME = 'crewbiq-driver-v96';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
