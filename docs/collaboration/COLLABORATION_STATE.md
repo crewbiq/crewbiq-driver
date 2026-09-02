@@ -75,20 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Legacy Sync Decommission Staging Gate 1 CI Wiring
-Status: NEEDS_FIX / CODEX REVIEWED
-Current owner: Claude
+Phase: Legacy Sync Decommission Pre-Merge Staging Gate Evidence
+
+Status: PUBLISHED / AWAITING CODEX REVIEW
+
+Current owner: Codex
+
 Branch: agent/pre-base44-audit
-Product truth: current main
+
+Product truth: Corrected the false gate-1 workflow-reference claim and closed gate 1 with real CI execution evidence per Codex's authorized closure. Added exactly one new step ("Run legacy sync decommission contract set") to the EXISTING .github/workflows/e2e-harness-manual.yml (no new workflow file, no runtime/product/package.json/test file changed), running the exact 9 accepted contract files verbatim via node --test, published as commit b9e44f1f (diff: +3-0, one file). Re-verified this commit remains code-identical to candidate 5c6cfdaa outside that one intentional workflow-file change. Dispatched the updated workflow: run 33664713713 (https://github.com/crewbiq/crewbiq-driver/actions/runs/33664713713), head_sha b9e44f1f, started 2026-09-02T18:01:56Z, completed 2026-09-02T18:02:54Z, conclusion success. The new step reported verbatim in the job log: "# tests 15", "# pass 15", "# fail 0" - all 9 files' subtests present by name (RESTORE-ORCH-01 x3, SW-NO-LEGACY-01 x5, plus the 4 remaining file-level entries and 3 write_orchestrator_* files), matching the accepted count exactly. Gate 2 evidence reproduced unchanged from the already-Codex-accepted run 33659423754 (tooling 325/325 on a real CI runner; 18/18 live staging role-mission scenarios including AUTH-01, LEGACY-01, OFFLINE-01, TENANT-01). Also corrected the prior document's false claim precisely: pwa-auth-contract.yml does reference a sed-derived copy of orchestrator_transport.test.mjs (not the file itself, and that workflow is independently stale, still asserting crewbiq-driver-v94 in sw.js) - documented accurately rather than repeated. Overall verdict: STAGING_GATE_PASS - both contract section 5 gates 1 and 2 now satisfied with real, independently-verifiable execution evidence.
+
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-Latest correction commit: 3ddcfbebae9d1d1b8c191f127c3a914a399265ee
+
+Latest correction commit: f99502643e82ceb8659dc12cabecb213c4029e2c
+
 Latest review commit: 5230aae60dee1136eb96de73b1ef15a3d785b0a6
-Latest state commit: b6b2c7743a43ff018fd077ef0c2e40d90025b152
-Blocking findings: GATE1_EXISTING_WORKFLOW_REFERENCE_MISSTATED; LEGACY_SYNC_DECOMMISSION_GATE1_NOT_EXECUTED
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; pinned v96 production publication workflow absent; GitHub Discussion #206480
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (pending Codex review of the closed staging gate)
+
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. Pinned v96 production publication workflow absent (per Product Owner direction, should use the proven main-based/legacy-branch-source path, separate not-yet-started work). GitHub Discussion #206480 (Pages Actions-deploy 404) remains recorded as known non-blocking platform issue. pwa-auth-contract.yml is independently stale (still targets crewbiq-driver-v94) - out of scope for this correction, flagged for whoever owns that workflow.
+
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Correct the gate-1 workflow-reference statement; add one dedicated exact nine-file node --test step to the existing E2E Harness Manual workflow only; dispatch it against the code-identical staging candidate; require 15/15 and publish exact run/job identity, timestamps, command, staging identity, and results for Codex review. No waiver, new workflow, runtime/product/package/test change, merge, deployment, migration, or data mutation.
+
+Next required actor: Codex
+
+Next bounded action: Independently review docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md (commit f99502643e82ceb8659dc12cabecb213c4029e2c) and workflow runs 33664713713 and 33659423754 directly: confirm the new gate-1 step ran the exact 9 accepted files verbatim (not a derivative or subset), confirm the 15/15 result is genuine and the run's head_sha is code-identical to the candidate outside the one authorized workflow-file change, and confirm gate 2's reproduced evidence is accurately carried over. Publish an updated verdict - STAGING_GATE_PASS confirmed, or NEEDS_FIX naming any remaining inaccuracy. If confirmed, the next real step (not authorized by this cycle) is establishing the pinned v96 production publication mechanism via the proven main-based path, which requires its own separate authorization and review. No production deploy, merge to main, migration, data mutation, further workflow file change, or ADR/SIDR status change is authorized regardless of verdict.
 <!-- CURRENT_END -->
 
 
@@ -4254,3 +4267,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Authorized closure: one dedicated exact nine-file step in the existing dispatchable E2E Harness Manual workflow, followed by a new evidenced run with 15/15 passing. No waiver and no runtime/product/package/test changes.
 - Runtime/product files changed: NONE.
 - Next actor: Claude.
+
+### 2026-09-02 - Claude - Legacy Sync Decommission staging gate: real CI evidence for gate 1, STAGING_GATE_PASS (implementer role)
+
+- Independently verified Codex's finding before acting: fetched .github/workflows/pwa-auth-contract.yml in full and confirmed it does reference tests/orchestrator_transport.test.mjs, but only via a sed-transformed temporary copy (s#../core.js#../core-runtime.js#) run with plain node, not node --test, and not the file itself - the prior evidence document's blanket claim "no workflow references any of the 9 paths" was indeed false for this one file, exactly as Codex said, while the other 8 files remain genuinely unwired anywhere. Also independently noticed and recorded that pwa-auth-contract.yml is itself stale (asserts crewbiq-driver-v94 in sw.js), confirming it was never a live gate for this branch (pull_request-triggered, no PR ever opened).
+- Per Codex's explicit authorized closure (a new step in the EXISTING E2E Harness Manual workflow, not a new workflow file, no runtime/product/package/test change), added exactly one step, "Run legacy sync decommission contract set", to .github/workflows/e2e-harness-manual.yml's harness job, running the exact 9 accepted files verbatim via node --test. Validated the YAML with a parser before publishing. Published commit b9e44f1f024cdd1b4b2ac250a1d5f044a208afb7; verified via GitHub Compare API the diff was exactly +3-0 in the one workflow file, and re-verified via git diff --stat that this commit remained code-identical to the candidate outside that one intentional change.
+- Dispatched the updated workflow for real (run 33664713713, with run_staging_journeys=false since gate 2's staging-journeys evidence was already reviewed and accepted by Codex in the prior cycle - no need to re-run that costly live-staging job again for an unrelated workflow-file change). Monitored it to completion and extracted the new step's result verbatim from the job log rather than trusting the job-level conclusion alone: "# tests 15", "# pass 15", "# fail 0", with all 9 files' subtests visible by name in the log.
+- Rewrote docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md: corrected the false claim about pwa-auth-contract.yml precisely (not just removing it, but stating exactly what that workflow does and does not do); added the new gate-1 CI evidence in full; reproduced gate 2's already-accepted evidence unchanged for completeness; changed the overall verdict from STAGING_GATE_BLOCKED to STAGING_GATE_PASS now that both gates 1 and 2 have real, independently-verifiable execution evidence.
+- Published commit f99502643e82ceb8659dc12cabecb213c4029e2c on top of b9e44f1f. Verified via GitHub Compare API that the diff is exactly the one document, fully replaced (+99-128).
+- Per the role-swap protocol: Next required actor: Codex, for independent review of both the workflow change and the final evidence document.
+- No production deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred. The one change (adding a step to an existing, already-authorized-to-modify workflow) was explicitly authorized by Codex's own bounded action in the prior review cycle.
