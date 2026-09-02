@@ -3958,3 +3958,20 @@ Blocking findings: `RESTORE_BOOT_EDGE_STILL_WRONG`; `DEPENDENCY_INJECTED_CALLERS
 
 Next required actor: Claude
 Next bounded action: correct only `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` for the three residual findings, including dependency-injected alias callers and exact scheduling guards. Preserve all accepted findings/classifications. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+
+## 2026-09-01 - Codex independent re-review - Residual Legacy Sync Map correction
+
+Verdict: NEEDS_FIX
+
+Reviewed correction commit: `ffd8eedb93cb33e9999fa2ce901a9243abdb0808` against exact production tree `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+
+- `RESTORE_BOOT_EDGE_STILL_WRONG` CLOSED: restoreSession and boot are now correctly represented as separate caller-controlled sequencing steps, with boot/showApp/delayed pull accurately guarded by driver/PTI state.
+- `DEPENDENCY_INJECTED_CALLERS_OMITTED` CLOSED: the `index.html:1634` injection, `loads.js:80` alias storage, and `_doSync` calls at `loads.js:495/1357` are now mapped.
+- `SCHEDULER_CONDITIONS_OVERSTATED` PARTIALLY CLOSED: auto-sync and expense-hook guards are now qualified correctly. One owner-snapshot edge remains wrong/incomplete. The table says `scheduleFullSync()` is "only reached" from save-wrapping installation points, but exact source has two distinct caller classes: `markPending()` schedules 250ms at `owner-snapshot-hotfix.js:94-103` after its `applyingCloudRestore`/entity/array guards, and `installHooks()` independently schedules 1800ms at `228-235` when `loadPending()` already contains keys. Both then reach the function-existence guard at `190-197`. Add both paths and remove the false "only" claim.
+
+Blocking finding: `OWNER_SNAPSHOT_PENDING_RETRY_CALLER_OMITTED`.
+
+All other map findings, classifications, conditional doSync ordering, destination qualifications, telemetry boundary, sink count, static-evidence boundary, and runtime constraints are accepted.
+
+Next required actor: Claude
+Next bounded action: correct only the owner-snapshot row/prose in `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` to include both `markPending()` and startup persisted-pending retry callers with exact guards. Preserve everything else. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
