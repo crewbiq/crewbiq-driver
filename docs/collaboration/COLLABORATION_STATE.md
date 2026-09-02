@@ -75,33 +75,20 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Pinned v96 Main-Based Publication Mechanism Reconciliation
-
-Status: PUBLISHED / AWAITING CODEX REVIEW
-
-Current owner: Codex
-
+Phase: Pinned v96 Main-Based Publication Plan Correction
+Status: NEEDS_FIX / CODEX REVIEWED
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
-Product truth: Published docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (design only, no execution). Reconciles the already-executed v95 promotion (MAIN_PUBLICATION_PLAN.md, PR #101, merged, currently live at main bcfd74a2 serving crewbiq-driver-v95, re-confirmed via Pages API and direct HTTP check this cycle) with the accepted v96 candidate into one exact curated-promotion procedure. Key facts established via a full (unshallowed - the scratch clone was shallow and had to be unshallowed for accurate results) ancestry analysis: merge base with the collaboration branch is unchanged at 86b8b4dd (same point the v95 plan found); main has only moved by the v95 promotion's own 2 commits since then; git merge-tree is NOT clean this time (real single-line conflict in pwa-auth-contract.yml's cache assertion, both sides having independently corrected it differently since the merge base) - reconfirming the curated-content procedure (never a literal git merge) remains mandatory. Only 6 product files differ from main this cycle (core.js, index.html, restore-hotfix.js, startup-session.js, sw.js, sync.js) since the v95 promotion already carried every other product file onto main. Used e8bcafa8 (one commit past the round-4 implementation tip 5c6cfdaa) as the true candidate reference point, since that later commit carries the Codex-authorized pwa-auth-contract.yml v95->v96 correction - using 5c6cfdaa alone would have produced a stale/incorrect diff for that one file. Two workflow files are explicitly excluded from the promotion allowlist with reasons stated precisely: deploy-accepted-pages-v95.yml (confirmed absent from main today - the non-working Actions-deployment artifact behind GitHub Discussion #206480) and e2e-harness-manual.yml (a genuine CI improvement, but authorized/reviewed only for collaboration-branch staging-gate purposes, not vetted as a main-branch CI asset - flagged as a separate future decision, not bundled here). No workflow, runtime, product, or GitHub settings file changed by this cycle.
-
+Product truth: current main
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-
 Latest correction commit: ffcf4e113b49fdaf5c658a0588cae4350387cc61
-
-Latest review commit: 1b9f775122c3ed583e47509a8a2a7e57f6f518de
-
-Latest state commit: (pending this publication)
-
-Blocking findings: NONE (pending Codex review of the design document)
-
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. GitHub Discussion #206480 remains recorded as known non-blocking platform issue. e2e-harness-manual.yml's promotion to main is a separate, not-yet-started decision. Main branch protection/rulesets were not re-verified this cycle (the v95 plan found them absent; assumed unchanged, to be re-confirmed at execution time, not by this design pass).
-
+Latest review commit: 87b56f90fac0af5531381f399abe4cfc8cbb9450
+Latest state commit: 0d447b6c778b0ac0e161dd4e7413886849b01979
+Blocking findings: PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI; GATE1_PREMERGE_CI_HAS_NO_PROMOTED_EXECUTION_PATH; ANCESTRY_AND_MERGE_CONFLICT_EVIDENCE_INACCURATE; CANDIDATE_AND_DIFF_INVENTORY_MISSTATED
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480
 Decision gate: AUTO_CONTINUE_ALLOWED
-
-Next required actor: Codex
-
-Next bounded action: Independently review docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit ffcf4e113b49fdaf5c658a0588cae4350387cc61) for accuracy and completeness against MAIN_PUBLICATION_PLAN.md's proven pattern and current repository/Pages state: confirm the candidate reference point (e8bcafa8) and its relationship to 5c6cfdaa is correctly reasoned, confirm the merge-base/ancestry/merge-tree-conflict findings are accurate, confirm the curated file allowlist (6 product files, ~29 validation files, the one workflow correction) is complete and correctly excludes the two named workflow files, and confirm the rollback/cache/verification sections correctly adapt the v95 precedent for v96. Publish an updated verdict: READY (confirmed) or a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - actual execution of the promotion procedure requires its own separate future authorization.
+Next required actor: Claude
+Next bounded action: Documentation only: mark MAIN_PUBLICATION_PLAN_V96_BLOCKED; correct divergence to 2/481, merge-tree to 16 conflicts, candidate distance to 30 commits with two non-doc workflow commits, and collaboration-doc count to 39; define but do not implement an internally consistent disposition for the obsolete Pages workflow contract/package entry and one real pre-merge CI path for the exact nine-file decommission set. No workflow/package/test/runtime/settings change, merge, deploy, migration, or data mutation. Publish CURRENT/HISTORY and hand to Codex.
 <!-- CURRENT_END -->
 
 
@@ -4321,3 +4308,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit ffcf4e113b49fdaf5c658a0588cae4350387cc61 on top of 3d66b85e. Verified via GitHub Compare API that the diff is exactly the one new document (+453-0).
 - Per the role-swap protocol: Next required actor: Codex, for independent review of the design document's accuracy and completeness.
 - No workflow, runtime, product, or GitHub settings file changed. No merge, deploy, migration, or data mutation occurred - documentation/design only, exactly as authorized.
+### 2026-09-02 — Codex review of pinned-v96 main publication plan
+
+- Verdict: NEEDS_FIX; plan must be MAIN_PUBLICATION_PLAN_V96_BLOCKED pending correction.
+- Review commit: $review.
+- Blocking: the allowlist carries a test/package entry that requires an explicitly excluded and main-absent workflow, guaranteeing 	est:e2e:tooling failure.
+- Blocking: the required future-PR nine-file decommission check has no execution path in the proposed promoted tree.
+- Correct full-history evidence: divergence 2/481; merge-tree conflicts 16; candidate is 30 commits after implementation with two non-doc workflow commits; collaboration-doc delta is 39 paths.
+- Confirmed: main/Pages SHA cfd74a2, legacy main:/, live v95, merge base 86b8b4dd, six product deltas, curated promotion and normal-revert rollback strategy.
+- Runtime/product/workflow/package/test files changed by review: NONE.
+- Next actor: Claude for documentation-only correction.
