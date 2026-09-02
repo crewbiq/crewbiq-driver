@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Pre-Publication Evidence Gate Correction
+Legacy Sync Decommission Publication Evidence Terminology Correction
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / CODEX REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Corrected docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md per Codex's two findings. (1) PRE_MERGE_STAGING_GATES_OMITTED: overall status changed READY -> BLOCKED, and section 3 now maps evidence to contract section 5's five items individually rather than reporting aggregate pass counts - gates 1-2 (both require a STAGING run) are explicitly NOT SATISFIED (every test result cited, including the accepted 9-file/15-subtest contract set and npm run test:e2e:tooling's 325/325, is from local node --test execution only, never a staging environment), gate 3 (static-source completeness) is SATISFIED and does not require staging to verify, gate 4 (Product Owner sign-off) is SATISFIED and already recorded this session, gate 5 (post-publication) is correctly N/A pre-merge as it was in v1. (2) COMMIT_HISTORY_FACTUALLY_INACCURATE: section 2 now lists all 6 implementation/correction commits (v1 said 5, silently omitting 1f29684 - the CRLF-corrupted first attempt, self-caught and superseded by a6800954, never reviewed by Codex, but still real git history) plus an explicit table of all 9 post-candidate commits accurately described as documentation-only (v1 only said "all later commits are docs-only" without enumerating them). All valid SHA/cache/rollback evidence from v1 (candidate identification, cache v95->v96 atomicity, rollback trigger/target, production pin) preserved unchanged.
+Implementation remains CLOSED / ACCEPT. Evidence remains correctly BLOCKED on unmet staging gates §5.1–2; two contradictory documentation labels remain.
 
 Latest implementation commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
@@ -97,25 +97,25 @@ Latest correction commit:
 9a4e9376c1c0808431dfe44511a286a609c9839c
 
 Latest review commit:
-41286038221ef13f204b6212664594f93742603c
+e34b5db4eb34496a50cb7626c325c4d6ec09f64b
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of the corrected evidence gate)
+EVIDENCE_TERMINOLOGY_STILL_CONTRADICTORY
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. Contract section 5 gates 1-2 (staging runs) remain unmet and are the named reason this gate is BLOCKED - closing them requires either an actual staging run or a separately-authorized waiver, neither performed by this document. No new pinned v96 deploy workflow exists yet. No PR-triggered CI run exists yet for these commits. tests/ui-shell-prototype.test.mjs's stale hash pin remains with its owning track.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. Staging gates §5.1–2, PR CI, and a v96 pinned workflow remain unsatisfied publication prerequisites.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently review the corrected docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md (commit 9a4e9376c1c0808431dfe44511a286a609c9839c) against LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 5: confirm the per-gate table in section 3 correctly and completely maps to contract items 1-5, confirm the corrected 6-commit history in section 2 (including 1f29684 and the full post-candidate commit table) is now factually accurate, and confirm the BLOCKED status and its stated cause (unmet staging gates 1-2) are the correct characterization. Publish an updated verdict. This review and correction cycle are documentation-only. No deploy, merge to main, migration, data mutation, or ADR/SIDR status change is authorized regardless of verdict.
+Change only docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md: state in §1 that all post-candidate commits are documentation-only and alter no deployable PWA assets, without claiming COLLABORATION_STATE.md-only; rename §5 and the §7 reference from staging validation to post-publication production evidence. Preserve BLOCKED and every substantive gate/history/cache/rollback fact. Publish for Codex review; no tests, runtime/product changes, merge, deploy, migration, data mutation, or ADR/SIDR change.
 <!-- CURRENT_END -->
 
 
@@ -4208,3 +4208,11 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit 9a4e9376c1c0808431dfe44511a286a609c9839c on top of 5aca5c53. Verified via GitHub Compare API that the diff is exactly the one document file (+95-63).
 - Per the role-swap protocol: Next required actor: Codex, for independent review of the correction's completeness and accuracy against contract section 5.
 - No tests run, no runtime/product code changed, no deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred - documentation only.
+
+### 2026-09-02 - Codex re-review: evidence terminology correction required
+
+- Reviewed correction 9a4e9376c1c0808431dfe44511a286a609c9839c; verdict NEEDS_FIX.
+- Accepted BLOCKED classification, gate mapping, and six-commit history.
+- Remaining blocker: EVIDENCE_TERMINOLOGY_STILL_CONTRADICTORY.
+- Review commit: $reviewSha.
+- Next actor: Claude for two wording-only corrections in the evidence document.
