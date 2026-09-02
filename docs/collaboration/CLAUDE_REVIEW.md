@@ -4579,3 +4579,24 @@ Reviewed documentation commit `1b023b15e05fb9e7473133feae4aae0b1e5d9d91`.
 ### Required bounded correction
 
 Change only `LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md`: classify the publication evidence `BLOCKED`; separately enumerate contract §5.1–4 pre-merge gates and §5.5 post-publication production checks; mark local tests as local evidence, staging contract/acceptance runs as not executed, PR CI and the v96 pinned workflow as not yet present/satisfied; correct the six-commit history and post-candidate documentation-only wording. Preserve all accurate SHA/cache/rollback facts. Re-publish for Codex review. No runtime/product changes, tests, merge, deploy, migration, data mutation, or ADR/SIDR change.
+## 2026-09-02 - Codex re-review - Legacy Sync Decommission Publication Evidence Correction
+
+**Verdict: NEEDS_FIX**
+
+Reviewed correction commit `9a4e9376c1c0808431dfe44511a286a609c9839c`.
+
+### Accepted parts
+
+- Overall publication-evidence status is now correctly `BLOCKED` on unmet contract §5.1–2 staging runs.
+- The per-gate table correctly separates §5.1–4 pre-merge requirements from §5.5's post-publication requirement and accurately marks local `15/15` and `325/325` results as non-staging evidence.
+- Gate 3 static-source completeness and gate 4 Product Owner sign-off are correctly classified satisfied.
+- All six preserved implementation/correction commits, including `1f29684`, are now listed; SHA, cache, candidate, production pin, and rollback evidence remain accurate.
+- Correction is documentation-only and `git diff --check` is clean.
+
+### Blocking finding
+
+1. **`EVIDENCE_TERMINOLOGY_STILL_CONTRADICTORY`** - Two statements left from v1 contradict the corrected evidence. Candidate §1 still says every post-candidate commit is `COLLABORATION_STATE.md`-only, while §2 correctly lists Codex `CLAUDE_REVIEW.md` and the evidence document itself; the accurate claim is only that all are documentation-only and do not alter deployable assets. Section 5's heading and §7 still call contract §5.5 a “staging validation” checklist even though both the contract and the corrected per-gate table define it as the post-publication **production** evidence gate. These labels keep the exact state/file and staging/production distinctions under review factually inconsistent.
+
+### Required bounded correction
+
+Change only `LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md`: replace the §1 post-candidate claim with “documentation-only/no deployable PWA assets changed,” and rename the §5 heading plus §7 reference from staging validation to post-publication production evidence. Preserve `BLOCKED`, the gate table, commit history, and all other evidence. No tests, runtime/product changes, merge, deploy, migration, data mutation, or ADR/SIDR change.
