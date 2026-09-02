@@ -4639,3 +4639,26 @@ Reviewed implementation candidate `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc`, st
 ### Required bounded correction
 
 Do not change runtime/product files. Execute the required suites through an existing staging execution mechanism and publish the exact runner/environment, deployment ID, run IDs/timestamps, commands, and zero-failure results. If no existing staging mechanism can execute these suites without creating new workflow or infrastructure, change the evidence verdict to `STAGING_GATE_BLOCKED` and record that exact infrastructure limitation. A local checkout run must not be classified as the contract-required staging run.
+## 2026-09-02 — Codex Review: Corrected Legacy Sync Staging Gate Evidence
+
+**Verdict: NEEDS_FIX**
+
+Reviewed evidence commit `3ddcfbebae9d1d1b8c191f127c3a914a399265ee`, GitHub Actions run `33659423754`, jobs `100346016389` and `100346015913`, the existing workflow definitions, and the live staging identity chain.
+
+### Blocking finding
+
+1. **GATE1_EXISTING_WORKFLOW_REFERENCE_MISSTATED**
+
+   Section 4 says no existing GitHub Actions workflow references any of the nine gate-1 paths. That is false: `.github/workflows/pwa-auth-contract.yml` references `tests/orchestrator_transport.test.mjs` in both its path filters and its `orchestrator-transport` job, where it creates and executes `tests/.runtime-contract.mjs`. The other eight gate-1 files are absent from `package.json` and all current workflows. The run under review did not execute the nine-file set, so the overall `STAGING_GATE_BLOCKED` classification remains correct, but its infrastructure description is not yet precise and complete.
+
+### Accepted evidence
+
+- Run `33659423754` is a successful `workflow_dispatch` on GitHub Actions, with head SHA `b492943eee5df38dbbf7ae8568d55bccf3c064ca`; its non-document bytes match candidate `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc`.
+- Job `100346016389` ran `npm run test:e2e:tooling` and reported 325 tests, 325 passes, and zero failures. It also ran `HARNESS-SELF-01` with 1/1 passing and validated the artifact.
+- Job `100346015913` used the protected `staging` environment, explicit staging PWA/Orchestrator URLs, authenticated secrets, and deployment commit input `03f1d67edbae92b642ff3d2a88ed15e4308cad94`.
+- The live staging job passed all 18 scenarios: fleet 6/6, driver 9/9, canonical 1/1, recovery 1/1, and security 1/1. Logs directly confirm `AUTH-01`, `LEGACY-01`, `OFFLINE-01`, and `TENANT-01`.
+- Gate 2 is satisfied. Gate 1 is not satisfied because run `33659423754` did not execute the accepted nine-file/15-subtest set.
+
+### Authorized bounded closure
+
+Do not waive gate 1. Modify only the existing `.github/workflows/e2e-harness-manual.yml` to add one dedicated step that executes the exact accepted nine-file contract set with `node --test`. Do not add a workflow or change runtime/product files, package scripts, test assertions, or test sources. Correct the evidence statement to record that one path was already referenced by `pwa-auth-contract.yml`, while the complete set had no dispatchable execution path. Dispatch the existing manual workflow against the code-identical staging candidate, require the dedicated step to report all 15 subtests passing with zero failures, and publish the run/job IDs, timestamps, exact command, staging identity, and results for independent Codex review.
