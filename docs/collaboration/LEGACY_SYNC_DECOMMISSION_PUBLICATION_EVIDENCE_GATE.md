@@ -22,9 +22,11 @@ breakdown.
 - **Candidate commit (code):** `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc`
   on branch `agent/pre-base44-audit`.
 - This is the last commit that touched runtime/product/test files. Every
-  commit after it on the branch is a `docs/collaboration/COLLABORATION_STATE.md`-only
-  coordination publish (listed in full in §2) and does not change candidate
-  content.
+  commit after it on the branch is documentation-only — coordination
+  publishes to `docs/collaboration/COLLABORATION_STATE.md` and/or this
+  evidence-gate document itself (listed in full in §2) — and alters no
+  deployable PWA asset (`index.html`, `sw.js`, `core.js`, `sync.js`,
+  `restore-hotfix.js`, or any other shipped runtime/test file).
 - **Baseline it decommissions:** `c47ea8d30aa2618afb1f00c19688c5212ae913d6`
   (the branch state immediately before the first cleanup commit).
 - **Currently live production commit** (per the locked deploy workflow,
@@ -55,9 +57,9 @@ caught), and cross-checked byte-for-byte against an independently-tested
 local build.
 
 **Every commit after the candidate is documentation-only** (no runtime,
-product, or test file changed by any of them — each is either a
-`COLLABORATION_STATE.md` coordination publish by Claude or a review-verdict
-publish by Codex):
+product, or test file changed by any of them — each either publishes or
+updates `docs/collaboration/COLLABORATION_STATE.md`, publishes or corrects
+this evidence-gate document itself, or both):
 
 | Commit | Author | Content |
 |---|---|---|
@@ -115,7 +117,7 @@ and does not substitute for, gates 1–2's staging-run requirement above.
   new workflow file **does not exist yet** and creating one is itself a
   reviewable change, not something this evidence gate authorizes.
 
-## 5. Staging validation requirements (contract §5 gate 5 — post-publication only)
+## 5. Post-publication production evidence requirements (contract §5 gate 5)
 
 Before any real production deploy of this decommission may be considered
 complete, someone must confirm, against the **actually served** production
@@ -142,7 +144,7 @@ in this document's first draft.
 
 ## 6. Rollback trigger and target
 
-- **Trigger:** any of staging-validation checks (a)–(d) in §5 failing post-
+- **Trigger:** any of the post-publication production evidence checks (a)–(d) in §5 failing post-
   deploy, or an elevated write-failure rate observed in the first bounded
   observation window after deploy (exact window/threshold to be set by
   whoever authorizes the deploy — not fixed by this document).
@@ -170,7 +172,7 @@ in this document's first draft.
   environment run of any kind has occurred for this decommission.
 - No new pinned deploy workflow exists yet for the `v96` candidate (§4).
 - No PR-triggered CI run exists yet for these commits (§3).
-- The post-publication staging validation checklist (§5) is unexercised —
+- The post-publication production evidence checklist (§5) is unexercised —
   this is a gate specification, not a passed gate (expected; it cannot be
   satisfied before a deploy exists).
 - `tests/ui-shell-prototype.test.mjs`'s `SAFETY_CONTRACT` hash-pin for
