@@ -4095,3 +4095,38 @@ Result: `1 passed, 1 failed`.
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 No implementation, runtime/configuration change, deployment, migration, merge, data mutation, telemetry, ADR promotion, ADR-0008-0016, or SIDR work is authorized.
+
+## Codex Review — Transport Interception Evidence Tests
+
+Date: 2026-09-01
+
+Reviewed implementation commit: `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Passing evidence
+
+- The repaired action-matrix test loads `core-runtime.js` directly and covers every mapped body type: `auth_login`, `auth_signup`, `auth_restore`, `auth_logout`, `driver_report`, `pti_report`, `workspace_driver_roster_read`, `account_driver_link_read`, and all three `driver_truck_assignment_*_read` views.
+- The matrix verifies routed destinations differ from the supplied legacy URL and retains unmatched-request native pass-through coverage.
+- Exact published regression command completed with `65 passed, 0 failed` across the two new/repaired tests and eleven cited existing test files.
+
+### Blocking finding
+
+`DOSYNC_SECOND_STEP_DEDUP_RESULT_NOT_ASSERTED`
+
+`tests/dosync_orchestrator_dedup.test.mjs` asserts only that `doSync()` succeeds and exactly one native `/v1/sync` call occurs. It does not assert that the second `pushToOrchestrator()` step actually ran, was not skipped, and returned `client_deduplicated: true`. The value appears in console output, but console output is not a behavioral assertion. Removing the second push entirely would still satisfy the current test.
+
+Correction required only in `tests/dosync_orchestrator_dedup.test.mjs`:
+
+- assert `result.orchestratorCopy` exists, succeeded, and was not skipped;
+- assert `result.orchestratorCopy.result.client_deduplicated === true`;
+- assert its returned `record_id` equals the record ID carried by the single native first write;
+- retain the exact-one-native-call assertion and all current action-matrix assertions.
+
+Re-run the same 13-file regression command and require `0` failures. Do not alter runtime/configuration/legacy paths, the action-matrix test unless a hard test defect is discovered, or the three reopened documents.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+Next required actor: Claude
