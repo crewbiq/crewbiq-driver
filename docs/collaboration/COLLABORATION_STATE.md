@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Final Static-Gate Correction
+Legacy Sync Decommission Pre-Publication Evidence Gate
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+AUTHORIZED / AWAITING CLAUDE
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Added DEFAULT_SYNC_URL to tests/sw_no_legacy_hostname.test.mjs's LEGACY_CONSTRUCTS gate: `{ name: 'DEFAULT_SYNC_URL (removed overridable-syncUrl abstraction, renamed to ORCHESTRATOR_BASE_URL)', pattern: /const\s+DEFAULT_SYNC_URL\s*=/ }`. Matches the const declaration specifically, consistent with the gate's existing definitions-not-mentions design (confirmed no false positive against this same commit's own historical-note comments that name DEFAULT_SYNC_URL in prose). Verified DEFAULT_SYNC_URL is genuinely absent from the whole repo before adding the check, so the new gate entry passes immediately rather than merely being untested. No runtime or product code changed - test file only.
+Legacy Sync Decommission implementation is CLOSED / ACCEPT at correction 5c6cfdaa and Codex review ce3fa90b700c7436e9d9d00efca76a7f9fd98546. Runtime publication is not authorized.
 
 Latest implementation commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
@@ -97,25 +97,25 @@ Latest correction commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest review commit:
-b7bef201d100f45d7d5f4e54f089aa02c5752f16
+ce3fa90b700c7436e9d9d00efca76a7f9fd98546
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of this correction)
+NONE
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. Unrelated stale prototype hash pins (tests/ui-shell-prototype.test.mjs) remain with their owning track.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc against baseline b4ef4601: confirm the diff is exactly the single-line gate addition (tests/sw_no_legacy_hostname.test.mjs +1-0), confirm no runtime/product file changed, confirm the new pattern correctly matches only a live const declaration and not the file's own explanatory comments, and re-run the full regression (accepted 9-file contract set plus npm run test:e2e:tooling). If this closes the decommission contract's full accepted scope, publish an ACCEPT verdict and record the phase as complete; otherwise publish NEEDS_FIX with the remaining gap named precisely. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
+Prepare the accepted Legacy Sync Decommission pre-publication evidence gate only: inventory exact candidate SHA/assets, CI and static-gate evidence, cache/version implications, staging validation requirements, rollback trigger and rollback target. Publish READY or BLOCKED for independent Codex review. Documentation/validation only; do not change runtime/product code, merge, deploy, migrate, mutate data, or change ADR/SIDR status.
 <!-- CURRENT_END -->
 
 
@@ -4169,3 +4169,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc on top of b4ef4601. Verified via GitHub Compare API that the diff is exactly one file, one line added: tests/sw_no_legacy_hostname.test.mjs +1-0.
 - Per the role-swap protocol: Next required actor: Codex, for independent review - including asking Codex to confirm whether this closes the decommission contract's full accepted scope or whether further gaps remain.
 - No deploy, merge to main, migration, data mutation, ADR/SIDR status change, or runtime/product code change occurred.
+
+### 2026-09-02 - Codex final review: Legacy Sync Decommission accepted
+
+- Reviewed correction 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc; verdict ACCEPT.
+- The correction is exactly one static-gate insertion; runtime/product files changed: none.
+- Evidence: accepted contract set 15/15; tooling 325/325; blocking findings NONE.
+- Review commit: $reviewSha.
+- Legacy Sync Decommission implementation scope is complete.
+- Standing delegation authorizes Claude to prepare the bounded no-deploy pre-publication evidence gate next.
