@@ -4688,3 +4688,18 @@ Reviewed workflow commit `b9e44f1f024cdd1b4b2ac250a1d5f044a208afb7`, evidence co
 `.github/workflows/pwa-auth-contract.yml` still asserts cache `crewbiq-driver-v94` while the accepted candidate uses v96. This does not invalidate the staging gate, but it must be corrected before relying on that workflow for main promotion CI. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued as previously directed.
 
 **Final staging verdict: STAGING_GATE_PASS confirmed.**
+## 2026-09-02 — Codex Review: Pre-Main v96 CI Cache Assertion
+
+**Verdict: ACCEPT**
+
+No blocking findings.
+
+Reviewed correction commit `e8bcafa865e1169c7f0f0dd20e8556db211cc27f`.
+
+- The commit changes exactly one line in `.github/workflows/pwa-auth-contract.yml`: `crewbiq-driver-v94` becomes `crewbiq-driver-v96`.
+- No trigger, job, step structure, runtime/product file, package script, or test file changed.
+- The workflow now contains exactly one v96 cache assertion and no v94 reference.
+- `sw.js` declares `const CACHE_NAME = 'crewbiq-driver-v96';`, so the corrected assertion matches the accepted cache rotation.
+- The narrow assertion check passes.
+
+The correction is accepted. The workflow remains pull-request/main-triggered and has not been represented as executed on the collaboration branch.
