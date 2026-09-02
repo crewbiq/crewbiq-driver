@@ -4493,3 +4493,30 @@ Reviewed correction commit `d6de6802b4d600c671b4ce28d2737eeb25c7c46c` against ba
 ### Required bounded correction
 
 Complete the same correction, not a new slice: remove/replace every remaining accepted legacy resolution/caller path, including auth/startup and redundant dedicated expense routing; preserve required user-visible and offline behavior; fix `doSync()` failure semantics; strengthen `DOSYNC-SIMPLIFY-01` and `SW-NO-LEGACY-01` so the blockers above fail deterministically. Keep v96. Run the complete accepted contract set and `npm run test:e2e:tooling`. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated event/dedup cleanup.
+## 2026-09-02 - Codex third review - Legacy Sync Decommission Atomic Cleanup
+
+**Verdict: NEEDS_FIX**
+
+Reviewed correction commit `8e0c181ec7dbb723ceb63c1be5bc07a9ea750458` against baseline `f4cdce14c2d0a8cfd30183e5ba609a032df3544b`.
+
+### Accepted parts
+
+- `doSync()` now fails before pull, keeps records unsynced, and emits `sync:error` when the sole durable write fails.
+- `DOSYNC-SIMPLIFY-01` now covers successful and failed writes deterministically.
+- Cache remains correctly rotated at v96.
+- `getAuthSyncUrl()` itself is removed and its former dynamic legacy-resolution chain is no longer called.
+- Diff is narrow and `git diff --check` is clean.
+- Accepted 9-file contract set: `15 passed, 0 failed`.
+- `npm run test:e2e:tooling`: `325 passed, 0 failed`.
+
+### Blocking findings
+
+1. **`DEFAULT_SYNC_URL_COUPLING_REMAINS`** — The accepted target explicitly says auth resolves through Orchestrator endpoints and no code path reads `DEFAULT_SYNC_URL` once decommissioned. The correction replaces `getAuthSyncUrl()` calls with direct reads of `DEFAULT_SYNC_URL`; live shipped source still has 13 references. Rename/restructure around an explicit Orchestrator authority rather than retaining the legacy abstraction under a new value.
+2. **`DEDICATED_EXPENSE_SYNC_REMAINS`** — `restore-hotfix.js` still defines `syncExpensesNow()`, `scheduleExpenseSync()`, and `installExpenseSaveHook()` and schedules a separate `driver_report`. Commit `a6800954` changed only its fallback URL; it did not remove the dedicated route. CURRENT's claim that this was already removed is factually incorrect. The Product Owner explicitly confirmed this endpoint has no unique data or consumer, so the accepted `REMOVE` classification remains unimplemented.
+3. **`REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED`** — The settings UI still persists `driver.syncUrl`, and `syncPTIEntry()` still gates on and calls it. A legacy record can therefore still supply a Google URL argument and relies on dispatcher interception for safety rather than using the Orchestrator path directly. The accepted PTI `REPLACE_WITH_ORCHESTRATOR` and source-structure target are not complete.
+4. **`STALE_GOOGLE_PRIMARY_UI_COPY`** — The shipped Advanced Settings UI still states `Google Apps Script sync remains primary`, which is false after the accepted Orchestrator-only architecture and directly contradicts this cleanup.
+5. **`SW_NO_LEGACY_STATIC_GATE_INCOMPLETE`** — The broadened scanner checks app-shell files only for `script.google.com|googleapis.com`. It passes despite blockers 1-4. The accepted post-cleanup static gate also names `DEFAULT_SYNC_URL` and `crewbiq-expenses`/legacy routing machinery; the test must enforce the actual source target, not only literal hostnames.
+
+### Required bounded correction
+
+Finish the same accepted cleanup: replace the retained legacy `DEFAULT_SYNC_URL` abstraction with explicit Orchestrator authority; remove the redundant dedicated expense route while preserving expense local-first/save-trigger behavior through the general Orchestrator path; retarget PTI and remaining sync callers directly; correct stale UI copy; strengthen the PWA-wide static guard to reject all accepted legacy constructs. Preserve the already-correct v96 and `doSync()` behavior. Run the complete contract set and `npm run test:e2e:tooling`. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated `/v1/events`/dedup cleanup.
