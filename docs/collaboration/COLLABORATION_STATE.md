@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Decommission Offline Orchestrator Contract Test
 
 Status:
-PUBLISHED / AWAITING CODEX RE-REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Corrected tests/offline_orchestrator_retry.test.mjs for both findings. Now invokes the REAL registered 'online' listener captured from offline-sync-queue.js (asserted to exist, exactly one registered) instead of directly re-calling fetch() a second time, and asserts it schedules exactly one doSync({reason:'online'}) via a spy standing in for sync.js's real doSync (out of scope for this queue/dispatcher-focused test). Also instruments the exact queue-to-core-dispatcher boundary (the fetch reference offline-sync-queue.js captures as its own downstreamFetch) separately from the underlying native layer, since core-runtime.js's own recentSyncRecordIds cache can silently absorb a queue-layer duplicate below native-layer-only counting. Verified all three regression scenarios (drop-on-failure, remove same-identity reuse, wrong listener event name) now correctly fail via mutation, restored via git checkout, then re-ran the full 11-file/29-test regression set clean.
+Codex re-review 6489a1a189e9450325ef1de1722902ad0612c9fd accepts the real online-listener path, one doSync reconnect callback, queue-to-core boundary count, and 29/29 regressions. One test-only blocker remains: downstream attempts compare only record_id, not the same business payload/body identity required by OFFLINE-ORCH-01.
 
 Latest implementation commit:
 c997eb6bcc26690fe83c92100dc4bc7b08f38b62
@@ -97,13 +97,13 @@ Latest correction commit:
 c997eb6bcc26690fe83c92100dc4bc7b08f38b62
 
 Latest review commit:
-e97190bb874da3cfe8b52dc5dd41f096f50c96b0
+6489a1a189e9450325ef1de1722902ad0612c9fd
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+RETRY_BUSINESS_PAYLOAD_IDENTITY_NOT_ASSERTED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope. Newly observed: the no-duplicate-write guarantee for offline retries is defended at two independent layers (offline-sync-queue.js identity reuse + core-runtime.js recentSyncRecordIds cache) - not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit c997eb6bcc26690fe83c92100dc4bc7b08f38b62 against both prior findings (RECONNECT_HANDLER_NOT_EXERCISED, QUEUE_LAYER_SINGLE_RETRY_NOT_PROVEN). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Change only tests/offline_orchestrator_retry.test.mjs. At the existing queue-to-core downstream boundary, capture a stable snapshot of the actual business payload for both attempts and assert the reconnect retry equals the initial attempt, excluding only explicitly transient/session material if necessary. Compare driver, loads, ptiLog, and any owner data present in addition to the already-protected record_id. Retain real online-listener, one doSync callback, exactly two downstream attempts, queue retention/acknowledgement-only clearance, one native retry success, and no-Google assertions. Re-run the same 11-file regression set with 0 failures, publish, and return to Codex. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3937,3 +3937,17 @@ Next bounded action: one-file test correction using the real online callback and
 - Published commit c997eb6bcc26690fe83c92100dc4bc7b08f38b62. Verified via GitHub Compare API against parent 0510077ac18bfddbd6ce16f8c299897302b8cd5e that exactly one file changed (69 additions, 37 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+
+### 2026-09-01 - Codex re-review: OFFLINE-ORCH-01 reconnect corrections
+
+Agent: Codex
+Task: Re-review correction commit `c997eb6bcc26690fe83c92100dc4bc7b08f38b62`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `6489a1a189e9450325ef1de1722902ad0612c9fd`
+Accepted: real online handler; one doSync reconnect callback; queue-to-core attempt count; queue/ack/no-Google invariants.
+Validation: exact 11-file command -> `29 passed, 0 failed`.
+Blocking finding: `RETRY_BUSINESS_PAYLOAD_IDENTITY_NOT_ASSERTED`
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: one-file payload-snapshot equality assertion at the existing downstream boundary.
