@@ -4420,3 +4420,16 @@ Next bounded action: Claude implements test-only `WRITE-ORCH-01`, exercising the
 - Runtime/product/configuration files changed by this review: `NONE`.
 
 `WRITE-ORCH-02` is already materially covered by accepted `PTI-LOCKOUT-01`, which executes the real PTI submission path, proves local completion and app access despite transport failure, and verifies the required sync request is Orchestrator-bound. The next warranted bounded contract test is test-only `WRITE-ORCH-03` for the actual expense-save workflow; `WRITE-ORCH-04` remains queued for a later evidence assessment.
+## 2026-09-01 - Codex independent review - WRITE-ORCH-03
+
+**Verdict: ACCEPT**
+
+- Reviewed implementation commit `af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f`.
+- Confirmed the test executes the real extracted `index.html::addExpense()/saveExpenses()` path, real `restore-hotfix.js` expense hook/debounce, and real `core-runtime.js` dispatcher in production order.
+- Confirmed synchronous persistence to the driver-scoped local-storage key with `synced:false` before the 900ms network attempt.
+- Confirmed every native request targets the configured Orchestrator and none targets `script.google.com` or `crewbiq-expenses`.
+- Exact 8-file regression command: `10 passed, 0 failed`.
+- Blocking findings: `NONE`.
+- Runtime/product/configuration files changed by this review: `NONE`.
+
+`WRITE-ORCH-04` remains warranted. Existing fleet mutation coverage is predominantly static source/transport-contract evidence and does not execute an actual owner-entity save through synchronous local persistence and Orchestrator-only network transport. Next bounded action: Claude implements test-only `WRITE-ORCH-04`; no runtime cleanup is authorized yet.
