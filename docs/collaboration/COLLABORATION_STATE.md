@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Decommission Pre-Publication Evidence Gate
 
 Status:
-AUTHORIZED / AWAITING CLAUDE
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Legacy Sync Decommission implementation is CLOSED / ACCEPT at correction 5c6cfdaa and Codex review ce3fa90b700c7436e9d9d00efca76a7f9fd98546. Runtime publication is not authorized.
+Published docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md, status READY. Inventories: (1) candidate commit 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc (last code-touching commit; all later commits are COLLABORATION_STATE.md-only) against baseline c47ea8d3, distinct from the currently-live production commit 66a79857/cache v95 pinned in the locked deploy workflow; (2) all 5 implementation commits summarized in order; (3) test evidence - accepted 9-file/15-subtest contract set and npm run test:e2e:tooling (325 tests) both green at 5c6cfdaa, static-source completeness (contract section 5 gate 3) via the broadened SW-NO-LEGACY-01 gate, and an explicit, honest note that GitHub Actions CI (pwa-auth-contract.yml, e2e-pr-smoke.yml) has NOT run against these commits since they were published as direct commits, not via a PR - not claimed as already satisfied; (4) cache/version implications - v95->v96 rotated atomically in d6de6802 per contract section 6, and an explicit note that actually publishing to production requires authoring a new pinned deploy workflow (e.g. deploy-accepted-pages-v96.yml) following the existing locked pattern, which does not exist yet and is not authorized by this gate; (5) the full staging validation checklist from contract section 5 gate 5, named as unexercised requirements, not passed evidence; (6) rollback trigger and target - immediate target is the current production pin (66a79857/v95), full contract-compliant rollback mechanics (revert commit set + cache rollback, client-side only, no data loss per invariant 3.2), and the deeper pre-existing v79/86b8b4dd fallback already on record in the locked workflow's own header, left untouched; (7) an explicit "not claimed as resolved" section naming every open item (no v96 deploy workflow yet, no PR-triggered CI run yet, staging checklist unexercised, the already-flagged out-of-scope ui-shell-prototype hash pin).
 
 Latest implementation commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the evidence gate document)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. No new pinned v96 deploy workflow exists yet; no PR-triggered CI run exists yet for these commits; the staging validation checklist is unexercised; tests/ui-shell-prototype.test.mjs's stale hash pin remains with its owning track.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Prepare the accepted Legacy Sync Decommission pre-publication evidence gate only: inventory exact candidate SHA/assets, CI and static-gate evidence, cache/version implications, staging validation requirements, rollback trigger and rollback target. Publish READY or BLOCKED for independent Codex review. Documentation/validation only; do not change runtime/product code, merge, deploy, migrate, mutate data, or change ADR/SIDR status.
+Independently review docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md (commit 1b023b15e05fb9e7473133feae4aae0b1e5d9d91) for completeness and accuracy against LEGACY_SYNC_DECOMMISSION_CONTRACT.md sections 5 and 6: confirm the candidate/baseline/production-pin identification is correct, confirm the test evidence claims match reality (including the honest CI-not-yet-run disclosure), confirm the cache/version and rollback sections are accurate and nothing is overclaimed as already satisfied. Publish READY (confirmed) or BLOCKED (naming the specific gap) for this evidence gate. This review is documentation-only. No deploy, merge to main, migration, data mutation, or ADR/SIDR status change is authorized by this cycle regardless of verdict.
 <!-- CURRENT_END -->
 
 
@@ -4178,3 +4178,14 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Review commit: $reviewSha.
 - Legacy Sync Decommission implementation scope is complete.
 - Standing delegation authorizes Claude to prepare the bounded no-deploy pre-publication evidence gate next.
+
+### 2026-09-02 - Claude - Legacy Sync Decommission pre-publication evidence gate (implementer role)
+
+- Legacy Sync Decommission implementation was accepted by Codex (CLOSED / ACCEPT, review commit ce3fa90b) after 4 correction rounds. This cycle prepares the bounded, documentation-only pre-publication evidence gate authorized next, per the standing delegation recorded in Codex's own final review entry.
+- Read the currently pinned production deploy workflow (.github/workflows/deploy-accepted-pages-v95.yml) in full to establish ground truth: it deploys exact commit 66a7985765b76e0702d015ca1e300390156f8ad6 (cache v95), triggers only from a dedicated single-purpose branch (pages-actions-v95-66a7985), and its own header comment records a deeper rollback fallback (Pages build_type=legacy, commit 86b8b4dd7e9496833a021319167589b49f0ac418, cache v79) that predates and is unrelated to this decommission work.
+- Checked all four .github/workflows files' triggers and found pwa-auth-contract.yml and e2e-pr-smoke.yml both trigger only on pull_request - since every commit this session was published as a direct commit via the raw Git API (never through a PR), neither has actually run against any of the 5 implementation commits. Recorded this honestly in the evidence gate rather than omitting it or implying CI evidence exists where only local/API test execution does.
+- Compiled the exact candidate commit (5c6cfdaa, confirmed as the last code-touching commit - everything after it is COLLABORATION_STATE.md-only), the 5-commit implementation history table, the accepted contract-set and full-tooling-suite pass counts, the cache-rotation-atomicity confirmation (v95->v96 landed in the same commit as the first legacy-facing code change, per contract section 6), the full staging-validation checklist from contract section 5 gate 5 (named as unexercised requirements, not claimed as passed), and the rollback trigger/target/mechanics per contract section 6.
+- Deliberately did not claim readiness beyond what is actually true: named explicitly, in a dedicated "not claimed as resolved" section, that no new pinned v96 deploy workflow exists yet (publishing this decommission to production is not "push the branch" - it requires authoring a new locked, SHA-pinned workflow following the existing v95 pattern, itself a separately reviewable change), that PR-triggered CI has not run, and that the staging checklist is a specification, not evidence.
+- Published docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md as a new file, status READY, in commit 1b023b15e05fb9e7473133feae4aae0b1e5d9d91. Verified via GitHub Compare API that the diff is exactly this one new file (+161-0), pure LF.
+- Per the role-swap protocol: Next required actor: Codex, for independent review of the evidence gate document's completeness and accuracy.
+- No deploy, merge to main, migration, data mutation, ADR/SIDR status change, or runtime/product code change occurred - documentation only.
