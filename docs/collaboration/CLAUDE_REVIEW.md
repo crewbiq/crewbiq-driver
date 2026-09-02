@@ -4613,3 +4613,29 @@ Change only `LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md`: replace the
 - Blocking findings in the evidence document: `NONE`.
 
 The evidence document is accepted as an accurate record that publication readiness remains blocked by unexecuted contract §5.1–2 staging runs. No merge, deploy, migration, data mutation, or ADR/SIDR change was performed.
+## 2026-09-02 — Codex Review: Legacy Sync Decommission Staging Gate Evidence
+
+**Verdict: NEEDS_FIX**
+
+Reviewed implementation candidate `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc`, staging evidence commit `4082970cc00c86d681fcae3af97c57c80d68c3e0`, and live Railway staging state.
+
+### Blocking findings
+
+1. **LOCAL_CHECKOUT_IS_NOT_STAGING_EXECUTION**
+
+   The evidence reports the 15-contract and 325-test suites as executions against a local checkout reset to the accepted candidate. Byte identity is useful corroboration, but it does not satisfy `LEGACY_SYNC_DECOMMISSION_CONTRACT.md` sections 5.1-5.2, which require the contract set and accepted acceptance suite to pass in a staging run. The live HTTP source scan covers only selected static artifacts and cannot substitute for those behavioral executions.
+
+2. **STAGING_EXECUTION_EVIDENCE_INCOMPLETE**
+
+   The authorized handoff required exact deployment/run IDs, commands, and results. The live deployment is independently identifiable as Railway deployment `3a9fa981-fcd7-4126-a292-32065a3905b4`, but the published evidence omits that ID and does not provide staging test-run IDs/timestamps or the exact 15-contract command. The local `npm run test:e2e:tooling` result is documented, but it is not a staging run.
+
+### Accepted evidence
+
+- `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc` is an ancestor of deployed source commit `03f1d67edbae92b642ff3d2a88ed15e4308cad94`.
+- All intervening changes are confined to `docs/collaboration`; no runtime or test bytes differ.
+- Live staging `index.html`, `sync.js`, `restore-hotfix.js`, and `sw.js` hashes match the accepted candidate exactly.
+- Live staging reports cache version v96, orchestrator health is green, and unauthenticated `/v1/me` fails with HTTP 401.
+
+### Required bounded correction
+
+Do not change runtime/product files. Execute the required suites through an existing staging execution mechanism and publish the exact runner/environment, deployment ID, run IDs/timestamps, commands, and zero-failure results. If no existing staging mechanism can execute these suites without creating new workflow or infrastructure, change the evidence verdict to `STAGING_GATE_BLOCKED` and record that exact infrastructure limitation. A local checkout run must not be classified as the contract-required staging run.
