@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Evidence Documentation Reconciliation
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+PUBLISHED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Codex review 1f32824e458d338b03488b8d0ff7719afcf204c3 accepts the PARTIAL reclassifications, unchanged REMOVE/REPLACE target code shapes, PTI graceful degradation, and identity invariants. Three documentation-only evidence overclaims require correction: tests dynamically cover mapped body types rather than every caller; they prove the default production Orchestrator base rather than every configurable base; and dead/no-risk/safe language must be limited to mapped matched envelopes and one tested doSync run/runtime dedup window.
+Corrected all three documents for the three overclaims Codex identified. Dynamic-every-caller-site claims replaced with dynamic body-type-envelope coverage plus static caller/load-order linkage (confirmed accurate), with doSync() named as the one end-to-end dynamically-executed caller path. "Reaches the real Orchestrator" replaced with "routes to getOrchestratorBase()'s currently configured value," noting its tested/default value is the production Orchestrator but the persisted override accepts no host validation. Dead/safe/no-behavior-change language scoped to mapped matched envelopes under the exact tested load composition; doSync()'s two-step client call sequence stated as still sequential in code, with only its second real network write suppressed, confirmed for one tested run/runtime instance/dedup window. Decommission contract's WRITE-ORCH test notes corrected to distinguish transport-dispatch coverage from actual save-workflow coverage - none of the WRITE-ORCH sub-tests claim save-workflow satisfaction now. All PARTIAL classifications, REMOVE/REPLACE target code shapes, PTI local-first invariant, and identity/authority invariants preserved verbatim.
 
 Latest implementation commit:
-b53f6769cfc63eddb1064da781ccfc76b856ba9d
+9b3f7dba43cd5687bba11eeea0ce702d0742b94d
 
 Latest correction commit:
-b53f6769cfc63eddb1064da781ccfc76b856ba9d
+9b3f7dba43cd5687bba11eeea0ce702d0742b94d
 
 Latest review commit:
 1f32824e458d338b03488b8d0ff7719afcf204c3
@@ -103,7 +103,7 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-DYNAMIC_CALLSITE_COVERAGE_OVERSTATED; CONFIGURED_DESTINATION_OVERSTATED_AS_REAL_ORCHESTRATOR; DEAD_AND_SAFE_SCOPE_OVERSTATED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract).
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md, and docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md for review commit 1f32824e458d338b03488b8d0ff7719afcf204c3. Replace dynamic-every-caller claims with dynamic body-type coverage plus static caller/envelope/load-order linkage; state matched envelopes route to getOrchestratorBase(), whose tested/default base is production Orchestrator but configurable overrides are not host-validated; qualify dead/no-risk/safe claims to mapped matched envelopes and the single tested doSync run/runtime dedup window; state client calls remain sequential although no second native write occurs in that tested composition; and limit WRITE test satisfaction to transport dispatch unless actual save workflows are exercised. Preserve all PARTIAL statuses, REMOVE/REPLACE target shapes, PTI and identity invariants. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, SIDR, or telemetry. Publish and return to Codex.
+Independently re-verify commit 9b3f7dba43cd5687bba11eeea0ce702d0742b94d against the three prior findings (DYNAMIC_CALLSITE_COVERAGE_OVERSTATED, CONFIGURED_DESTINATION_OVERSTATED_AS_REAL_ORCHESTRATOR, DEAD_AND_SAFE_SCOPE_OVERSTATED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3816,3 +3816,12 @@ Runtime/product/test/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: correct evidence-level wording only in the same three documents, preserving classifications and target code shapes.
+
+### 2026-09-01 - Claude - Reconciliation overclaim correction (implementer role)
+
+- Independently re-verified all three Codex findings before correcting: confirmed orchestrator_transport.test.mjs constructs body envelopes directly and calls the dispatcher, never loading/invoking the real authPost()/pullFromCloud()/syncPTIEntry()/syncExpensesNow()/inline-handler functions - only dosync_orchestrator_dedup.test.mjs exercises a real caller (doSync()) end-to-end; re-read core-runtime.js's normalizeOrchestratorBase() confirming it strips known path suffixes but performs no host validation on a persisted orchestratorUrl override.
+- Corrected all three documents: replaced "dynamically proven for every mapped call site" with "dynamic body-type-envelope coverage plus static caller/load-order linkage, with doSync() as the one end-to-end dynamic caller path" throughout; replaced unconditional "reaches the real Orchestrator" with "routes to getOrchestratorBase()'s currently configured value (tested/default: production Orchestrator; override accepts no host validation)"; scoped "dead"/"safe"/"no behavior change" language to mapped matched envelopes under the tested load composition, and clarified doSync()'s two-step call sequence remains sequential in client code - only the second call's real network write is suppressed, confirmed for one tested run/runtime instance/dedup window, not a universal guarantee.
+- Corrected the decommission contract's WRITE-ORCH-01 through -04 test notes to state transport-dispatch coverage only, explicitly not save-workflow coverage (loads.js's save handler, pti.js's submit handler, and all expense/owner-entity paths remain entirely untested even at the dispatch level).
+- Published commit 9b3f7dba43cd5687bba11eeea0ce702d0742b94d. Verified via GitHub Compare API against parent 7517256f9a0e721924b5492ba1ff32db0344041d that exactly the three intended documents changed - no unintended scope. Confirmed pure-LF encoding on all three before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No runtime, test, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; documentation only.
