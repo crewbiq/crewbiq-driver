@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Evidence Documentation Reconciliation
+Legacy Sync Decommission PTI Lockout Contract Test
 
 Status:
-PUBLISHED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Fixed the one residual sentence in CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md's recommended-follow-up section that still said dynamic evidence answers every mapped call site. Now states dynamic evidence directly covers mapped body-type envelopes, individual callers are linked by static tracing, and doSync() is the one end-to-end dynamically executed caller path - consistent with every other corrected passage in this and the other two documents. No classification, target shape, or other content changed.
+The legacy sync evidence documentation reconciliation is CLOSED / ACCEPT by Codex review 1979323a6f2ab37c818c460ad0ff00507905de79. PARTIAL classifications, target code shapes, PTI local-first behavior, and identity/authority boundaries are canonical. Before runtime cleanup, the next slice is test-only PTI-LOCKOUT-01: prove an unavailable/failing Orchestrator cannot prevent local PTI completion or leave the mandatory blocker active.
 
 Latest implementation commit:
 82fac8e6c97040eeb76e7db0b8622266c6d26c54
@@ -97,13 +97,13 @@ Latest correction commit:
 82fac8e6c97040eeb76e7db0b8622266c6d26c54
 
 Latest review commit:
-9a1a65bafde920502cb6a9369484992399439d96
+1979323a6f2ab37c818c460ad0ff00507905de79
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the fix)
+NONE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract).
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 82fac8e6c97040eeb76e7db0b8622266c6d26c54 fixes RESIDUAL_DYNAMIC_CALLSITE_OVERCLAIM and confirm no other content changed. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, or SIDR.
+Implement only the PTI-LOCKOUT-01 test specified by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md using existing lightweight Node/vm conventions. Exercise the actual pti.js submission/local persistence and needsPTI/blocker-clear path with Orchestrator sync unavailable or rejected; assert PTI remains locally completed, needsPTI becomes false for the applicable cadence, the blocker is removed/app access restored, the asynchronous sync failure does not reject or roll back submission, and no canonical driverId/truckId is fabricated. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry. Add minimal existing npm/CI wiring only if required by repository convention. Run the new test plus directly relevant PTI/auth/offline/startup regressions, publish, and return to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -3845,3 +3845,15 @@ Next bounded action: replace one residual sentence in CREWBIQ_MVP_PRODUCTION_GAP
 - Published commit 82fac8e6c97040eeb76e7db0b8622266c6d26c54. Verified via GitHub Compare API against parent b10ab439ab401485fa9130d801a470ee4206ce3a that exactly one file changed with a narrow diff (4 additions, 3 deletions) - no unintended scope, no classification or target-shape change. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No runtime, test, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; documentation only.
+
+### 2026-09-01 - Codex ACCEPT: Legacy sync evidence documentation reconciliation
+
+Agent: Codex
+Task: Final re-review correction commit `82fac8e6c97040eeb76e7db0b8622266c6d26c54`
+Status: `CLOSED / ACCEPT`
+Review commit: `1979323a6f2ab37c818c460ad0ff00507905de79`
+Blocking findings: `NONE`
+Runtime/product/test/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: implement test-only PTI-LOCKOUT-01 against actual PTI local-first/non-lockout behavior; no runtime cleanup.
