@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Offline Orchestrator Contract Test
+Legacy Sync Decommission Restore Orchestrator Contract Test
 
 Status:
-PUBLISHED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Corrected tests/offline_orchestrator_retry.test.mjs for the last blocker: added a stable business-payload snapshot (type, driver, loads, ptiLog, ownerData - excluding only transient sessionToken/sentAt) captured at the existing queue-to-core boundary for both the initial failed attempt and the reconnect retry, and asserted they are identical, not merely carrying the same record_id label. Verified this assertion has teeth by temporarily mutating the test itself to submit a different loads array on the retry (test correctly failed) and reverting. Re-ran the full 11-file/29-test regression set clean; all prior assertions (real online-listener, one doSync callback, exactly two downstream attempts, queue retention/acknowledgement-only clearance, one native retry success, no-Google) preserved unchanged.
+OFFLINE-ORCH-01 is CLOSED / ACCEPT by Codex review 1ec755ba29c25c545f4eae244729827367b286a1: same record_id and business payload survive the real reconnect path, queue-layer retry count is isolated, and 29/29 regressions pass. Together with PTI-LOCKOUT-01 this closes the local-first/offline test slice. Before runtime cleanup, the next slice is test-only RESTORE-ORCH-01 through actual auth/restore/startup caller composition.
 
 Latest implementation commit:
 6f46ce78de20bd3b506580d92a488fab417daada
@@ -97,13 +97,13 @@ Latest correction commit:
 6f46ce78de20bd3b506580d92a488fab417daada
 
 Latest review commit:
-6489a1a189e9450325ef1de1722902ad0612c9fd
+1ec755ba29c25c545f4eae244729827367b286a1
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+NONE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope. Newly observed: the no-duplicate-write guarantee for offline retries is defended at two independent layers (offline-sync-queue.js identity reuse + core-runtime.js recentSyncRecordIds cache) - not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 6f46ce78de20bd3b506580d92a488fab417daada resolves RETRY_BUSINESS_PAYLOAD_IDENTITY_NOT_ASSERTED and does not weaken any prior assertion. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, this closes the full LEGACY_SYNC_DECOMMISSION_CONTRACT.md test-authoring slice (PTI-LOCKOUT-01 and OFFLINE-ORCH-01 both closed) - determine and state the next bounded action (e.g. RESTORE-ORCH-01/WRITE-ORCH-01..04 end-to-end coverage, the dead-literal/dedup-simplification cleanup itself, or routing to the Product Owner for a decision on scope). Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Implement only RESTORE-ORCH-01 from the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md using existing lightweight Node/vm and inline-script extraction conventions; do not add a browser framework. Exercise actual authPost/restoreSession/startup coordinator caller composition from a clean localStorage state with a supplied legacy sync URL, using real core-runtime.js and restore/startup adapters. Cover login and session restore (and signup/logout only where the same bounded harness naturally supports them); assert native requests reach only the configured/default Orchestrator endpoints, never script.google.com/crewbiq-expenses, session/identity are persisted before optional fleet restore/render settlement, and one startup invocation causes no duplicate auth restore or delayed pull. Preserve PTI gating and graceful degradation. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry. Add minimal existing npm/CI wiring only if required by repository convention. Run the new test plus directly relevant auth/startup/full-restore/transport/index-parse/load-order/PTI/offline regressions, publish, and return to Codex.
 <!-- CURRENT_END -->
 
 
@@ -3960,3 +3960,16 @@ Next bounded action: one-file payload-snapshot equality assertion at the existin
 - Published commit 6f46ce78de20bd3b506580d92a488fab417daada. Verified via GitHub Compare API against parent c6890526d606439ed469e3117e13438229053f0d that exactly one file changed (23 additions, 1 deletion) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review. If accepted, this closes the full PTI-LOCKOUT-01 + OFFLINE-ORCH-01 test-authoring slice from LEGACY_SYNC_DECOMMISSION_CONTRACT.md.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+
+### 2026-09-01 - Codex ACCEPT: OFFLINE-ORCH-01 contract test
+
+Agent: Codex
+Task: Final re-review correction commit `6f46ce78de20bd3b506580d92a488fab417daada`
+Status: `CLOSED / ACCEPT`
+Review commit: `1ec755ba29c25c545f4eae244729827367b286a1`
+Regression: exact 11-file command -> `29 passed, 0 failed` (`exit 0`).
+Blocking findings: `NONE`
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/restore/startup caller composition; no runtime cleanup.
