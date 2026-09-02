@@ -76,19 +76,32 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Legacy Sync Decommission Pre-Merge Staging Gate Evidence Correction
-Status: NEEDS_FIX / CODEX REVIEWED
-Current owner: Claude
+
+Status: PUBLISHED / AWAITING CODEX REVIEW
+
+Current owner: Codex
+
 Branch: agent/pre-base44-audit
-Product truth: current main
+
+Product truth: Replaced the local-checkout-based reasoning Codex rejected with real execution evidence. Dispatched the EXISTING E2E Harness Manual workflow (no new/modified workflow file) via gh workflow run, targeting the exact staging-deployed commit (app_deployment_commit=03f1d67e). Run 33659423754 (https://github.com/crewbiq/crewbiq-driver/actions/runs/33659423754), head_sha b492943e, independently verified code-identical to candidate 5c6cfdaa via git diff --stat (empty output, zero runtime/test differences). Gate 2 (full accepted acceptance suite) is now SATISFIED with real evidence: the harness job ran npm run test:e2e:tooling on a real GitHub Actions runner - 325/325 (verbatim "# tests 325", "# pass 325", "# fail 0" in the job log). The staging-journeys job ran npm run test:e2e:missions with real authenticated network calls against live staging using the staging GitHub environment's real credentials - 18/18 scenarios passed across all 5 roles (fleet 6, driver 9, canonical 1, recovery 1, security 1), including the exact AUTH-01 and LEGACY-01 (Orchestrator failure does not start silent Google fallback) and OFFLINE-01 scenarios the contract cites by name as precedent evidence. Gate 1 (the accepted 9-file/15-subtest decommission contract set) remains NOT SATISFIED - stated as a precise infrastructure fact per Codex's own bounded-action fallback, not a vague caveat: these 9 files are absent from npm run test:e2e:tooling's file list (verified against package.json), are not Playwright specs, and are architecturally incapable of live-server execution by original design (in-process node:vm sandbox, native fetch mocked deliberately to prove real code paths without live-network dependency). No existing CI mechanism runs them. Closing this requires either a new/modified workflow or step (outside this cycle's authorization) or an explicit waiver - neither performed. Overall verdict: STAGING_GATE_BLOCKED, narrowed to exactly the one named gap (gate 1), with gate 2 now genuinely closed.
+
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-Latest correction commit: 4082970cc00c86d681fcae3af97c57c80d68c3e0
+
+Latest correction commit: 3ddcfbebae9d1d1b8c191f127c3a914a399265ee
+
 Latest review commit: 93d9f4675bb7a6e2c90b0b25601300f82cf85346
-Latest state commit: 1a2e3c55ae1b21c98e72843412e19202eb49e537
-Blocking findings: LOCAL_CHECKOUT_IS_NOT_STAGING_EXECUTION; STAGING_EXECUTION_EVIDENCE_INCOMPLETE
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (pending Codex review; document itself reports STAGING_GATE_BLOCKED on gate 1, precisely named)
+
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. Gate 1's infrastructure limitation (accepted 9-file contract set unwired from any CI/staging mechanism, architecturally incapable of live execution) is the sole remaining named gap - closing it requires a workflow/tooling change or an explicit waiver, neither authorized this cycle. PR CI and a pinned v96 production publication workflow remain absent (v96 mechanism should use the proven main-based path per Product Owner direction, separate not-yet-started work). GitHub Discussion #206480 (Pages Actions-deploy 404) remains recorded as known non-blocking platform issue.
+
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Use an existing staging execution mechanism to run and publish the required suites with exact deployment/run identity, timestamps, commands, and zero-failure results; if none exists within scope, publish STAGING_GATE_BLOCKED with the exact infrastructure limitation.
+
+Next required actor: Codex
+
+Next bounded action: Independently review docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md (commit 3ddcfbebae9d1d1b8c191f127c3a914a399265ee) and workflow run 33659423754 directly: confirm the run genuinely executed against real GitHub Actions infrastructure and live staging (not another local-checkout substitute), confirm gate 2's evidence is sound and the AUTH-01/LEGACY-01/OFFLINE-01 scenario identification is accurate, and confirm gate 1's named infrastructure limitation is precise and complete rather than another disguised gap. Publish an updated verdict: STAGING_GATE_BLOCKED confirmed (narrowed to gate 1) with guidance on how gate 1 should be closed (workflow change vs. waiver vs. something else), or NEEDS_FIX naming any remaining inaccuracy. No production deploy, merge to main, migration, data mutation, new workflow file, or ADR/SIDR status change is authorized regardless of verdict.
 <!-- CURRENT_END -->
 
 
@@ -4234,3 +4247,14 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Independently observed Railway deployment ID: 3a9fa981-fcd7-4126-a292-32065a3905b4.
 - Runtime/product files changed: NONE.
 - Next actor: Claude for the bounded evidence correction or explicit STAGING_GATE_BLOCKED classification.
+
+### 2026-09-02 - Claude - Legacy Sync Decommission staging gate evidence correction: real CI/staging execution, STAGING_GATE_BLOCKED narrowed to gate 1 (implementer role)
+
+- Independently re-verified Codex's two findings before acting: re-read contract section 5's exact wording again and agreed that a local checkout verified byte-identical to staging, however rigorously cross-checked, is genuinely not the same claim as "executed in staging" - the prior document's honest disclosure of this limitation did not change that the underlying evidence was still local-machine execution, not independent/staging execution. This was a real, correctly-identified gap, not an unreasonable objection.
+- Investigated which existing mechanisms could provide genuine staging/CI execution without creating a new workflow (forbidden this cycle): found .github/workflows/e2e-harness-manual.yml already exists, is workflow_dispatch-triggered, and has a staging-journeys job with real access to the staging GitHub environment's secrets (CREWBIQ_E2E_FLEET_A/B credentials, CREWBIQ_E2E_BASE_URL, CREWBIQ_E2E_ORCHESTRATOR_URL) - the only such mechanism in this repository.
+- Dispatched it for real via gh workflow run, targeting agent/pre-base44-audit with run_staging_journeys=true, mission_role=all, and app_deployment_commit set to the verified staging-deployed commit. Verified the dispatch's own head_sha (b492943e) was itself code-identical to the candidate before trusting its results, using the same git diff --stat discipline established in the prior cycle.
+- Monitored the real run (33659423754) to completion and extracted verbatim results from the job logs rather than trusting job-level conclusion alone: harness job's test:e2e:tooling step reported "# tests 325 / # pass 325 / # fail 0" directly in the log; staging-journeys job's real Playwright missions against live staging reported 18/18 scenarios passed across 5 roles, including AUTH-01, LEGACY-01 (Orchestrator failure does not start silent Google fallback - directly relevant to this decommission), and OFFLINE-01 by their exact scenario names - matching the contract's own cited precedent evidence.
+- Rewrote docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md with a split, honest verdict rather than forcing a binary PASS/BLOCKED: gate 2 (full acceptance suite) is now genuinely SATISFIED with this real evidence; gate 1 (the accepted 9-file/15-subtest decommission contract set specifically) remains NOT SATISFIED, with the precise reason stated as an infrastructure fact - these files are absent from every existing npm script and CI workflow, and are architecturally incapable of live-server execution by their original in-process vm-sandbox design (established earlier this session specifically to avoid live-network dependency) - not a vague caveat, and not something this cycle's no-new-workflow/no-runtime-edit authorization can close.
+- Published commit 3ddcfbebae9d1d1b8c191f127c3a914a399265ee on top of b492943e. Verified via GitHub Compare API that the diff is exactly the one document, fully replaced (+141-134).
+- Per the role-swap protocol: Next required actor: Codex, for independent review, including a specific ask for guidance on how gate 1 should ultimately be closed (workflow change, explicit waiver, or another path) since that decision is outside this cycle's authorization.
+- No production deploy, merge to main, migration, data mutation, new workflow file, or ADR/SIDR status change occurred. The one external action (dispatching the existing, already-vetted E2E Harness Manual workflow) is squarely within the Product Owner's standing staging-execution authorization and used no new infrastructure.
