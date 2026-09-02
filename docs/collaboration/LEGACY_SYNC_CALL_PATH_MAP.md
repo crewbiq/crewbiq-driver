@@ -26,30 +26,51 @@ E. **Every call site documented in this map traces source-level
    runtime.js` (loaded via `core.js`'s `document.write`, synchronously,
    before `sync.js`/`restore-hotfix.js`/`pti.js` ever run) installs its own
    `global.fetch = routedFetch`, which inspects the JSON body's `type`
-   field — not the URL — and routes every legacy action-envelope type this
-   map documents (`auth_login`, `auth_signup`, `auth_restore`,
+   field — not the URL — and routes matched legacy action-envelope types
+   this map documents (`auth_login`, `auth_signup`, `auth_restore`,
    `auth_logout`, `driver_report`, `pti_report`, and the workspace/roster/
-   assignment reads) to the real Orchestrator via `nativeFetch`, discarding
-   the supplied URL entirely. This is now dynamically proven, not just
-   traced, by `tests/orchestrator_transport.test.mjs` and
-   `tests/dosync_orchestrator_dedup.test.mjs`
-   (commits `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f` and
-   `73b903291224268c592deee03106fc696a6368e9`). Full mechanism trace in
+   assignment reads) to `getOrchestratorBase()`'s currently configured
+   Orchestrator base via `nativeFetch`, discarding the supplied URL
+   entirely.
+
+   **Corrected per Codex re-review (`1f32824e458d338b03488b8d0ff7719afcf204c3`):**
+   `tests/orchestrator_transport.test.mjs` dynamically proves this for
+   directly-constructed body-type envelopes, not by loading and invoking
+   the actual caller functions in §4A/§4B — the link between each named
+   caller and its body type is established by this map's own static source
+   tracing, confirmed accurate, not by independent dynamic execution of
+   that caller. `tests/dosync_orchestrator_dedup.test.mjs` is the one
+   exception: it loads real `sync.js` and calls the actual `doSync()`
+   composite end-to-end. Also, `getOrchestratorBase()` accepts a
+   persisted, unvalidated-host override (`normalizeOrchestratorBase()`
+   strips known path suffixes but does not check the resulting host); the
+   tests exercise its default value, which is the production Orchestrator.
+   Commits: `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f` and
+   `73b903291224268c592deee03106fc696a6368e9`. Full mechanism trace in
    `docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md`.
    Every "Destination" cell in §4A/§4B below should now be read as "the URL
    the code supplies to `fetch()`," not "where the request actually goes" —
-   the latter is the Orchestrator for every entry, confirmed dynamically.
-F. **The `doSync()` two-step push is now understood to be redundant, not
-   sequential-then-secondary.** §4A originally described `pushToCloud()` as
-   reaching Apps Script first, with `pushToOrchestrator()` as a conditional
-   secondary copy. Since `pushToCloud()`'s call is itself intercepted and
-   routed to the Orchestrator's `/v1/sync` surface, both steps write to the
-   same destination for the same `record_id` — `pushToOrchestrator()`'s call
-   is caught by `core-runtime.js`'s in-memory dedup map and returns
-   `client_deduplicated: true` without a second real network write,
-   dynamically confirmed by `tests/dosync_orchestrator_dedup.test.mjs`. This
-   is safe (no duplicate write occurs) but redundant (two function calls
-   producing one real write via client-side dedup, rather than one call).
+   the latter is `getOrchestratorBase()`'s current value (production
+   Orchestrator under tested/default configuration) for every matched
+   entry, confirmed dynamically for body types and end-to-end for
+   `doSync()`; not independently dynamically confirmed for every other
+   individual named caller.
+F. **The `doSync()` two-step push remains two sequential client-side
+   calls; only its second real network write is suppressed.** §4A
+   originally described `pushToCloud()` as reaching Apps Script first, with
+   `pushToOrchestrator()` as a conditional secondary copy. `doSync()`'s own
+   code still calls both functions in sequence — that has not changed.
+   What changed: since `pushToCloud()`'s call is itself intercepted and
+   routed to the Orchestrator's `/v1/sync` surface, both steps target the
+   same destination for the same `record_id`, and `pushToOrchestrator()`'s
+   subsequent call is caught by `core-runtime.js`'s in-memory dedup map,
+   returning `client_deduplicated: true` **without a second real network
+   write** — dynamically confirmed by `tests/dosync_orchestrator_dedup.test.mjs`
+   for one `doSync()` run, in one test-process runtime instance, within the
+   dispatcher's current 2-minute `record_id` window. This is evidence the
+   tested composition avoids a duplicate write; it is not a claim that the
+   two-step client call sequence has already been simplified, nor a
+   universal guarantee independent of timing or runtime lifetime.
 
 ## Corrections applied from the third draft (per Codex re-review)
 
@@ -255,21 +276,28 @@ call whose *supplied URL argument* can be an Apps Script URL under the
 default resolution chain; at least eleven additional callers (§4B) —
 including a dependency-injected alias fired on every load save/edit, a
 timer-driven hourly/midnight auto-sync scheduler, UI actions, and cross-file
-hotfix hooks — trigger those same call sites. **All of this is now known,
-via dynamic test execution rather than static tracing, to be dead-letter at
-the network layer**: `core-runtime.js`'s `global.fetch` dispatcher (§
-Correction E above) intercepts every one of these calls by JSON body `type`
-before `nativeFetch` is ever invoked with the supplied URL, and routes them
-to the real Orchestrator instead. `doSync()`'s two-step push is confirmed
-redundant-but-safe (Correction F): both steps resolve to one real write via
-client-side dedup, not a legacy-then-Orchestrator sequence.
-`restoreSession()` itself never calls `boot()` — that sequencing is done by
-whichever caller invokes `restoreSession()` — this earlier correction is
-unaffected by the interception discovery.
+hotfix hooks — trigger those same call sites (linked by static tracing,
+confirmed accurate). **For the mapped body-type envelopes these call sites
+construct, and end-to-end for the real `doSync()` caller path, dynamic test
+execution now proves they do not reach `script.google.com` under the exact
+tested load composition and default `getOrchestratorBase()` configuration**:
+`core-runtime.js`'s `global.fetch` dispatcher (§ Correction E above)
+intercepts these body types before `nativeFetch` is ever invoked with the
+supplied URL, and routes them to `getOrchestratorBase()`'s current value
+instead. This is not proof for every other named caller independently
+executed, nor proof the literals are unreachable under every possible
+composition or configuration. `doSync()`'s two-step client-side call
+sequence is unchanged (Correction F); only its second real network write is
+suppressed by runtime dedup, confirmed for one tested run/runtime instance/
+dedup window, not as a universal guarantee. `restoreSession()` itself never
+calls `boot()` — that sequencing is done by whichever caller invokes
+`restoreSession()` — this earlier correction is unaffected by the
+interception discovery.
 
-This remains evidence of what the exact current source does under test, not
-proof of live production request volume, which stays structurally
-unobservable via Orchestrator-side logs (§5, unchanged). No removal,
+This remains evidence of what the exact current source does under the
+specific tests run, not proof of live production request volume (which
+stays structurally unobservable via Orchestrator-side logs, §5 unchanged),
+exhaustive caller coverage, or configuration-independence. No removal,
 disabling, or configuration change is proposed here; this document, along
 with the two test commits above, exists to give
 `LEGACY_SYNC_DECOMMISSION_CONTRACT.md`'s now-reframed cleanup work an

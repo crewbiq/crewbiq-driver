@@ -14,34 +14,53 @@ finding against the accepted map and the exact production source.
 
 This contract's entire premise — that the mapped callers currently reach
 Apps Script and must be retargeted to the Orchestrator — is now known to be
-wrong for the network-destination half of that claim, per dynamic test
-evidence (`tests/orchestrator_transport.test.mjs`,
+wrong, **for mapped body-type envelopes under the tested load composition
+and default `getOrchestratorBase()` configuration**, for the
+network-destination half of that claim, per dynamic test evidence
+(`tests/orchestrator_transport.test.mjs`,
 `tests/dosync_orchestrator_dedup.test.mjs`, commits
 `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f` and
 `73b903291224268c592deee03106fc696a6368e9`; full mechanism in
 `docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md`).
-`core-runtime.js`'s `global.fetch` dispatcher already routes every mapped
-call to the real Orchestrator by JSON body `type`, regardless of the
-supplied URL. This reframes — but does not eliminate — the remaining work:
+`core-runtime.js`'s `global.fetch` dispatcher already routes matched calls
+to `getOrchestratorBase()`'s current value by JSON body `type`, regardless
+of the supplied URL. This reframes — but does not eliminate — the
+remaining work:
 
 - **Every `REMOVE`/`REPLACE_WITH_ORCHESTRATOR` classification in §2 below
   still describes the correct target code shape.** What changes is why:
   this is no longer "retarget currently-effective live traffic away from
   Google," it is **dead-literal and dead-branch cleanup** (the Apps Script
-  URLs and the `driver.syncUrl`-resolution machinery are unreachable at the
-  network layer already) plus **simplification of a redundant,
-  client-side-deduplicated double-write** (`doSync()`'s `pushToCloud()` +
-  `pushToOrchestrator()` both resolve to the same Orchestrator write for the
-  same `record_id`; the second is a no-op confirmed by
+  URLs and the `driver.syncUrl`-resolution machinery are bypassed at the
+  network layer for mapped, matched envelopes under the tested composition)
+  plus **simplification of a two-step client-side call sequence whose
+  second real network write is currently suppressed by runtime dedup**
+  (`doSync()`'s `pushToCloud()` + `pushToOrchestrator()` remain two
+  sequential function calls in the client's own code, both of which target
+  the same Orchestrator destination for the same `record_id`; the second
+  call's real network write is suppressed, confirmed by
   `dosync_orchestrator_dedup.test.mjs`'s `client_deduplicated: true`
-  assertion, not a meaningfully separate operation).
-- §4's contract tests below are **substantially already satisfied** by the
-  accepted dynamic evidence tests, not merely specified — see the
-  per-test notes added below. Remaining test work is narrower than
-  originally scoped: primarily proving the *simplified* single-write
-  `doSync()` path behaves identically to today's redundant two-step path,
-  and the service-worker literal-removal regression once that cleanup
-  actually happens.
+  assertion for one tested run/runtime instance/dedup window — not proof
+  the call sequence itself is already simplified or that this holds
+  universally across timing/runtime conditions).
+  **Corrected per Codex re-review (`1f32824e458d338b03488b8d0ff7719afcf204c3`)**:
+  the evidence above is dynamic proof for mapped body-type envelopes and,
+  end-to-end, for the real `doSync()` caller path — individual callers
+  (`authPost`, `pullFromCloud`, `syncPTIEntry`, `syncExpensesNow`, inline
+  handlers) are linked to those envelopes by static source tracing
+  (confirmed accurate in the map), not independently executed. Also,
+  `getOrchestratorBase()` accepts a persisted override with no host
+  validation; the tests exercise its default (production Orchestrator)
+  value.
+- §4's contract tests below are **substantially already satisfied for
+  mapped body types and the `doSync()` path** by the accepted dynamic
+  evidence tests, not merely specified — see the per-test notes added
+  below, now corrected to distinguish body-type-dispatch coverage from
+  actual load/PTI/expense save-workflow coverage. Remaining test work is
+  narrower than originally scoped: primarily proving the *simplified*
+  single-write `doSync()` path behaves identically to today's
+  two-step-with-suppressed-second-write path, and the service-worker
+  literal-removal regression once that cleanup actually happens.
 - §7's open Product Owner decision (whether `crewbiq-expenses` carries
   non-redundant data) is unaffected by this discovery and remains open.
 
@@ -80,12 +99,18 @@ effort must satisfy.
 
 ## 1. Target end-state behavior
 
-The PWA already reaches the Orchestrator exclusively, at the network level,
-for every mapped operation — confirmed dynamically, not merely targeted.
-"Decommissioning" now means making the *source* match that already-true
-runtime behavior: removing the dead literals/branches that still describe a
-path the dispatcher never lets execute, and collapsing the redundant
-double-write into one call. The target shape:
+For mapped, matched body-type envelopes — dynamically confirmed for the
+envelope shapes themselves and, end-to-end, for the real `doSync()` caller
+path — the PWA already reaches `getOrchestratorBase()`'s configured
+Orchestrator at the network level, not Apps Script, under the tested load
+composition and default configuration. Other individual callers are linked
+to those envelopes by static tracing, not independently dynamically
+confirmed. "Decommissioning" now means making the *source* match that
+already-evidenced runtime behavior: removing the literals/branches shown to
+be bypassed for mapped envelopes under the tested composition, and
+collapsing the two-step client call sequence (whose second real network
+write is currently suppressed by runtime dedup) into one call. The target
+shape:
 
 - **Auth** (`login`, `signup`, `logout`, `auth_restore`): resolved and
   transported via the Orchestrator's own auth endpoints, never
@@ -113,12 +138,17 @@ Orchestrator's existing (already-implemented) push/pull surface.
 not need a network destination at all.
 
 **Reframed per the transport-interception discovery**: for every row below,
-the network destination is already the Orchestrator at runtime (confirmed
-dynamically). `REPLACE_WITH_ORCHESTRATOR` in this table now means "delete
-the dead `getAuthSyncUrl()`/`driver.syncUrl` resolution machinery this
-caller feeds through, since the dispatcher already ignores it" — not
-"change where this caller's traffic goes," which would be a behavior
-change; here it is a no-behavior-change cleanup.
+the network destination for the caller's body-type envelope is already
+`getOrchestratorBase()`'s current value at runtime, not Apps Script —
+dynamically confirmed for the envelope shape itself (and end-to-end for
+`doSync()`), statically traced and confirmed accurate for the individual
+named caller. `REPLACE_WITH_ORCHESTRATOR` in this table now means "delete
+the `getAuthSyncUrl()`/`driver.syncUrl` resolution machinery this caller
+feeds through, since the dispatcher already ignores it for this envelope
+under the tested composition" — not "change where this caller's traffic
+goes," which would be a behavior change; here it is a cleanup expected, on
+this evidence, not to change behavior — not a claim proven risk-free in
+every possible composition or configuration.
 
 | Caller (map ref) | Classification | Rationale |
 |---|---|---|
@@ -210,19 +240,30 @@ whether accepted dynamic evidence already satisfies it.
 - `RESTORE-ORCH-01`: clean-device login/signup/session-restore succeeds
   using only Orchestrator endpoints, with zero requests to any
   `script.google.com`/`crewbiq-expenses` origin during the full restore
-  flow. **Substantially satisfied** by `tests/orchestrator_transport.test.mjs`'s
-  `auth_login`/`auth_signup`/`auth_restore`/`auth_logout` cases (commit
-  `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f`); still open: an end-to-end
-  version exercising the real PWA boot sequence rather than `core-runtime.js`
-  in isolation.
+  flow. **Transport-dispatch coverage satisfied**, not the full caller
+  workflow: `tests/orchestrator_transport.test.mjs`'s `auth_login`/
+  `auth_signup`/`auth_restore`/`auth_logout` cases dynamically prove
+  `core-runtime.js`'s dispatcher correctly routes those exact body-type
+  envelopes — they construct the envelope directly and call `fetch()`,
+  they do not load and invoke the real `authPost()`/`restoreSession()`
+  caller functions from `index.html`/`startup-session.js` (commit
+  `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f`). Still open: an end-to-end
+  version exercising the real PWA boot sequence and the actual caller
+  functions, not `core-runtime.js`'s dispatcher in isolation.
 - `WRITE-ORCH-01` through `-04`: a load save, a PTI submission, an expense
   save, and an owner-entity save each persist locally immediately and reach
-  only the Orchestrator over the network. **Partially satisfied**: the
-  `driver_report`/`pti_report` dispatch cases in `orchestrator_transport.test.mjs`
-  and the full `doSync()` run in `dosync_orchestrator_dedup.test.mjs` cover
-  loads and PTI; expense and other owner-entity saves through
-  `syncExpensesNow()`/`attachExpensesToReport()` remain untested end-to-end
-  and are still open.
+  only the Orchestrator over the network. **Transport-dispatch coverage
+  only, not save-workflow coverage**: the `driver_report`/`pti_report`
+  dispatch cases in `orchestrator_transport.test.mjs` prove the dispatcher
+  routes those envelope shapes correctly, and `dosync_orchestrator_dedup.test.mjs`
+  additionally proves this end-to-end for the real `doSync()` composite
+  (i.e., for loads, since that test's fixture data is load-shaped) — neither
+  exercises the actual UI-level load-save or PTI-submission workflow
+  (`loads.js`'s save handler, `pti.js`'s submit handler) that would trigger
+  those calls in production. Expense and other owner-entity saves through
+  `syncExpensesNow()`/`attachExpensesToReport()` remain entirely untested,
+  even at the dispatch level. All four sub-tests (`-01` through `-04`)
+  remain open for actual save-workflow-level coverage.
 - `PTI-LOCKOUT-01`: with the Orchestrator deliberately made unreachable,
   submitting today's/this-week's PTI still clears `needsPTI()`'s blocker —
   directly protects invariant §3.1. **Still open**: not covered by the
