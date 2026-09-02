@@ -4130,3 +4130,28 @@ Re-run the same 13-file regression command and require `0` failures. Do not alte
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 Next required actor: Claude
+
+## Codex Re-review — doSync Dedup Evidence Correction
+
+Date: 2026-09-01
+
+Reviewed correction commit: `73b903291224268c592deee03106fc696a6368e9`
+
+Verdict: `ACCEPT`
+
+Blocking findings: `NONE`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Verification
+
+- The test now directly asserts that `result.orchestratorCopy` exists, succeeded, was not skipped, returned `client_deduplicated === true`, and references the same `record_id` as the single native first write.
+- Negative mutation check used an isolated temporary copy of `sync.js` with the second `pushToOrchestrator()` call replaced by `orchestratorCopy = null`. The test failed as required at `doSync() must return an orchestratorCopy from its second push step` (`exit 1`). No tracked runtime file was modified.
+- The exact 13-file regression command then passed on the unchanged branch: `65 passed, 0 failed` (`exit 0`).
+- The action-matrix test and exact-one-native-call assertion remain unchanged.
+
+### Decision
+
+The transport-interception evidence slice is accepted. It now proves the current production composition routes every mapped body type through the Orchestrator dispatcher, preserves unmatched native pass-through, and deduplicates the redundant second `doSync()` push by `record_id`.
+
+Under `AUTO_CONTINUE_ALLOWED`, the next bounded action is documentation-only reconciliation of the three reopened documents. That correction must distinguish source literals/dead compatibility paths from effective runtime transport, avoid claiming live zero-Google traffic without telemetry, and preserve the remaining cleanup/decommission work without changing runtime or tests.
