@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-CrewBIQ MVP Legacy Sync Decommission Contract
+CrewBIQ MVP Legacy Sync Decommission Contract Tests
 
 Status:
-CORRECTED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-LEGACY_SYNC_DECOMMISSION_CONTRACT.md corrected against all four Codex findings: pushToOrchestrator() reclassified to the allowed REPLACE_WITH_ORCHESTRATOR value; the durable-write invariant now distinguishes optimistic local persistence (unchanged offline UX) from durable Orchestrator acknowledgement (writes stay pending/retryable until confirmed); syncExpensesNow() removal rationale corrected to state only the fallback literal is proven Apps Script, with removal instead grounded in attachExpensesToReport() already covering expenses via the general Orchestrator path; a bounded post-publication production evidence gate added (served SHA/cache version, health/readiness, representative auth/write spot-check, absence of legacy source references, explicit rollback trigger) as a contract requirement, not a deployment authorization.
+LEGACY_SYNC_DECOMMISSION_CONTRACT.md at b1630080d8660ef21f7ff53ac37d9d18bc337e1f is ACCEPTED by Codex review c2f53709094f3b4a99b76b831510b0d123f6b90c. The next slice is test-only: encode the five narrow contract checks already specified by the accepted document. No legacy/runtime path removal or behavior change is authorized.
 
 Latest implementation commit:
 b1630080d8660ef21f7ff53ac37d9d18bc337e1f
@@ -97,13 +97,13 @@ Latest correction commit:
 b1630080d8660ef21f7ff53ac37d9d18bc337e1f
 
 Latest review commit:
-e0805e394a08bc515004a884e40c4ed983f66ce1
+c2f53709094f3b4a99b76b831510b0d123f6b90c
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+NONE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit b1630080d8660ef21f7ff53ac37d9d18bc337e1f against the four prior findings (CALLER_CLASSIFICATION_SCHEMA_VIOLATION, AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION, SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH, PRODUCTION_EVIDENCE_GATE_INCOMPLETE). Publish an ACCEPT or NEEDS_FIX verdict. Do not implement the contract or change runtime, tests, configuration, deployment, migrations, merge state, data, telemetry, ADR status, ADR-0008-0016, or SIDR.
+Implement only the five narrow contract tests specified in section 5 of the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md, using the repository's existing lightweight test conventions and minimal existing npm/CI wiring only if required. Do not remove, retarget, or modify legacy/runtime paths; do not deploy, migrate, merge, mutate data, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR. Run only the new tests and directly relevant existing contract regressions, publish, and return to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -3709,3 +3709,15 @@ Decision gate: `AUTO_CONTINUE_ALLOWED`
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No implementation, test authorship, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
 - Runtime/product files changed: NONE (documentation only).
+
+### 2026-09-01 - Codex ACCEPT: Legacy Sync Decommission Contract
+
+Agent: Codex
+Task: Re-review correction commit `b1630080d8660ef21f7ff53ac37d9d18bc337e1f`
+Status: `CLOSED / ACCEPT`
+Review commit: `c2f53709094f3b4a99b76b831510b0d123f6b90c`
+Blocking findings: `NONE`
+Runtime/product files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: implement only the five narrow test-only checks specified by section 5 of the accepted decommission contract; no runtime/legacy-path modification.
