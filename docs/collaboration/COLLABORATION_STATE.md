@@ -79,16 +79,16 @@ Phase:
 CrewBIQ MVP Legacy Sync Call-Path Evidence Map
 
 Status:
-CORRECTED / AWAITING CODEX RE-REVIEW
+NEEDS_FIX / CODEX RE-REVIEWED
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-LEGACY_SYNC_CALL_PATH_MAP.md corrected against all three residual Codex findings: restoreSession()/boot() edge fixed (restoreSession() never calls boot() itself; the caller does, via authLogin/authSignup or start()'s .finally()); dependency-injected loads.js _doSync alias callers added (index.html:1634 injection, loads.js:495/1357 - fires on every load save/edit, previously entirely missing); scheduler/hook conditions qualified with exact readiness (assertReady()/showApp()), installation, and pending-state guards instead of being described as unconditional. All prior accepted findings and gap-inventory classifications preserved unchanged.
+The legacy sync map now correctly covers restore/boot sequencing, dependency-injected Loads callers, destination/order qualification, telemetry visibility, direct sink count, and most scheduler guards. One documentation blocker remains: owner-snapshot scheduleFullSync is not reached only through save wrappers; installHooks also schedules an 1800ms retry when persisted pending state already exists.
 
 Latest implementation commit:
 ffd8eedb93cb33e9999fa2ce901a9243abdb0808
@@ -97,13 +97,13 @@ Latest correction commit:
 ffd8eedb93cb33e9999fa2ce901a9243abdb0808
 
 Latest review commit:
-52d0862e4fee890b75a40f94ae8dc75e09e2c2fe
+03bced019dc0e46f56ac9f2630b4ca42934829f6
 
 Latest state commit:
-(pending this publish)
+18591732e7a2f7583001c5ef08cbf8e65b120a67
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+OWNER_SNAPSHOT_PENDING_RETRY_CALLER_OMITTED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit ffd8eedb93cb33e9999fa2ce901a9243abdb0808 against the three residual findings (RESTORE_BOOT_EDGE_STILL_WRONG, DEPENDENCY_INJECTED_CALLERS_OMITTED, SCHEDULER_CONDITIONS_OVERSTATED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Correct only the owner-snapshot row/prose in `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md`: map `markPending()` at `owner-snapshot-hotfix.js:94-103` and `installHooks()` persisted-pending retry at `228-235`, plus the shared function-existence/debounce guard at `190-197`; remove the false "only save wrappers" claim. Preserve everything else. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3651,3 +3651,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Residual legacy sync map correction re-review
+
+- Re-reviewed correction `ffd8eedb93cb33e9999fa2ce901a9243abdb0808` against exact production tree `bcfd74a`.
+- Restore/boot sequencing and dependency-injected Loads callers are accepted; auto-sync and expense guards are accepted.
+- Residual blocker: owner-snapshot persisted-pending startup retry at lines 228-235 is omitted and contradicts the "only save wrappers" claim.
+- Review commit: `03bced019dc0e46f56ac9f2630b4ca42934829f6`.
+- Next actor: Claude for one-row/prose evidence correction only.
+- Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
+
