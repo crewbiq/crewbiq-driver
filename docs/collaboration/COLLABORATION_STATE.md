@@ -79,22 +79,24 @@ Phase:
 Legacy Sync Decommission Write Orchestrator Contract Tests
 
 Status:
-CLOSED / ACCEPT
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-WRITE-ORCH-03 accepted as test-only expense-save evidence; production/runtime remains unchanged.
+Added tests/write_orchestrator_owner_entity_save.test.mjs (WRITE-ORCH-04), the last contract test named in the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md's section 4 test list. Exercises the REAL saveServiceLog()/saveServiceLogs() and queueFleetConfigSync() from index.html, the REAL forceFullSync()/doSync() chain from sync.js, and the real core-runtime.js dispatcher (service log chosen as the representative owner-entity workflow; truck-selector and service-page rendering stubbed as peripheral UI concerns covered by other tests). Proves the entry persists synchronously to the driver-scoped local storage key with its resolved truck attribution, and the debounced (800ms) fleet-config sync reaches only the configured Orchestrator, never script.google.com. Verified via two mutations (disabling core-runtime.js's dispatch; removing saveServiceLog()'s own persistence call) that the test has teeth. Full 7-file/9-test regression set passes clean.
+
+With WRITE-ORCH-01/03/04 and PTI-LOCKOUT-01/OFFLINE-ORCH-01/RESTORE-ORCH-01 all now closed, every contract test named in LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 4 is accounted for.
 
 Latest implementation commit:
-af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f
+aef61dec16de503802bfa97b0dfff122288bb79e
 
 Latest correction commit:
-af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f
+aef61dec16de503802bfa97b0dfff122288bb79e
 
 Latest review commit:
 15c59c03ac38b13b3da41afd8127c6b59c8afec9
@@ -103,7 +105,7 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the new test)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work.
@@ -112,10 +114,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement test-only `WRITE-ORCH-04`: execute one actual owner-entity save workflow and prove immediate local persistence plus Orchestrator-only network transport. Do not change runtime, legacy paths, configuration, deployment, migrations, merge state, data, ADR/SIDR status, or begin dead-literal/dedup cleanup. After publication hand back to Codex for independent review.
+Independently re-verify commit aef61dec16de503802bfa97b0dfff122288bb79e: run the new test and the cited regression set, confirm it genuinely exercises real index.html/sync.js/core-runtime.js code. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, since the full decommission-contract test slice is now complete, decide the next bounded action: the dead-literal/dedup-simplification cleanup itself, CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED, or Product Owner scope routing. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR/SIDR status, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -4034,3 +4036,14 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - `WRITE-ORCH-04` remains warranted because existing fleet mutation evidence does not dynamically execute the full owner-entity save/persist/transport workflow.
 - Next required actor: Claude; next bounded action: test-only `WRITE-ORCH-04`.
 - Runtime/product/configuration files changed by review: `NONE`.
+
+### 2026-09-02 - Claude - WRITE-ORCH-04 contract test (implementer role)
+
+- Implemented the authorized WRITE-ORCH-04 test: read saveServiceLog()/saveServiceLogs()/queueFleetConfigSync() in index.html and forceFullSync() in sync.js in full first, chose service logs as the representative owner-entity workflow, and extracted four small independently-locatable source slices (identity/scoped-storage, general utils, fleet-config-sync incl. its var _suppressFleetConfigSync declaration - initially missed and caught by running the test, not by re-reading - and the service-log module itself).
+- Deliberately stubbed selectedTruckId()/renderTruckSelect()/renderServicePage() as peripheral UI rendering concerns outside this test's invariant (owner-entity persistence + Orchestrator-only transport), rather than pulling in their large web of unrelated index.html rendering dependencies (activeTrucks/findTruckByIdOrUnit/getDefaultTruck/truckDisplay/etc.) already covered by other existing tests.
+- Verified the test has teeth via two mutations: disabling core-runtime.js's driver_report dispatch branch (caught at the Orchestrator-only assertion) and removing saveServiceLog()'s own saveServiceLogs(logs) persistence call (caught at the local-persistence assertion) - both restored via git checkout.
+- Ran a 7-file/9-test regression set (this test plus write_orchestrator_expense_save, write_orchestrator_load_save, restore_orchestrator_transport, pti_lockout_orchestrator_unavailable, offline_orchestrator_retry, dosync_orchestrator_dedup) - all pass, zero regressions.
+- Published commit aef61dec16de503802bfa97b0dfff122288bb79e. Verified via GitHub Compare API against parent 54236c57a3a98cd11c6a86dd7b5fe69f85e59246 that exactly one new file was added (186 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- With this test, every contract test named in the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md's section 4 (PTI-LOCKOUT-01, OFFLINE-ORCH-01, RESTORE-ORCH-01, WRITE-ORCH-01/03/04) is now implemented and, pending this review, either accepted or awaiting review.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR/SIDR status, or telemetry change occurred; test file only.
