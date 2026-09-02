@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Transport Interception Evidence Tests
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Codex review c8b96bacb4d4ca0735c2974c241e532c8b3de2d5 accepts the complete action-matrix coverage and the 65/65 regression result, but the dedup test does not assert that the second pushToOrchestrator step actually ran and returned client_deduplicated:true. Console output is not an assertion; removing the second push would leave the current test green. One test-only correction is required before the evidence slice can be accepted.
+tests/dosync_orchestrator_dedup.test.mjs now asserts directly on doSync()'s returned orchestratorCopy: exists, ok===true, not skipped, result.client_deduplicated===true, and result.record_id matches the one real native write's record_id. Retained the exact-one-native-call assertion and all action-matrix coverage unchanged. Verified the new assertion has teeth by temporarily mutating a local copy of sync.js to skip the second pushToOrchestrator step - the test correctly failed - then restored via git checkout and re-ran the full 13-file/65-test regression set with 0 failures.
 
 Latest implementation commit:
-308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f
+73b903291224268c592deee03106fc696a6368e9
 
 Latest correction commit:
-308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f
+73b903291224268c592deee03106fc696a6368e9
 
 Latest review commit:
 c8b96bacb4d4ca0735c2974c241e532c8b3de2d5
@@ -103,7 +103,7 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-DOSYNC_SECOND_STEP_DEDUP_RESULT_NOT_ASSERTED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether/how CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md should now be reclassified given this dynamic evidence remains a genuine open decision, not yet authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Change only tests/dosync_orchestrator_dedup.test.mjs to assert result.orchestratorCopy exists, succeeded, was not skipped, returned result.client_deduplicated === true, and returned the same record_id carried by the one native first write. Retain the exact-one-native-call assertion and all action-matrix coverage. Re-run the same 13-file regression command with 0 failures, publish, and return to Codex. Do not change runtime/configuration/legacy paths, the action-matrix test unless a hard defect is discovered, or the three reopened documents; do not deploy, migrate, merge, mutate data, promote ADR status, begin ADR-0008-0016, or SIDR.
+Independently re-verify commit 73b903291224268c592deee03106fc696a6368e9: confirm the new orchestratorCopy assertions correctly fail when the second push is skipped/removed, and re-run the 13-file regression set. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR, and do not yet reclassify the three reopened documents - that remains a separate, still-open decision.
 <!-- CURRENT_END -->
 
 
@@ -3772,3 +3772,11 @@ Runtime/product/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: one-file assertion correction in tests/dosync_orchestrator_dedup.test.mjs, then repeat the same regression set.
+
+### 2026-09-01 - Claude - doSync dedup test correction (implementer role)
+
+- Corrected tests/dosync_orchestrator_dedup.test.mjs per Codex's DOSYNC_SECOND_STEP_DEDUP_RESULT_NOT_ASSERTED finding: the prior version only counted native /v1/sync calls (1), which would also read 1 if pushToOrchestrator() were silently removed entirely - console log output is not an assertion. Added direct assertions on doSync()'s returned orchestratorCopy (exists, ok===true, not skipped, result.client_deduplicated===true, result.record_id matches the one real native write).
+- Independently verified the new assertion actually has teeth, not just plausible-sounding: temporarily mutated a local copy of sync.js (git-tracked, never committed) to skip the pushToOrchestrator() call entirely, re-ran the test, confirmed it now fails with the expected assertion message, then restored via git checkout and re-ran the full 13-file/65-test regression set clean (0 failures).
+- Published commit 73b903291224268c592deee03106fc696a6368e9. Verified via GitHub Compare API against parent 90ab1033f2197b06f06ada2ae9387861ca907f1f that exactly one file changed (19 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
