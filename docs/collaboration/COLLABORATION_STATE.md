@@ -75,20 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Publication Plan Document Recovery
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
-Current owner: Claude
+Phase: Pinned v96 Main-Based Publication Plan Correction
+
+Status: PUBLISHED / AWAITING CODEX RE-REVIEW
+
+Current owner: Codex
+
 Branch: agent/pre-base44-audit
-Product truth: Two documentation files were accidentally replaced by one-line pointer stubs in preserved commits. Runtime/product/workflow state is unaffected. The full documents have been restored from verified safe point b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6.
+
+Product truth: The v96 plan correction is republished at docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit 5215d6b2), content-identical to the correction originally intended in the corrupted commit 4786f092. Recovery sequence this cycle: (1) Product Owner identified 4786f092/93b5aad9 as pointer-stub corruption (root cause: `gh api ... -f content=@file` treats `@file` as a literal string rather than reading it - `-F` is required); (2) recovered both files' full content from verified safe point b5e36f4a in commit 530ff476 (non-destructive, damaged commits preserved in history, not rewritten); (3) re-applied the four-finding correction to MAIN_PUBLICATION_PLAN_V96.md in commit 5215d6b2, this time using `-F content=@file` and independently verifying the published blob's size, and separately the full published content via `git show`, byte-for-byte against the local source before treating the publish as complete. The correction content itself is unchanged from what commit 4786f092 was supposed to contain: closes PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI (excludes tests/e2e/pages-deployment-workflow-contract.test.mjs; documents a package.json script-list deviation), GATE1_PREMERGE_CI_HAS_NO_PROMOTED_EXECUTION_PATH (defines, does not implement, an added step on the promoted pwa-auth-contract.yml), ANCESTRY_AND_MERGE_CONFLICT_EVIDENCE_INACCURATE (divergence 2/488, merge-tree 16 conflicts, both freshly recomputed against the branch tip in use), and CANDIDATE_AND_DIFF_INVENTORY_MISSTATED (candidate reference updated to b5e36f4a with docs/collaboration count recomputed directly as 40). Result field in the document reads MAIN_PUBLICATION_PLAN_V96_BLOCKED pending this re-review.
+
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-Latest correction commit: 4786f09278e7c2ba81470fe6694ab53bcfb05a51 (pointer-stub publication; preserved, not accepted)
+
+Latest correction commit: 5215d6b2c73c5e833f53337ccb9c82d3df1e9306
+
 Latest review commit: 87b56f90fac0af5531381f399abe4cfc8cbb9450
-Latest state commit: 93b5aad95e1691ad7c11d8b01c07eae8dd42f285 (pointer-stub publication; preserved, superseded by this recovery)
-Blocking findings: DOCUMENT_CONTENT_REPLACED_BY_POINTER_STUBS
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (pending Codex re-review of this correction)
+
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision (not required for gate-1 coverage on main, per the corrected plan's pwa-auth-contract.yml addition).
+
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Claude must re-apply the intended MAIN_PUBLICATION_PLAN_V96 corrections to the restored full document using a byte-preserving narrow edit method, independently verify the complete diff, and hand back to Codex. Documentation only. No workflow/package/test/runtime/settings change, merge, deploy, migration, or data mutation.
+
+Next required actor: Codex
+
+Next bounded action: Independently re-review docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit 5215d6b2c73c5e833f53337ccb9c82d3df1e9306) for whether all four prior findings are correctly and completely closed - same review scope as before the pointer-stub incident: confirm the package.json/test-file disposition leaves no other reference to the excluded test or workflow; confirm the defined gate-1 execution path is complete and correctly placed; independently recompute divergence, merge-tree conflict count, candidate distance, and docs/collaboration file count against the actual current branch tip. Publish an updated verdict: READY (confirmed) or a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict.
 <!-- CURRENT_END -->
 
 
@@ -4328,3 +4341,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Replaced only marked CURRENT and appended this HISTORY entry; runtime/product/test/workflow/package/settings files changed: NONE.
 - Result: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`.
 - Next actor: Claude for the previously authorized documentation-only plan correction.
+
+### 2026-09-02 - Claude - Re-applied v96 plan correction with verified publish method, handed to Codex (implementer role)
+
+- Confirmed the Product Owner had already pushed the document recovery (commit 530ff4766c5e8327dd17ced5e1e12d61dbf9da94, restoring both files from verified safe point b5e36f4a) while Claude's own parallel recovery commit was still being prepared - detected via a tip re-check that found the branch had moved out from under the prepared commit's parent. Per the session's fast-forward-only/re-check-before-every-publish discipline, aborted the redundant push rather than force it.
+- Independently verified the Product Owner's recovery before treating it as done: fetched both files via `git show` (not the Contents API, which was returning inconsistently truncated results - 12KB and 19KB reads of a ~394KB file, a known network-instability failure mode from earlier this session, not real corruption) and confirmed both are full, pure-LF documents byte-identical to the verified safe point.
+- Re-applied the originally-intended MAIN_PUBLICATION_PLAN_V96.md correction (the same content prepared for the corrupted commit 4786f092) using the corrected publish method: `gh api ... git/blobs -F content=@file` (capital -F, reads the file) instead of the lowercase `-f` that caused the original corruption. Independently verified the published blob's size against the local file before building the tree, and independently re-fetched the final published content via `git show` and diffed it byte-for-byte against the local source after the ref update - confirming zero corruption this time before reporting success.
+- Published as commit 5215d6b2c73c5e833f53337ccb9c82d3df1e9306 on top of the recovery commit 530ff476 (verified tip unchanged immediately before publish). Verified via GitHub Compare API that the diff is exactly the one file, one commit.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review - same scope as the review that was interrupted by the corruption incident, now unblocked.
+- No workflow, runtime, product, or GitHub settings file changed. No merge, deploy, migration, or data mutation occurred - documentation/design only, exactly as authorized.
