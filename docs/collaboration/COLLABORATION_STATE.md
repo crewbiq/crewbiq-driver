@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Evidence Documentation Reconciliation
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The transport-interception evidence slice is ACCEPTED by Codex review 46c026bd33c965eed460b2b339444a2bb23c5765. Negative mutation proves the second-push assertion has teeth, and the unchanged branch passes 65/65 regressions. Current production composition routes all mapped body types through the Orchestrator dispatcher and deduplicates doSync's redundant second write by record_id. The next slice is documentation-only reconciliation of the three reopened documents; no runtime/test change is authorized.
+Reconciled all three documents against accepted evidence commits 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f and 73b903291224268c592deee03106fc696a6368e9. Gap inventory items 2, 6, 7, and Legacy Independence reclassified BLOCKED to PARTIAL (not PROVEN: mapped-call-site evidence only, no live-traffic observability). Evidence map now distinguishes source-level reachability from effective runtime destination for every documented caller, and notes doSync()'s two-step push is redundant-but-safe, not sequential. Decommission contract reframed: target end-state is already true at runtime; remaining work is dead-literal/dead-branch cleanup and collapsing the redundant deduplicated double-write, not retargeting live traffic; marked which of its 5 contract tests are already substantially satisfied vs. still open. PTI local-first invariant and identity/authority invariants preserved verbatim; the open Product Owner decision (crewbiq-expenses redundancy) is unaffected and remains open.
 
 Latest implementation commit:
-73b903291224268c592deee03106fc696a6368e9
+b53f6769cfc63eddb1064da781ccfc76b856ba9d
 
 Latest correction commit:
-73b903291224268c592deee03106fc696a6368e9
+b53f6769cfc63eddb1064da781ccfc76b856ba9d
 
 Latest review commit:
 46c026bd33c965eed460b2b339444a2bb23c5765
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the reconciliation)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether/how CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md should now be reclassified given this dynamic evidence remains a genuine open decision, not yet authorized.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract).
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Correct only docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md, and docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md against accepted evidence commits 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f and 73b903291224268c592deee03106fc696a6368e9. Distinguish legacy URL literals/source-level compatibility paths from effective runtime transport; record that matched body types are routed to the configured Orchestrator before native fetch; retain the limitation that zero live Google traffic is not proven without telemetry and unmatched/configurable destinations remain possible; reframe remaining decommission work as dead-literal/compatibility cleanup and simplification of the redundant deduplicated doSync path, not retargeting currently effective matched traffic. Preserve PTI local-first graceful degradation and all identity/authority invariants. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, SIDR, or add telemetry. Publish and return to Codex for independent review.
+Independently re-verify commit b53f6769cfc63eddb1064da781ccfc76b856ba9d against the reconciliation instructions: confirm the PARTIAL reclassifications and their rationale are accurate and not overstated toward PROVEN; confirm the evidence map's source-vs-runtime-destination distinction is correctly drawn for every caller; confirm the decommission contract's reframing does not silently change any REMOVE/REPLACE_WITH_ORCHESTRATOR classification's target code shape, only its rationale. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3794,3 +3794,12 @@ Runtime/product/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: documentation-only reconciliation of the production gap inventory, legacy sync call-path map, and decommission contract against the accepted interception evidence.
+
+### 2026-09-01 - Claude - Reconciled gap inventory, evidence map, and decommission contract (implementer role)
+
+- Reclassified CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md items 2 (PWA-only-Orchestrator), 6 (zero Google traffic), 7 (executable legacy-path removal), and the Legacy Independence criterion from BLOCKED to PARTIAL, citing the accepted transport-interception tests directly. Explicitly retained the limitation that this is evidence of what mapped call sites/current code do under test, not proof of live production traffic (structurally unobservable via Orchestrator logs) or of the map's own completeness - PROVEN was deliberately not used.
+- Corrected LEGACY_SYNC_CALL_PATH_MAP.md with two new correction entries (E, F): every "Destination" cell documents the URL the code supplies to fetch(), not where the request actually goes (now known to be the Orchestrator for every mapped call, via core-runtime.js's body-type dispatcher); doSync()'s two-step push is redundant-but-safe (client-side deduplicated), not a legacy-then-Orchestrator sequence. Rewrote the summary (Section 6) accordingly.
+- Reframed LEGACY_SYNC_DECOMMISSION_CONTRACT.md: added a correction section stating every REMOVE/REPLACE_WITH_ORCHESTRATOR classification still describes the correct target code shape, but the work is now dead-literal/dead-branch cleanup and redundant-double-write simplification, not retargeting live traffic. Rewrote Section 1's framing, added a reframing note to the caller-classification table, annotated each of Section 4's five contract tests as substantially-satisfied or still-open against the accepted dynamic evidence, added a new DOSYNC-SIMPLIFY-01 regression-guard test spec, and strengthened Section 5 gate 3's static-source-completeness framing. Left Section 7's open Product Owner decision (crewbiq-expenses redundancy) untouched - unaffected by this discovery.
+- Published commit b53f6769cfc63eddb1064da781ccfc76b856ba9d. Verified via GitHub Compare API against parent 8306aa4124083eb21bee2e8960ca65aaec0fb414 that exactly the three intended documents changed - no unintended scope. Confirmed pure-LF encoding on all three before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, test, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; documentation only.
