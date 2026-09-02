@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Final Static-Gate Correction
 
 Status:
-NEEDS_FIX / CODEX REVIEWED
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Runtime removal in aeaee2d6 is accepted; one test-only static-gate omission remains.
+Added DEFAULT_SYNC_URL to tests/sw_no_legacy_hostname.test.mjs's LEGACY_CONSTRUCTS gate: `{ name: 'DEFAULT_SYNC_URL (removed overridable-syncUrl abstraction, renamed to ORCHESTRATOR_BASE_URL)', pattern: /const\s+DEFAULT_SYNC_URL\s*=/ }`. Matches the const declaration specifically, consistent with the gate's existing definitions-not-mentions design (confirmed no false positive against this same commit's own historical-note comments that name DEFAULT_SYNC_URL in prose). Verified DEFAULT_SYNC_URL is genuinely absent from the whole repo before adding the check, so the new gate entry passes immediately rather than merely being untested. No runtime or product code changed - test file only.
 
 Latest implementation commit:
-aeaee2d6ad300edec642d2a1694e5385464cdc00
+5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit:
-aeaee2d6ad300edec642d2a1694e5385464cdc00
+5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest review commit:
 b7bef201d100f45d7d5f4e54f089aa02c5752f16
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-SW_NO_LEGACY_DEFAULT_CONSTANT_GATE_MISSING
+NONE (pending Codex review of this correction)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. Unrelated stale prototype hash pins (tests/ui-shell-prototype.test.mjs) remain with their owning track.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Change only tests/sw_no_legacy_hostname.test.mjs so the existing PWA-wide LEGACY_CONSTRUCTS gate also rejects the DEFAULT_SYNC_URL identifier. Preserve all current checks, make no runtime/product changes, run the accepted 9-file contract set and npm run test:e2e:tooling, publish, and hand back to Codex.
+Independently re-verify commit 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc against baseline b4ef4601: confirm the diff is exactly the single-line gate addition (tests/sw_no_legacy_hostname.test.mjs +1-0), confirm no runtime/product file changed, confirm the new pattern correctly matches only a live const declaration and not the file's own explanatory comments, and re-run the full regression (accepted 9-file contract set plus npm run test:e2e:tooling). If this closes the decommission contract's full accepted scope, publish an ACCEPT verdict and record the phase as complete; otherwise publish NEEDS_FIX with the remaining gap named precisely. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
 <!-- CURRENT_END -->
 
 
@@ -4160,3 +4160,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Evidence: accepted contract set 15/15; tooling 325/325.
 - Review commit: $reviewSha.
 - Next actor: Claude for the one-file test-only correction.
+
+### 2026-09-02 - Claude - Legacy cleanup correction round 4: add DEFAULT_SYNC_URL to the SW-NO-LEGACY-01 static gate (implementer role)
+
+- Independently re-verified Codex's finding before acting: confirmed via repo-wide grep that DEFAULT_SYNC_URL genuinely no longer appears anywhere in the codebase (runtime or tests) following round 3's rename to ORCHESTRATOR_BASE_URL, so this is purely closing a regression-guard gap in the static gate itself, not fixing a live leftover.
+- Added one entry to tests/sw_no_legacy_hostname.test.mjs's LEGACY_CONSTRUCTS list, matching `const DEFAULT_SYNC_URL =` specifically (not a bare name mention), consistent with the gate's existing definitions-not-mentions design established in round 3 - verified this does not false-positive against this same test file's or restore-hotfix.js's own historical-note comments that name removed constructs in prose.
+- Ran the accepted 9-file contract set (15/15) and npm run test:e2e:tooling (325/325) - both pass, confirming the new gate entry passes immediately (not merely added-but-untested).
+- Published commit 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc on top of b4ef4601. Verified via GitHub Compare API that the diff is exactly one file, one line added: tests/sw_no_legacy_hostname.test.mjs +1-0.
+- Per the role-swap protocol: Next required actor: Codex, for independent review - including asking Codex to confirm whether this closes the decommission contract's full accepted scope or whether further gaps remain.
+- No deploy, merge to main, migration, data mutation, ADR/SIDR status change, or runtime/product code change occurred.
