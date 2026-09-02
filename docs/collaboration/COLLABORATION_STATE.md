@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission PTI Lockout Contract Test
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The legacy sync evidence documentation reconciliation is CLOSED / ACCEPT by Codex review 1979323a6f2ab37c818c460ad0ff00507905de79. PARTIAL classifications, target code shapes, PTI local-first behavior, and identity/authority boundaries are canonical. Before runtime cleanup, the next slice is test-only PTI-LOCKOUT-01: prove an unavailable/failing Orchestrator cannot prevent local PTI completion or leave the mandatory blocker active.
+Added tests/pti_lockout_orchestrator_unavailable.test.mjs (PTI-LOCKOUT-01). Loads the real core-runtime.js, sync.js, and pti.js in one vm context with every fetch failing (simulated unreachable Orchestrator), then calls the real submitPTI(). Proves: the entry persists to local ptiLog synchronously, saveAll() is called, needsPTI() becomes false for the daily cadence after submission, the mandatory blocker's classList "show" is removed, submitPTI() does not throw, and no workspaceId/truckId/driverId is fabricated when canonical attribution authority is unavailable. Discovered while writing the test: PTI submission makes two independent network attempts (syncPTIEntry()'s own fetch plus sync.js's pti:submitted event-forwarder), both of which fail gracefully via their own internal try/catch - confirmed by the test's passing assertions and log output. Verified the assertion has teeth by temporarily mutating a local copy of pti.js to skip the blocker-clear call (test correctly failed), restored via git checkout, then re-ran the full 10-file/28-test regression set clean.
 
 Latest implementation commit:
-82fac8e6c97040eeb76e7db0b8622266c6d26c54
+c9fccac8c25c4a61455f99bb5c0c02057884427a
 
 Latest correction commit:
-82fac8e6c97040eeb76e7db0b8622266c6d26c54
+c9fccac8c25c4a61455f99bb5c0c02057884427a
 
 Latest review commit:
 1979323a6f2ab37c818c460ad0ff00507905de79
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the new test)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract).
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Newly observed: PTI submission triggers two separate Orchestrator network attempts (syncPTIEntry direct fetch + pti:submitted event-forwarder) - both fail gracefully in this test, not yet assessed for redundancy/cleanup scope.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement only the PTI-LOCKOUT-01 test specified by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md using existing lightweight Node/vm conventions. Exercise the actual pti.js submission/local persistence and needsPTI/blocker-clear path with Orchestrator sync unavailable or rejected; assert PTI remains locally completed, needsPTI becomes false for the applicable cadence, the blocker is removed/app access restored, the asynchronous sync failure does not reject or roll back submission, and no canonical driverId/truckId is fabricated. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry. Add minimal existing npm/CI wiring only if required by repository convention. Run the new test plus directly relevant PTI/auth/offline/startup regressions, publish, and return to Codex for independent review.
+Independently re-verify commit c9fccac8c25c4a61455f99bb5c0c02057884427a: run the new test and the cited 10-file regression set, confirm the assertions genuinely exercise submitPTI()/needsPTI()/syncPTIEntry() rather than restating claims about them, and confirm the mutation-catches-regression verification is accurately described. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3857,3 +3857,13 @@ Runtime/product/test/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: implement test-only PTI-LOCKOUT-01 against actual PTI local-first/non-lockout behavior; no runtime cleanup.
+
+### 2026-09-01 - Claude - PTI-LOCKOUT-01 contract test (implementer role)
+
+- Implemented the authorized PTI-LOCKOUT-01 test using the local clone: read pti.js's submitPTI()/needsPTI() in full first to identify the actual local-write-then-fire-and-forget-sync structure, then wrote a test loading real core-runtime.js + sync.js + pti.js in one vm context with every fetch rejecting.
+- First attempt mocked global.syncPTIEntry directly to reject, which crashed the test process via an unhandled rejection - this revealed the real syncPTIEntry() in sync.js has its own internal try/catch that swallows network failures (confirmed by its "silent fail" log line), so mocking it to reject was an inaccurate simulation. Rewrote to load the real sync.js and fail at the network (fetch) layer instead, exercising the actual error handling rather than assuming it.
+- This surfaced a genuine, previously undocumented finding: PTI submission makes two independent network attempts against the Orchestrator - syncPTIEntry()'s own fetch, and a separate one from sync.js's registerEventForwarders() reacting to the pti:submitted event via forwardEventToOrchestrator(). Both fail gracefully via their own internal try/catch; recorded as a queued non-blocking finding for future redundancy assessment, not asserted as a problem.
+- Verified the test's core assertion has teeth: temporarily mutated a local copy of pti.js to remove the blocker-clear call, confirmed the test correctly failed, restored via git checkout, and re-ran the full 10-file/28-test regression set (pti-attribution-context, orchestrator_transport, dosync_orchestrator_dedup, offline_sync_queue, dispute_tombstone_hotfix, owner_snapshot_deletion, full_restore_transport, startup-session-coordinator, auth-session-startup-contract) with zero regressions.
+- Published commit c9fccac8c25c4a61455f99bb5c0c02057884427a. Verified via GitHub Compare API against parent efc5bcaf277d88a618126a6a549d272c7afb141b that exactly one new file was added (160 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
