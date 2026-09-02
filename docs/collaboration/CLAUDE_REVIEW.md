@@ -4557,3 +4557,25 @@ Change only the existing PWA-wide static gate to reject the `DEFAULT_SYNC_URL` i
 - Blocking findings: `NONE`.
 
 The accepted Legacy Sync Decommission implementation scope is complete. No merge, deployment, migration, production-data mutation, ADR/SIDR change, or unrelated cleanup was performed by this review.
+## 2026-09-02 - Codex review - Legacy Sync Decommission Pre-Publication Evidence Gate
+
+**Verdict: NEEDS_FIX**
+
+Reviewed documentation commit `1b023b15e05fb9e7473133feae4aae0b1e5d9d91`.
+
+### Accepted parts
+
+- Candidate `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc`, baseline `c47ea8d30aa2618afb1f00c19688c5212ae913d6`, current production pin `66a7985765b76e0702d015ca1e300390156f8ad6`, production cache v95, and candidate cache v96 are correctly identified.
+- The document accurately discloses that PR-triggered GitHub Actions have not run, no v96 pinned deployment workflow exists, and no deployment is authorized.
+- Local evidence matches accepted results: contract set `15/15` and tooling `325/325`.
+- Static-source, cache-rotation, production post-publication checks, and immediate v95 rollback target are substantially accurate.
+- Documentation-only scope was preserved; no runtime/product file changed.
+
+### Blocking findings
+
+1. **`PRE_MERGE_STAGING_GATES_OMITTED`** - Contract section 5 gates 1 and 2 require the exact candidate contract tests and the full accepted acceptance suite to pass in staging before a removal PR may be considered for merge. The document records only local execution, never inventories those two staging gates as unsatisfied, and still concludes `READY`. Section 5 of the document instead labels contract gate 5 (the post-publication production gate) as “Staging validation requirements.” This conflates pre-merge staging evidence with post-deploy production evidence and overstates publication readiness. Under the mandated binary result, the evidence gate is `BLOCKED` until §5.1–2 are actually satisfied; the document may separately say the plan/inventory is ready.
+2. **`COMMIT_HISTORY_FACTUALLY_INACCURATE`** - The document says there were five implementation commits and folds `1f29684b749ab9c6f60591e04c5e5561e06f69e1` into `a6800954...` as “corrected in-place.” History was intentionally not rewritten: both commits exist and must be listed, making six code/test implementation commits. It also says every commit after `5c6cfdaa` is `COLLABORATION_STATE.md`-only, but `ce3fa90b` changes `CLAUDE_REVIEW.md` and `1b023b15` adds this evidence document. The correct claim is that all later commits are documentation-only and do not alter deployable PWA assets.
+
+### Required bounded correction
+
+Change only `LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md`: classify the publication evidence `BLOCKED`; separately enumerate contract §5.1–4 pre-merge gates and §5.5 post-publication production checks; mark local tests as local evidence, staging contract/acceptance runs as not executed, PR CI and the v96 pinned workflow as not yet present/satisfied; correct the six-commit history and post-candidate documentation-only wording. Preserve all accurate SHA/cache/rollback facts. Re-publish for Codex review. No runtime/product changes, tests, merge, deploy, migration, data mutation, or ADR/SIDR change.
