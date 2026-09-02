@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Write Orchestrator Contract Test
+Legacy Sync Decommission Write Orchestrator Contract Tests
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+CLOSED / ACCEPT
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Added tests/write_orchestrator_load_save.test.mjs (WRITE-ORCH-01). Exercises the REAL saveLoad() from loads.js (editing an existing load, bypassing resolveNewLoadDriverAttribution()'s separate workspace-module dependency the same way a real edit does), wired to the REAL doSync()/pushToCloud()/pushToOrchestrator() from sync.js via the exact injection index.html's own initLoads() uses (doSync: () => doSync()), and the real core-runtime.js dispatcher. Proves: the edited load persists to local state and triggers saveAll()/renderAll() synchronously before any network result is known; the resulting real network calls target only the configured Orchestrator, never script.google.com, despite driver.syncUrl naming the legacy literal. Verified via mutation that removing core-runtime.js's driver_report/pti_report dispatch, and separately removing saveLoad()'s own local-state update, each correctly fail the test. Full 10-file/54-test regression set passes clean.
+WRITE-ORCH-01 accepted as test-only evidence; production/runtime remains unchanged.
 
 Latest implementation commit:
 6f4e365308f3821b736f1b8a7548f994d32c37ed
@@ -97,25 +97,25 @@ Latest correction commit:
 6f4e365308f3821b736f1b8a7548f994d32c37ed
 
 Latest review commit:
-bbcf0a221c66612ac74cf67dcb07e956bfdac270
+eb9e3b0e3f72893615f6420b6d9d46ebfdec6573
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of the new test)
+NONE
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. The separate PTI event-forwarder and two-layer offline dedup defense remain cleanup observations, not authorized work. Newly observed: the load-save workflow's real doSync() also triggers a separate load:updated event-forwarder call to a distinct /v1/events URL, mirroring the PTI event-forwarder pattern found earlier - not yet assessed for redundancy/cleanup scope.
+Historical attribution reconstruction remains deferred post-production. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued. `WRITE-ORCH-04` remains queued for later evidence assessment. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 6f4e365308f3821b736f1b8a7548f994d32c37ed: run the new test and the cited regression set, confirm it genuinely exercises real loads.js/sync.js/core-runtime.js code rather than restating claims. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, decide whether WRITE-ORCH-02..04 (PTI/expense/owner-entity save coverage) are still warranted given PTI-LOCKOUT-01 already covers the PTI submission path, or whether the remaining decommission-contract test slice is now sufficiently covered and the dead-literal/dedup-simplification cleanup itself (or Product Owner scope routing) becomes the next candidate. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Implement test-only `WRITE-ORCH-03`: exercise the actual expense-save workflow and prove immediate local persistence plus Orchestrator-only network transport. Do not change runtime, legacy paths, configuration, deployment, migrations, merge state, data, ADR/SIDR status, or broaden to `WRITE-ORCH-04`. After publication hand back to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -4005,3 +4005,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit 6f4e365308f3821b736f1b8a7548f994d32c37ed. Verified via GitHub Compare API against parent 5608a799a9aa629d866996b00df33bcf350c72fc that exactly one new file was added (178 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+### 2026-09-01 - Codex ACCEPT: WRITE-ORCH-01
+
+- Reviewed implementation commit `6f4e365308f3821b736f1b8a7548f994d32c37ed`; review commit `eb9e3b0e3f72893615f6420b6d9d46ebfdec6573`.
+- Confirmed real `loads.js::saveLoad()`, real `sync.js::doSync()`, and real `core-runtime.js` dispatcher composition.
+- Exact 10-file regression set: `54 passed, 0 failed`.
+- Verdict: `CLOSED / ACCEPT`; blocking findings: `NONE`.
+- `WRITE-ORCH-02` is materially covered by accepted `PTI-LOCKOUT-01`.
+- Next required actor: Claude; next bounded action: test-only `WRITE-ORCH-03` expense-save workflow.
+- Runtime/product/configuration files changed by review: `NONE`.
+- The earlier full-file line-ending normalization in state commit `5608a799a9aa629d866996b00df33bcf350c72fc` was not reversed: current semantics are intact, and a reverse normalization would add another noisy full-file commit without improving coordination state.
