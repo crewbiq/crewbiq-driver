@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission PTI Lockout Contract Test
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+PUBLISHED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Codex review 5cd99a663228d3172f01b347e641f5abdadd9d29 confirms real submitPTI/needsPTI/syncPTIEntry execution, valid blocker-clear mutation proof, and 28/28 regressions. Two test-only blockers remain: app restoration via showApp is not asserted, and exact total network count 2 incorrectly normalizes the newly observed redundant event-forwarder instead of proving only the required syncPTIEntry attempt.
+Corrected tests/pti_lockout_orchestrator_unavailable.test.mjs for both findings: added a showApp() spy asserting exactly one call after successful local PTI submission despite the Orchestrator sync failing (submitPTI() calls it; no spy previously existed to catch its absence). Replaced the exact nativeFetchCalls===2 assertion with a URL-aware check that the REQUIRED syncPTIEntry() call reached a /v1/sync-family URL (confirmed: crewbiq-orchestrator-production.up.railway.app/v1/events for the event-forwarder, /v1/sync for syncPTIEntry - never script.google.com) and failed gracefully; the separate pti:submitted event-forwarder call is now only logged as an observation, not asserted as required/desired. Verified the new showApp assertion has teeth via the same mutate-local-copy/confirm-failure/restore method used throughout this session, then re-ran the full 10-file/28-test regression set clean.
 
 Latest implementation commit:
-c9fccac8c25c4a61455f99bb5c0c02057884427a
+64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7
 
 Latest correction commit:
-c9fccac8c25c4a61455f99bb5c0c02057884427a
+64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7
 
 Latest review commit:
 5cd99a663228d3172f01b347e641f5abdadd9d29
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-PTI_APP_ACCESS_RESTORATION_NOT_ASSERTED; REDUNDANT_PTI_NETWORK_COUNT_NORMALIZED
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Newly observed: PTI submission triggers two separate Orchestrator network attempts (syncPTIEntry direct fetch + pti:submitted event-forwarder) - both fail gracefully in this test, not yet assessed for redundancy/cleanup scope.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Change only tests/pti_lockout_orchestrator_unavailable.test.mjs. Add a deterministic global showApp spy and assert it is invoked exactly once after successful local PTI submission despite network failure. Replace the exact total nativeFetchCalls===2 assertion with URL-aware evidence that the real syncPTIEntry /v1/sync/pwa attempt occurred and failed gracefully, without protecting the separate pti:submitted event-forwarder count as desired behavior. Retain all current local persistence, saveAll, needsPTI, blocker-clear, no-fabrication, and failure-handling assertions. Re-run the same 10-file regression set with 0 failures, publish, and return to Codex. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Independently re-verify commit 64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7 against both prior findings (PTI_APP_ACCESS_RESTORATION_NOT_ASSERTED, REDUNDANT_PTI_NETWORK_COUNT_NORMALIZED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3880,3 +3880,12 @@ Runtime/product/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: one-file test correction for showApp invocation and URL-aware syncPTIEntry evidence without freezing duplicate event-forward count.
+
+### 2026-09-01 - Claude - PTI-LOCKOUT-01 correction (implementer role)
+
+- Independently re-verified both Codex findings before correcting: confirmed submitPTI() at pti.js:360 does call global.showApp() (guarded by typeof check) which the prior test never spied on; read forwardEventToOrchestrator() (sync.js:487-500) confirming it targets a distinct /v1/events URL, separate from syncPTIEntry()'s /v1/sync-family target, so the two calls are independently distinguishable by URL rather than only countable in aggregate.
+- Corrected tests/pti_lockout_orchestrator_unavailable.test.mjs: added a showApp() spy with a dedicated assertion; replaced the total-count assertion (which incorrectly treated the redundant event-forwarder call as required) with a URL-aware assertion that only the required syncPTIEntry() call is checked, confirming it reaches a /v1/sync-family URL and never script.google.com; the event-forwarder's call is now logged as an observation only, explicitly not asserted as desired.
+- Verified the new showApp assertion has teeth: temporarily mutated a local copy of pti.js to remove the showApp() call, confirmed the test correctly failed, restored via git checkout, and re-ran the full 10-file/28-test regression set clean.
+- Published commit 64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7. Verified via GitHub Compare API against parent 5bc7da20408a2a9daf0c604ed1cc195ddbbb32d5 that exactly one file changed (35 additions, 11 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
