@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Offline Orchestrator Contract Test
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-PTI-LOCKOUT-01 is CLOSED / ACCEPT by Codex review 735703709fc4ff42ba59798c393123be22f3b951: app access restoration is asserted, URL-aware sync evidence does not protect duplicate event forwarding, negative mutation fails correctly, and 28/28 regressions pass. Before runtime cleanup, the next slice is test-only OFFLINE-ORCH-01 for durable same-identity retry and acknowledgement discipline.
+Added tests/offline_orchestrator_retry.test.mjs (OFFLINE-ORCH-01). Loads the real core-runtime.js and offline-sync-queue.js together in production load order and drives them end-to-end with a native fetch that fails on its first invocation (simulated offline) and succeeds on its second (reconnect). Proves: an offline write is reported pending (503, ok:false, pending:true) and retains its durable record_id in the queue rather than being falsely acknowledged or silently dropped; a subsequent retry of the same operation succeeds exactly once with the same record_id, the queue clears only after acknowledgement, and no real network attempt ever targets script.google.com. Verified the drop-on-failure assertion has teeth by mutating a local copy of offline-sync-queue.js to discard the entry on network failure (test correctly failed, restored via git checkout). Also discovered and honestly documented in the test: the no-duplicate-write outcome is defended at two independent layers (offline-sync-queue.js's own same-identity reuse, and a separate recentSyncRecordIds cache in core-runtime.js) - a mutation removing only the offline-queue layer did not fail this specific assertion, since the other layer independently caught the would-be duplicate; the test is honest about proving the invariant that matters (no duplicate write reaches the Orchestrator) without overclaiming isolation of one specific mechanism. Full 11-file/29-test regression set passes clean.
 
 Latest implementation commit:
-64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7
+286b14e42fbeb0e481ef97d6b8fc2cc439875261
 
 Latest correction commit:
-64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7
+286b14e42fbeb0e481ef97d6b8fc2cc439875261
 
 Latest review commit:
 735703709fc4ff42ba59798c393123be22f3b951
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the new test)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope. Newly observed: the no-duplicate-write guarantee for offline retries is defended at two independent layers (offline-sync-queue.js identity reuse + core-runtime.js recentSyncRecordIds cache) - not yet assessed for redundancy/cleanup scope.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement only OFFLINE-ORCH-01 from the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md using existing lightweight Node/vm conventions and real core-runtime.js/offline-sync-queue.js transport behavior. Simulate an authenticated Orchestrator write failing while offline, prove the pending operation retains one durable record_id/body identity and is not acknowledged or removed, then trigger the existing reconnect retry path and prove exactly one retry succeeds with the same identity, one durable upstream success, and queue clearance only after acknowledgement. Assert no native request targets script.google.com and do not normalize unrelated retry/event counts as desired behavior. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry. Add minimal existing npm/CI wiring only if required by repository convention. Run the new test plus directly relevant offline, transport, dedup, restore, PTI, auth, and startup regressions, publish, and return to Codex.
+Independently re-verify commit 286b14e42fbeb0e481ef97d6b8fc2cc439875261: run the new test and the cited 11-file regression set, confirm the assertions genuinely exercise core-runtime.js/offline-sync-queue.js rather than restating claims about them, and confirm the two-layer-dedup discovery is accurately and honestly described rather than overclaimed. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3903,3 +3903,14 @@ Runtime/product/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: implement test-only OFFLINE-ORCH-01; no runtime cleanup.
+
+### 2026-09-01 - Claude - OFFLINE-ORCH-01 contract test (implementer role)
+
+- Implemented the authorized OFFLINE-ORCH-01 test using the local clone: read offline-sync-queue.js in full first (enqueue/flushQueue/queuedFetch, the same-identity reuse check, 409-terminal handling) before writing anything, then wrote a test loading real core-runtime.js and offline-sync-queue.js together in production load order, with a native fetch mock failing on its first call (offline) and succeeding on its second (reconnect).
+- Proved: an offline write is reported pending (not falsely acknowledged, not silently dropped) and keeps its durable record_id queued; a retry of the same operation succeeds exactly once, the queue clears only on acknowledgement, and no real request ever targets script.google.com.
+- Verified the primary regression guard (drop-on-failure) has teeth: temporarily mutated a local copy of offline-sync-queue.js to shift the queue entry off on network failure, confirmed the test correctly failed, restored via git checkout.
+- While mutation-testing the no-duplicate-write assertion (removing offline-sync-queue.js's own same-identity reuse check), discovered the assertion still passed, because core-runtime.js has a SEPARATE recentSyncRecordIds cache that also catches the same record_id within its own window and returns client_deduplicated:true independently. Traced this with targeted debug logging rather than assuming an explanation, confirmed it precisely, and documented it honestly in the test's own comments as a two-layer defense rather than claiming the test isolates one specific mechanism.
+- Ran the full 11-file/29-test regression set (offline_orchestrator_retry, offline_sync_queue, pti_lockout_orchestrator_unavailable, pti-attribution-context, orchestrator_transport, dosync_orchestrator_dedup, dispute_tombstone_hotfix, owner_snapshot_deletion, full_restore_transport, startup-session-coordinator, auth-session-startup-contract) - all pass, zero regressions.
+- Published commit 286b14e42fbeb0e481ef97d6b8fc2cc439875261. Verified via GitHub Compare API against parent bf8d08c4b087c664ead4d899023fd36ec613f736 that exactly one new file was added (140 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
