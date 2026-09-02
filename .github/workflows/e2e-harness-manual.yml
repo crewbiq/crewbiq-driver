@@ -51,6 +51,9 @@ jobs:
       - name: Run test-tooling contracts
         run: npm run test:e2e:tooling
 
+      - name: Run legacy sync decommission contract set
+        run: node --test tests/orchestrator_transport.test.mjs tests/dosync_orchestrator_dedup.test.mjs tests/pti_lockout_orchestrator_unavailable.test.mjs tests/offline_orchestrator_retry.test.mjs tests/restore_orchestrator_transport.test.mjs tests/write_orchestrator_load_save.test.mjs tests/write_orchestrator_expense_save.test.mjs tests/write_orchestrator_owner_entity_save.test.mjs tests/sw_no_legacy_hostname.test.mjs
+
       - name: Run harness self-test
         run: npm run test:e2e:self
 
