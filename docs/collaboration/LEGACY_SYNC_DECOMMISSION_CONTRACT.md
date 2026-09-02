@@ -7,6 +7,34 @@ authorize implementation; it defines what a future decommission
 implementation must satisfy before it may begin.
 
 Prepared by: Claude (implementer role).
+Corrected by: Claude, after independently re-verifying every Codex NEEDS_FIX
+finding against the accepted map and the exact production source.
+
+## Corrections applied from the first draft (per Codex review)
+
+1. **`CALLER_CLASSIFICATION_SCHEMA_VIOLATION`.** `pushToOrchestrator()` was
+   classified `PRESERVE_LOCAL_ONLY-adjacent / already correct`, which is not
+   one of the three allowed values. Reclassified `REPLACE_WITH_ORCHESTRATOR`
+   (§2), since its transport is retained/adapted as the sole durable write.
+2. **`AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION`.** The first draft's
+   "network sync is always a secondary, best-effort step" conflicted with
+   the Orchestrator being the sole durable authority post-decommission.
+   Corrected §3.2 to distinguish optimistic local persistence (unchanged,
+   what makes the app usable offline) from durable acknowledgement (an
+   operation stays pending/retryable until the Orchestrator confirms it).
+3. **`SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH`.** The first draft claimed
+   both `syncExpensesNow()` destinations "are Apps Script paths." Corrected:
+   only the hardcoded fallback is proven Apps Script; `driver.syncUrl` is an
+   override not itself proven to always be Apps Script. The removal
+   decision is preserved on different, correct grounds: `expenses` are
+   already carried by the general Orchestrator write path via
+   `restore-hotfix.js`'s `attachExpensesToReport()`, independently
+   re-confirmed by re-reading that function.
+4. **`PRODUCTION_EVIDENCE_GATE_INCOMPLETE`.** Added gate 5 to §5: a bounded
+   post-publication production evidence gate (served SHA/cache version,
+   health/readiness, representative auth/write spot-check, absence of
+   legacy source references in served assets, explicit rollback trigger) —
+   a contract requirement only, not an authorization to deploy.
 
 Scope: derives directly from the accepted
 `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` (commit
@@ -51,8 +79,8 @@ not need a network destination at all.
 | `pushToCloud()` (map §4A) | `REMOVE` | This is the legacy write itself; `pushToOrchestrator()` becomes the sole write, not a secondary copy after it. |
 | `pullFromCloud()` (map §4A) | `REMOVE` | Restore must come from the Orchestrator's existing pull surface only. |
 | `syncPTIEntry()` (map §4A) | `REPLACE_WITH_ORCHESTRATOR` | PTI entries must reach PostgreSQL; see §3 for the non-negotiable local-first invariant this must preserve. |
-| `syncExpensesNow()` (map §4A, both the `driver.syncUrl` branch and the hardcoded `crewbiq-expenses` fallback) | `REMOVE` | Both destinations are Apps Script paths (default or fallback); expenses must route through the same Orchestrator write surface as other owner-scoped entities. |
-| `pushToOrchestrator()` (map §4A) | `PRESERVE_LOCAL_ONLY`-adjacent / **already correct** | Already targets the Orchestrator; becomes primary instead of secondary. Not itself changed by decommission — only its position in `doSync()`'s order changes. |
+| `syncExpensesNow()` (map §4A, both the `driver.syncUrl` branch and the hardcoded `crewbiq-expenses` fallback) | `REMOVE` | Corrected rationale: the accepted map only proves the *fallback* literal (`.../crewbiq-expenses/exec`) is an Apps Script endpoint. `driver.syncUrl` is an override field that, under the standard resolution chain, is Apps Script by default but is not itself proven to be Apps Script in every case (per the map's own destination qualification). Both branches are still removed, because expenses are already carried by the general Orchestrator write path: `restore-hotfix.js`'s `attachExpensesToReport()` recognizes the `driver_report` envelope (`cloned.type === 'driver_report'` or `cloned.payload.type === 'driver_report'`) and injects scoped `expenses` into `report.ownerData`/`report.expenses` before transport — this is the same payload shape `pushToOrchestrator()` already carries, so `syncExpensesNow()`'s dedicated call is redundant with that path, not merely "also Apps Script." |
+| `pushToOrchestrator()` (map §4A) | `REPLACE_WITH_ORCHESTRATOR` | Already targets the Orchestrator; its transport is retained/adapted as the sole durable write, promoted from secondary copy to primary. Its own request shape is not itself changed by decommission — only its position in `doSync()`'s order, and its status as authoritative (see §3.2), change. |
 | `doSync()` composite ordering (map §4A) | `REPLACE_WITH_ORCHESTRATOR` | Reorder so the Orchestrator write is the (only) durable push; no legacy push precedes or gates it. |
 | `_doSync` alias via `loads.js:495`/`1357` (map §4B) | `REPLACE_WITH_ORCHESTRATOR` | Unchanged trigger (fires on load save/edit); its target sink changes with `doSync()`'s retarget. Highest-frequency caller identified — must be covered by contract tests (§5). |
 | `scheduleAutoSync()` hourly/midnight (map §4B) | `REPLACE_WITH_ORCHESTRATOR` | Unchanged cadence; retargets with `doSync()`. |
@@ -84,10 +112,22 @@ related mechanism that already is, and must remain, local-only — see §3.
    Orchestrator retarget: `syncPTIEntry()`'s *destination* changes, but its
    fire-and-forget, non-blocking relationship to `needsPTI()`/local
    persistence must not.
-2. **Local/offline usability.** Every write (loads, PTI, expenses, owner
-   entities) must continue to save to local storage synchronously and
-   render immediately, regardless of network state or Orchestrator
-   reachability. Network sync is always a secondary, best-effort step.
+2. **Local/offline usability, with Orchestrator as sole durable authority.**
+   Every write (loads, PTI, expenses, owner entities) must continue to save
+   to local storage synchronously and render immediately, regardless of
+   network state or Orchestrator reachability — this optimistic local
+   persistence is what makes the app usable offline and is unchanged by
+   decommission. This is distinct from **durable acknowledgement**: once
+   Apps Script is removed, the Orchestrator becomes the *sole* authority for
+   whether a write is durably saved. An operation that has only been
+   persisted locally, and has not yet received a successful Orchestrator
+   response, remains **pending/retryable** — it is not to be treated as
+   durably saved, reported to the user as synced, or exempted from retry,
+   until the Orchestrator confirms it. (Previously, a failed Apps Script
+   push and a failed Orchestrator copy were two independent, partially
+   redundant failure modes; post-decommission there is exactly one
+   authority, so the existing retry/idempotency mechanisms in §3.3 carry
+   more weight and must not regress.)
 3. **Durable idempotent retry.** The existing `offline-sync-queue.js`
    reconnect-triggered retry and `dispute-tombstone-hotfix.js`'s
    busy-retry loop are the two mechanisms this project has already
@@ -158,6 +198,22 @@ Before any removal PR may be considered for merge:
    are structurally complete) — a static-source claim, not a live-traffic
    claim.
 4. Product Owner sign-off (§6) on the one currently open decision.
+5. A bounded **post-publication production evidence gate** — required by
+   this contract, not authorized by it; it names what a future deployment
+   must check, it does not schedule or perform one. After any real
+   production deploy of a removal, and before it may be considered
+   complete, someone must confirm: (a) the exact served commit SHA and
+   service-worker cache version match what was deployed; (b) `/health` and
+   `/ready` are green; (c) a representative auth/restore and a
+   representative write (e.g., one load save) succeed end-to-end against
+   production; (d) the served production assets (`index.html`, `sync.js`,
+   `restore-hotfix.js`, `sw.js`) contain no remaining source reference to
+   `script.google.com`/`googleapis.com`/`DEFAULT_SYNC_URL`/
+   `crewbiq-expenses`, mirroring gate 3's static-source check but against
+   the actually-served production files rather than the reviewed commit;
+   (e) an explicit, pre-agreed rollback trigger condition (e.g., any of (a)-
+   (d) failing, or an elevated write-failure rate observed in the first
+   bounded observation window) and the exact rollback procedure from §6.
 
 ## 6. Deployment/cache order and rollback
 
