@@ -4053,3 +4053,45 @@ Runtime/product files changed by this review: `NONE`
 ### Decision
 
 The documentation contract is accepted. Under `AUTO_CONTINUE_ALLOWED`, the next safest bounded continuation is test-only: implement the five narrow decommission contract tests specified by the accepted document, without removing or changing any legacy/runtime path.
+
+## Codex Independent Review — Legacy Transport Interception Discovery
+
+Date: 2026-09-01
+
+Reviewed discovery commit: `5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3`
+
+Verdict: `DISCOVERY_ACCEPTED / EVIDENCE_EXPANSION_REQUIRED`
+
+Runtime/product/test files changed by this review: `NONE`
+
+### Confirmed
+
+- Production `index.html` at `bcfd74a22449b974755b8b48bc01a3b261107b93` loads `core.js` before `sync.js`, PTI, Loads, and the later adapters.
+- `core.js` synchronously injects `core-runtime.js` before `restore-hotfix.js`; `core-runtime.js` captures native fetch and installs its body-type dispatcher globally, while `restore-hotfix.js` subsequently wraps that dispatcher rather than native fetch.
+- The dispatcher ignores the original URL for every matched body type and routes through `nativeFetch(getOrchestratorBase() + path, ...)`. Static source confirms handlers for auth, roster, AccountDriverLink, DriverTruckAssignment, `driver_report`, and `pti_report` types identified by the accepted call-path map.
+- `tests/full_restore_transport.test.mjs` passed and dynamically proved legacy-looking URLs are not called for `auth_restore` and `driver_report` envelopes.
+- Therefore, the premise that URL literals alone prove live Apps Script traffic is invalid for the accepted production composition. The gap inventory, call-path map, and decommission contract must be reopened after the evidence gap below is closed.
+
+### Evidence gap found during review
+
+Command:
+
+`node --test tests/full_restore_transport.test.mjs tests/orchestrator_transport.test.mjs`
+
+Result: `1 passed, 1 failed`.
+
+`tests/orchestrator_transport.test.mjs` is stale against the current loader: it executes `core.js` in a VM whose mocked `document` has no `write()` method, so it fails before any transport assertion. The passing full-restore test dynamically covers only `auth_restore` and `driver_report`; static tracing supports the remaining types, but the claimed full action matrix is not yet dynamically protected. This test-harness failure is not evidence of a production runtime failure.
+
+### Coordinator decision
+
+1. Reopen the three accepted documents for correction, but do not rewrite their classifications yet.
+2. First publish a bounded test-only transport-interception evidence slice that:
+   - repairs the stale `orchestrator_transport.test.mjs` harness without weakening assertions;
+   - dynamically verifies every mapped body type is routed to the configured Orchestrator and never to the supplied legacy URL;
+   - proves the two-step `doSync()` composition produces no second native `/v1/sync/pwa` write for the same `record_id` because the dispatcher deduplicates it;
+   - preserves a separate assertion that unmatched requests still pass through to native fetch.
+3. After independent ACCEPT of that evidence, correct the gap inventory, call-path map, and decommission contract in a separate documentation-only slice.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+No implementation, runtime/configuration change, deployment, migration, merge, data mutation, telemetry, ADR promotion, ADR-0008-0016, or SIDR work is authorized.
