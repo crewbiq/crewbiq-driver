@@ -4370,3 +4370,26 @@ Do not change runtime, configuration, legacy paths, deployment, migrations, merg
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 Next required actor: Claude
+
+## Codex Final Re-review — OFFLINE-ORCH-01 Payload Identity
+
+Date: 2026-09-01
+
+Reviewed correction commit: `6f46ce78de20bd3b506580d92a488fab417daada`
+
+Verdict: `ACCEPT`
+
+Blocking findings: `NONE`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Verification
+
+- The queue-to-core boundary now captures a stable snapshot of `type`, Driver, Loads, PTI log, and owner data while excluding only transient/session fields.
+- Both downstream attempts retain the same `record_id` and identical business payload.
+- Real online-listener, one reconnect `doSync`, exact queue-layer attempt count, pending retention, acknowledgement-only clearance, one native retry success, and no-Google assertions remain unchanged.
+- The exact 11-file regression set passed: `29 passed, 0 failed` (`exit 0`).
+
+### Decision
+
+`OFFLINE-ORCH-01` is accepted. Together with accepted `PTI-LOCKOUT-01`, the current local-first/offline contract-test slice is closed. Under `AUTO_CONTINUE_ALLOWED`, the next safest bounded action is test-only `RESTORE-ORCH-01`, exercising actual auth/restore/startup caller composition before any dead-literal or dedup-simplification runtime cleanup.
