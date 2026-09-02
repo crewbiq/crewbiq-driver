@@ -75,21 +75,21 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Pinned v96 Main-Based Publication Plan Re-review
+Phase: v96 Main-Based Promotion Preparation
 
-Status: CLOSED / ACCEPT
+Status: AUTHORIZED / AWAITING CLAUDE EXECUTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Codex independently re-reviewed corrected plan commit 5215d6b2 and accepted it as MAIN_PUBLICATION_PLAN_V96_READY. All four prior blockers are closed. Fresh evidence confirms pinned candidate b5e36f4a at divergence 2/488, 16 merge-tree conflicts, 37 commits after implementation 5c6cfdaa, 92 changed files, and 40 collaboration-document paths. The current branch tip is five documentation-only commits beyond the pinned candidate and introduces no non-collaboration-document delta, so the pinned production candidate remains valid. No promotion preparation, workflow/package edit, PR, merge, deploy, migration, settings change, or data mutation was performed by this review.
+Product truth: Codex accepted corrected plan commit 5215d6b2 in review commit 1bf6b9fa and, under standing Product Owner delegation, authorizes only the exact preparation-through-PR procedure in MAIN_PUBLICATION_PLAN_V96.md section 8. Claude may create a curated release branch from exact main bcfd74a2, restore only the approved allowlist from pinned candidate b5e36f4a, apply only the documented pwa-auth-contract.yml gate-1 addition and package.json test-token removal, run all required gates, push normally, and open an unmerged PR to main. This authorization does not permit merge, deployment, migration, production/staging mutation, settings changes, or scope expansion.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: 5215d6b2c73c5e833f53337ccb9c82d3df1e9306
 
-Latest review commit: (pending this publication)
+Latest review commit: 1bf6b9face949196b23d98ce0f08023280b3f571
 
 Latest state commit: (pending this publication)
 
@@ -97,11 +97,11 @@ Blocking findings: NONE
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision (not required for gate-1 coverage on main, per the corrected plan's pwa-auth-contract.yml addition).
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Codex, under standing Product Owner delegation, must make a separate coordination decision whether to authorize the exact main-based promotion preparation procedure in MAIN_PUBLICATION_PLAN_V96.md section 8. This review cycle does not itself authorize execution. Do not merge or deploy.
+Next bounded action: Execute only MAIN_PUBLICATION_PLAN_V96.md section 8 preparation steps 1-13: abort if origin/main is not bcfd74a2; create a curated release branch from that exact SHA; restore the exact allowlist from b5e36f4a; apply only the two documented content deviations; run the required validation and CI; push normally; open but do not merge the PR; publish exact branch, commit, PR, diff, and check evidence; then hand the actual PR to Codex for independent review. Do not execute steps 14-16, merge, deploy, migrate, mutate data, or change GitHub settings.
 <!-- CURRENT_END -->
 
 
@@ -119,6 +119,18 @@ Next bounded action: Codex, under standing Product Owner delegation, must make a
 - Runtime/product/workflow/package/settings changes: NONE
 - Merge/deploy/migration/data mutation: NONE
 - Next gate: separate Codex coordinator decision under standing delegation
+
+### 2026-09-02 — Codex authorizes bounded v96 promotion preparation through unmerged PR
+
+- Coordinator: Codex, acting under standing Product Owner delegation
+- Basis: accepted plan `5215d6b2c73c5e833f53337ccb9c82d3df1e9306` and independent review `1bf6b9face949196b23d98ce0f08023280b3f571`
+- Authorized: `MAIN_PUBLICATION_PLAN_V96.md` section 8 steps 1-13 only
+- Source main: exact `bcfd74a22449b974755b8b48bc01a3b261107b93`; abort on movement
+- Pinned candidate: `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6`
+- Required deviations: exact gate-1 step in `pwa-auth-contract.yml`; exact obsolete Pages contract token removal from `package.json`
+- Required output: curated branch, normal push, unmerged PR, complete diff/CI evidence, Codex independent PR review
+- Not authorized: merge, deploy, migrations, data mutation, settings changes, scope expansion
+- Next required actor: Claude
 
 ### 2026-09-01 - Codex - Production rollout preflight stop
 
