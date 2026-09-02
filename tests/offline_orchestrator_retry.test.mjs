@@ -6,10 +6,13 @@ import vm from 'node:vm';
 // section 4 / invariant 3.3: a failed authenticated Orchestrator write, while
 // offline, must retain one durable operation identity and must not be
 // acknowledged/removed from the pending queue until the Orchestrator
-// actually confirms it; the retry must not duplicate the write. This loads
-// the real core-runtime.js (Orchestrator dispatch) and offline-sync-queue.js
-// (the actual pending-queue/retry mechanism) together and drives them
-// end-to-end - it does not restate claims about their behavior.
+// actually confirms it; reconnect must retry through the real 'online'
+// handler and must not duplicate the write. This loads the real
+// core-runtime.js (Orchestrator dispatch) and offline-sync-queue.js (the
+// actual pending-queue/retry mechanism) together, drives the real
+// registered 'online' listener, and instruments the exact
+// queue-to-core-dispatcher boundary - not just the underlying native layer,
+// which core-runtime.js's own separate dedup cache can mask.
 
 const storageMap = new Map();
 const localStorage = {
@@ -22,7 +25,7 @@ const listeners = new Map();
 const document = { readyState: 'complete', addEventListener() {} };
 
 // The true network layer. First invocation simulates "offline" (the request
-// never completes); second invocation simulates reconnect succeeding.
+// never completes); every later invocation simulates reconnect succeeding.
 const nativeCalls = [];
 let nativeCallCount = 0;
 async function nativeFetch(url, init = {}) {
@@ -37,6 +40,8 @@ async function nativeFetch(url, init = {}) {
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+let doSyncCalls = [];
 
 const context = {
   console,
@@ -66,9 +71,29 @@ const runtime = fs.readFileSync(new URL('../core-runtime.js', import.meta.url), 
 vm.runInNewContext(runtime, context, { filename: 'core-runtime.js' });
 assert.notEqual(context.fetch, nativeFetch, 'core-runtime.js must have installed its own Orchestrator dispatcher');
 
+// Instrument the EXACT boundary offline-sync-queue.js will capture as its
+// own "downstreamFetch" (core-runtime.js's dispatcher, at this point in the
+// load order). Counting here proves how many attempts the QUEUE layer makes
+// at the dispatcher, independent of core-runtime.js's own separate
+// recentSyncRecordIds cache, which can silently absorb a duplicate BELOW
+// this boundary and mask a queue-layer bug from native-layer-only counts.
+const coreDispatch = context.fetch;
+let downstreamCallCount = 0;
+const downstreamCalls = [];
+context.fetch = async function (input, init) {
+  downstreamCallCount += 1;
+  const body = init && typeof init.body === 'string' ? JSON.parse(init.body) : null;
+  const recId = body && (body.record_id || (body.payload && body.payload.record_id));
+  downstreamCalls.push({ record_id: recId });
+  return coreDispatch(input, init);
+};
+
 const queueSource = fs.readFileSync(new URL('../offline-sync-queue.js', import.meta.url), 'utf8');
 vm.runInNewContext(queueSource, context, { filename: 'offline-sync-queue.js' });
 assert.ok(context.CrewBIQOfflineSync, 'offline-sync-queue.js must expose CrewBIQOfflineSync on the shared context');
+
+const onlineHandlers = listeners.get('online') || [];
+assert.equal(onlineHandlers.length, 1, "offline-sync-queue.js must register exactly one real 'online' reconnect listener");
 
 localStorage.setItem('fiqD_sessionToken', 'token-offline-1');
 
@@ -83,6 +108,19 @@ const driverReportBody = () => ({
   loads: [{ id: 'load_offline_1', synced: false }],
   ptiLog: [],
 });
+
+// sync.js's real doSync() is not loaded here (out of scope for this
+// queue/dispatcher-focused test); a spy stands in for it, matching what the
+// 'online' listener actually does: call global.doSync({reason:'online'}),
+// which in production re-submits the same pending operation through
+// pushToCloud() -> the same wrapped fetch() this test already exercises.
+context.doSync = function (opts) {
+  doSyncCalls.push(opts);
+  return context.fetch('https://script.google.com/macros/s/example/exec', {
+    method: 'POST',
+    body: JSON.stringify(driverReportBody()),
+  });
+};
 
 const legacyUrl = 'https://script.google.com/macros/s/example/exec';
 
@@ -100,41 +138,35 @@ assert.equal(firstData.ok, false, 'a pending/offline write must not be reported 
 assert.equal(firstData.pending, true, 'the response must explicitly mark the operation as pending');
 assert.equal(firstData.record_id, recordId, 'the pending response must carry the same durable record_id the caller submitted');
 assert.equal(context.CrewBIQOfflineSync.pendingCount(), 1, 'exactly one operation must remain queued after the offline failure');
-assert.equal(nativeCallCount, 1, 'exactly one real network attempt must have been made (the failed one) - no retry loop on the first failure');
+assert.equal(downstreamCallCount, 1, 'exactly one attempt must reach the queue-to-core dispatcher boundary (the failed one) - no retry loop on the first failure');
+assert.equal(nativeCallCount, 1, 'exactly one real native network attempt must have been made');
 assert.equal(nativeCalls.every((call) => !call.url.includes('script.google.com')), true, 'no real network attempt may target script.google.com despite it being the supplied URL');
 
-// Second attempt: reconnect. Submitting the SAME operation again (same
-// canonical identity, ignoring volatile fields like sentAt) must reuse the
-// existing queued entry rather than enqueueing a duplicate, and must result
-// in exactly one additional real network attempt that succeeds and clears
-// the queue - not an extra retry, and not a second competing write.
-//
-// Discovered while mutation-testing this assertion: this "no duplicate
-// write" outcome is defended at two independent layers, not one -
-// offline-sync-queue.js's own same-identity reuse in enqueue(), AND
-// core-runtime.js's separate recentSyncRecordIds cache in adaptSync(),
-// which also recognizes a repeated record_id within its own window and
-// returns client_deduplicated:true without a second native call. Removing
-// only the offline-queue layer's reuse check did not make this specific
-// assertion fail, because core-runtime's cache still caught the would-be
-// duplicate before it reached the native fetch layer. This assertion
-// therefore proves the invariant that matters (no duplicate write reaches
-// the Orchestrator), but does not in isolation prove offline-sync-queue.js's
-// own reuse-by-identity logic specifically - only removing the durable
-// write acknowledgement (see the failed-request assertions above, verified
-// by mutation to actually catch a silently-dropped pending write) was
-// confirmed as this test's primary regression guard.
-const secondResponse = await context.fetch(legacyUrl, {
-  method: 'POST',
-  body: JSON.stringify(driverReportBody()),
-});
-const secondData = await secondResponse.json();
+// Reconnect: invoke the REAL registered 'online' handler (not a re-called
+// fetch()), and prove it schedules exactly one doSync({reason:'online'})
+// after its debounce delay.
+onlineHandlers[0]();
+await new Promise((resolve) => setTimeout(resolve, 300));
 
-assert.equal(secondResponse.status, 200, 'the retried write must succeed once the Orchestrator is reachable again');
-assert.equal(secondData.ok, true, 'the retried write must be acknowledged as ok:true only after the Orchestrator actually confirms it');
-assert.equal(secondData.record_id, recordId, 'the successful retry must confirm the SAME durable record_id submitted before the failure - not a new, different operation');
+assert.equal(doSyncCalls.length, 1, "the 'online' handler must schedule exactly one doSync({reason:'online'}) call");
+// Compared by field, not deepEqual against a plain object literal: opts is
+// constructed inside the vm context, a different JS realm than this test's
+// own object literals, so a cross-realm deepStrictEqual would spuriously
+// fail on prototype identity even with matching own properties.
+assert.equal(doSyncCalls[0] && doSyncCalls[0].reason, 'online', "doSync() must be invoked with the real reconnect reason, not a different or empty argument");
+
+// The reconnect-triggered write must succeed exactly once at the
+// queue-to-core boundary (this is the assertion the prior draft could not
+// make: it counted only the native layer, below core-runtime.js's own
+// separate dedup cache, which can silently absorb a queue-layer duplicate).
+assert.equal(downstreamCallCount, 2, 'exactly one additional attempt must reach the queue-to-core dispatcher boundary for the reconnect retry - not zero (dropped) and not more than one (a queue-layer duplicate, even if core-runtime.js\'s own cache would separately absorb it)');
+assert.deepEqual(
+  downstreamCalls.map((call) => call.record_id),
+  [recordId, recordId],
+  'both dispatcher-boundary attempts must carry the SAME durable record_id - the retry must be recognized as the same operation, not a new one',
+);
 assert.equal(context.CrewBIQOfflineSync.pendingCount(), 0, 'the queue must be cleared only after the Orchestrator acknowledgement, and must be fully cleared once it arrives');
-assert.equal(nativeCallCount, 2, 'exactly one additional real network attempt (the successful retry) must have occurred - not zero (silently dropped) and not more than one (duplicate write)');
+assert.equal(nativeCallCount, 2, 'exactly one additional real native network attempt (the successful retry) must have occurred');
 assert.equal(nativeCalls[1].url.includes('script.google.com'), false, 'the successful retry must not target script.google.com either');
 
-console.log('OFFLINE-ORCH-01: ok (offline write queued with durable identity, single successful retry, queue cleared only on acknowledgement)');
+console.log('OFFLINE-ORCH-01: ok (offline write queued with durable identity, real reconnect handler drives one retry, queue cleared only on acknowledgement)');
