@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Transport Interception Evidence Tests
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Codex review 6060de722cfbf4ca1c17e9da91efebb805c77040 accepts the transport-interception discovery: production load order and core-runtime.js prove body-type routing supersedes supplied legacy URLs, and full_restore_transport dynamically confirms auth_restore plus driver_report. The three prior documents are reopened in principle but must not be reclassified until a bounded test-only slice repairs the stale orchestrator_transport harness, covers the full mapped action matrix, and proves doSync duplicate-write deduplication.
+Repaired tests/orchestrator_transport.test.mjs (was stale/unwired, threw immediately on the removed core.js document.write loader) to load core-runtime.js directly and dynamically prove the full mapped action matrix (auth_login, auth_signup, auth_restore, auth_logout, driver_report, pti_report, workspace_driver_roster_read, account_driver_link_read, and all three driver_truck_assignment_*_read views) all route to the configured Orchestrator and never the supplied legacy URL, plus an unmatched-request native-passthrough regression. Added tests/dosync_orchestrator_dedup.test.mjs, which dynamically proves doSync()'s two-step push produces exactly ONE real network call to the Orchestrator's /v1/sync surface per run - the console log of the actual test run shows core-runtime.js's own dedup path returning client_deduplicated:true for the second internal push. Both tests pass locally (node --test), run alongside 11 directly relevant existing tests with zero regressions. Not wired into the CI-blocking test:e2e:tooling script in this slice.
 
 Latest implementation commit:
-5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3
+308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f
 
 Latest correction commit:
-5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3
+308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f
 
 Latest review commit:
 6060de722cfbf4ca1c17e9da91efebb805c77040
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-DYNAMIC_ACTION_MATRIX_NOT_PROVEN; ORCHESTRATOR_TRANSPORT_TEST_HARNESS_STALE; DOSYNC_DEDUP_NOT_PROVEN
+NONE (pending Codex review of the new/repaired tests)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Possible duplicate-Orchestrator-write from doSync()'s two-step push now that pushToCloud() itself may already be silently redirected - not yet assessed, noted in the correction document.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether/how CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md should now be reclassified given this dynamic evidence remains a genuine open decision, not yet authorized.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement only a test-only interception evidence slice: repair tests/orchestrator_transport.test.mjs so it loads the current core loader/runtime without weakening assertions; dynamically verify every action type mapped in LEGACY_SYNC_CALL_PATH_MAP.md routes to the configured Orchestrator and never the supplied legacy URL; prove the two-step doSync path causes only one native /v1/sync/pwa write for the same record_id through client deduplication; and retain unmatched-request native pass-through coverage. Use existing lightweight conventions and minimal existing npm/CI wiring only if required. Run only these tests and directly relevant transport/load-order regressions, publish, and return to Codex. Do not change runtime/configuration/legacy paths or the three reopened documents; do not deploy, migrate, merge, mutate data, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR.
+Independently re-verify commit 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f: run both new/repaired tests plus the cited regression set, confirm the action-matrix coverage matches every caller in the accepted map, and confirm the dedup test's assertion (exactly one native /v1/sync call per doSync() run) is not weakened. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR, and do not yet reclassify the three reopened documents - that remains a separate, still-open decision.
 <!-- CURRENT_END -->
 
 
@@ -3747,3 +3747,13 @@ Runtime/product/test files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: bounded test-only transport-interception evidence slice; no runtime or reopened-document changes.
+
+### 2026-09-01 - Claude - Legacy sync transport interception evidence tests (implementer role)
+
+- Implemented the authorized test-only slice using the local clone set up for the prior discovery: repaired tests/orchestrator_transport.test.mjs (previously loaded the removed core.js document.write loader via vm and threw "document.write is not a function" on every run, confirmed by executing it before this fix - it was correctly excluded from package.json's test:e2e:tooling, but stale) to load core-runtime.js directly instead, and expanded coverage to dynamically exercise every action type in the accepted LEGACY_SYNC_CALL_PATH_MAP.md: auth_login, auth_signup, auth_restore, auth_logout, driver_report, pti_report, workspace_driver_roster_read, account_driver_link_read, and all three driver_truck_assignment_*_read views - asserting each reaches the configured Orchestrator and never a script.google.com URL, plus a native-passthrough case for an unrecognized request shape.
+- Added tests/dosync_orchestrator_dedup.test.mjs: loads core-runtime.js then sync.js in the same vm context, wires CrewBIQSync.init() with in-memory driver/loads/ptiLog state, and runs a real doSync(). Asserted exactly one real network call reaches the mocked native fetch's /v1/sync surface - confirmed dynamically, not just by source reading; the actual console output of the passing test shows pushToOrchestrator's own log line reporting client_deduplicated:true for its internal second push, definitively resolving DOSYNC_DEDUP_NOT_PROVEN.
+- Ran both new tests plus 11 directly relevant existing tests (full_restore_transport, offline_sync_queue, dispute_tombstone_hotfix, owner_snapshot_deletion, orchestrator_account_settings, pti-attribution-context, driver-self-ui, fleet_mutation_contract, navigation_shell, startup-session-coordinator, hotfix-load-order-contract) - all pass, zero regressions.
+- Published commit 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f. Verified via GitHub Compare API against parent 904740634915a87790eacd5ba0ae192b99d27d77 that exactly the two intended test files changed (one modified, one added) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Deliberately did not wire the new tests into package.json's CI-blocking test:e2e:tooling script in this slice, and deliberately did not reclassify the three reopened documents - both remain open decisions outside this bounded test-only task's scope.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No implementation, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test files only.
