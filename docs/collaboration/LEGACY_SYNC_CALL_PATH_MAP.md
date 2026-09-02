@@ -16,6 +16,20 @@ by a repository-wide search: `index.html`, `sync.js`, `restore-hotfix.js`,
 `sw.js`, `startup-session.js`, `offline-sync-queue.js`,
 `dispute-tombstone-hotfix.js`, `owner-snapshot-hotfix.js`, `pti.js`.
 
+## Corrections applied from the third draft (per Codex re-review)
+
+D. **Owner-snapshot `scheduleFullSync()` reachability was incomplete.** The
+   third draft said it was "only reached from this hotfix's own
+   save-wrapping installation points." Independently re-read
+   `owner-snapshot-hotfix.js:88-236` in full: `scheduleFullSync()` is also
+   called directly by `installHooks()` itself (`235`) — with an 1800ms
+   delay, whenever persisted pending state already exists at
+   hook-installation time, entirely independent of any save call happening
+   in the current session. The save-triggered path goes through
+   `markPending()` (`94-103`, called from every `wrapSaver()`-wrapped save)
+   at the default 250ms delay. Corrected in §4B below to show both call
+   sites.
+
 ## Corrections applied from the second draft (per Codex re-review)
 
 A. **`restoreSession()` was incorrectly shown calling `boot()`.** Exact
@@ -167,7 +181,7 @@ C. **Scheduler/hook conditions were described too unconditionally.**
 | `queueFleetConfigSync()` | `index.html:2876-2885` | Debounced (800ms) auto-trigger of `forceFullSync()` whenever fleet configuration changes | Guarded by `driver && driver.syncUrl` (`2880`) and the 800ms debounce; fires only on fleet-config-changing actions. |
 | `offline-sync-queue.js:390-398` | Browser `online` event listener calls `global.doSync({reason:'online'})` after a 250ms debounce | Guarded by `pendingStatus().pending_count` being non-zero — only fires if there is an actual pending queue when connectivity returns. |
 | `dispute-tombstone-hotfix.js:43-55` (`syncWithBusyRetry`) | Retries `global.doSync({forceAll:true})` up to 5 times on `sync_in_progress` | Only retries while `doSync()` itself reports `sync_in_progress`; guarded by `typeof global.doSync === 'function'`. |
-| `owner-snapshot-hotfix.js:190-198` (`scheduleFullSync`) | Debounced (default 250ms) call to `global.forceFullSync()` | Guarded by `typeof global.forceFullSync === 'function'`; only reached from this hotfix's own save-wrapping installation points. |
+| `owner-snapshot-hotfix.js:190-198` (`scheduleFullSync`) | Debounced call to `global.forceFullSync()` (default 250ms delay) | Guarded by `typeof global.forceFullSync === 'function'`. Reached from two distinct call sites, not only a save wrapper: (1) `markPending()` (`94-103`), called from every `wrapSaver()`-wrapped entity save (`200-211`, covering `saveExpenses`/`saveServiceLogs`/`saveDedTemplates`/`saveWeeklyDeds`), schedules it at the default 250ms; (2) `installHooks()` itself (`228-236`) schedules it directly with an 1800ms delay whenever persisted pending state already exists at hook-installation time (`if (Object.keys(loadPending()).length) scheduleFullSync(1800);`, `235`) — independent of any save call happening in the current session. |
 
 Every entry in §4B ultimately reaches the same `doSync()`/`pushToCloud()`/
 `pullFromCloud()`/`forceFullSync()` sinks documented in §4A — none of them
