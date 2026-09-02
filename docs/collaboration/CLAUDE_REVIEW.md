@@ -4520,3 +4520,26 @@ Reviewed correction commit `8e0c181ec7dbb723ceb63c1be5bc07a9ea750458` against ba
 ### Required bounded correction
 
 Finish the same accepted cleanup: replace the retained legacy `DEFAULT_SYNC_URL` abstraction with explicit Orchestrator authority; remove the redundant dedicated expense route while preserving expense local-first/save-trigger behavior through the general Orchestrator path; retarget PTI and remaining sync callers directly; correct stale UI copy; strengthen the PWA-wide static guard to reject all accepted legacy constructs. Preserve the already-correct v96 and `doSync()` behavior. Run the complete contract set and `npm run test:e2e:tooling`. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated `/v1/events`/dedup cleanup.
+## 2026-09-02 - Codex fourth review - Legacy Sync Decommission Final Removal
+
+**Verdict: NEEDS_FIX**
+
+Reviewed correction commit `aeaee2d6ad300edec642d2a1694e5385464cdc00` against baseline `174cc795ef770213652c41cf0fcb5a7bd117ee41`.
+
+### Accepted parts
+
+- Runtime source no longer contains `DEFAULT_SYNC_URL`, `getAuthSyncUrl()`, `syncExpensesNow()`, `crewbiq-expenses`, Apps Script hostnames, or direct `fetch(driver.syncUrl)`/`previousFetch(driver.syncUrl)` calls.
+- `authPost()` has one Orchestrator-authority signature; startup restore and logout callers use it without legacy URL resolution.
+- Expense save retains local-first behavior and now schedules the general `forceFullSync()` path; the real write contract confirms the scoped expense reaches the Orchestrator path.
+- PTI remains locally completable when authority is unavailable and its sync attempt resolves through the Orchestrator dispatcher.
+- Diff is narrow, `git diff --check` is clean, and the two additional test updates (`driver_projections` and the staging expense lifecycle spec) are compatible consequences of the same removal.
+- Accepted 9-file contract set: `15 passed, 0 failed`.
+- `npm run test:e2e:tooling`: `325 passed, 0 failed`.
+
+### Blocking finding
+
+1. **`SW_NO_LEGACY_DEFAULT_CONSTANT_GATE_MISSING`** - `tests/sw_no_legacy_hostname.test.mjs` claims to cover every accepted legacy construct, but `LEGACY_CONSTRUCTS` does not include `DEFAULT_SYNC_URL`. The accepted contract explicitly requires shipped source to contain no `DEFAULT_SYNC_URL` reference (`LEGACY_SYNC_DECOMMISSION_CONTRACT.md` sections 1 and 6). The current runtime is clean, but the regression gate would pass if that legacy constant were reintroduced, so the required static protection is incomplete.
+
+### Required bounded correction
+
+Change only the existing PWA-wide static gate to reject the `DEFAULT_SYNC_URL` identifier, without weakening its current hostname, `crewbiq-expenses`, `getAuthSyncUrl()` definition, or `syncExpensesNow()` definition checks. Re-run the same accepted 9-file contract set and `npm run test:e2e:tooling`. No runtime/product changes, deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
