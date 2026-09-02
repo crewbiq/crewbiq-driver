@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Write Orchestrator Contract Tests
 
 Status:
-CLOSED / ACCEPT
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-WRITE-ORCH-01 accepted as test-only evidence; production/runtime remains unchanged.
+Added tests/write_orchestrator_expense_save.test.mjs (WRITE-ORCH-03). Exercises the REAL addExpense() from index.html (three small independently-located source slices: identity/scoped-storage, general utils, Expenses module), the REAL installExpenseSaveHook()/syncExpensesNow() from restore-hotfix.js loaded in production order (wraps the real saveExpenses(), not a mock), and the real core-runtime.js dispatcher. Proves the expense persists synchronously to the driver-scoped local storage key with synced:false, and the debounced (900ms) sync reaches only the configured Orchestrator, never script.google.com or crewbiq-expenses. Surfaced two real integration facts while running it: vm.runInContext-declared let bindings aren't reachable via context.property assignment from outside the vm (driver had to be reassigned via vm code), and syncExpensesNow() reads the driver via a separate storedDriver()/localStorage['fiqD_driver'] path, not the in-memory driver variable. Verified via two mutations (bypassing the wrapped fetch; disabling core-runtime.js's dispatch, producing a genuine caught leak to script.google.com). Full 8-file/10-test regression set passes clean.
 
 Latest implementation commit:
-6f4e365308f3821b736f1b8a7548f994d32c37ed
+af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f
 
 Latest correction commit:
-6f4e365308f3821b736f1b8a7548f994d32c37ed
+af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f
 
 Latest review commit:
 eb9e3b0e3f72893615f6420b6d9d46ebfdec6573
@@ -103,7 +103,7 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the new test)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued. `WRITE-ORCH-04` remains queued for later evidence assessment. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement test-only `WRITE-ORCH-03`: exercise the actual expense-save workflow and prove immediate local persistence plus Orchestrator-only network transport. Do not change runtime, legacy paths, configuration, deployment, migrations, merge state, data, ADR/SIDR status, or broaden to `WRITE-ORCH-04`. After publication hand back to Codex for independent review.
+Independently re-verify commit af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f: run the new test and the cited regression set, confirm it genuinely exercises real index.html/restore-hotfix.js/core-runtime.js code. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, decide whether WRITE-ORCH-04 (owner-entity save coverage) remains warranted or whether the decommission-contract test slice is now sufficiently covered and the dead-literal/dedup-simplification cleanup itself (or Product Owner scope routing) becomes the next candidate. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR/SIDR status, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -4015,3 +4015,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Next required actor: Claude; next bounded action: test-only `WRITE-ORCH-03` expense-save workflow.
 - Runtime/product/configuration files changed by review: `NONE`.
 - The earlier full-file line-ending normalization in state commit `5608a799a9aa629d866996b00df33bcf350c72fc` was not reversed: current semantics are intact, and a reverse normalization would add another noisy full-file commit without improving coordination state.
+
+### 2026-09-01 - Claude - WRITE-ORCH-03 contract test (implementer role)
+
+- Implemented the authorized WRITE-ORCH-03 test: read index.html's addExpense()/saveExpenses()/scopedSave() chain and restore-hotfix.js's installExpenseSaveHook()/scheduleExpenseSync()/syncExpensesNow() in full first, then extracted three small, independently-locatable source slices from index.html (identity/scoped-storage helpers, general utils, Expenses module) via the same section()-slicing convention used elsewhere, and loaded restore-hotfix.js in the real production order (before the extracted index.html slices define saveExpenses(), letting its deferred setTimeout(installExpenseSaveHook, 0) wrap the real function once it exists).
+- Debugged two real integration issues by running the test, not by re-reading source: (1) `context.driver = {...}` assigned from outside the vm silently does nothing, since `let driver` was declared via vm.runInContext as a lexical binding, not a context property - fixed by reassigning driver via a second vm.runInContext call; (2) syncExpensesNow() resolves its driver via storedDriver() (a direct localStorage['fiqD_driver'] read), a completely separate path from the in-memory `driver` variable the extracted index.html code uses - both had to be kept in sync, matching what real saveAll() does in production.
+- Verified the test has teeth via two mutations: bypassing the wrapped fetch chain entirely (caught immediately), and disabling core-runtime.js's driver_report dispatch branch, which produced a genuine attempted native call to script.google.com that the test correctly caught and failed on.
+- Ran an 8-file/10-test regression set (this test plus write_orchestrator_load_save, restore_orchestrator_transport, pti_lockout_orchestrator_unavailable, offline_orchestrator_retry, dosync_orchestrator_dedup, orchestrator_transport, full_restore_transport) - all pass, zero regressions.
+- Published commit af3a7e76ce1eacdd9bf8ea0e8c078cbdb68dee3f. Verified via GitHub Compare API against parent e690cbd46d42e646026a2d1bb490dab0d1809f3d that exactly one new file was added (173 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR/SIDR status, or telemetry change occurred; test file only.
