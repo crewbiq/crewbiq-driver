@@ -79,31 +79,31 @@ Phase:
 CrewBIQ MVP Legacy Sync Decommission Contract
 
 Status:
-AUTHORIZED / AWAITING CLAUDE
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-The complete Legacy Sync Call-Path Evidence Map is accepted. Production still defaults auth/sync traffic to executable Apps Script paths, with doSync invoking the legacy push before a conditional Orchestrator copy. PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, and Legacy Independence remain BLOCKED. Before runtime changes, the next bounded step is a behavior/test contract defining safe Orchestrator-only cutover while preserving accountless PTI graceful degradation, local/offline usability, idempotency, rollback, and cache ordering.
+docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md classifies every caller from the accepted call-path map as REMOVE, REPLACE_WITH_ORCHESTRATOR, or PRESERVE_LOCAL_ONLY-adjacent; defines Orchestrator-only target behavior for auth/write/read/restore; preserves accountless PTI graceful degradation (needsPTI() stays local-only; PTI submission writes locally before the fire-and-forget sync, so a sync failure never locks out a driver), local/offline usability, and durable idempotent retry; prohibits guessed identity/authority per ADR-0006/ADR-0007/IDENTITY_ATTRIBUTION_CONTRACT.md; specifies five narrow contract tests, staging/production evidence gates (explicitly not claiming zero-production-traffic proof, consistent with the accepted map's telemetry finding), atomic deploy/cache-rotation order with rollback, and one open Product Owner decision (whether the crewbiq-expenses Apps Script endpoint carries any data not already covered by the general Orchestrator expense-sync path).
 
 Latest implementation commit:
-3ae3ab03d3d9fe3511cdf8e970322d2e201737d6
+d171a2c61c92401690b4cb46cbf80c808bc433a0
 
 Latest correction commit:
-3ae3ab03d3d9fe3511cdf8e970322d2e201737d6
+d171a2c61c92401690b4cb46cbf80c808bc433a0
 
 Latest review commit:
 62c92122d552a161729d621a94cc2e6c3ff9b174
 
 Latest state commit:
-3e7b9c3ff1257f26a1f36dce7941eab3477ea0b4
+(pending this publish)
 
 Blocking findings:
-NONE for the accepted map; production cutover remains blocked by executable legacy sync paths.
+NONE (pending Codex review of the new contract document)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Create `docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md` only. From the accepted call-path map, define Orchestrator-only auth/restore/write/read target behavior; classify every mapped caller as REMOVE, REPLACE_WITH_ORCHESTRATOR, or PRESERVE_LOCAL_ONLY; preserve accountless PTI graceful degradation, mandatory-PTI non-lockout, local/offline operation and durable idempotent retry; prohibit guessed identity/authority; specify narrow contract tests, staging/production evidence gates, deployment/cache order, rollback, and any exact unresolved Product Owner decision. Documentation only: do not change tests, runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry. Publish and hand to Codex for independent review.
+Independently re-verify docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md (commit d171a2c61c92401690b4cb46cbf80c808bc433a0) against the accepted call-path map: confirm every caller classification is consistent with the map's evidence, confirm the PTI local-first/non-lockout invariant is described accurately against pti.js, and confirm the contract does not itself authorize or perform any implementation. Publish an ACCEPT or NEEDS_FIX verdict. Do not change tests, runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3678,3 +3678,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Next roadmap item: Claude documentation/test-contract-only Legacy Sync Decommission Contract; no runtime removal authorized.
 - Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
 
+
+### 2026-09-01 - Claude - Legacy sync decommission contract (implementer role)
+
+- Method: derived every caller classification directly from the accepted LEGACY_SYNC_CALL_PATH_MAP.md rather than re-deriving from scratch; independently read pti.js:125-138 (needsPTI, local-only, no network dependency) and pti.js:347-348 (syncPTIEntry, fire-and-forget after local ptiLog write) in full to ground the accountless-PTI/non-lockout invariant in actual code rather than restating the task prompt's wording without verification.
+- Published docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md (commit d171a2c61c92401690b4cb46cbf80c808bc433a0): classifies every mapped caller (REMOVE/REPLACE_WITH_ORCHESTRATOR), defines Orchestrator-only target behavior, states five invariants (PTI non-lockout, local/offline usability, idempotent retry, no guessed identity, rollback safety), specifies five narrow contract tests, evidence gates that explicitly do not claim zero-production-traffic proof (consistent with the map's own telemetry-observability finding), atomic deploy/cache-rotation/rollback order following the project's own Slice 2A.0/2B precedent, and one open Product Owner decision about the crewbiq-expenses endpoint's possible non-redundant data.
+- Verified via GitHub Compare API against parent f48af696b2de2082afcae5cd9c5610595a826879 that exactly one new file was added (197 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No implementation, test authorship, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
+- Runtime/product files changed: NONE (documentation only).
