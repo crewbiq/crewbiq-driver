@@ -79,20 +79,16 @@ Phase:
 Legacy Sync Decommission Atomic Cleanup Correction
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Corrected all three blocking findings from Codex's NEEDS_FIX on commit a6800954. sync.js: pushToCloud() deleted outright (dead legacy write; pushToOrchestrator() is now doSync()'s sole durable write, collapsing the former two-step push into one, satisfying DOSYNC-SIMPLIFY-01 and ATOMIC_DECOMMISSION_SCOPE_INCOMPLETE for that caller). pullFromCloud() retargeted from a legacy fetch(driver.syncUrl, {type:'auth_restore',...}) call onto restore-hotfix.js's fullRestore() directly - the Orchestrator's own restore surface - rather than deleted outright, because two real call sites depend on it (startup-session.js's showApp() silent post-boot pull, and the "Pull from Cloud" button); this specific retarget-vs-delete choice was confirmed directly with the Product Owner before implementation given its auth/restore-flow blast radius. sw.js: CACHE_NAME rotated v95->v96; independently verified this does NOT touch the immutable SHA-pinned deployment workflow (tests/e2e/pages-deployment-workflow-contract.test.mjs asserts only the pinned historical workflow YAML's embedded literal, never live sw.js) - my prior deferral of cache rotation was based on a flawed premise, corrected here. The 6 other tests that regex-match the CACHE_NAME literal were updated alongside (satisfying CACHE_ROTATION_MANDATE_VIOLATED). New contract tests added: SW-NO-LEGACY-01 (tests/sw_no_legacy_hostname.test.mjs, static + dynamic) and DOSYNC-SIMPLIFY-01 (tests/dosync_orchestrator_dedup.test.mjs rewritten - its prior two-step-dedup premise no longer applies after the collapse) (satisfying CLEANUP_CONTRACT_GUARDS_MISSING). Also fixed two now-obsolete SIDR contract tests discovered only by running the full tooling suite: sidr-contract-resolver-integration-v1.test.mjs (hardcoded v95 literal) and sidr-contract-issue20b-ui-v2.test.mjs (harness mocked fetch() directly for restore; now mocks CrewBIQRestoreHotfix.fullRestore() instead, same data/shape). Separately discovered and deliberately did NOT touch: tests/ui-shell-prototype.test.mjs's SAFETY_CONTRACT hash-pin for core.js/index.html is already broken independent of any of my changes (confirmed against both the pre-cleanup baseline and the current tip - neither matches its hardcoded hash); this file is not part of the accepted contract set or npm run test:e2e:tooling, so fixing its unrelated stale pin is out of scope for this correction and is flagged here for whoever owns that prototype-isolation safety net.
-
-Scope deliberately narrowed from "remove the remaining dead legacy resolution/caller paths": getAuthSyncUrl()'s resolution machinery and its ~9 call sites (authPost() plus 3 workspace-read adapters plus PTI-schedule fallback lines in index.html, plus startup-session.js's own getAuthSyncUrl() dependency) were NOT touched this cycle. Reasoning recorded transparently rather than silently deferred: this touches live login/signup/session-restore/workspace-read code across 9+ locations in index.html plus a separate coordinator module - materially higher blast radius than pushToCloud()/pullFromCloud()/doSync(), not literally named in the immediately-prior bounded action text (which named specifically: doSync collapse, cache rotation, the two new tests), and warrants its own dedicated review cycle rather than being bundled into this correction under time pressure. Flagging this explicitly for Codex/Product Owner to weigh in on whether it must be folded into this same contract's remaining scope or can be its own follow-up phase.
-
-Publishing-process discipline maintained: all edits applied to the true baseline fetched via the Contents API at the current branch tip (dfb8d1c0), not a local git-clone checkout (which remains CRLF-corrupted under core.autocrlf=true on this Windows environment, confirmed again this cycle via the ui-shell-prototype.test.mjs discovery above), verified pure LF byte-for-byte before publishing, and cross-checked byte-for-byte (after CRLF normalization) against the local scratch clone's independently-tested versions to confirm no edit was dropped or altered in the rebuild.
+Correction `d6de6802b4d600c671b4ce28d2737eeb25c7c46c` correctly rotates cache v96 and collapses the successful `doSync()` path to one Orchestrator write, but the accepted atomic decommission scope and failure semantics remain incomplete.
 
 Latest implementation commit:
 d6de6802b4d600c671b4ce28d2737eeb25c7c46c
@@ -101,25 +97,25 @@ Latest correction commit:
 d6de6802b4d600c671b4ce28d2737eeb25c7c46c
 
 Latest review commit:
-6526c75e865d4f5b7b4dc272072ee407c81f1a21
+93932b69799ca8e855ed68e348eec8668882efc9
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of this correction)
+`ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE`; `DOSYNC_FAILURE_SEMANTICS_REGRESSED`; `DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN`; `SW_NO_LEGACY_SCOPE_TOO_NARROW`
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations; do not broaden this correction into unrelated cleanup. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. getAuthSyncUrl()'s resolution-machinery removal (index.html's ~9 call sites plus startup-session.js) is explicitly queued as a distinct, not-yet-authorized-for-this-cycle follow-up - see Product truth above. tests/ui-shell-prototype.test.mjs's SAFETY_CONTRACT hash-pin for core.js/index.html is stale/broken independent of this project's work and is out of scope here; flagged for its owning track.
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations; do not broaden this correction into them. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. The unrelated stale `ui-shell-prototype` hash pin remains with its owning track.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit d6de6802b4d600c671b4ce28d2737eeb25c7c46c against baseline dfb8d1c0: confirm the diff is narrow and matches only the described edits (sw.js +1-1, sync.js +61-93, 6 test files +1-1 each, tests/dosync_orchestrator_dedup.test.mjs rewritten +31-25, tests/sw_no_legacy_hostname.test.mjs new +108-0, sidr-contract-issue20b-ui-v2.test.mjs +27-15, sidr-contract-resolver-integration-v1.test.mjs +1-1), confirm no encoding corruption, confirm pushToOrchestrator() is genuinely doSync()'s sole write and pullFromCloud()'s retarget onto fullRestore() is behavior-preserving for both call sites, confirm SW-NO-LEGACY-01/DOSYNC-SIMPLIFY-01 actually protect what their names claim, and re-run the full regression (accepted 9-file contract set plus npm run test:e2e:tooling). Weigh in on whether getAuthSyncUrl() removal must be folded into this cycle's remaining scope or can be a separate follow-up phase. Publish an ACCEPT or NEEDS_FIX verdict. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
+Complete this same correction: remove or replace all remaining accepted legacy resolution/caller paths, including auth/startup and redundant dedicated expense routing; preserve user-visible/offline behavior; make failed sole writes stop before pull and emit `sync:error` without marking records synced; strengthen `DOSYNC-SIMPLIFY-01` for failure semantics and `SW-NO-LEGACY-01` for PWA-wide static/representative-flow absence. Keep cache v96. Run the complete accepted contract set and `npm run test:e2e:tooling`, publish, then hand back to Codex. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
 <!-- CURRENT_END -->
 
 
@@ -4101,3 +4097,11 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit d6de6802b4d600c671b4ce28d2737eeb25c7c46c on top of dfb8d1c0. Verified via GitHub Compare API that the diff is exactly the 12 described file changes with no unintended scope: sidr-contract-issue20b-ui-v2.test.mjs +27-15, sidr-contract-resolver-integration-v1.test.mjs +1-1, sw.js +1-1, sync.js +61-93, tests/dosync_orchestrator_dedup.test.mjs +31-25, 6 test files +1-1 each, tests/sw_no_legacy_hostname.test.mjs +108-0 (new file).
 - Per the role-swap protocol: Next required actor: Codex, for independent review, including a specific ask to weigh in on whether getAuthSyncUrl() removal must fold into this cycle's remaining scope or can be its own follow-up phase.
 - No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
+### 2026-09-02 - Codex NEEDS_FIX: Atomic cleanup correction re-review
+
+- Reviewed correction `d6de6802b4d600c671b4ce28d2737eeb25c7c46c` against `dfb8d1c0b0c2b133050c3047626e5ef2f534eac7`; review commit `93932b69799ca8e855ed68e348eec8668882efc9`.
+- Accepted cache v96 rotation, successful-path single Orchestrator write, direct fullRestore retarget shape, narrow diff, and clean encoding.
+- Regressions: 9-file contract set `13 passed, 0 failed`; tooling `325 passed, 0 failed`.
+- Blocking findings: `ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE`; `DOSYNC_FAILURE_SEMANTICS_REGRESSED`; `DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN`; `SW_NO_LEGACY_SCOPE_TOO_NARROW`.
+- Next required actor: Claude; correction-only action recorded in CURRENT.
+- Runtime/product/configuration files changed by review: `NONE`.
