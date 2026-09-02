@@ -76,19 +76,32 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Pinned v96 Main-Based Publication Mechanism Reconciliation
-Status: AUTHORIZED / AWAITING CLAUDE DESIGN
-Current owner: Claude
+
+Status: PUBLISHED / AWAITING CODEX REVIEW
+
+Current owner: Codex
+
 Branch: agent/pre-base44-audit
-Product truth: current main
+
+Product truth: Published docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (design only, no execution). Reconciles the already-executed v95 promotion (MAIN_PUBLICATION_PLAN.md, PR #101, merged, currently live at main bcfd74a2 serving crewbiq-driver-v95, re-confirmed via Pages API and direct HTTP check this cycle) with the accepted v96 candidate into one exact curated-promotion procedure. Key facts established via a full (unshallowed - the scratch clone was shallow and had to be unshallowed for accurate results) ancestry analysis: merge base with the collaboration branch is unchanged at 86b8b4dd (same point the v95 plan found); main has only moved by the v95 promotion's own 2 commits since then; git merge-tree is NOT clean this time (real single-line conflict in pwa-auth-contract.yml's cache assertion, both sides having independently corrected it differently since the merge base) - reconfirming the curated-content procedure (never a literal git merge) remains mandatory. Only 6 product files differ from main this cycle (core.js, index.html, restore-hotfix.js, startup-session.js, sw.js, sync.js) since the v95 promotion already carried every other product file onto main. Used e8bcafa8 (one commit past the round-4 implementation tip 5c6cfdaa) as the true candidate reference point, since that later commit carries the Codex-authorized pwa-auth-contract.yml v95->v96 correction - using 5c6cfdaa alone would have produced a stale/incorrect diff for that one file. Two workflow files are explicitly excluded from the promotion allowlist with reasons stated precisely: deploy-accepted-pages-v95.yml (confirmed absent from main today - the non-working Actions-deployment artifact behind GitHub Discussion #206480) and e2e-harness-manual.yml (a genuine CI improvement, but authorized/reviewed only for collaboration-branch staging-gate purposes, not vetted as a main-branch CI asset - flagged as a separate future decision, not bundled here). No workflow, runtime, product, or GitHub settings file changed by this cycle.
+
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-Latest correction commit: e8bcafa865e1169c7f0f0dd20e8556db211cc27f
+
+Latest correction commit: ffcf4e113b49fdaf5c658a0588cae4350387cc61
+
 Latest review commit: 1b9f775122c3ed583e47509a8a2a7e57f6f518de
-Latest state commit: d5152e1794caf4a7d3330e2739974ff4b8b92566
-Blocking findings: PINNED_V96_MAIN_BASED_PUBLICATION_MECHANISM_NOT_RECONCILED
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (pending Codex review of the design document)
+
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. GitHub Discussion #206480 remains recorded as known non-blocking platform issue. e2e-harness-manual.yml's promotion to main is a separate, not-yet-started decision. Main branch protection/rulesets were not re-verified this cycle (the v95 plan found them absent; assumed unchanged, to be re-confirmed at execution time, not by this design pass).
+
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Documentation/design only: reconcile the existing accepted main-publication plan and current Pages workflows/evidence into one exact pinned-v96 main-based publication procedure covering accepted source SHA, current main/served state, pre-merge CI, publication identity verification, cache behavior, and rollback. Do not edit workflows/runtime/product files or GitHub settings; do not merge, deploy, migrate, or mutate data. Publish CURRENT/HISTORY and hand to Codex for review.
+
+Next required actor: Codex
+
+Next bounded action: Independently review docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit ffcf4e113b49fdaf5c658a0588cae4350387cc61) for accuracy and completeness against MAIN_PUBLICATION_PLAN.md's proven pattern and current repository/Pages state: confirm the candidate reference point (e8bcafa8) and its relationship to 5c6cfdaa is correctly reasoned, confirm the merge-base/ancestry/merge-tree-conflict findings are accurate, confirm the curated file allowlist (6 product files, ~29 validation files, the one workflow correction) is complete and correctly excludes the two named workflow files, and confirm the rollback/cache/verification sections correctly adapt the v95 precedent for v96. Publish an updated verdict: READY (confirmed) or a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - actual execution of the promotion procedure requires its own separate future authorization.
 <!-- CURRENT_END -->
 
 
@@ -4294,3 +4307,17 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Next bounded phase authorized: docs-only reconciliation of the pinned-v96 main-based publication mechanism; no merge or deployment.
 - Runtime/product files changed by review: NONE.
 - Next actor: Claude.
+
+### 2026-09-02 - Claude - Pinned v96 main-based publication mechanism reconciliation (design only, implementer role)
+
+- Read docs/collaboration/MAIN_PUBLICATION_PLAN.md in full to understand the already-executed v95 precedent: a curated-content promotion branch (not a literal merge of the collaboration branch), PR #101, merged normally into main, with comprehensive execution evidence already recorded (Pages build match, all 13 runtime assets byte-identical, live cache v95, browser smoke, offline reload, orchestrator health - all passed 2026-09-01).
+- Independently re-verified the current state before designing anything: confirmed origin/main (bcfd74a22449b974755b8b48bc01a3b261107b93) is exactly the v95 promotion's own merge commit, confirmed the Pages API reports build_type=legacy/source main:/status built at that exact commit, and confirmed via direct HTTP request that production currently serves crewbiq-driver-v95 live.
+- Discovered the local scratch clone was shallow, which caused an initial (incorrect) "unrelated histories" result when computing merge-base against origin/main. Unshallowed the clone (required two attempts - the first left a stale git lock file from an earlier timeout, which had to be removed before retrying) and recomputed: true merge-base is 86b8b4dd7e9496833a021319167589b49f0ac418, identical to what the v95 plan itself found - confirming main has only moved by its own v95-promotion commits since that shared point, not diverged independently.
+- Ran git merge-tree between main and the candidate and found a real conflict this time (unlike the v95 plan's clean result) - both main (via its own promotion) and the collaboration branch (via this session's own corrections) had independently changed pwa-auth-contract.yml's cache-assertion line differently since the merge base. Recorded this as direct, concrete confirmation that the curated-content procedure - which never performs a literal git merge - remains mandatory, not just historically preferred.
+- Computed the full main-to-candidate file diff and noticed the candidate reference needed correction: using 5c6cfdaa (the round-4 implementation tip) alone would show pwa-auth-contract.yml regressing from main's already-correct v95 assertion to a stale v94 one, because the actual v95->v96 fix was published one commit later at e8bcafa8 (itself already reviewed and authorized by Codex in the prior cycle). Verified via git diff --stat that e8bcafa8 introduces no other product/test difference beyond that one line plus docs - confirming it as the correct, complete candidate reference point for this design.
+- Classified the 91-file diff following the v95 plan's own proven categories: 6 product files to restore byte-for-byte (core.js, index.html, restore-hotfix.js, startup-session.js, sw.js, sync.js - no new product files this cycle, since v95's promotion already added the 14 files the original plan introduced), ~29 validation files to restore (matching the full accepted validation surface, per the same "accepted equals what's audited on the collaboration branch minus docs/prototype" philosophy the v95 plan established), and the same three categories of exclusion (docs/collaboration, docs/product, prototype + its 3 tests).
+- Identified and excluded two workflow files not present in the v95 precedent, with reasoning stated precisely rather than silently dropped: .github/workflows/deploy-accepted-pages-v95.yml (confirmed via a direct Contents API check that it does not exist on main at all - it is the artifact of the four failed Actions-based deployment attempts behind GitHub Discussion #206480, and promoting it would place a broken, now doubly-stale-named mechanism onto main) and .github/workflows/e2e-harness-manual.yml (a real, Codex-authorized CI improvement from this session, but reviewed and authorized specifically for the collaboration branch's own staging-gate evidence purpose - promoting main's own CI configuration is a separate decision with independent blast radius, e.g. workflow_dispatch inputs and secrets exposure surface, and deserves its own dedicated review rather than riding along silently inside a product-code promotion).
+- Wrote docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md mirroring the v95 plan's full 16-section structure exactly, adapted section-by-section with this cycle's SHAs, diff, and the two new exclusion decisions; corrected one internal inconsistency before publishing (an initially garbled sentence in the rollback section conflating the excluded collaboration-branch-only workflow file with a nonexistent main-branch pinned equivalent) after directly confirming via the Contents API that no such file exists on main.
+- Published commit ffcf4e113b49fdaf5c658a0588cae4350387cc61 on top of 3d66b85e. Verified via GitHub Compare API that the diff is exactly the one new document (+453-0).
+- Per the role-swap protocol: Next required actor: Codex, for independent review of the design document's accuracy and completeness.
+- No workflow, runtime, product, or GitHub settings file changed. No merge, deploy, migration, or data mutation occurred - documentation/design only, exactly as authorized.
