@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-CrewBIQ MVP Legacy Sync Call-Path Evidence Map
+CrewBIQ MVP Legacy Sync Decommission Contract
 
 Status:
-CORRECTED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-LEGACY_SYNC_CALL_PATH_MAP.md corrected: owner-snapshot-hotfix.js scheduleFullSync() row now shows both call sites - markPending() (94-103, called from every wrapSaver()-wrapped entity save, default 250ms delay) and installHooks() itself (228-236), which schedules an 1800ms retry directly whenever persisted pending state already exists at hook-installation time, independent of any save call in the current session. The false "only reached through save wrappers" claim is removed. Everything else preserved unchanged.
+The complete Legacy Sync Call-Path Evidence Map is accepted. Production still defaults auth/sync traffic to executable Apps Script paths, with doSync invoking the legacy push before a conditional Orchestrator copy. PWA-only-Orchestrator, zero Google traffic, executable legacy-path removal, and Legacy Independence remain BLOCKED. Before runtime changes, the next bounded step is a behavior/test contract defining safe Orchestrator-only cutover while preserving accountless PTI graceful degradation, local/offline usability, idempotency, rollback, and cache ordering.
 
 Latest implementation commit:
 3ae3ab03d3d9fe3511cdf8e970322d2e201737d6
@@ -97,13 +97,13 @@ Latest correction commit:
 3ae3ab03d3d9fe3511cdf8e970322d2e201737d6
 
 Latest review commit:
-03bced019dc0e46f56ac9f2630b4ca42934829f6
+62c92122d552a161729d621a94cc2e6c3ff9b174
 
 Latest state commit:
-(pending this publish)
+3e7b9c3ff1257f26a1f36dce7941eab3477ea0b4
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+NONE for the accepted map; production cutover remains blocked by executable legacy sync paths.
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 3ae3ab03d3d9fe3511cdf8e970322d2e201737d6 against OWNER_SNAPSHOT_PENDING_RETRY_CALLER_OMITTED: confirm both scheduleFullSync() call sites (markPending() and installHooks() persisted-pending retry) are now accurately mapped. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+Create `docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md` only. From the accepted call-path map, define Orchestrator-only auth/restore/write/read target behavior; classify every mapped caller as REMOVE, REPLACE_WITH_ORCHESTRATOR, or PRESERVE_LOCAL_ONLY; preserve accountless PTI graceful degradation, mandatory-PTI non-lockout, local/offline operation and durable idempotent retry; prohibit guessed identity/authority; specify narrow contract tests, staging/production evidence gates, deployment/cache order, rollback, and any exact unresolved Product Owner decision. Documentation only: do not change tests, runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry. Publish and hand to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -3669,3 +3669,12 @@ Next bounded action: correct LEGACY_ATTRIBUTION_BACKFILL_DISCOVERY.md only using
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No path removed/disabled, no implementation, configuration, runtime, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
 - Runtime/product files changed: NONE (documentation only).
+### 2026-09-01 - Codex - Legacy sync call-path map accepted
+
+- Re-reviewed owner-snapshot correction `3ae3ab03d3d9fe3511cdf8e970322d2e201737d6` against exact production tree `bcfd74a`.
+- Verdict: ACCEPT; both markPending and installHooks persisted-pending retry callers are mapped with exact delays and guards.
+- Review commit: `62c92122d552a161729d621a94cc2e6c3ff9b174`.
+- Accepted map confirms executable Apps Script defaults and legacy-first doSync order; production cutover criteria remain BLOCKED.
+- Next roadmap item: Claude documentation/test-contract-only Legacy Sync Decommission Contract; no runtime removal authorized.
+- Runtime, configuration, legacy path, deployment, migration, merge, and data changes: NONE.
+
