@@ -75,47 +75,20 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase:
-Legacy Sync Decommission Pre-Merge Staging Gate Execution
-
-Status:
-PUBLISHED / AWAITING CODEX REVIEW
-
-Current owner:
-Codex
-
-Branch:
-agent/pre-base44-audit
-
-Product truth:
-Published docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md, status STAGING_GATE_PASS, closing contract section 5 gates 1-2 for candidate 5c6cfdaa. Root cause of the prior staging staleness (v95 instead of v96): the Railway staging service (imaginative-flow/staging/sublime-learning)'s "Branch connected to staging" was misconfigured to fix/load-pencil-direct, an unrelated branch - not agent/pre-base44-audit. Auto-deploy itself was working correctly, just tracking the wrong branch. The Product Owner corrected this directly via the Railway dashboard, which triggered the real GitHub-linked deploy - no new deploy mechanism or workflow file was created, satisfying the "established repository mechanism" / "no new workflow" constraints. Verified staging identity precisely: deployed commit 03f1d67e is 15 commits ahead of the candidate but all 15 are docs/collaboration-only (confirmed via git diff --stat showing zero runtime/test file differences); served sw.js reports CACHE_NAME v96; all 8 sampled app-shell files return HTTP 200; Orchestrator staging /health is green and unauthenticated /v1/me returns a structured 401 (live and reachable, not a stub). Ran the accepted 9-file/15-subtest contract set (15/15) and the full 325-test acceptance suite (325/325) against a checkout independently verified byte-identical to what is now live on staging. Also scanned the actually-served staging bytes (index.html, sync.js, restore-hotfix.js, sw.js) directly over HTTP for all 6 SW-NO-LEGACY-01 legacy constructs - clean. Explicitly documented the methodology's limitation rather than overclaiming: the accepted contract set is not wired into any CI workflow and its tests mock the native fetch boundary by design (not literal live HTTP calls) - running them against a verified-identical checkout is the evidence available within the no-new-workflow constraint, distinct from the genuine live network checks performed separately and recorded alongside it. Separately, per explicit Product Owner direction mid-cycle, recorded GitHub Discussion crewbiq/crewbiq-driver#206480 (Pages Actions-based deployment reports success but serves 404, reproduced across 4 independent attempts on 2026-09-01) as a known non-blocking platform issue, not investigated further - confirmed the v96 production publication mechanism should use the proven main-based (legacy branch-source) path instead of the Actions/artifact-based method that issue affects.
-
-Latest implementation commit:
-5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-
-Latest correction commit:
-4082970cc00c86d681fcae3af97c57c80d68c3e0
-
-Latest review commit:
-9c5c979bddfd191edbe3d656f81ce94e7b62facd
-
-Latest state commit:
-(pending this publication)
-
-Blocking findings:
-NONE (pending Codex review of the staging gate evidence)
-
-Queued non-blocking findings:
-PR CI and a pinned v96 production publication workflow remain absent (the v96 mechanism should follow the proven main-based path per Product Owner direction, separate not-yet-started work). Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. GitHub Discussion #206480 (Pages Actions-deploy 404) is recorded as known non-blocking platform issue; reopen only if the accepted production publication path itself fails or GitHub provides new actionable information. The accepted 9-file contract set remains unwired from any CI workflow - a standing gap, not fixed by this cycle since fixing it would require a new/modified workflow file, outside this cycle's authorization.
-
-Decision gate:
-AUTO_CONTINUE_ALLOWED
-
-Next required actor:
-Codex
-
-Next bounded action:
-Independently review docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md (commit 4082970cc00c86d681fcae3af97c57c80d68c3e0) against contract section 5 gates 1-2: confirm the staging-identity verification chain (deployed commit to candidate, docs-only diff, cache v96, live reachability) is sound, confirm the contract-set/acceptance-suite methodology note is honest and not overclaiming literal staging HTTP execution where none occurred, and confirm the live network verification section is genuine corroborating evidence rather than a substitute for it. Publish an updated verdict - STAGING_GATE_PASS confirmed, or NEEDS_FIX naming any remaining gap precisely. If confirmed, the next real step (not authorized by this cycle) is establishing the pinned v96 production publication mechanism via the proven main-based path, which requires its own separate authorization and review before any action. No production deploy, merge to main, migration, data mutation, new workflow file, or ADR/SIDR status change is authorized regardless of verdict.
+Phase: Legacy Sync Decommission Pre-Merge Staging Gate Evidence Correction
+Status: NEEDS_FIX / CODEX REVIEWED
+Current owner: Claude
+Branch: agent/pre-base44-audit
+Product truth: current main
+Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
+Latest correction commit: 4082970cc00c86d681fcae3af97c57c80d68c3e0
+Latest review commit: 93d9f4675bb7a6e2c90b0b25601300f82cf85346
+Latest state commit: 1a2e3c55ae1b21c98e72843412e19202eb49e537
+Blocking findings: LOCAL_CHECKOUT_IS_NOT_STAGING_EXECUTION; STAGING_EXECUTION_EVIDENCE_INCOMPLETE
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: Use an existing staging execution mechanism to run and publish the required suites with exact deployment/run identity, timestamps, commands, and zero-failure results; if none exists within scope, publish STAGING_GATE_BLOCKED with the exact infrastructure limitation.
 <!-- CURRENT_END -->
 
 
@@ -4252,3 +4225,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit 4082970cc00c86d681fcae3af97c57c80d68c3e0 on top of 03f1d67e. Verified via GitHub Compare API that the diff is exactly the one new evidence document (+142-0).
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No production deploy, merge to main, migration, data mutation, new workflow file, or ADR/SIDR status change occurred. The one infrastructure change (Railway branch-tracking correction) was performed by the Product Owner directly, not by me, and is documented transparently above.
+### 2026-09-02 — Codex independent review: legacy sync decommission staging gate evidence
+
+- Verdict: NEEDS_FIX.
+- Review commit: $review.
+- Accepted: deployed source ancestry and runtime-byte identity, live cache v96, green staging health, and unauthenticated 401 boundary.
+- Blocking: local checkout tests do not satisfy the contract-required staging execution; published evidence lacks required staging run IDs/timestamps and exact full contract command.
+- Independently observed Railway deployment ID: 3a9fa981-fcd7-4126-a292-32065a3905b4.
+- Runtime/product files changed: NONE.
+- Next actor: Claude for the bounded evidence correction or explicit STAGING_GATE_BLOCKED classification.
