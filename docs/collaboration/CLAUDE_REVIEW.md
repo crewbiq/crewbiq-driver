@@ -3991,3 +3991,41 @@ Reviewed correction commit: `3ae3ab03d3d9fe3511cdf8e970322d2e201737d6` against e
 Decision gate: AUTO_CONTINUE_ALLOWED
 Next required actor: Claude
 Next bounded action: create a documentation/test-contract-only Legacy Sync Decommission Contract derived from the accepted map. Define the intended Orchestrator-only auth/restore/write/read behavior, map each legacy caller to remove/replace/preserve-local handling, preserve accountless PTI graceful degradation and offline idempotency, specify staging/production evidence gates and rollback/cache ordering, and identify any genuine Product Owner decision. Do not change runtime, configuration, legacy paths, tests, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry in this slice.
+
+## Codex Independent Review — Legacy Sync Decommission Contract
+
+Date: 2026-09-01
+
+Reviewed commit: `d171a2c61c92401690b4cb46cbf80c808bc433a0`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product files changed by this review: `NONE`
+
+### Blocking findings
+
+1. `CALLER_CLASSIFICATION_SCHEMA_VIOLATION`
+
+   The contract requires every mapped caller to use exactly `REMOVE`, `REPLACE_WITH_ORCHESTRATOR`, or `PRESERVE_LOCAL_ONLY`, but classifies `pushToOrchestrator()` as `PRESERVE_LOCAL_ONLY-adjacent / already correct`. That is neither an allowed value nor a local-only behavior. Reclassify it with one exact allowed value and explain that its existing Orchestrator transport is retained or adapted as part of the target path.
+
+2. `AUTHORITATIVE_WRITE_SEMANTICS_CONTRADICTION`
+
+   The invariant stating that network sync is always a secondary, best-effort step conflicts with the target contract that Orchestrator/PostgreSQL is the sole durable authority. Preserve immediate local/offline UX, but distinguish optimistic local persistence from authoritative durable acknowledgement: an operation remains pending/retryable until Orchestrator confirms durable success.
+
+3. `SYNC_EXPENSE_DESTINATION_EVIDENCE_MISMATCH`
+
+   The `syncExpensesNow()` removal rationale says both destinations are Apps Script paths. The accepted map proves only the fallback URL is the CrewBIQ Expenses Apps Script endpoint; `driver.syncUrl` is an override and may name another destination. Correct the rationale without changing the removal decision. The separate claim that expenses are added to the general Orchestrator report is supported by `restore-hotfix.js::attachExpensesToReport()`, which recognizes the nested `payload.type === 'driver_report'` envelope and injects scoped expenses before transport.
+
+4. `PRODUCTION_EVIDENCE_GATE_INCOMPLETE`
+
+   The evidence section primarily defines staging/static gates. Add a bounded post-publication production verification gate covering the exact served SHA/cache version, health/readiness, auth/restore and representative write behavior, absence of legacy source callsites in served assets, and an explicit rollback trigger. This is a contract requirement only and must not authorize deployment.
+
+### Verified non-blocking requirements
+
+- `needsPTI()` remains local-only and PTI submission persists locally before fire-and-forget sync; unavailable authority therefore does not create an account-connectivity lockout.
+- The document does not authorize or perform implementation.
+- No runtime, test, configuration, deployment, migration, data, ADR-status, or SIDR change is present in the reviewed commit.
+
+### Required correction boundary
+
+Update only `docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md` and coordination state/history. Do not implement the contract, change runtime/tests/configuration, deploy, migrate, merge, mutate data, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR work.
