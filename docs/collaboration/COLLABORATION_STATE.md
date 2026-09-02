@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Contract Closure / Cleanup Decision Gate
+Legacy Sync Decommission Cleanup Implementation
 
 Status:
-CLOSED / ACCEPT — PRODUCT OWNER DECISION REQUIRED BEFORE CLEANUP
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Product Owner
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-All section 4 decommission contract tests are accepted. Runtime cleanup has not begun. Canonical staging journey coverage is already closed as `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`.
+Product Owner decision recorded: the crewbiq-expenses Apps Script endpoint is confirmed fully redundant with the general Orchestrator write path and carries no distinct consumer that must be preserved. `CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN` is CLOSED - answer NO. This authorizes the smallest atomic runtime cleanup scoped by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md's REMOVE classifications, with cache rotation and the full accepted contract-test regression set.
 
 Latest implementation commit:
 aef61dec16de503802bfa97b0dfff122288bb79e
@@ -103,22 +103,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-`CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN` — accepted contract section 7 requires Product Owner confirmation before atomic legacy cleanup.
+NONE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed and must not be re-queued.
 
 Decision gate:
-COORDINATOR_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Product Owner
-
-Decision required:
-Does the `crewbiq-expenses` Apps Script endpoint receive any distinct, non-duplicated data or serve any separate business/reporting consumer that must be preserved? Answer `NO` to authorize its removal with the accepted atomic dead-literal/dedup cleanup, or identify the exact data/consumer that must be retained.
+Claude
 
 Next bounded action:
-No implementation until the decision is recorded. If `NO`, authorize Claude to prepare the smallest atomic runtime cleanup defined by `LEGACY_SYNC_DECOMMISSION_CONTRACT.md`, with cache rotation and all accepted contract regressions; Codex independently reviews. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
+Implement the smallest atomic runtime cleanup scoped by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 2 REMOVE classifications: remove the dead Apps Script URL literals (DEFAULT_SYNC_URL and its resolution chain in index.html, the crewbiq-expenses literal and syncExpensesNow()'s Apps-Script-reaching branches in restore-hotfix.js) and the sw.js Apps Script hostname bypass clause (leaving the railway.app/POST clauses intact); simplify doSync()'s two-step push into a single Orchestrator write. Rotate the service-worker cache version in the same commit. Run the full accepted contract-test regression set (all 6 WRITE/RESTORE/OFFLINE/PTI-LOCKOUT tests plus directly relevant existing tests) with 0 failures before publishing. Do not deploy, merge to main, migrate, mutate data, change ADR/SIDR status, or perform unrelated cleanup. Publish and hand to Codex for independent review.
 <!-- CURRENT_END -->
 
 
@@ -4058,3 +4055,10 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Reconciled stale queue text: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` was already closed by `CANONICAL_STAGING_JOURNEY_EVIDENCE.md` with `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`.
 - Runtime cleanup is gated by contract section 7 question `CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN`; Next required actor: Product Owner.
 - Runtime/product/configuration files changed by review: `NONE`.
+
+### 2026-09-02 - Product Owner decision recorded (via Claude, implementer role)
+
+- The Product Owner was asked directly whether the crewbiq-expenses Apps Script endpoint carries any distinct, non-duplicated data or serves a separate business/reporting consumer that must be preserved before the accepted legacy cleanup can proceed.
+- Answer: No, safe to remove. It is fully redundant with the general Orchestrator write path; no separate consumer or dataset needs preservation or migration.
+- This closes CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN and authorizes the smallest atomic runtime cleanup scoped by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 2 REMOVE classifications.
+- Per the role-swap protocol: Next required actor: Claude, to implement the cleanup, with cache rotation and the full accepted contract-test regression set, then hand to Codex for independent review. No deploy, merge to main, migration, or data mutation authorized by this decision alone.
