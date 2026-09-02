@@ -76,25 +76,25 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-CrewBIQ MVP Legacy Sync Decommission Contract Tests
+URGENT - Legacy Sync Transport Interception Discovery (blocks contract-test task)
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+CONFLICT_FOUND / DECISION_REQUIRED
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-LEGACY_SYNC_DECOMMISSION_CONTRACT.md at b1630080d8660ef21f7ff53ac37d9d18bc337e1f is ACCEPTED by Codex review c2f53709094f3b4a99b76b831510b0d123f6b90c. The next slice is test-only: encode the five narrow contract checks already specified by the accepted document. No legacy/runtime path removal or behavior change is authorized.
+While setting up to implement the authorized contract tests, Claude cloned the repo locally for the first time this session (all prior evidence-gathering was via the read-only GitHub Contents API, never actual execution) and ran the existing test suite. tests/full_restore_transport.test.mjs passes and proves that core-runtime.js installs global.fetch = routedFetch (loaded via core.js's document.write, synchronously before sync.js/restore-hotfix.js/pti.js ever run) that matches every legacy payload type this session mapped (auth_login, auth_signup, auth_restore, auth_logout, driver_report, pti_report, workspace_driver_roster_read, account_driver_link_read, driver_truck_assignment_*_read) by body content - not URL - and redirects all of them to the real Orchestrator via nativeFetch, discarding the original URL argument entirely. Every call site in the accepted LEGACY_SYNC_CALL_PATH_MAP.md was independently re-checked against this dispatcher and matches. This directly contradicts the BLOCKED classifications in the accepted CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md and the REMOVE/REPLACE_WITH_ORCHESTRATOR classifications in the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md, both of which assumed these call sites reach Apps Script. Full findings in docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md (commit 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3).
 
 Latest implementation commit:
-b1630080d8660ef21f7ff53ac37d9d18bc337e1f
+5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3
 
 Latest correction commit:
-b1630080d8660ef21f7ff53ac37d9d18bc337e1f
+5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3
 
 Latest review commit:
 c2f53709094f3b4a99b76b831510b0d123f6b90c
@@ -103,19 +103,22 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE
+LEGACY_TRANSPORT_INTERCEPTION_CONTRADICTS_ACCEPTED_CONCLUSIONS
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Possible duplicate-Orchestrator-write from doSync()'s two-step push now that pushToCloud() itself may already be silently redirected - not yet assessed, noted in the correction document.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
+
+Decision required:
+Should CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md be reopened and corrected based on this discovery? If so, should the correction rely on this session's own newly-executed test evidence (full_restore_transport.test.mjs and direct core-runtime.js/restore-hotfix.js source tracing), or does it require additional dynamic verification before any classification changes are made? The originally authorized contract-test implementation task is paused pending this decision, since writing tests now would encode the old, apparently-false premise.
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement only the five narrow contract tests specified in section 5 of the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md, using the repository's existing lightweight test conventions and minimal existing npm/CI wiring only if required. Do not remove, retarget, or modify legacy/runtime paths; do not deploy, migrate, merge, mutate data, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR. Run only the new tests and directly relevant existing contract regressions, publish, and return to Codex for independent review.
+Independently re-verify the interception discovery in docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md (commit 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3) against the exact production source and the existing test suite. Render a verdict on whether the discovery is accurate, and if so, weigh in on the decision above. Do not implement, deploy, migrate, merge, mutate data, change runtime/configuration/legacy paths, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3721,3 +3724,15 @@ Runtime/product files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: implement only the five narrow test-only checks specified by section 5 of the accepted decommission contract; no runtime/legacy-path modification.
+
+### 2026-09-01 - Claude - URGENT: legacy sync transport interception discovery (implementer role)
+
+- While preparing to implement the five authorized contract tests, cloned crewbiq-driver locally for the first time this session (prior evidence work used only the read-only GitHub Contents API, never a real checkout or test execution) and ran npm ci + the existing test suite for the first time.
+- tests/full_restore_transport.test.mjs passed and directly demonstrated that a fetch() call to a literal script.google.com URL, carrying a type:'auth_restore' or type:'driver_report' JSON body, results in zero requests to script.google.com and instead reaches https://crewbiq-orchestrator-production.up.railway.app - contradicting this session's own accepted evidence map.
+- Traced the mechanism by reading core.js (25-line document.write loader, index.html:12, loads before sync.js at line 13), core-runtime.js (captures nativeFetch, then at line 609 does global.fetch = routedFetch; routedFetch at lines 551-579 matches auth_login/auth_signup/auth_restore/auth_logout/workspace_driver_roster_read/account_driver_link_read/driver_truck_assignment_*_read/driver_report/pti_report by JSON body type and redirects all of them to the real Orchestrator via nativeFetch, discarding the original URL), and restore-hotfix.js (captures global.fetch, which by then is already core-runtime's routedFetch, as its own previousFetch - meaning even syncExpensesNow()'s explicit hardcoded-Apps-Script-URL call is also silently redirected).
+- Independently re-checked every caller in the accepted LEGACY_SYNC_CALL_PATH_MAP.md against this dispatcher's matched type list and found no exception - every mapped call site's payload type is matched and redirected.
+- Published docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md (commit 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3) documenting the full mechanism, the caller-by-caller re-check, what remains unverified (getOrchestratorBase() edge cases, possible duplicate Orchestrator writes from doSync()'s two-step push, when this interception layer was introduced, whether CI/staging evidence already implicitly depends on it), and a request for direction rather than unilaterally rewriting three already-accepted documents.
+- Paused the authorized contract-test implementation task: writing tests now would encode the old, apparently-false premise that these call sites reach Apps Script.
+- Escalated Decision gate to COORDINATOR_REQUIRED, since this reverses a production-readiness conclusion that has driven several review cycles this session and is a genuine judgment call about how to proceed, not a routine documentation fix.
+- No implementation, test authorship, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
+- Runtime/product files changed: NONE (documentation only; the local clone used to run tests was read-only investigation, no commits made there, no changes pushed from it).
