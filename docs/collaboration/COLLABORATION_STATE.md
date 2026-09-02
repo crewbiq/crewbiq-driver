@@ -79,22 +79,24 @@ Phase:
 Legacy Sync Decommission Cleanup Implementation
 
 Status:
-AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Product Owner decision recorded: the crewbiq-expenses Apps Script endpoint is confirmed fully redundant with the general Orchestrator write path and carries no distinct consumer that must be preserved. `CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN` is CLOSED - answer NO. This authorizes the smallest atomic runtime cleanup scoped by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md's REMOVE classifications, with cache rotation and the full accepted contract-test regression set.
+Published the smallest atomic runtime cleanup authorized by the Product Owner decision: index.html's DEFAULT_SYNC_URL and restore-hotfix.js's crewbiq-expenses fallback literals changed from hardcoded Apps Script URLs to the Orchestrator base URL (both provably dead at the network layer per the accepted evidence map/tests; kept non-empty since guard clauses require a truthy syncUrl); sw.js's script.google.com/googleapis.com hostname-bypass clause removed (railway.app/POST clauses unaffected); core.js and tests/hotfix-load-order-contract.test.mjs's restore-hotfix.js version tag bumped to match. Scope deliberately narrowed from the original authorization in two ways, both recorded here rather than silently done: (1) service-worker CACHE_NAME rotation deferred - it is directly referenced by seven existing tests, one of which (tests/e2e/pages-deployment-workflow-contract.test.mjs) locks an immutable SHA-pinned production deployment workflow, out of scope for a test-verified code cleanup; (2) doSync()'s two-step push simplification deferred to a separate smaller follow-up to keep this change atomic and reviewable. Full accepted 8-test contract regression set plus the complete CI-wired npm run test:e2e:tooling suite (325 tests) pass with zero regressions, verified against the exact published bytes.
+
+A publishing-process incident occurred and was self-caught and corrected before requesting review: the first attempt (commit 1f29684) was built by reading these five files from a local git checkout on Windows, where core.autocrlf silently converts LF-stored blobs to CRLF on checkout; uploading those raw bytes published whole-file CRLF-corrupted versions masking the five small intended edits. Caught by noticing GitHub Compare API diff sizes matched each file's full line count instead of the few intended lines. Corrected in commit a680095 by rebuilding all five files directly from the exact pre-corruption GitHub blobs (fetched via the Contents API, confirmed pure LF) with only the intended string edits applied, verified pure LF byte-for-byte, and confirmed via GitHub Compare API against the true pre-cleanup baseline that the diff is now exactly the five intended edits (core.js 1 line; index.html/restore-hotfix.js 9 additions/1 deletion each; sw.js 2 deletions; test file 1 line). Full test suites re-run against the corrected bytes after a hard git reset to the published tip - all pass.
 
 Latest implementation commit:
-aef61dec16de503802bfa97b0dfff122288bb79e
+a6800954e206b787a3f83fecc191f9a03b92e188
 
 Latest correction commit:
-aef61dec16de503802bfa97b0dfff122288bb79e
+a6800954e206b787a3f83fecc191f9a03b92e188
 
 Latest review commit:
 27009b035607178f3aecef95bc07eddffabced93
@@ -103,19 +105,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the cleanup and the narrowed scope decisions)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed and must not be re-queued.
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed and must not be re-queued. Service-worker CACHE_NAME rotation and doSync()'s two-step push simplification remain queued as separate follow-up work, deliberately deferred from this commit (see Product truth above for the reasons).
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement the smallest atomic runtime cleanup scoped by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 2 REMOVE classifications: remove the dead Apps Script URL literals (DEFAULT_SYNC_URL and its resolution chain in index.html, the crewbiq-expenses literal and syncExpensesNow()'s Apps-Script-reaching branches in restore-hotfix.js) and the sw.js Apps Script hostname bypass clause (leaving the railway.app/POST clauses intact); simplify doSync()'s two-step push into a single Orchestrator write. Rotate the service-worker cache version in the same commit. Run the full accepted contract-test regression set (all 6 WRITE/RESTORE/OFFLINE/PTI-LOCKOUT tests plus directly relevant existing tests) with 0 failures before publishing. Do not deploy, merge to main, migrate, mutate data, change ADR/SIDR status, or perform unrelated cleanup. Publish and hand to Codex for independent review.
+Independently re-verify commit a6800954e206b787a3f83fecc191f9a03b92e188 against the true pre-cleanup baseline (c47ea8d3): confirm the diff is exactly the five intended edits with no encoding corruption, confirm the two scope-narrowing decisions (deferred cache rotation, deferred doSync simplification) are reasonable and clearly documented rather than silently reducing the authorized scope, and re-run the full regression set. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, decide whether the deferred CACHE_NAME rotation and doSync simplification should be queued as explicit follow-up bounded actions now, or left for a future release-prep cycle. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
 <!-- CURRENT_END -->
 
 
@@ -4062,3 +4064,14 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Answer: No, safe to remove. It is fully redundant with the general Orchestrator write path; no separate consumer or dataset needs preservation or migration.
 - This closes CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN and authorizes the smallest atomic runtime cleanup scoped by the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 2 REMOVE classifications.
 - Per the role-swap protocol: Next required actor: Claude, to implement the cleanup, with cache rotation and the full accepted contract-test regression set, then hand to Codex for independent review. No deploy, merge to main, migration, or data mutation authorized by this decision alone.
+
+### 2026-09-02 - Claude - Legacy cleanup implementation, encoding-corruption self-correction (implementer role)
+
+- Implemented the authorized runtime cleanup: replaced index.html's DEFAULT_SYNC_URL and restore-hotfix.js's crewbiq-expenses literal fallback (both hardcoded Apps Script URLs) with the Orchestrator base URL, since both are provably dead at the network layer (core-runtime.js's dispatcher intercepts by JSON body type regardless of URL, confirmed by the accepted contract-test suite), while keeping them non-empty strings since several call sites guard on truthy syncUrl before making a matched call. Removed sw.js's script.google.com/googleapis.com hostname-bypass clause (railway.app/POST unaffected, now genuinely dead). Bumped core.js's and the load-order test's restore-hotfix.js version tag to match its content change.
+- Deliberately narrowed scope from the original authorization in two places, both recorded transparently rather than silently done: discovered service-worker CACHE_NAME is directly referenced by seven existing tests, one of which locks an immutable SHA-pinned production deployment workflow (tests/e2e/pages-deployment-workflow-contract.test.mjs) - out of scope for a test-verified code cleanup, so cache rotation was deferred rather than forcing a change to locked deployment infrastructure. Also deferred doSync()'s two-step push simplification to keep this specific change atomic and independently reviewable.
+- Ran the full accepted 8-test contract regression set plus the complete CI-wired npm run test:e2e:tooling suite (325 tests) before first publishing - all passed.
+- Self-caught a real publishing-process error before requesting review: the first published commit (1f29684) was built by reading the five changed files from a local git checkout on Windows, where core.autocrlf silently converts LF-stored blobs to CRLF on checkout - uploading those raw bytes published whole-file CRLF-corrupted versions of all five files, masking the small intended edits inside a full-file rewrite. Caught this by noticing the GitHub Compare API's diff sizes matched each file's full line count rather than the few actually-intended lines, rather than assuming the diff was correct.
+- Corrected this in commit a6800954e206b787a3f83fecc191f9a03b92e188: rebuilt all five files directly from the exact pre-corruption GitHub blobs (fetched via the Contents API at the true baseline commit, independently confirmed pure LF) with only the intended string edits applied, verified pure LF byte-for-byte before publishing, and confirmed via GitHub Compare API against the true pre-cleanup baseline commit that the diff is now exactly the five intended edits and nothing else.
+- Hard-reset the local clone to the corrected published tip and re-ran both the full CI-wired suite (325/325) and the 8-file contract-test regression set (10/10) against the exact published bytes - all pass.
+- Per the role-swap protocol: Next required actor: Codex, for independent review of both the cleanup itself and the two scope-narrowing decisions.
+- No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
