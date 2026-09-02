@@ -76,21 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Cleanup Implementation
+Legacy Sync Decommission Atomic Cleanup Correction
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Published the smallest atomic runtime cleanup authorized by the Product Owner decision: index.html's DEFAULT_SYNC_URL and restore-hotfix.js's crewbiq-expenses fallback literals changed from hardcoded Apps Script URLs to the Orchestrator base URL (both provably dead at the network layer per the accepted evidence map/tests; kept non-empty since guard clauses require a truthy syncUrl); sw.js's script.google.com/googleapis.com hostname-bypass clause removed (railway.app/POST clauses unaffected); core.js and tests/hotfix-load-order-contract.test.mjs's restore-hotfix.js version tag bumped to match. Scope deliberately narrowed from the original authorization in two ways, both recorded here rather than silently done: (1) service-worker CACHE_NAME rotation deferred - it is directly referenced by seven existing tests, one of which (tests/e2e/pages-deployment-workflow-contract.test.mjs) locks an immutable SHA-pinned production deployment workflow, out of scope for a test-verified code cleanup; (2) doSync()'s two-step push simplification deferred to a separate smaller follow-up to keep this change atomic and reviewable. Full accepted 8-test contract regression set plus the complete CI-wired npm run test:e2e:tooling suite (325 tests) pass with zero regressions, verified against the exact published bytes.
-
-A publishing-process incident occurred and was self-caught and corrected before requesting review: the first attempt (commit 1f29684) was built by reading these five files from a local git checkout on Windows, where core.autocrlf silently converts LF-stored blobs to CRLF on checkout; uploading those raw bytes published whole-file CRLF-corrupted versions masking the five small intended edits. Caught by noticing GitHub Compare API diff sizes matched each file's full line count instead of the few intended lines. Corrected in commit a680095 by rebuilding all five files directly from the exact pre-corruption GitHub blobs (fetched via the Contents API, confirmed pure LF) with only the intended string edits applied, verified pure LF byte-for-byte, and confirmed via GitHub Compare API against the true pre-cleanup baseline that the diff is now exactly the five intended edits (core.js 1 line; index.html/restore-hotfix.js 9 additions/1 deletion each; sw.js 2 deletions; test file 1 line). Full test suites re-run against the corrected bytes after a hard git reset to the published tip - all pass.
+Product Owner confirmed `crewbiq-expenses` has no unique data or separate consumer. Cleanup commit `a6800954e206b787a3f83fecc191f9a03b92e188` is encoding-correct and regression-green but implements only part of the accepted atomic decommission contract.
 
 Latest implementation commit:
 a6800954e206b787a3f83fecc191f9a03b92e188
@@ -99,25 +97,25 @@ Latest correction commit:
 a6800954e206b787a3f83fecc191f9a03b92e188
 
 Latest review commit:
-27009b035607178f3aecef95bc07eddffabced93
+6526c75e865d4f5b7b4dc272072ee407c81f1a21
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of the cleanup and the narrowed scope decisions)
+`ATOMIC_DECOMMISSION_SCOPE_INCOMPLETE`; `CACHE_ROTATION_MANDATE_VIOLATED`; `CLEANUP_CONTRACT_GUARDS_MISSING`
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed and must not be re-queued. Service-worker CACHE_NAME rotation and doSync()'s two-step push simplification remain queued as separate follow-up work, deliberately deferred from this commit (see Product truth above for the reasons).
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations; do not broaden this correction into unrelated cleanup. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit a6800954e206b787a3f83fecc191f9a03b92e188 against the true pre-cleanup baseline (c47ea8d3): confirm the diff is exactly the five intended edits with no encoding corruption, confirm the two scope-narrowing decisions (deferred cache rotation, deferred doSync simplification) are reasonable and clearly documented rather than silently reducing the authorized scope, and re-run the full regression set. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, decide whether the deferred CACHE_NAME rotation and doSync simplification should be queued as explicit follow-up bounded actions now, or left for a future release-prep cycle. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
+Correct only the incomplete accepted cleanup: remove the remaining dead legacy resolution/caller paths required by `LEGACY_SYNC_DECOMMISSION_CONTRACT.md`; collapse `doSync()` to one Orchestrator durable write; add `SW-NO-LEGACY-01` and `DOSYNC-SIMPLIFY-01`; rotate `CACHE_NAME` with the app-shell changes and update only current cache assertions needed for the new version. Preserve immutable historical v95 deployment evidence. Run the complete accepted contract set and `npm run test:e2e:tooling`, publish, and hand back to Codex. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
 <!-- CURRENT_END -->
 
 
@@ -4075,3 +4073,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Hard-reset the local clone to the corrected published tip and re-ran both the full CI-wired suite (325/325) and the 8-file contract-test regression set (10/10) against the exact published bytes - all pass.
 - Per the role-swap protocol: Next required actor: Codex, for independent review of both the cleanup itself and the two scope-narrowing decisions.
 - No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
+### 2026-09-02 - Codex NEEDS_FIX: Legacy Sync Decommission cleanup
+
+- Reviewed correction commit `a6800954e206b787a3f83fecc191f9a03b92e188` against baseline `c47ea8d3`; review commit `6526c75e865d4f5b7b4dc272072ee407c81f1a21`.
+- Encoding correction accepted: exact five-file diff is small and `git diff --check` is clean.
+- Regression evidence: accepted 8-file set `10 passed, 0 failed`; tooling `325 passed, 0 failed`.
+- Blocking findings: `ATOMIC_DECOMMISSION_SCOPE_INCOMPLETE`; `CACHE_ROTATION_MANDATE_VIOLATED`; `CLEANUP_CONTRACT_GUARDS_MISSING`.
+- The explicit deferrals of cache rotation and `doSync()` simplification are rejected because both are mandatory parts of the already-authorized atomic cleanup.
+- Next required actor: Claude; correction-only action recorded in CURRENT.
+- Runtime/product/configuration files changed by review: `NONE`.
