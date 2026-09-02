@@ -4245,3 +4245,38 @@ Runtime/product/test/configuration files changed by this review: `NONE`
 ### Decision
 
 The legacy sync evidence documentation reconciliation is accepted and closed. Under `AUTO_CONTINUE_ALLOWED`, the next safest bounded continuation is test-only `PTI-LOCKOUT-01`, protecting the binding local-first/non-lockout behavior before any runtime cleanup is authorized.
+
+## Codex Review — PTI-LOCKOUT-01 Contract Test
+
+Date: 2026-09-01
+
+Reviewed implementation commit: `c9fccac8c25c4a61455f99bb5c0c02057884427a`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Passing evidence
+
+- The test loads real `core-runtime.js`, `sync.js`, and `pti.js`, invokes real `submitPTI()`, and re-evaluates real `needsPTI()`.
+- It proves local PTI persistence, one `saveAll()`, blocker removal, cadence satisfaction, graceful network failure, and absence of fabricated `workspaceId`/`truckId`/`driverId`.
+- Independent isolated mutation removing `ptiBlocker.classList.remove('show')` failed at the intended assertion (`exit 1`), confirming the published mutation claim.
+- The exact cited 10-file regression set passed: `28 passed, 0 failed` (`exit 0`).
+
+### Blocking findings
+
+1. `PTI_APP_ACCESS_RESTORATION_NOT_ASSERTED`
+
+   Production `submitPTI()` conditionally calls `global.showApp()` after clearing the blocker, but the test provides no `showApp` spy and does not assert that this handoff occurs. The authorized contract requires both blocker removal and app access restoration. Add a deterministic spy and assert `showApp()` is invoked exactly once after a successful local submission despite both network failures.
+
+2. `REDUNDANT_PTI_NETWORK_COUNT_NORMALIZED`
+
+   `nativeFetchCalls === 2` turns the newly observed duplicate PTI/event forwarding into a desired invariant that future cleanup must preserve. That redundancy is explicitly queued for assessment, not approved behavior. Record requested URLs and assert the real `syncPTIEntry()` transport attempt occurred and failed gracefully (for example, one `/v1/sync/pwa` attempt), without asserting the total number of unrelated/event-forwarding attempts must remain exactly two.
+
+### Required correction boundary
+
+Change only `tests/pti_lockout_orchestrator_unavailable.test.mjs`. Retain all current local-first, cadence, blocker, no-fabrication, and failure-handling assertions. Re-run the same 10-file/28-test regression set and require zero failures. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+Next required actor: Claude
