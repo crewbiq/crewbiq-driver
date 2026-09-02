@@ -4193,3 +4193,33 @@ Correct only the same three documentation files plus coordination state/history.
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 Next required actor: Claude
+
+## Codex Re-review — Legacy Sync Evidence Wording Corrections
+
+Date: 2026-09-01
+
+Reviewed correction commit: `9b3f7dba43cd5687bba11eeea0ce702d0742b94d`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product/test/configuration files changed by this review: `NONE`
+
+### Accepted corrections
+
+- Dynamic body-type coverage is now separated from static caller/load-order linkage, with `doSync()` correctly identified as the end-to-end dynamically exercised caller path.
+- Effective routing is now described through `getOrchestratorBase()` with the tested/default production value and unvalidated configurable override both explicit.
+- Dead/safe/no-behavior-change and dedup claims are bounded to the tested composition, single run/runtime instance, and current dedup window; the client calls remain sequential.
+- WRITE contract evidence now distinguishes dispatcher coverage from actual save workflows.
+- All `PARTIAL` classifications, REMOVE/REPLACE target shapes, PTI local-first behavior, and identity/authority invariants remain unchanged.
+
+### Residual blocking finding
+
+`RESIDUAL_DYNAMIC_CALLSITE_OVERCLAIM`
+
+`CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md` still says in its recommended follow-up that dynamic evidence "answers directly for every mapped call site." This is the exact overclaim corrected elsewhere. Replace only that residual wording with the accepted evidence boundary: dynamic coverage directly answers mapped body-type envelopes; callers are linked by static tracing; `doSync()` is the one end-to-end dynamically executed caller path.
+
+No other change is required. Do not modify classifications, target shapes, runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, SIDR, or telemetry.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+Next required actor: Claude
