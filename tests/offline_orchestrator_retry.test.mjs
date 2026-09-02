@@ -80,11 +80,27 @@ assert.notEqual(context.fetch, nativeFetch, 'core-runtime.js must have installed
 const coreDispatch = context.fetch;
 let downstreamCallCount = 0;
 const downstreamCalls = [];
+// Stable business-payload snapshot for each downstream attempt: driver,
+// loads, ptiLog, and ownerData (when present), excluding only the
+// legitimately transient/session fields (sessionToken, sentAt). Captured as
+// a JSON string of a normalized object so the retry can be asserted to
+// carry the SAME business content, not merely the same record_id label.
+function businessPayloadSnapshot(body) {
+  const target = body && body.payload && typeof body.payload === 'object' ? body.payload : body;
+  if (!target || typeof target !== 'object') return null;
+  return JSON.stringify({
+    type: target.type,
+    driver: target.driver,
+    loads: target.loads,
+    ptiLog: target.ptiLog,
+    ownerData: target.ownerData,
+  });
+}
 context.fetch = async function (input, init) {
   downstreamCallCount += 1;
   const body = init && typeof init.body === 'string' ? JSON.parse(init.body) : null;
   const recId = body && (body.record_id || (body.payload && body.payload.record_id));
-  downstreamCalls.push({ record_id: recId });
+  downstreamCalls.push({ record_id: recId, businessPayload: businessPayloadSnapshot(body) });
   return coreDispatch(input, init);
 };
 
@@ -164,6 +180,12 @@ assert.deepEqual(
   downstreamCalls.map((call) => call.record_id),
   [recordId, recordId],
   'both dispatcher-boundary attempts must carry the SAME durable record_id - the retry must be recognized as the same operation, not a new one',
+);
+assert.ok(downstreamCalls[0].businessPayload, 'the first attempt must have a capturable business payload (type/driver/loads/ptiLog/ownerData)');
+assert.equal(
+  downstreamCalls[1].businessPayload,
+  downstreamCalls[0].businessPayload,
+  'the reconnect retry must carry the SAME business payload (driver, loads, ptiLog, ownerData) as the original failed attempt, not merely the same record_id label',
 );
 assert.equal(context.CrewBIQOfflineSync.pendingCount(), 0, 'the queue must be cleared only after the Orchestrator acknowledgement, and must be fully cleared once it arrives');
 assert.equal(nativeCallCount, 2, 'exactly one additional real native network attempt (the successful retry) must have occurred');
