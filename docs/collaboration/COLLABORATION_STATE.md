@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-URGENT - Legacy Sync Transport Interception Discovery (blocks contract-test task)
+Legacy Sync Transport Interception Evidence Tests
 
 Status:
-CONFLICT_FOUND / DECISION_REQUIRED
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-While setting up to implement the authorized contract tests, Claude cloned the repo locally for the first time this session (all prior evidence-gathering was via the read-only GitHub Contents API, never actual execution) and ran the existing test suite. tests/full_restore_transport.test.mjs passes and proves that core-runtime.js installs global.fetch = routedFetch (loaded via core.js's document.write, synchronously before sync.js/restore-hotfix.js/pti.js ever run) that matches every legacy payload type this session mapped (auth_login, auth_signup, auth_restore, auth_logout, driver_report, pti_report, workspace_driver_roster_read, account_driver_link_read, driver_truck_assignment_*_read) by body content - not URL - and redirects all of them to the real Orchestrator via nativeFetch, discarding the original URL argument entirely. Every call site in the accepted LEGACY_SYNC_CALL_PATH_MAP.md was independently re-checked against this dispatcher and matches. This directly contradicts the BLOCKED classifications in the accepted CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md and the REMOVE/REPLACE_WITH_ORCHESTRATOR classifications in the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md, both of which assumed these call sites reach Apps Script. Full findings in docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md (commit 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3).
+Codex review 6060de722cfbf4ca1c17e9da91efebb805c77040 accepts the transport-interception discovery: production load order and core-runtime.js prove body-type routing supersedes supplied legacy URLs, and full_restore_transport dynamically confirms auth_restore plus driver_report. The three prior documents are reopened in principle but must not be reclassified until a bounded test-only slice repairs the stale orchestrator_transport harness, covers the full mapped action matrix, and proves doSync duplicate-write deduplication.
 
 Latest implementation commit:
 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3
@@ -97,28 +97,25 @@ Latest correction commit:
 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3
 
 Latest review commit:
-c2f53709094f3b4a99b76b831510b0d123f6b90c
+6060de722cfbf4ca1c17e9da91efebb805c77040
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-LEGACY_TRANSPORT_INTERCEPTION_CONTRADICTS_ACCEPTED_CONCLUSIONS
+DYNAMIC_ACTION_MATRIX_NOT_PROVEN; ORCHESTRATOR_TRANSPORT_TEST_HARNESS_STALE; DOSYNC_DEDUP_NOT_PROVEN
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Possible duplicate-Orchestrator-write from doSync()'s two-step push now that pushToCloud() itself may already be silently redirected - not yet assessed, noted in the correction document.
 
 Decision gate:
-COORDINATOR_REQUIRED
-
-Decision required:
-Should CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md be reopened and corrected based on this discovery? If so, should the correction rely on this session's own newly-executed test evidence (full_restore_transport.test.mjs and direct core-runtime.js/restore-hotfix.js source tracing), or does it require additional dynamic verification before any classification changes are made? The originally authorized contract-test implementation task is paused pending this decision, since writing tests now would encode the old, apparently-false premise.
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify the interception discovery in docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md (commit 5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3) against the exact production source and the existing test suite. Render a verdict on whether the discovery is accurate, and if so, weigh in on the decision above. Do not implement, deploy, migrate, merge, mutate data, change runtime/configuration/legacy paths, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR.
+Implement only a test-only interception evidence slice: repair tests/orchestrator_transport.test.mjs so it loads the current core loader/runtime without weakening assertions; dynamically verify every action type mapped in LEGACY_SYNC_CALL_PATH_MAP.md routes to the configured Orchestrator and never the supplied legacy URL; prove the two-step doSync path causes only one native /v1/sync/pwa write for the same record_id through client deduplication; and retain unmatched-request native pass-through coverage. Use existing lightweight conventions and minimal existing npm/CI wiring only if required. Run only these tests and directly relevant transport/load-order regressions, publish, and return to Codex. Do not change runtime/configuration/legacy paths or the three reopened documents; do not deploy, migrate, merge, mutate data, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3736,3 +3733,17 @@ Next bounded action: implement only the five narrow test-only checks specified b
 - Escalated Decision gate to COORDINATOR_REQUIRED, since this reverses a production-readiness conclusion that has driven several review cycles this session and is a genuine judgment call about how to proceed, not a routine documentation fix.
 - No implementation, test authorship, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred.
 - Runtime/product files changed: NONE (documentation only; the local clone used to run tests was read-only investigation, no commits made there, no changes pushed from it).
+
+### 2026-09-01 - Codex review: Legacy transport interception discovery
+
+Agent: Codex
+Task: Independently verify discovery commit `5c76c461d6d3ba0937fa8a57826a5fa2ff6865f3`
+Status: `DISCOVERY_ACCEPTED / EVIDENCE_EXPANSION_REQUIRED`
+Review commit: `6060de722cfbf4ca1c17e9da91efebb805c77040`
+Production source: `bcfd74a22449b974755b8b48bc01a3b261107b93`
+Validation: `node --test tests/full_restore_transport.test.mjs tests/orchestrator_transport.test.mjs` -> 1 passed, 1 failed; full restore transport passed, orchestrator transport failed before assertions because its VM document mock lacks `write()` for the current `core.js` loader.
+Decision: reopen the gap inventory, call-path map, and decommission contract, but defer classification edits until full mapped action routing and doSync deduplication receive deterministic test evidence.
+Runtime/product/test files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: bounded test-only transport-interception evidence slice; no runtime or reopened-document changes.
