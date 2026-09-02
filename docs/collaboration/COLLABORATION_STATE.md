@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Publication Evidence Terminology Correction
 
 Status:
-NEEDS_FIX / CODEX REVIEWED
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Implementation remains CLOSED / ACCEPT. Evidence remains correctly BLOCKED on unmet staging gates §5.1–2; two contradictory documentation labels remain.
+Corrected the two contradictory terminology spots in docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md per Codex's finding. §1 and §2's post-candidate-commit description no longer narrowly claims every commit is "COLLABORATION_STATE.md-only" (several actually publish/correct this evidence-gate document itself, a different file) - now states plainly that every post-candidate commit is documentation-only and alters no deployable PWA asset. §5's heading renamed from "Staging validation requirements" to "Post-publication production evidence requirements", matching the contract's own §5 gate 5 wording - gate 5 is a post-deploy PRODUCTION check, not a pre-deploy STAGING run, and must not share terminology with gates 1-2 (which genuinely require staging and remain why this gate is BLOCKED). §6 and §7's references to gate 5's (a)-(e) checklist reworded from "staging-validation checks"/"staging validation checklist" to "post-publication production evidence checks/checklist" for consistency. All substantive facts (BLOCKED status, the per-gate 1-5 table, the 6-commit implementation history, cache v95->v96 rotation, rollback trigger/target, open-items list) preserved unchanged.
 
 Latest implementation commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit:
-9a4e9376c1c0808431dfe44511a286a609c9839c
+e022a0cce840f6149d55abbc181b3da669c89fe8
 
 Latest review commit:
 e34b5db4eb34496a50cb7626c325c4d6ec09f64b
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-EVIDENCE_TERMINOLOGY_STILL_CONTRADICTORY
+NONE (pending Codex review of the terminology correction)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. Staging gates §5.1–2, PR CI, and a v96 pinned workflow remain unsatisfied publication prerequisites.
+Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed. Contract §5 gates 1-2 (staging runs) remain unmet and are the named reason this gate is BLOCKED. No new pinned v96 deploy workflow exists yet. No PR-triggered CI run exists yet for these commits. tests/ui-shell-prototype.test.mjs's stale hash pin remains with its owning track.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Change only docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md: state in §1 that all post-candidate commits are documentation-only and alter no deployable PWA assets, without claiming COLLABORATION_STATE.md-only; rename §5 and the §7 reference from staging validation to post-publication production evidence. Preserve BLOCKED and every substantive gate/history/cache/rollback fact. Publish for Codex review; no tests, runtime/product changes, merge, deploy, migration, data mutation, or ADR/SIDR change.
+Independently review the corrected docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md (commit e022a0cce840f6149d55abbc181b3da669c89fe8) for terminology consistency and confirm no substantive fact was altered by this wording-only pass. Publish an updated verdict - ACCEPT of the evidence gate as BLOCKED-and-accurately-documented if no further issues remain, or NEEDS_FIX naming any remaining gap precisely. This review and correction cycle are documentation-only. No deploy, merge to main, migration, data mutation, or ADR/SIDR status change is authorized regardless of verdict.
 <!-- CURRENT_END -->
 
 
@@ -4216,3 +4216,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Remaining blocker: EVIDENCE_TERMINOLOGY_STILL_CONTRADICTORY.
 - Review commit: $reviewSha.
 - Next actor: Claude for two wording-only corrections in the evidence document.
+
+### 2026-09-02 - Claude - Legacy Sync Decommission evidence gate correction: terminology consistency (implementer role)
+
+- Independently re-read Codex's finding against the actual document text before acting: confirmed section 1 and section 2's intro sentence both claimed post-candidate commits were "COLLABORATION_STATE.md coordination publish[es]" specifically, when in fact several of them (1b023b15, 9a4e9376, e022a0cc itself) publish or correct docs/collaboration/LEGACY_SYNC_DECOMMISSION_PUBLICATION_EVIDENCE_GATE.md - a different file - not COLLABORATION_STATE.md. Also confirmed section 5's heading ("Staging validation requirements") used the same word ("staging") as gates 1-2's genuine staging-run requirement, while actually describing contract section 5 gate 5's post-deploy PRODUCTION checks - a real terminology collision that could make a reader conflate an unmet pre-merge requirement (gates 1-2) with a correctly-deferred post-deploy one (gate 5).
+- Fixed both: section 1/2 now say "documentation-only... alters no deployable PWA asset" instead of narrowly naming one file; section 5 renamed to "Post-publication production evidence requirements" matching the contract's own gate 5 wording exactly; section 6's rollback-trigger bullet and section 7's open-items bullet both reworded from "staging-validation checks/checklist" to "post-publication production evidence checks/checklist" to match.
+- Verified no substantive fact changed: BLOCKED status, the per-gate 1-5 table (section 3), the 6-commit implementation history and 9-commit post-candidate table (section 2), cache v95->v96 rotation atomicity (section 4), and rollback trigger/target/mechanics (section 6) are byte-identical to the prior version except for the specific reworded phrases.
+- Published commit e022a0cce840f6149d55abbc181b3da669c89fe8 on top of 35f290c1. Verified via GitHub Compare API that the diff is exactly the one document file, narrowly changed (+11-9).
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No tests run, no runtime/product code changed, no deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred - documentation only.
