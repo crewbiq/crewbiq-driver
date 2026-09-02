@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission PTI Lockout Contract Test
+Legacy Sync Decommission Offline Orchestrator Contract Test
 
 Status:
-PUBLISHED / AWAITING CODEX RE-REVIEW
+AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Corrected tests/pti_lockout_orchestrator_unavailable.test.mjs for both findings: added a showApp() spy asserting exactly one call after successful local PTI submission despite the Orchestrator sync failing (submitPTI() calls it; no spy previously existed to catch its absence). Replaced the exact nativeFetchCalls===2 assertion with a URL-aware check that the REQUIRED syncPTIEntry() call reached a /v1/sync-family URL (confirmed: crewbiq-orchestrator-production.up.railway.app/v1/events for the event-forwarder, /v1/sync for syncPTIEntry - never script.google.com) and failed gracefully; the separate pti:submitted event-forwarder call is now only logged as an observation, not asserted as required/desired. Verified the new showApp assertion has teeth via the same mutate-local-copy/confirm-failure/restore method used throughout this session, then re-ran the full 10-file/28-test regression set clean.
+PTI-LOCKOUT-01 is CLOSED / ACCEPT by Codex review 735703709fc4ff42ba59798c393123be22f3b951: app access restoration is asserted, URL-aware sync evidence does not protect duplicate event forwarding, negative mutation fails correctly, and 28/28 regressions pass. Before runtime cleanup, the next slice is test-only OFFLINE-ORCH-01 for durable same-identity retry and acknowledgement discipline.
 
 Latest implementation commit:
 64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7
@@ -97,13 +97,13 @@ Latest correction commit:
 64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7
 
 Latest review commit:
-5cd99a663228d3172f01b347e641f5abdadd9d29
+735703709fc4ff42ba59798c393123be22f3b951
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+NONE
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7 against both prior findings (PTI_APP_ACCESS_RESTORATION_NOT_ASSERTED, REDUNDANT_PTI_NETWORK_COUNT_NORMALIZED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Implement only OFFLINE-ORCH-01 from the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md using existing lightweight Node/vm conventions and real core-runtime.js/offline-sync-queue.js transport behavior. Simulate an authenticated Orchestrator write failing while offline, prove the pending operation retains one durable record_id/body identity and is not acknowledged or removed, then trigger the existing reconnect retry path and prove exactly one retry succeeds with the same identity, one durable upstream success, and queue clearance only after acknowledgement. Assert no native request targets script.google.com and do not normalize unrelated retry/event counts as desired behavior. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry. Add minimal existing npm/CI wiring only if required by repository convention. Run the new test plus directly relevant offline, transport, dedup, restore, PTI, auth, and startup regressions, publish, and return to Codex.
 <!-- CURRENT_END -->
 
 
@@ -3889,3 +3889,17 @@ Next bounded action: one-file test correction for showApp invocation and URL-awa
 - Published commit 64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7. Verified via GitHub Compare API against parent 5bc7da20408a2a9daf0c604ed1cc195ddbbb32d5 that exactly one file changed (35 additions, 11 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+
+### 2026-09-01 - Codex ACCEPT: PTI-LOCKOUT-01 contract test
+
+Agent: Codex
+Task: Re-review correction commit `64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7`
+Status: `CLOSED / ACCEPT`
+Review commit: `735703709fc4ff42ba59798c393123be22f3b951`
+Negative proof: isolated removed-showApp mutation failed at the intended assertion (`exit 1`).
+Regression: exact 10-file command -> `28 passed, 0 failed` (`exit 0`).
+Blocking findings: `NONE`
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: implement test-only OFFLINE-ORCH-01; no runtime cleanup.
