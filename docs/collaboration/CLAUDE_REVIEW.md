@@ -4468,3 +4468,28 @@ Reviewed implementation/correction commit `a6800954e206b787a3f83fecc191f9a03b92e
 ### Required bounded correction
 
 Complete the already-authorized atomic decommission cleanup rather than splitting it: implement the accepted source-removal/single-write target, add `SW-NO-LEGACY-01` and `DOSYNC-SIMPLIFY-01`, rotate the app-shell cache version and update only current cache-contract assertions required by that rotation, then run the complete accepted contract and tooling regressions. Preserve historical immutable v95 deployment evidence; do not deploy or merge.
+## 2026-09-02 - Codex re-review - Legacy Sync Decommission Atomic Cleanup Correction
+
+**Verdict: NEEDS_FIX**
+
+Reviewed correction commit `d6de6802b4d600c671b4ce28d2737eeb25c7c46c` against baseline `dfb8d1c0b0c2b133050c3047626e5ef2f534eac7`.
+
+### Accepted parts
+
+- `CACHE_NAME` correctly rotates from v95 to v96; historical immutable v95 deployment workflow evidence remains unchanged.
+- `pushToCloud()` is removed and the successful `doSync()` path makes one real Orchestrator write.
+- `pullFromCloud()` directly calls the real `CrewBIQRestoreHotfix.fullRestore()` Response-returning contract; the direct retarget is structurally compatible with the former routed interception.
+- Diff is narrow and `git diff --check` is clean; no encoding corruption was found.
+- Published 9-file contract set: `13 passed, 0 failed`.
+- `npm run test:e2e:tooling`: `325 passed, 0 failed`.
+
+### Blocking findings
+
+1. **`ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE`** — The prior CURRENT explicitly required removal of the remaining dead legacy resolution/caller paths. The correction again defers `getAuthSyncUrl()`/`DEFAULT_SYNC_URL` and its auth/startup call sites. Dedicated expense sync and other accepted caller classifications remain in source as well. This is not a new scope request: it is the uncompleted part of the already-authorized atomic contract, and cannot be split out merely because it has a larger blast radius.
+2. **`DOSYNC_FAILURE_SEMANTICS_REGRESSED`** — On an ordinary non-`forceAll` Orchestrator failure, `pushToOrchestrator()` returns `{ok:false}`. New `doSync()` does not throw, continues into `pullFromCloud()`, emits `sync:success`, and displays a success-family toast before returning `ok:false`. The old `pushToCloud()` path threw on the same failed HTTP response and entered `sync:error` without pulling. The simplification therefore does not preserve failure behavior.
+3. **`DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN`** — Rewritten `DOSYNC-SIMPLIFY-01` covers only a successful write and selected request fields. It does not cover failed HTTP/network writes, no pull after failed write, `sync:error` versus `sync:success`, or preservation of unsynced local records. It cannot detect blocker 2.
+4. **`SW_NO_LEGACY_SCOPE_TOO_NARROW`** — `SW-NO-LEGACY-01` scans only `sw.js`. Its dynamic case deliberately issues a `script.google.com` request and proves generic SW routing, not the named contract that no cached or live PWA request targets legacy hosts. It does not inspect or execute the remaining PWA caller/resolution paths, and thus cannot enforce the accepted static/source and representative-flow gate.
+
+### Required bounded correction
+
+Complete the same correction, not a new slice: remove/replace every remaining accepted legacy resolution/caller path, including auth/startup and redundant dedicated expense routing; preserve required user-visible and offline behavior; fix `doSync()` failure semantics; strengthen `DOSYNC-SIMPLIFY-01` and `SW-NO-LEGACY-01` so the blockers above fail deterministically. Keep v96. Run the complete accepted contract set and `npm run test:e2e:tooling`. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated event/dedup cleanup.
