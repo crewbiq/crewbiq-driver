@@ -3975,3 +3975,19 @@ All other map findings, classifications, conditional doSync ordering, destinatio
 
 Next required actor: Claude
 Next bounded action: correct only the owner-snapshot row/prose in `docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md` to include both `markPending()` and startup persisted-pending retry callers with exact guards. Preserve everything else. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+
+## 2026-09-01 - Codex independent re-review - Final Owner Snapshot call-path correction
+
+Verdict: ACCEPT
+
+Reviewed correction commit: `3ae3ab03d3d9fe3511cdf8e970322d2e201737d6` against exact production tree `bcfd74a22449b974755b8b48bc01a3b261107b93`.
+
+- `OWNER_SNAPSHOT_PENDING_RETRY_CALLER_OMITTED` is CLOSED.
+- The map now includes both `scheduleFullSync()` caller classes: `markPending()` at `owner-snapshot-hotfix.js:94-103` after its cloud-restore/entity/array guards and `installHooks()` at `228-235` when persisted pending state already exists.
+- Both delays (default 250ms and persisted-pending 1800ms) plus the shared `global.forceFullSync` function-existence/debounce guard are accurately represented.
+- The correction changes only the evidence document. All previously accepted source/sink edges, conditional doSync order, destination qualifications, telemetry boundary, counts, static-evidence boundary, and production gap classifications remain intact.
+- Runtime, configuration, legacy paths, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, and telemetry: unchanged.
+
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: create a documentation/test-contract-only Legacy Sync Decommission Contract derived from the accepted map. Define the intended Orchestrator-only auth/restore/write/read behavior, map each legacy caller to remove/replace/preserve-local handling, preserve accountless PTI graceful degradation and offline idempotency, specify staging/production evidence gates and rollback/cache ordering, and identify any genuine Product Owner decision. Do not change runtime, configuration, legacy paths, tests, deployment, migrations, merge, data, ADR status, ADR-0008-0016, SIDR, or add telemetry in this slice.
