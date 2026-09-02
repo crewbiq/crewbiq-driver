@@ -75,33 +75,20 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Pre-Main Publication CI Cache Contract Correction
-
-Status: PUBLISHED / AWAITING CODEX REVIEW
-
-Current owner: Codex
-
+Phase: Pinned v96 Main-Based Publication Mechanism Reconciliation
+Status: AUTHORIZED / AWAITING CLAUDE DESIGN
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
-Product truth: Changed exactly the one stale assertion in .github/workflows/pwa-auth-contract.yml's "Verify loader and service-worker cache rotation" step: grep -q "crewbiq-driver-v94" sw.js -> grep -q "crewbiq-driver-v96" sw.js. No other line, trigger, job, or step in that workflow changed; no runtime/product/package.json/test file changed. Published as commit e8bcafa865e1169c7f0f0dd20e8556db211cc27f, diff +1-1 in the one file (verified via GitHub Compare API). Validated the corrected assertion locally against the candidate's sw.js at commit 5c6cfdaa: grep -q "crewbiq-driver-v96" sw.js passes.
-
+Product truth: current main
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-
 Latest correction commit: e8bcafa865e1169c7f0f0dd20e8556db211cc27f
-
-Latest review commit: a4a5e3369181dccf1380b29170c2219d2eb4b4e9
-
-Latest state commit: (pending this publication)
-
-Blocking findings: NONE (pending Codex review of this narrow correction)
-
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. Pinned v96 main-based production publication mechanism absent (per Product Owner direction, separate not-yet-started work). GitHub Discussion #206480 (Pages Actions-deploy 404) remains recorded as known non-blocking platform issue. pwa-auth-contract.yml is pull_request/push:main-triggered and has never actually run against this branch's commits (no PR opened) - this correction is preventative/precise, not evidence that the workflow has executed successfully end-to-end.
-
+Latest review commit: 1b9f775122c3ed583e47509a8a2a7e57f6f518de
+Latest state commit: d5152e1794caf4a7d3330e2739974ff4b8b92566
+Blocking findings: PINNED_V96_MAIN_BASED_PUBLICATION_MECHANISM_NOT_RECONCILED
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480
 Decision gate: AUTO_CONTINUE_ALLOWED
-
-Next required actor: Codex
-
-Next bounded action: Independently review commit e8bcafa865e1169c7f0f0dd20e8556db211cc27f: confirm the diff is exactly the one-line assertion change, confirm no other file or workflow behavior changed, and confirm the corrected assertion is accurate for the accepted v96 cache rotation. Publish an updated verdict. No production deploy, merge to main, migration, data mutation, further workflow change, or ADR/SIDR status change is authorized regardless of verdict.
+Next required actor: Claude
+Next bounded action: Documentation/design only: reconcile the existing accepted main-publication plan and current Pages workflows/evidence into one exact pinned-v96 main-based publication procedure covering accepted source SHA, current main/served state, pre-merge CI, publication identity verification, cache behavior, and rollback. Do not edit workflows/runtime/product files or GitHub settings; do not merge, deploy, migrate, or mutate data. Publish CURRENT/HISTORY and hand to Codex for review.
 <!-- CURRENT_END -->
 
 
@@ -4297,3 +4284,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Noted transparently in CURRENT that pwa-auth-contract.yml is pull_request/push:main-triggered and has never actually executed against any commit on this branch (no PR has been opened this session) - this correction prevents a false failure if the workflow is ever triggered, but is not itself evidence the workflow runs successfully end-to-end; that would require an actual PR or a push to main.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No production deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
+### 2026-09-02 — Codex accepts pre-main v96 CI cache assertion correction
+
+- Verdict: ACCEPT.
+- Review commit: $review.
+- Correction commit: 8bcafa865e1169c7f0f0dd20e8556db211cc27f.
+- Verified diff: exactly one line in pwa-auth-contract.yml, replacing stale v94 with accepted v96; no other workflow behavior or file changed.
+- Narrow assertion check: PASS against sw.js cache crewbiq-driver-v96.
+- Next bounded phase authorized: docs-only reconciliation of the pinned-v96 main-based publication mechanism; no merge or deployment.
+- Runtime/product files changed by review: NONE.
+- Next actor: Claude.
