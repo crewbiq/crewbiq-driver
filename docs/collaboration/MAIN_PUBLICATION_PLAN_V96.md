@@ -1,10 +1,10 @@
 # CrewBIQ Main Publication Plan — v96 (Legacy Sync Decommission)
 
-Result: MAIN_PUBLICATION_PLAN_V96_READY
+Result: MAIN_PUBLICATION_PLAN_V96_BLOCKED
 
 Status: DESIGN ONLY — NO MERGE / NO DEPLOY / NO WORKFLOW OR SETTINGS CHANGE
 
-Prepared: 2026-09-02
+Prepared: 2026-09-02 (corrected)
 
 Repository: `crewbiq/crewbiq-driver`
 
@@ -16,21 +16,75 @@ accepted `v96` candidate to `main` by the same proven method. It does not
 supersede the v95 document as history; it is the next dated instance of
 the same pattern.
 
+## 0. Correction record (this revision)
+
+The prior revision (`ffcf4e11`) was reviewed by Codex and found NEEDS_FIX
+on four points. All four are addressed in this revision; none was
+accepted without independent re-verification against live repository
+state, per this session's standing discipline of never trusting a
+reported result — reviewer or otherwise — at face value:
+
+1. **`PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI`** — confirmed real by
+   directly reading `tests/e2e/pages-deployment-workflow-contract.test.mjs`
+   at the candidate tip: its module top level unconditionally calls
+   `fs.readFileSync(new URL('../../.github/workflows/deploy-accepted-pages-v95.yml', ...))`.
+   The prior revision's allowlist restored this test (via `package.json`'s
+   `test:e2e:tooling` script and the test file itself) while excluding the
+   workflow file it reads — guaranteeing an `ENOENT` crash of
+   `npm run test:e2e:tooling` on the promoted branch, since that workflow
+   file does not exist on `main` (confirmed) and is deliberately not being
+   promoted (§3). Disposition fixed in §6/§7 below: the test file is now
+   also excluded, and the promoted `package.json` requires one explicit,
+   documented deviation from byte-for-byte candidate content.
+2. **`GATE1_PREMERGE_CI_HAS_NO_PROMOTED_EXECUTION_PATH`** — confirmed real:
+   the accepted 9-file/15-subtest Legacy Sync Decommission contract set
+   currently runs only as a step added to
+   `.github/workflows/e2e-harness-manual.yml` (this session, on the
+   collaboration branch), which §6 deliberately excludes from promotion.
+   None of the 9 files are referenced by `package.json`'s
+   `test:e2e:tooling` script either (independently checked, all 9 absent).
+   §7 below now *defines* (does not implement) a promoted execution path:
+   the same step, added to `pwa-auth-contract.yml` instead, since that
+   workflow is already being promoted and already carries one mandatory
+   correction.
+3. **`ANCESTRY_AND_MERGE_CONFLICT_EVIDENCE_INACCURATE`** — confirmed and
+   corrected. Re-run fresh against the current branch tip
+   `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6` (not copied from Codex's
+   review, which itself was already one snapshot behind by the time of
+   this correction — the branch is being actively appended to):
+   divergence is `2/488` (not `2/451`/`2/452`), and
+   `git merge-tree --write-tree origin/main <tip>` reports **16** conflicting
+   paths (not 1) — see corrected §4.
+4. **`CANDIDATE_AND_DIFF_INVENTORY_MISSTATED`** — the candidate reference
+   point is updated to the current branch tip `b5e36f4a` (37 commits past
+   the `5c6cfdaa` implementation tip at the time of this correction, of
+   which exactly **two are non-doc**: the `e2e-harness-manual.yml` gate-1
+   step and the `pwa-auth-contract.yml` cache correction — both already
+   accounted for in this plan). Independently verified: the product/test
+   diff between `main` and `b5e36f4a` is **byte-identical** to the diff
+   against the earlier `e8bcafa8` reference — every one of the 35 commits
+   between them touched only `docs/collaboration/**`. The
+   `docs/collaboration/**` file count is **40** (not 25/39 — recomputed
+   directly via `git diff --name-only`, not carried over from any prior
+   count). Total main-to-candidate diff is **92 files** (not 91).
+
 ## 1. Decision summary
 
 Same decision as the v95 plan, reaffirmed: the accepted candidate must NOT
 be merged or fast-forwarded directly into `main` — `main` and the
 collaboration branch `agent/pre-base44-audit` are unrelated commit graphs
 below their common ancestor's descendants (see §4), and a direct merge
-would place 400+ collaboration/documentation/prototype commits onto `main`.
+would place 480+ collaboration/documentation/prototype commits onto
+`main`.
 
 The proven procedure is unchanged: a curated promotion branch created from
 the exact current `main` commit, carrying accepted product and validation
 files by content, not by branch ancestry. All active production runtime
-files must be byte-identical to the accepted v96 candidate. One CI-only
-correction is mandatory before merge: update the stale PWA workflow cache
-assertion from `v95` to the accepted service-worker cache `v96` (the same
-class of correction the v95 plan required, one version further).
+files must be byte-identical to the accepted v96 candidate. Two CI-only
+corrections are mandatory before merge (§7): the PWA workflow cache
+assertion update (`v95` → `v96`, already present on the candidate) and a
+newly defined gate-1 execution step; one content deviation is mandatory in
+`package.json` (§6/§7).
 
 No execution is authorized by this plan.
 
@@ -44,19 +98,27 @@ No execution is authorized by this plan.
 - Live `index.html`: HTTP 200.
 - Live `sw.js`: HTTP 200.
 - Live cache: `crewbiq-driver-v95`.
-- Accepted v96 candidate (last commit touching anything relevant to this
-  promotion — product, test, or the one required workflow correction):
-  `e8bcafa865e1169c7f0f0dd20e8556db211cc27f`. This is one commit past the
-  `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc` implementation tip: that later
-  commit contains only the `pwa-auth-contract.yml` cache-assertion
-  correction (v95→v96, itself requested and reviewed by Codex) plus
-  `docs/collaboration/`-only changes; it introduces no other product/test
-  difference (confirmed via `git diff --stat 5c6cfdaa e8bcafa8`).
+- Accepted v96 candidate reference (**updated this revision**):
+  `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6` — the current collaboration
+  branch tip at the time of this correction. Superseding the prior
+  revision's `e8bcafa8` reference is safe and required: independently
+  verified via `git diff --stat e8bcafa8 b5e36f4a -- . ':!docs/collaboration'`
+  that **zero** product, test, or non-collaboration-doc files differ
+  between the two — every intervening commit touched only
+  `docs/collaboration/**` (state/review/evidence documents from this same
+  coordination process). The candidate branch continues to move forward
+  as a live coordination artifact; any future reviewer of this plan should
+  re-run the same check against the then-current tip before relying on
+  file-level facts, per this document's own §0 discipline.
 - Accepted v96 candidate cache: `crewbiq-driver-v96`.
 - Main branch protection: unconfirmed by this design pass (not re-checked;
-  assume absent as the v95 plan found, until re-verified at execution time).
+  assume absent as the v95 plan found, until re-verified at execution
+  time).
 - Worktree at discovery: clean (scratch clone hard-reset to
-  `origin/agent/pre-base44-audit` immediately before this analysis).
+  `origin/agent/pre-base44-audit` immediately before this analysis; the
+  clone required a one-time unshallow in an earlier session cycle, noted
+  here only because it materially affected ancestry results before being
+  fixed — see `COLLABORATION_STATE.md` HISTORY).
 
 ## 3. Why main serves and non-main publication did not (unchanged precedent, reaffirmed)
 
@@ -76,43 +138,76 @@ present on the collaboration branch, is the artifact of those Actions-based
 attempts. It is explicitly excluded from the v96 promotion (§6) — it
 represents the non-working publication method, not the one this plan uses,
 and its filename is itself now stale (names `v95` while the accepted cache
-is `v96`).
+is `v96`). Its exclusion is the direct cause of Correction §0 item 1 and is
+now fully accounted for by also excluding the one test file that depends
+on its presence (§6).
 
-## 4. Ancestry and divergence
+## 4. Ancestry and divergence (corrected this revision)
 
 - Merge base: `86b8b4dd7e9496833a021319167589b49f0ac418` — the **same**
   merge base the v95 plan found, confirmed unchanged: `main` has not
   diverged from that point independently of the v95 promotion itself.
-- `main...candidate` (`origin/main...e8bcafa8`): `2` commits left-only
-  (main-only), `452` commits right-only (candidate-only).
+- `main...candidate` (`origin/main...b5e36f4a`, freshly recomputed via
+  `git rev-list --left-right --count`): **`2`** commits left-only
+  (main-only), **`488`** commits right-only (candidate-only).
   - The 2 main-only commits are exactly the v95 promotion's own prep and
     merge commits (`e6ea4418`, `bcfd74a2`) — expected, since `main` moved
     forward by exactly that promotion after the merge base.
   - The candidate-only commits are the full collaboration-branch history
     since the merge base, including this decommission's implementation,
-    corrections, and coordination documentation.
-- `git merge-tree --write-tree origin/main e8bcafa8`: **not clean this
-  time** (exit 1) — a real, single-file conflict in
-  `.github/workflows/pwa-auth-contract.yml` (`main` independently carries
-  the v94→v95 correction from its own promotion; the candidate branch
-  independently carries a v94→v96 correction (later folded to v95→v96) —
-  both sides edited the same line differently since the merge base). This
-  is expected and is exactly why §1's curated-content procedure — which
-  never performs a literal `git merge` — remains mandatory, not merely
-  preferred: a literal merge attempt would conflict on this one line.
+    corrections, and coordination documentation (which continues to grow
+    with every review/publish cycle).
+- `git merge-tree --write-tree origin/main b5e36f4a`: **not clean** (exit
+  1) — freshly recomputed and found **16 conflicting paths** (corrected
+  from the prior revision's undercount of 1):
+  - `.github/workflows/pwa-auth-contract.yml` (content — `main`
+    independently carries its own v94→v95 correction from the v95
+    promotion; the candidate independently carries a v94→v96 correction;
+    both sides edited the same line differently since the merge base —
+    the same single-file conflict the prior revision reported, still
+    present and still the reason §7's correction is carried by content,
+    never by merge)
+  - `index.html` (content)
+  - `package.json` (content)
+  - `sidr-contract-resolver-integration-v1.test.mjs` (content)
+  - `startup-session.js` (add/add — both sides independently added a file
+    at this path since the merge base)
+  - `sw.js` (content)
+  - `tests/auth-session-startup-contract.test.mjs` (add/add)
+  - `tests/driver-self-ui.test.mjs` (add/add)
+  - `tests/driver-truck-assignment.test.mjs` (add/add)
+  - `tests/hotfix-load-order-contract.test.mjs` (add/add)
+  - `tests/index-startup-composition.test.mjs` (add/add)
+  - `tests/load-driver-attribution.test.mjs` (add/add)
+  - `tests/pti-attribution-context.test.mjs` (add/add)
+  - `tests/startup-session-coordinator.test.mjs` (add/add)
+  - `tests/workspace-attribution.test.mjs` (add/add)
+  - `tests/workspace-driver-roster.test.mjs` (add/add)
 
-## 5. Complete main-to-candidate diff
+  This is expected, and it is a *stronger*, not weaker, confirmation of
+  §1's conclusion than the prior revision's single-conflict figure
+  suggested: 16 independent paths would collide under a literal `git
+  merge`, most of them `add/add` conflicts (both branches independently
+  created the same-named file after the v95 promotion's own file
+  additions, from unrelated starting content). The curated-content
+  procedure — restore by content from an explicit allowlist, never a
+  literal merge — is the only correct mechanism regardless of whether the
+  true conflict count is 1 or 16; this correction changes the evidence,
+  not the conclusion it supports.
 
-Total: 91 files, 19,929 insertions, 397 deletions
-(`git diff --shortstat origin/main e8bcafa8`).
+## 5. Complete main-to-candidate diff (corrected this revision)
+
+Total: **92** files, 20,476 insertions, 397 deletions
+(`git diff --shortstat origin/main b5e36f4a`; corrected from the prior
+revision's `91 files, 19,929 insertions`).
 
 ### Workflow and package
 
 - `A .github/workflows/deploy-accepted-pages-v95.yml` (excluded — §3, §6)
 - `M .github/workflows/e2e-harness-manual.yml` (excluded this cycle — §6)
-- `M .github/workflows/pwa-auth-contract.yml` (the one mandatory
-  correction — §7)
-- `M package.json`
+- `M .github/workflows/pwa-auth-contract.yml` (two mandatory corrections
+  carried by content, not candidate-identical — §7)
+- `M package.json` (one mandatory content deviation from candidate — §7)
 
 ### Product/runtime modules (all `M` — no new product files this cycle;
 the v95 promotion already added every product file the original plan
@@ -135,7 +230,8 @@ introduced)
 - `M tests/driver-truck-assignment.test.mjs`
 - `M tests/driver_projections.test.mjs`
 - `M tests/e2e/missions/role-missions.mjs`
-- `A tests/e2e/pages-deployment-workflow-contract.test.mjs`
+- `A tests/e2e/pages-deployment-workflow-contract.test.mjs` (**excluded
+  this revision — §6, Correction §0 item 1**)
 - `M tests/e2e/pr-workflow-contract.test.mjs`
 - `M tests/e2e/role-mission-runner.test.mjs`
 - `A tests/e2e/staging-canonical-identity.spec.mjs`
@@ -158,20 +254,25 @@ introduced)
 
 ### Prototype and documentation (all excluded — §6, unchanged posture)
 
-- `docs/collaboration/**` (25 files, all `A`)
+- `docs/collaboration/**` (**40 files**, all `A` — corrected from 25;
+  recomputed directly via `git diff --name-only origin/main b5e36f4a --
+  docs/collaboration`, not carried over from any prior count. The delta
+  from 25 reflects continued growth of `COLLABORATION_STATE.md` history
+  plus new review/evidence documents published across this session's
+  cycles, including this document's own prior revision.)
 - `docs/product/**` (6 files, all `A`)
 - `prototype/crewbiq-next/**` (5 files, all `A`)
 - Prototype-only tests: `tests/charts-prototype.test.mjs`,
   `tests/e2e/ui-shell-standalone.spec.mjs`,
   `tests/ui-shell-prototype.test.mjs`
 
-## 6. Curated main-promotion content
+## 6. Curated main-promotion content (corrected this revision)
 
 The future promotion branch must start from the exact current `main` SHA
 (`bcfd74a2`) and must not be branched from the collaboration branch or
 candidate SHA — identical procedure to the v95 promotion.
 
-### Product files to restore byte-for-byte from accepted candidate `e8bcafa8`
+### Product files to restore byte-for-byte from accepted candidate `b5e36f4a`
 
 - `core.js`
 - `index.html`
@@ -180,16 +281,20 @@ candidate SHA — identical procedure to the v95 promotion.
 - `sw.js`
 - `sync.js`
 
-Each must have the same Git blob ID as candidate `e8bcafa8` before merge.
-Unlike the v95 promotion (which added 14 new product files), this cycle's
-active production composition is unchanged in file count — only these 6
-files' contents change.
+Each must have the same Git blob ID as candidate `b5e36f4a` before merge
+(identical blobs to the prior `e8bcafa8` reference — confirmed unchanged,
+§2). Unlike the v95 promotion (which added 14 new product files), this
+cycle's active production composition is unchanged in file count — only
+these 6 files' contents change.
 
-### Validation files to restore from candidate
+### Validation files to restore from candidate byte-for-byte
 
-- `.github/workflows/pwa-auth-contract.yml` (with the v95→v96 correction
-  already applied on the candidate branch — §7)
-- `package.json`
+- `.github/workflows/pwa-auth-contract.yml` — **not** restored
+  byte-for-byte; restored from candidate content and then the §7 gate-1
+  step is added on top, as a documented deviation.
+- `package.json` — **not** restored byte-for-byte; restored from
+  candidate content and then one script-list token is removed, as a
+  documented deviation (§7).
 - `sidr-contract-issue20b-ui-v2.test.mjs`
 - `sidr-contract-resolver-integration-v1.test.mjs`
 - `tests/auth-session-startup-contract.test.mjs`
@@ -198,7 +303,6 @@ files' contents change.
 - `tests/driver-truck-assignment.test.mjs`
 - `tests/driver_projections.test.mjs`
 - `tests/e2e/missions/role-missions.mjs`
-- `tests/e2e/pages-deployment-workflow-contract.test.mjs`
 - `tests/e2e/pr-workflow-contract.test.mjs`
 - `tests/e2e/role-mission-runner.test.mjs`
 - `tests/e2e/staging-canonical-identity.spec.mjs`
@@ -232,53 +336,119 @@ files' contents change.
   `main` alongside the one that actually works.
 - `.github/workflows/e2e-harness-manual.yml` — a genuine CI capability
   improvement (the accepted 9-file/15-subtest decommission contract set
-  now runs as a dedicated step, per Codex's own authorization this
+  runs as a dedicated step there, per Codex's own authorization this
   session), but **deliberately not bundled into this promotion**. It was
   authorized and reviewed specifically for the collaboration branch's own
-  staging-gate evidence purpose (`docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md`),
+  staging-gate evidence purpose
+  (`docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md`),
   not evaluated as a `main`-branch CI asset. Promoting `main`'s CI
   configuration is a separate decision with its own blast radius
   (`workflow_dispatch` inputs, secrets exposure surface) and deserves its
   own review, not a silent ride-along inside a product-code promotion.
-  Flagged here as a suggested follow-up, not performed by this plan.
+  Flagged here as a suggested follow-up, not performed by this plan. The
+  gate-1 coverage this workflow provides on the collaboration branch is
+  instead carried onto the promoted branch via the §7 `pwa-auth-contract.yml`
+  addition, so its exclusion does not leave gate 1 uncovered on `main`.
+- **`tests/e2e/pages-deployment-workflow-contract.test.mjs`** (excluded —
+  **new this revision**, Correction §0 item 1). This test's module scope
+  unconditionally `fs.readFileSync`s
+  `.github/workflows/deploy-accepted-pages-v95.yml`, which is excluded
+  immediately above. Restoring the test while excluding the file it reads
+  guarantees an `ENOENT` crash the instant the promoted branch's
+  `npm run test:e2e:tooling` runs. Its own asserted purpose — verifying
+  the shape of the excluded, non-working Actions-deployment workflow — is
+  meaningless on a branch that doesn't carry that workflow at all, so
+  exclusion is the correct disposition, not merely a workaround.
 - Any file not present in this section's allowlist.
 
-## 7. Mandatory CI-only correction
+## 7. Mandatory CI-only corrections and content deviations (corrected this revision)
 
-Candidate `sw.js` declares `crewbiq-driver-v96`, and candidate
-`.github/workflows/pwa-auth-contract.yml` (at `e8bcafa8`, per the
-Codex-authorized correction applied this session) already contains the
-matching `grep -q "crewbiq-driver-v96" sw.js` assertion — meaning, unlike
-the v95 cycle, **the correction is already present on the candidate
-branch** and does not need to be freshly authored during promotion; it
-only needs to be *carried over* by the restore step in §6.
+Three items, all CI-configuration or manifest content only — no product
+runtime file is touched by any of them:
 
-Before merge, assert (identical structure to the v95 plan's §7):
+**1. Cache assertion (unchanged from prior revision).** Candidate `sw.js`
+declares `crewbiq-driver-v96`, and candidate
+`.github/workflows/pwa-auth-contract.yml` (at the current candidate tip,
+per the Codex-authorized correction applied earlier this session) already
+contains the matching `grep -q "crewbiq-driver-v96" sw.js` assertion —
+meaning, unlike the v95 cycle, this correction is already present on the
+candidate branch and only needs to be *carried over* by the §6 restore
+step.
 
-1. The workflow diff versus candidate contains no unexpected delta beyond
-   what §6 already restores.
-2. No runtime file differs from candidate `e8bcafa8`.
-3. The workflow and cache assertion agree on `v96`.
+**2. Gate-1 execution path (new this revision — defines, does not
+implement, per the correction's bounded scope).** The promoted
+`pwa-auth-contract.yml` must additionally carry the same step
+`e2e-harness-manual.yml` runs on the collaboration branch, verbatim:
+
+```yaml
+- name: Run legacy sync decommission contract set
+  run: node --test tests/orchestrator_transport.test.mjs tests/dosync_orchestrator_dedup.test.mjs tests/pti_lockout_orchestrator_unavailable.test.mjs tests/offline_orchestrator_retry.test.mjs tests/restore_orchestrator_transport.test.mjs tests/write_orchestrator_load_save.test.mjs tests/write_orchestrator_expense_save.test.mjs tests/write_orchestrator_owner_entity_save.test.mjs tests/sw_no_legacy_hostname.test.mjs
+```
+
+placed as an additional step in `pwa-auth-contract.yml`'s existing job,
+alongside the cache-assertion step. `pwa-auth-contract.yml` is chosen as
+the carrier because it is already part of the curated allowlist and
+already requires one content correction, so adding a second, independently
+justified step to the same file does not expand the set of files promoted
+with content deviating from the candidate. This is a **design decision to
+be executed as part of the future promotion-preparation procedure (§8)**,
+not a change made by this document. All 9 files are independently
+confirmed (via direct inspection this revision) to be absent from
+`package.json`'s `test:e2e:tooling` script, so this is genuinely net-new
+coverage on `main`, not a duplicate of an existing check.
+
+**3. `package.json` script-list deviation (new this revision, required by
+Correction §0 item 1).** The promoted `package.json`'s `test:e2e:tooling`
+script value must have the token
+`tests/e2e/pages-deployment-workflow-contract.test.mjs` removed, since
+that test file is excluded from promotion (§6) and every other file in the
+script value is either promoted or already present on `main`. No other
+part of `package.json` (or the `test:e2e:tooling` script's other entries)
+is affected. This is the single documented departure from
+"`package.json` restored byte-for-byte from candidate" — mirroring the
+same class of planned, explicit, single-line deviation the v95 plan
+required for `pwa-auth-contract.yml`'s cache assertion, just applied to a
+different file this cycle.
+
+Before merge, assert (identical structure to the v95 plan's §7, extended
+for the two new deviations):
+
+1. The `pwa-auth-contract.yml` diff versus candidate contains no
+   unexpected delta beyond the §6 restore plus the one added gate-1 step
+   above.
+2. The `package.json` diff versus candidate contains no unexpected delta
+   beyond the §6 restore minus the one removed script token above.
+3. No runtime file differs from candidate `b5e36f4a`.
+4. The workflow and cache assertion agree on `v96`.
+5. `tests/e2e/pages-deployment-workflow-contract.test.mjs` is absent from
+   the promoted tree.
 
 ## 8. Exact future preparation procedure
 
 This procedure is NOT authorized for execution yet. Identical structure
-to the v95 plan, updated for this cycle's SHAs.
+to the v95 plan, updated for this cycle's SHAs and the two new §7
+deviations.
 
-1. Fetch `origin/main` and candidate `e8bcafa8`.
+1. Fetch `origin/main` and candidate `b5e36f4a` (or the then-current
+   candidate tip, after re-running the §2 identity check against it).
 2. Abort unless `origin/main` remains exactly
    `bcfd74a22449b974755b8b48bc01a3b261107b93`.
 3. Create a new release branch from that exact main SHA using a normal
    branch creation; never force-push or rewrite it.
-4. Restore only the §6 allowlist from candidate `e8bcafa8`.
-5. Confirm the §7 `v95 -> v96` cache assertion is present (already true
-   on the candidate; verify, do not re-author).
+4. Restore the §6 allowlist from the candidate, applying the two §7
+   content deviations (add the gate-1 step to `pwa-auth-contract.yml`;
+   remove the one script token from `package.json`) as part of the same
+   preparation commit, not as a follow-up.
+5. Confirm the §7 item 1 cache assertion (`v95 -> v96`) is present
+   (already true on the candidate; verify, do not re-author).
 6. Require `git diff --check` clean.
-7. Require the changed-file set to equal the allowlist exactly.
+7. Require the changed-file set to equal the allowlist exactly (§6, minus
+   the excluded test file, plus the two §7 deviations).
 8. Require every active runtime file's blob ID to equal candidate
-   `e8bcafa8`.
-9. Require no `docs/**` or `prototype/**` path in the promotion diff, and
-   confirm neither excluded workflow file (§6) is present.
+   `b5e36f4a`.
+9. Require no `docs/**` or `prototype/**` path in the promotion diff,
+   confirm neither excluded workflow file (§6) nor the excluded test file
+   is present.
 10. Commit the curated change as one normal promotion commit.
 11. Push the new release branch normally.
 12. Open a PR to `main`; do not merge it.
@@ -289,31 +459,37 @@ to the v95 plan, updated for this cycle's SHAs.
 16. Merge through a normal PR merge commit to create an explicit rollback
     boundary. Do not squash, rebase, force-push, or reset `main`.
 
-## 9. Required pre-merge CI
+## 9. Required pre-merge CI (corrected this revision)
 
 No CI was run during this design-only slice because no promotion branch
 or code change was created.
 
-The future PR must require all of the following green — identical
-requirement set to the v95 plan, since the workflows and scripts involved
-are the same ones (only `pwa-auth-contract.yml`'s one assertion differs):
+The future PR must require all of the following green:
 
-1. `PWA Auth Contract`, including the corrected cache `v96` assertion.
+1. `PWA Auth Contract`, including the corrected cache `v96` assertion
+   (§7 item 1) **and** the newly added gate-1 step (§7 item 2) — this is
+   the promoted execution path for the 9-file/15-subtest Legacy Sync
+   Decommission contract set, replacing the collaboration-branch-only
+   `e2e-harness-manual.yml` step which is not promoted (§6).
 2. `E2E PR Smoke`:
    - `npm ci`
-   - `npm run test:e2e:tooling`
+   - `npm run test:e2e:tooling` (with the §7 item 3 `package.json`
+     deviation applied — otherwise this step is guaranteed to fail per
+     Correction §0 item 1)
    - `npm run test:e2e:self`
    - fail-closed parse of `npm run test:e2e:staging`
    - evidence-policy checks
    - `git diff --check`
-3. The complete accepted narrow runtime contract set (same categories the
-   v95 plan named, now also including the accepted Legacy Sync
-   Decommission contract set: `RESTORE-ORCH-01`, `WRITE-ORCH-01/03/04`,
-   `PTI-LOCKOUT-01`, `OFFLINE-ORCH-01`, `SW-NO-LEGACY-01`,
-   `DOSYNC-SIMPLIFY-01`, already proven 15/15 in the staging gate evidence
-   — see `docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md`).
+3. `RESTORE-ORCH-01`, `WRITE-ORCH-01/03/04`, `PTI-LOCKOUT-01`,
+   `OFFLINE-ORCH-01`, `SW-NO-LEGACY-01`, `DOSYNC-SIMPLIFY-01` — already
+   proven 15/15 in the staging gate evidence (see
+   `docs/collaboration/LEGACY_SYNC_DECOMMISSION_STAGING_GATE_EVIDENCE.md`)
+   and now given a defined promoted execution path via item 1 above.
 4. Static inline-script parse/startup-composition smoke.
-5. Exact changed-file and candidate-blob allowlist checks (§6, §8).
+5. Exact changed-file and candidate-blob allowlist checks (§6, §8),
+   including confirmation that `tests/e2e/pages-deployment-workflow-contract.test.mjs`
+   is absent and that `package.json`'s `test:e2e:tooling` value does not
+   contain that path.
 
 Because `main` has no confirmed branch protection or rulesets (unconfirmed
 this cycle — re-verify at execution time), green status must be checked
@@ -329,8 +505,7 @@ Identical mechanics to the v95 plan, unchanged:
    a Pages build/deployment.
 3. Publication may take up to ten minutes per GitHub documentation.
 4. The Pages API latest-build record must reach `built` with no error and
-   its `commit` must equal the exact merge commit, not candidate
-   `e8bcafa8`.
+   its `commit` must equal the exact merge commit, not the candidate SHA.
 5. The project site must then serve the accepted runtime bytes from that
    merge tree.
 
@@ -369,7 +544,7 @@ Poll for no more than ten minutes:
 3. Every `APP_SHELL` URL returns HTTP 200.
 4. Downloaded bytes for every curated product file hash exactly to the
    corresponding Git object in the authorized promotion merge tree.
-5. The 6 active changed runtime files also match candidate `e8bcafa8`
+5. The 6 active changed runtime files also match candidate `b5e36f4a`
    exactly.
 6. Live `sw.js` declares `crewbiq-driver-v96`.
 7. Startup/auth/restore, workspace isolation, roster, assignments, Load,
@@ -420,14 +595,22 @@ by, this document.
 
 ## 14. Readiness gates and stop conditions
 
-The plan is READY for independent review, not execution.
+The plan is **BLOCKED**, not yet ready for re-review sign-off — this
+revision closes the four findings from the prior review, but has not yet
+itself been independently re-reviewed.
 
 Stop before merge if any condition is true:
 
 - `main` moved from `bcfd74a2`.
 - The promotion diff contains a path outside the curated allowlist (§6).
-- Any active runtime blob differs from candidate `e8bcafa8`.
+- Any active runtime blob differs from the candidate tip in use.
 - The cache assertion is not exactly `v96`.
+- The gate-1 step (§7 item 2) is missing from the promoted
+  `pwa-auth-contract.yml`.
+- `package.json`'s `test:e2e:tooling` still references
+  `tests/e2e/pages-deployment-workflow-contract.test.mjs`.
+- `tests/e2e/pages-deployment-workflow-contract.test.mjs` is present in
+  the promotion diff.
 - Any required CI/check is missing, skipped, or red.
 - Claude has not accepted the actual promotion PR.
 - Exact coordinator merge authorization is absent.
@@ -443,7 +626,9 @@ Stop before merge if any condition is true:
 - `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued as a coverage
   task (unchanged from the v95 plan).
 - `.github/workflows/e2e-harness-manual.yml`'s promotion to `main` is a
-  separate, not-yet-started decision (§6).
+  separate, not-yet-started decision (§6) — now explicitly not required
+  for gate-1 coverage, since §7 item 2 provides an independent promoted
+  path.
 - No alternate-hosting redesign is part of this plan.
 
 ## 16. Preparation-through-PR execution evidence
