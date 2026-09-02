@@ -5,7 +5,7 @@
     async function restoreSession(options = {}) {
       deps.setFleetRestoreSettled(false);
       const sessionToken = String(options.sessionToken || deps.getSavedSessionToken()).trim();
-      const syncUrl = String(options.syncUrl || deps.getAuthSyncUrl()).trim();
+      const syncUrl = String(options.syncUrl || deps.defaultSyncUrl).trim();
       if (!sessionToken) throw deps.endpointError('auth_restore', 'sessionToken missing before restore');
       const data = await deps.authPost('auth_restore', { sessionToken }, syncUrl);
       deps.applyAuthRestoreData(data, syncUrl);

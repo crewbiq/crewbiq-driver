@@ -5,8 +5,10 @@ import vm from 'node:vm';
 
 // RESTORE-ORCH-01, specified in docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md
 // section 4: clean-device login and session restore, driven through the
-// ACTUAL index.html authPost()/getAuthSyncUrl() transport and the ACTUAL
-// startup-session.js coordinator - not restated claims, and not the
+// ACTUAL index.html authPost() transport (authPost() now resolves directly
+// against DEFAULT_SYNC_URL — the getAuthSyncUrl() resolution machinery was
+// removed since it never changed the actual network destination) and the
+// ACTUAL startup-session.js coordinator - not restated claims, and not the
 // mock-authPost fixture the existing coordinator test uses. This extracts
 // the bounded auth-transport slice of index.html by source location (the
 // same section()-slicing convention used by
@@ -117,7 +119,6 @@ function buildAuthContext() {
   vm.runInContext('let driver = null;', context);
   vm.runInContext(authTransportSlice, context, { filename: 'index-auth-transport-slice.js' });
   assert.equal(typeof context.authPost, 'function', 'the vm must expose the real extracted authPost()');
-  assert.equal(typeof context.getAuthSyncUrl, 'function', 'the vm must expose the real extracted getAuthSyncUrl()');
 
   return { context, localStorage, elements, nativeCalls, K, DEFAULT_SYNC_URL };
 }
@@ -155,7 +156,7 @@ test('RESTORE-ORCH-01: real authPost() reaches only the configured Orchestrator,
 });
 
 test('RESTORE-ORCH-01: real startup coordinator, wired to the REAL authPost() (not a mock), restores identity via the Orchestrator with exactly one restore and one delayed pull, and gates on PTI', async () => {
-  const { context, elements } = buildAuthContext();
+  const { context, elements, DEFAULT_SYNC_URL } = buildAuthContext();
   elements.loginSyncUrl = { value: '' };
   elements.loginStatus = { textContent: '', style: {} };
 
@@ -190,7 +191,7 @@ test('RESTORE-ORCH-01: real startup coordinator, wired to the REAL authPost() (n
     endpointError: (_action, message) => new Error(message),
     ensureDefaultTruckFromDriver: () => events.push('ensure-truck'),
     formatRestoreSummary: () => 'summary',
-    getAuthSyncUrl: () => context.getAuthSyncUrl(),
+    defaultSyncUrl: DEFAULT_SYNC_URL,
     getDriver: () => (driverState.crewId ? driverState : null),
     getPullFromCloud: () => () => { pullCalls += 1; },
     getSavedSessionToken: () => 'restored-session-token',
@@ -222,7 +223,7 @@ test('RESTORE-ORCH-01: real startup coordinator, wired to the REAL authPost() (n
 });
 
 test('RESTORE-ORCH-01: PTI gating and graceful degradation are preserved when wired to the real authPost()', async () => {
-  const { context, elements } = buildAuthContext();
+  const { context, elements, DEFAULT_SYNC_URL } = buildAuthContext();
   elements.loginSyncUrl = { value: '' };
   elements.loginStatus = { textContent: '', style: {} };
 
@@ -244,7 +245,7 @@ test('RESTORE-ORCH-01: PTI gating and graceful degradation are preserved when wi
     endpointError: (_action, message) => new Error(message),
     ensureDefaultTruckFromDriver: () => {},
     formatRestoreSummary: () => 'summary',
-    getAuthSyncUrl: () => context.getAuthSyncUrl(),
+    defaultSyncUrl: DEFAULT_SYNC_URL,
     getDriver: () => (driverState.crewId ? driverState : null),
     getPullFromCloud: () => null,
     getSavedSessionToken: () => 'restored-session-token',

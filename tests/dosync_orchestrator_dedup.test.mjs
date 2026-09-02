@@ -143,3 +143,105 @@ assert.equal(loads[0].synced, true, 'the local record must be marked synced afte
 assert.equal(savedAllCount > 0, true, 'local state must still be persisted after a successful write');
 
 console.log('DOSYNC-SIMPLIFY-01: ok (single collapsed Orchestrator write, native /v1/sync calls: ' + nativeSyncCalls.length + ')');
+
+// ── DOSYNC-SIMPLIFY-01 (failure path) ───────────────────────────────────────
+//
+// The collapse removes doSync()'s former legacy write; the Orchestrator is now
+// the SOLE durable authority (invariant §3.2 of LEGACY_SYNC_DECOMMISSION_CONTRACT.md).
+// A failed sole write must therefore behave like the old code's failure path
+// (which always threw from pushToCloud() on a genuine failure): stop before
+// the pull step, emit sync:error (not sync:success), not mark anything synced,
+// and report {ok:false}. This is a materially different code path from the
+// success case above and was not covered until this test — the collapse's
+// SUCCESS-path equivalence to the old two-step flow does not by itself prove
+// its FAILURE-path equivalence.
+
+const nativeSyncCallsFail = [];
+async function nativeFetchMockFail(url, init = {}) {
+  const call = {
+    url: String(typeof url === 'string' ? url : (url && url.url) || ''),
+    method: String((init && init.method) || 'GET').toUpperCase(),
+    body: typeof (init && init.body) === 'string' ? init.body : '',
+  };
+  if (call.url.includes('/v1/sync')) {
+    nativeSyncCallsFail.push(call);
+    return new Response(JSON.stringify({ ok: false, error: 'simulated Orchestrator failure' }), {
+      status: 503, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  throw new Error('Unexpected native fetch call in DOSYNC-SIMPLIFY-01 failure-path test: ' + call.method + ' ' + call.url);
+}
+
+const eventsFail = [];
+
+const storageMapFail = new Map();
+const localStorageFail = {
+  getItem(key) { return storageMapFail.has(key) ? storageMapFail.get(key) : null; },
+  setItem(key, value) { storageMapFail.set(key, String(value)); },
+  removeItem(key) { storageMapFail.delete(key); },
+};
+
+let toastMessages = [];
+const contextFail = {
+  console,
+  localStorage: localStorageFail,
+  document,
+  fetch: nativeFetchMockFail,
+  Response,
+  Headers,
+  Request,
+  URLSearchParams,
+  setTimeout,
+  clearTimeout,
+  Math,
+  Date,
+  toast: (msg) => { toastMessages.push(msg); },
+};
+contextFail.window = contextFail;
+contextFail.globalThis = contextFail;
+
+vm.runInNewContext(runtime, contextFail, { filename: 'core-runtime.js' });
+vm.runInNewContext(syncSource, contextFail, { filename: 'sync.js' });
+
+contextFail.CrewBIQCore.events.on('sync:success', () => eventsFail.push('sync:success'));
+contextFail.CrewBIQCore.events.on('sync:error', () => eventsFail.push('sync:error'));
+
+localStorageFail.setItem('fiqD_sessionToken', 'token-dedup-2');
+
+const driverFail = { crewId: 'CBQ-DEDUP-FAIL' };
+let loadsFail = [{ id: 'load_fail_1', synced: false, gross: 200 }];
+let ptiLogFail = [];
+let disputesFail = [];
+let savedAllCountFail = 0;
+
+contextFail.CrewBIQSync.init({
+  getDriver: () => driverFail,
+  getLoads: () => loadsFail,
+  setLoads: (v) => { loadsFail = v; },
+  getPtiLog: () => ptiLogFail,
+  setPtiLog: (v) => { ptiLogFail = v; },
+  getDisputes: () => disputesFail,
+  setDisputes: (v) => { disputesFail = v; },
+  saveAll: () => { savedAllCountFail += 1; },
+  getTimer: () => null,
+  setTimer: () => {},
+});
+
+const failResult = await contextFail.CrewBIQSync.doSync();
+
+assert.equal(failResult.ok, false, 'doSync() must report failure when the sole Orchestrator write fails: ' + JSON.stringify(failResult));
+assert.ok(failResult.error, 'doSync() must surface an error message on sole-write failure');
+assert.equal(
+  nativeSyncCallsFail.length,
+  1,
+  'a failed write must not be retried within the same doSync() call, and must not be followed by a pull attempt',
+);
+assert.equal(loadsFail[0].synced, false, 'a failed sole write must NOT mark the local record as synced (it is pending/retryable, not durably saved)');
+assert.equal(eventsFail.includes('sync:success'), false, 'a failed sole write must not emit sync:success');
+assert.ok(eventsFail.includes('sync:error'), 'a failed sole write must emit sync:error');
+assert.ok(
+  toastMessages.some(m => /Sync failed/i.test(m)),
+  'the user-facing toast must reflect a real failure, not a masked partial success',
+);
+
+console.log('DOSYNC-SIMPLIFY-01 (failure path): ok (sole write failure stops before pull, no synced-marking, sync:error emitted)');

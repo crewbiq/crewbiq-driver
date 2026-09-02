@@ -793,7 +793,7 @@
       <button class="btn ghost" onclick="toggleSettingsAdvancedSync()" style="padding:10px;margin-top:4px" id="advSettingsBtn">🔒 Advanced Settings</button>
       <div id="settingsAdvancedSync" style="display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:12px">
         <div class="muted" style="font-size:12px;margin-bottom:10px;color:var(--am)">Only change these if CrewBIQ support tells you to.</div>
-        <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..." onchange="saveAdvancedSyncSettings(false)"></div>
+        <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app" onchange="saveAdvancedSyncSettings(false)"></div>
         <div class="sfield">
           <div class="slabel">Orchestrator Sync URL</div>
           <input id="setOrchestratorUrl" placeholder="https://crewbiq-orchestrator-production.up.railway.app/v1/sync" onchange="saveAdvancedSyncSettings(false)">
@@ -1446,8 +1446,10 @@ function runLaunchCleanResetOnce() {
 // Orchestrator, ignoring the URL argument entirely, so this value is never
 // actually requested for any of those calls. It still needs to be a
 // non-empty string: several call sites guard on `if (!syncUrl) throw ...`
-// before making a matched call, and this is the terminal fallback in
-// getAuthSyncUrl()'s resolution chain.
+// before making a matched call. The former getAuthSyncUrl() resolution
+// chain (login-field override / localStorage / driver.syncUrl) has been
+// removed since none of it ever changed the actual network destination;
+// every former caller now uses this constant directly.
 const DEFAULT_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app';
 function migrateStorage(){
   let v = parseInt(localStorage.getItem(K+'schemaVersion')||'1');
@@ -1587,7 +1589,7 @@ async function restoreFromCloud(){
   if(sessionToken){
     setLoginStatus('Restoring cloud data...');
     try{
-      var restored = await restoreSession({sessionToken:sessionToken, syncUrl:getAuthSyncUrl(), silent:false});
+      var restored = await restoreSession({sessionToken:sessionToken, syncUrl:DEFAULT_SYNC_URL, silent:false});
       boot();
       return restored;
     }catch(e){
@@ -1766,15 +1768,6 @@ function formatRestoreSummary(data, fleetRestore){
     ownerCounts.driverProfiles + ' driver(s)'
   ].join(', ');
 }
-function getAuthSyncUrl(){
-  const input=(document.getElementById('loginSyncUrl')||{}).value || '';
-  const saved=localStorage.getItem(K+'_savedSyncUrl') || '';
-  const driverUrl=(driver&&driver.syncUrl) || '';
-  const trimmedInput=String(input||'').trim();
-  const trimmedSaved=String(saved||'').trim();
-  if(trimmedInput && trimmedInput !== DEFAULT_SYNC_URL && trimmedInput !== trimmedSaved) return trimmedInput;
-  return String(trimmedSaved || driverUrl || trimmedInput || DEFAULT_SYNC_URL).trim();
-}
 function getDeviceId(){
   try{
     let id=localStorage.getItem(K+'deviceId');
@@ -1798,7 +1791,7 @@ function showAuthTab(tab){
   setLoginStatus('');
 }
 async function authPost(type, payload={}, syncUrlOverride=''){
-  const syncUrl=String(syncUrlOverride || getAuthSyncUrl()).trim();
+  const syncUrl=String(syncUrlOverride || DEFAULT_SYNC_URL).trim();
   if(!syncUrl) throw new Error('Sync URL is required');
   const resp=await fetch(syncUrl, {
     method:'POST',
@@ -1822,7 +1815,7 @@ function getWorkspaceDriverRosterAdapter(){
     workspaceDriverRosterAdapter = window.CrewBIQWorkspaceDriverRoster.create({
       request: async function(action, payload){
         if(action !== 'workspace_driver_roster_read') throw new Error('Unsupported roster action');
-        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        const syncUrl=String(DEFAULT_SYNC_URL || '').trim();
         if(!syncUrl) throw new Error('Sync URL is required');
         const resp=await fetch(syncUrl, {
           method:'POST',
@@ -1856,7 +1849,7 @@ function getDriverTruckAssignmentAdapter(){
       request: async function(action, payload){
         const supported=['driver_truck_assignment_current_read','driver_truck_assignment_history_read','driver_truck_assignment_as_of_read'];
         if(!supported.includes(action)) throw new Error('Unsupported DriverTruckAssignment action');
-        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        const syncUrl=String(DEFAULT_SYNC_URL || '').trim();
         if(!syncUrl) throw new Error('Sync URL is required');
         const resp=await fetch(syncUrl, {
           method:'POST',
@@ -1880,7 +1873,7 @@ function getAccountDriverLinkAdapter(){
     accountDriverLinkAdapter = window.CrewBIQIdentityLink.create({
       request: async function(action, payload){
         if(action !== 'account_driver_link_read') throw new Error('Unsupported AccountDriverLink action');
-        const syncUrl=String(getAuthSyncUrl() || '').trim();
+        const syncUrl=String(DEFAULT_SYNC_URL || '').trim();
         if(!syncUrl) throw new Error('Sync URL is required');
         const resp=await fetch(syncUrl, {
           method:'POST',
@@ -2002,7 +1995,7 @@ function applyAuthRestoreData(data, syncUrl){
     name:'Driver', email:'', nickname:'', crewId:'', driverId:'', ownerKey:'',
     company:'', truckName:'', unitNumber:'', plate:'',
     teamDriver:'', teamRate:0, payType:'cpm', cpmRate:0, grossPercent:0, cpmBase:'loaded',
-    syncUrl:syncUrl || getAuthSyncUrl() || DEFAULT_SYNC_URL, ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
+    syncUrl:syncUrl || DEFAULT_SYNC_URL, ptiSchedule:localStorage.getItem(K+'_savedPtiSched') || 'daily'
   };
   driver={
     ...base,
@@ -2015,10 +2008,8 @@ function applyAuthRestoreData(data, syncUrl){
     ownerKey:data.ownerKey || profile.ownerKey || profileDriver.ownerKey || '',
     name:profileDriver.name || nickname || (email ? email.split('@')[0] : '') || (previousDriverForFallback&&previousDriverForFallback.name) || 'Driver',
     // syncUrl is device/environment config (which Orchestrator this device talks to), not
-    // personal user data — getAuthSyncUrl() legitimately falls back to whatever driver.syncUrl
-    // currently holds regardless of switch/refresh, and other call sites (login screen prefill)
-    // rely on that same behavior. Left ungated on purpose; only personal fields are guarded.
-    syncUrl:syncUrl || getAuthSyncUrl() || DEFAULT_SYNC_URL,
+    // personal user data — left ungated on purpose; only personal fields are guarded.
+    syncUrl:syncUrl || DEFAULT_SYNC_URL,
     assignments:data.assignments || profile.assignments || [],
     currentAssignment:assignment,
     currentAssignmentId:(assignment&&assignment.assignmentId) || profile.currentAssignmentId || profileDriver.currentAssignmentId || ''
@@ -2474,7 +2465,7 @@ function getStartupCoordinator(){
     getDriver:()=>driver,
     setFleetRestoreSettled,
     getSavedSessionToken,
-    getAuthSyncUrl,
+    defaultSyncUrl:DEFAULT_SYNC_URL,
     endpointError,
     authPost,
     applyAuthRestoreData,
@@ -2502,7 +2493,7 @@ function restoreSession(options={}){
   return getStartupCoordinator().restoreSession(options);
 }
 async function authLogin(){
-  const syncUrl=getAuthSyncUrl();
+  const syncUrl=DEFAULT_SYNC_URL;
   const emailOrNickname=((document.getElementById('authLoginId')||{}).value || '').trim();
   const password=((document.getElementById('authLoginPassword')||{}).value || '').trim();
   if(!syncUrl) return setLoginStatus('Sync URL is required','err');
@@ -2530,7 +2521,7 @@ async function authLogin(){
   }
 }
 async function authSignup(){
-  const syncUrl=getAuthSyncUrl();
+  const syncUrl=DEFAULT_SYNC_URL;
   const email=((document.getElementById('authSignupEmail')||{}).value || '').trim();
   const nickname=((document.getElementById('authSignupNickname')||{}).value || '').trim();
   const password=((document.getElementById('authSignupPassword')||{}).value || '').trim();

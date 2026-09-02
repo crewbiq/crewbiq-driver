@@ -726,8 +726,14 @@
         const syncedDisputeIds = new Set(payload.disputes.map(x => x.id));
 
         orchestratorCopy = await pushToOrchestrator(payload);
-        if (options.forceAll && orchestratorCopy && !orchestratorCopy.ok && !orchestratorCopy.skipped) {
-          throw new Error('PostgreSQL copy failed: ' + describeOrchestratorCopy(orchestratorCopy));
+        // The Orchestrator is now the sole durable authority (no legacy write
+        // behind it to fall back on) — a failed write must stop before pull,
+        // must not mark anything synced, and must surface as sync:error, not
+        // a partial "success" with a failure label baked into the message.
+        // This applies regardless of forceAll now; skipped (e.g. no
+        // Orchestrator URL configured) is not a failure and does not throw.
+        if (orchestratorCopy && !orchestratorCopy.ok && !orchestratorCopy.skipped) {
+          throw new Error('Sync failed: ' + describeOrchestratorCopy(orchestratorCopy));
         }
 
         if (orchestratorCopy.ok) {
