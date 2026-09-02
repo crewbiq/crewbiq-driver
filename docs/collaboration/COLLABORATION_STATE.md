@@ -76,21 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Write Orchestrator Contract Tests
+Legacy Sync Decommission Contract Closure / Cleanup Decision Gate
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+CLOSED / ACCEPT — PRODUCT OWNER DECISION REQUIRED BEFORE CLEANUP
 
 Current owner:
-Codex
+Product Owner
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Added tests/write_orchestrator_owner_entity_save.test.mjs (WRITE-ORCH-04), the last contract test named in the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md's section 4 test list. Exercises the REAL saveServiceLog()/saveServiceLogs() and queueFleetConfigSync() from index.html, the REAL forceFullSync()/doSync() chain from sync.js, and the real core-runtime.js dispatcher (service log chosen as the representative owner-entity workflow; truck-selector and service-page rendering stubbed as peripheral UI concerns covered by other tests). Proves the entry persists synchronously to the driver-scoped local storage key with its resolved truck attribution, and the debounced (800ms) fleet-config sync reaches only the configured Orchestrator, never script.google.com. Verified via two mutations (disabling core-runtime.js's dispatch; removing saveServiceLog()'s own persistence call) that the test has teeth. Full 7-file/9-test regression set passes clean.
-
-With WRITE-ORCH-01/03/04 and PTI-LOCKOUT-01/OFFLINE-ORCH-01/RESTORE-ORCH-01 all now closed, every contract test named in LEGACY_SYNC_DECOMMISSION_CONTRACT.md section 4 is accounted for.
+All section 4 decommission contract tests are accepted. Runtime cleanup has not begun. Canonical staging journey coverage is already closed as `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`.
 
 Latest implementation commit:
 aef61dec16de503802bfa97b0dfff122288bb79e
@@ -99,25 +97,28 @@ Latest correction commit:
 aef61dec16de503802bfa97b0dfff122288bb79e
 
 Latest review commit:
-15c59c03ac38b13b3da41afd8127c6b59c8afec9
+27009b035607178f3aecef95bc07eddffabced93
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of the new test)
+`CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN` — accepted contract section 7 requires Product Owner confirmation before atomic legacy cleanup.
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` remains queued. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work.
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain cleanup observations, not authorized work. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed and must not be re-queued.
 
 Decision gate:
-AUTO_CONTINUE_ALLOWED
+COORDINATOR_REQUIRED
 
 Next required actor:
-Codex
+Product Owner
+
+Decision required:
+Does the `crewbiq-expenses` Apps Script endpoint receive any distinct, non-duplicated data or serve any separate business/reporting consumer that must be preserved? Answer `NO` to authorize its removal with the accepted atomic dead-literal/dedup cleanup, or identify the exact data/consumer that must be retained.
 
 Next bounded action:
-Independently re-verify commit aef61dec16de503802bfa97b0dfff122288bb79e: run the new test and the cited regression set, confirm it genuinely exercises real index.html/sync.js/core-runtime.js code. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, since the full decommission-contract test slice is now complete, decide the next bounded action: the dead-literal/dedup-simplification cleanup itself, CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED, or Product Owner scope routing. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR/SIDR status, or telemetry.
+No implementation until the decision is recorded. If `NO`, authorize Claude to prepare the smallest atomic runtime cleanup defined by `LEGACY_SYNC_DECOMMISSION_CONTRACT.md`, with cache rotation and all accepted contract regressions; Codex independently reviews. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
 <!-- CURRENT_END -->
 
 
@@ -4047,3 +4048,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - With this test, every contract test named in the accepted LEGACY_SYNC_DECOMMISSION_CONTRACT.md's section 4 (PTI-LOCKOUT-01, OFFLINE-ORCH-01, RESTORE-ORCH-01, WRITE-ORCH-01/03/04) is now implemented and, pending this review, either accepted or awaiting review.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR/SIDR status, or telemetry change occurred; test file only.
+### 2026-09-02 - Codex ACCEPT: WRITE-ORCH-04 / contract-test closure
+
+- Reviewed implementation commit `aef61dec16de503802bfa97b0dfff122288bb79e`; review commit `27009b035607178f3aecef95bc07eddffabced93`.
+- Confirmed dynamic service-log persistence and real Orchestrator-only sync composition.
+- Exact 7-file regression set: `9 passed, 0 failed`.
+- Verdict: `CLOSED / ACCEPT`; implementation blocking findings: `NONE`.
+- All section 4 decommission contract tests are accepted.
+- Reconciled stale queue text: `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` was already closed by `CANONICAL_STAGING_JOURNEY_EVIDENCE.md` with `STAGING_CANONICAL_IDENTITY_COVERAGE_PASS`.
+- Runtime cleanup is gated by contract section 7 question `CREWBIQ_EXPENSES_DISTINCT_CONSUMER_UNKNOWN`; Next required actor: Product Owner.
+- Runtime/product/configuration files changed by review: `NONE`.
