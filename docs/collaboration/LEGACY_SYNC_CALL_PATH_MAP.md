@@ -16,6 +16,41 @@ by a repository-wide search: `index.html`, `sync.js`, `restore-hotfix.js`,
 `sw.js`, `startup-session.js`, `offline-sync-queue.js`,
 `dispute-tombstone-hotfix.js`, `owner-snapshot-hotfix.js`, `pti.js`.
 
+## Corrections applied per the transport-interception discovery (2026-09-01)
+
+E. **Every call site documented in this map traces source-level
+   reachability, not effective runtime destination — a distinction this map
+   did not draw.** All of §4A's "Destination" and §4B's callers describe
+   what `fetch(driver.syncUrl, ...)`/`fetch(getAuthSyncUrl(), ...)` *would*
+   reach if `global.fetch` were the true native fetch. It is not: `core-
+   runtime.js` (loaded via `core.js`'s `document.write`, synchronously,
+   before `sync.js`/`restore-hotfix.js`/`pti.js` ever run) installs its own
+   `global.fetch = routedFetch`, which inspects the JSON body's `type`
+   field — not the URL — and routes every legacy action-envelope type this
+   map documents (`auth_login`, `auth_signup`, `auth_restore`,
+   `auth_logout`, `driver_report`, `pti_report`, and the workspace/roster/
+   assignment reads) to the real Orchestrator via `nativeFetch`, discarding
+   the supplied URL entirely. This is now dynamically proven, not just
+   traced, by `tests/orchestrator_transport.test.mjs` and
+   `tests/dosync_orchestrator_dedup.test.mjs`
+   (commits `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f` and
+   `73b903291224268c592deee03106fc696a6368e9`). Full mechanism trace in
+   `docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md`.
+   Every "Destination" cell in §4A/§4B below should now be read as "the URL
+   the code supplies to `fetch()`," not "where the request actually goes" —
+   the latter is the Orchestrator for every entry, confirmed dynamically.
+F. **The `doSync()` two-step push is now understood to be redundant, not
+   sequential-then-secondary.** §4A originally described `pushToCloud()` as
+   reaching Apps Script first, with `pushToOrchestrator()` as a conditional
+   secondary copy. Since `pushToCloud()`'s call is itself intercepted and
+   routed to the Orchestrator's `/v1/sync` surface, both steps write to the
+   same destination for the same `record_id` — `pushToOrchestrator()`'s call
+   is caught by `core-runtime.js`'s in-memory dedup map and returns
+   `client_deduplicated: true` without a second real network write,
+   dynamically confirmed by `tests/dosync_orchestrator_dedup.test.mjs`. This
+   is safe (no duplicate write occurs) but redundant (two function calls
+   producing one real write via client-side dedup, rather than one call).
+
 ## Corrections applied from the third draft (per Codex re-review)
 
 D. **Owner-snapshot `scheduleFullSync()` reachability was incomplete.** The
@@ -208,27 +243,34 @@ client-side telemetry that does not currently exist in the reviewed source.
 No such evidence was located or examined in this pass, and none is proposed
 or added by this document.
 
-## 6. Summary (corrected)
+## 6. Summary (reconciled 2026-09-01)
 
-Every criterion this map was commissioned to inform remains **BLOCKED** as
-classified in `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`. Precisely: two
-distinct hardcoded Apps Script endpoints exist; eight direct call sites
-(`authPost` + 3 inline handlers + `pushToCloud` + `pullFromCloud` +
-`syncPTIEntry` + `syncExpensesNow`) can reach an Apps Script URL under the
+The gap-inventory criteria this map informs are no longer `BLOCKED`; they
+are `PARTIAL` (see the reconciled `CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md`
+for the exact reasoning). What this map's own §1-§4 evidence establishes,
+precisely: two distinct hardcoded Apps Script *literals* exist in source;
+eight direct call sites (`authPost` + 3 inline handlers + `pushToCloud` +
+`pullFromCloud` + `syncPTIEntry` + `syncExpensesNow`) construct a `fetch()`
+call whose *supplied URL argument* can be an Apps Script URL under the
 default resolution chain; at least eleven additional callers (§4B) —
 including a dependency-injected alias fired on every load save/edit, a
-timer-driven hourly/midnight auto-sync scheduler (reached only once
-`showApp()` runs and `assertReady()` passes), UI actions, and cross-file
-hotfix hooks — trigger those same sinks, each subject to its own specific
-precondition (readiness flags, debounce windows, pending-queue checks,
-installation guards) rather than firing unconditionally in every app state.
-`doSync()`'s push order (Apps Script first, Orchestrator second, contingent
-on the first succeeding) is confirmed, and `restoreSession()` itself never
-calls `boot()` — that sequencing is done by whichever caller invokes
-`restoreSession()`. This is static reachability evidence only: it does not
-establish live execution frequency, which specific branches actually fire in
-current production traffic, or actual Apps Script request volume — for
-which no observation mechanism accessible in this pass exists (§5). No
-removal, disabling, or configuration change is proposed here; this document
-exists solely to give a future de-risked removal effort a complete,
+timer-driven hourly/midnight auto-sync scheduler, UI actions, and cross-file
+hotfix hooks — trigger those same call sites. **All of this is now known,
+via dynamic test execution rather than static tracing, to be dead-letter at
+the network layer**: `core-runtime.js`'s `global.fetch` dispatcher (§
+Correction E above) intercepts every one of these calls by JSON body `type`
+before `nativeFetch` is ever invoked with the supplied URL, and routes them
+to the real Orchestrator instead. `doSync()`'s two-step push is confirmed
+redundant-but-safe (Correction F): both steps resolve to one real write via
+client-side dedup, not a legacy-then-Orchestrator sequence.
+`restoreSession()` itself never calls `boot()` — that sequencing is done by
+whichever caller invokes `restoreSession()` — this earlier correction is
+unaffected by the interception discovery.
+
+This remains evidence of what the exact current source does under test, not
+proof of live production request volume, which stays structurally
+unobservable via Orchestrator-side logs (§5, unchanged). No removal,
+disabling, or configuration change is proposed here; this document, along
+with the two test commits above, exists to give
+`LEGACY_SYNC_DECOMMISSION_CONTRACT.md`'s now-reframed cleanup work an
 evidence-backed starting map.

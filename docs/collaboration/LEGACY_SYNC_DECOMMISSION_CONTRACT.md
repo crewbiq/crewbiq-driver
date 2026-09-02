@@ -10,6 +10,41 @@ Prepared by: Claude (implementer role).
 Corrected by: Claude, after independently re-verifying every Codex NEEDS_FIX
 finding against the accepted map and the exact production source.
 
+## Corrections applied per the transport-interception discovery (2026-09-01)
+
+This contract's entire premise — that the mapped callers currently reach
+Apps Script and must be retargeted to the Orchestrator — is now known to be
+wrong for the network-destination half of that claim, per dynamic test
+evidence (`tests/orchestrator_transport.test.mjs`,
+`tests/dosync_orchestrator_dedup.test.mjs`, commits
+`308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f` and
+`73b903291224268c592deee03106fc696a6368e9`; full mechanism in
+`docs/collaboration/LEGACY_SYNC_TRANSPORT_INTERCEPTION_CORRECTION.md`).
+`core-runtime.js`'s `global.fetch` dispatcher already routes every mapped
+call to the real Orchestrator by JSON body `type`, regardless of the
+supplied URL. This reframes — but does not eliminate — the remaining work:
+
+- **Every `REMOVE`/`REPLACE_WITH_ORCHESTRATOR` classification in §2 below
+  still describes the correct target code shape.** What changes is why:
+  this is no longer "retarget currently-effective live traffic away from
+  Google," it is **dead-literal and dead-branch cleanup** (the Apps Script
+  URLs and the `driver.syncUrl`-resolution machinery are unreachable at the
+  network layer already) plus **simplification of a redundant,
+  client-side-deduplicated double-write** (`doSync()`'s `pushToCloud()` +
+  `pushToOrchestrator()` both resolve to the same Orchestrator write for the
+  same `record_id`; the second is a no-op confirmed by
+  `dosync_orchestrator_dedup.test.mjs`'s `client_deduplicated: true`
+  assertion, not a meaningfully separate operation).
+- §4's contract tests below are **substantially already satisfied** by the
+  accepted dynamic evidence tests, not merely specified — see the
+  per-test notes added below. Remaining test work is narrower than
+  originally scoped: primarily proving the *simplified* single-write
+  `doSync()` path behaves identically to today's redundant two-step path,
+  and the service-worker literal-removal regression once that cleanup
+  actually happens.
+- §7's open Product Owner decision (whether `crewbiq-expenses` carries
+  non-redundant data) is unaffected by this discovery and remains open.
+
 ## Corrections applied from the first draft (per Codex review)
 
 1. **`CALLER_CLASSIFICATION_SCHEMA_VIOLATION`.** `pushToOrchestrator()` was
@@ -45,8 +80,12 @@ effort must satisfy.
 
 ## 1. Target end-state behavior
 
-Once decommissioned, the PWA must reach Orchestrator exclusively for every
-operation currently reaching Apps Script:
+The PWA already reaches the Orchestrator exclusively, at the network level,
+for every mapped operation — confirmed dynamically, not merely targeted.
+"Decommissioning" now means making the *source* match that already-true
+runtime behavior: removing the dead literals/branches that still describe a
+path the dispatcher never lets execute, and collapsing the redundant
+double-write into one call. The target shape:
 
 - **Auth** (`login`, `signup`, `logout`, `auth_restore`): resolved and
   transported via the Orchestrator's own auth endpoints, never
@@ -72,6 +111,14 @@ callers) is classified below. `REMOVE`: delete the call/branch entirely.
 Orchestrator's existing (already-implemented) push/pull surface.
 `PRESERVE_LOCAL_ONLY`: keep the local-storage/UI behavior unchanged; it does
 not need a network destination at all.
+
+**Reframed per the transport-interception discovery**: for every row below,
+the network destination is already the Orchestrator at runtime (confirmed
+dynamically). `REPLACE_WITH_ORCHESTRATOR` in this table now means "delete
+the dead `getAuthSyncUrl()`/`driver.syncUrl` resolution machinery this
+caller feeds through, since the dispatcher already ignores it" — not
+"change where this caller's traffic goes," which would be a behavior
+change; here it is a no-behavior-change cleanup.
 
 | Caller (map ref) | Classification | Rationale |
 |---|---|---|
@@ -156,29 +203,43 @@ related mechanism that already is, and must remain, local-only — see §3.
 
 ## 4. Narrow contract tests a future implementation must add
 
-These are *specifications* for tests, not tests themselves — writing and
-running them is implementation work, out of scope for this document.
+These remain *specifications* for tests — writing/running the still-open
+ones is implementation work, out of scope for this document. Each now notes
+whether accepted dynamic evidence already satisfies it.
 
 - `RESTORE-ORCH-01`: clean-device login/signup/session-restore succeeds
-  using only Orchestrator endpoints, with the Apps Script default URL
-  reachable-but-never-called (assert zero requests to any
+  using only Orchestrator endpoints, with zero requests to any
   `script.google.com`/`crewbiq-expenses` origin during the full restore
-  flow).
+  flow. **Substantially satisfied** by `tests/orchestrator_transport.test.mjs`'s
+  `auth_login`/`auth_signup`/`auth_restore`/`auth_logout` cases (commit
+  `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f`); still open: an end-to-end
+  version exercising the real PWA boot sequence rather than `core-runtime.js`
+  in isolation.
 - `WRITE-ORCH-01` through `-04`: a load save, a PTI submission, an expense
-  save, and an owner-entity save (truck/driver profile/fuel/service log/
-  deduction) each persist locally immediately and reach only the
-  Orchestrator over the network, with no Apps Script request observed.
+  save, and an owner-entity save each persist locally immediately and reach
+  only the Orchestrator over the network. **Partially satisfied**: the
+  `driver_report`/`pti_report` dispatch cases in `orchestrator_transport.test.mjs`
+  and the full `doSync()` run in `dosync_orchestrator_dedup.test.mjs` cover
+  loads and PTI; expense and other owner-entity saves through
+  `syncExpensesNow()`/`attachExpensesToReport()` remain untested end-to-end
+  and are still open.
 - `PTI-LOCKOUT-01`: with the Orchestrator deliberately made unreachable,
-  submitting today's/this-week's PTI still clears `needsPTI()`'s blocker
-  (local-first write is unaffected by sync failure) — directly protects
-  invariant §3.1.
+  submitting today's/this-week's PTI still clears `needsPTI()`'s blocker —
+  directly protects invariant §3.1. **Still open**: not covered by the
+  accepted tests, which did not simulate an unreachable Orchestrator.
 - `OFFLINE-ORCH-01`: a failed authenticated Orchestrator write, while
   offline, retries exactly once with the same durable operation identity
-  after reconnect (extends the existing `OFFLINE-01` evidence to the
-  Orchestrator-only path) — protects invariant §3.3.
+  after reconnect — protects invariant §3.3. **Still open**.
 - `SW-NO-LEGACY-01`: after the service worker's Apps Script hostname clause
   is removed, no cached or live PWA request targets `script.google.com`/
-  `googleapis.com` across the full accepted staging acceptance suite.
+  `googleapis.com`. **Still open** — this is now a cleanup regression test
+  (proving removal of dead code doesn't change behavior), not an
+  investigation of whether the clause is load-bearing.
+- `DOSYNC-SIMPLIFY-01` (new): once `doSync()`'s two-step push is collapsed
+  into one Orchestrator write, prove the simplified path produces
+  byte-identical (aside from timing) request/response behavior to today's
+  redundant-but-deduplicated two-step path for the same inputs — a
+  regression guard for the cleanup itself, not a new behavior to verify.
 
 ## 5. Staging/production evidence gates
 
@@ -193,10 +254,13 @@ Before any removal PR may be considered for merge:
    accessible telemetry for it, a removal PR must not claim "zero
    production Google traffic" as a pre-condition it can prove. Instead, the
    gate is: the PWA's own shipped code, at the exact commit under review,
-   contains no remaining call site that can construct a request to
+   contains no remaining source reference that can construct a request to
    `script.google.com`/`googleapis.com` (i.e., §2's `REMOVE` classifications
    are structurally complete) — a static-source claim, not a live-traffic
-   claim.
+   claim. Note this is now a *stronger* gate than "no traffic occurs" — the
+   accepted dynamic tests already show no traffic occurs even with the
+   literals present; this gate additionally requires the dead literals
+   themselves to be gone from source.
 4. Product Owner sign-off (§6) on the one currently open decision.
 5. A bounded **post-publication production evidence gate** — required by
    this contract, not authorized by it; it names what a future deployment
