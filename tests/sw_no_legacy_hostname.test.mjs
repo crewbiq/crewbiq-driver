@@ -48,6 +48,7 @@ const LEGACY_CONSTRUCTS = [
   { name: 'crewbiq-expenses literal', pattern: /crewbiq-expenses/ },
   { name: 'getAuthSyncUrl() (removed resolution machinery)', pattern: /function\s+getAuthSyncUrl\s*\(/ },
   { name: 'syncExpensesNow() (removed dedicated expense write)', pattern: /function\s+syncExpensesNow\s*\(/ },
+  { name: 'DEFAULT_SYNC_URL (removed overridable-syncUrl abstraction, renamed to ORCHESTRATOR_BASE_URL)', pattern: /const\s+DEFAULT_SYNC_URL\s*=/ },
 ];
 
 test('SW-NO-LEGACY-01 static (PWA-wide): every shipped app-shell file is free of all accepted legacy constructs', () => {
