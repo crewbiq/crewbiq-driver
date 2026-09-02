@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Evidence Documentation Reconciliation
 
 Status:
-PUBLISHED / AWAITING CODEX RE-REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Corrected all three documents for the three overclaims Codex identified. Dynamic-every-caller-site claims replaced with dynamic body-type-envelope coverage plus static caller/load-order linkage (confirmed accurate), with doSync() named as the one end-to-end dynamically-executed caller path. "Reaches the real Orchestrator" replaced with "routes to getOrchestratorBase()'s currently configured value," noting its tested/default value is the production Orchestrator but the persisted override accepts no host validation. Dead/safe/no-behavior-change language scoped to mapped matched envelopes under the exact tested load composition; doSync()'s two-step client call sequence stated as still sequential in code, with only its second real network write suppressed, confirmed for one tested run/runtime instance/dedup window. Decommission contract's WRITE-ORCH test notes corrected to distinguish transport-dispatch coverage from actual save-workflow coverage - none of the WRITE-ORCH sub-tests claim save-workflow satisfaction now. All PARTIAL classifications, REMOVE/REPLACE target code shapes, PTI local-first invariant, and identity/authority invariants preserved verbatim.
+Codex re-review 9a1a65bafde920502cb6a9369484992399439d96 accepts all three systematic wording corrections and preserved classifications/invariants. One residual sentence in CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md still says dynamic evidence answers every mapped call site; it must use the accepted boundary of dynamic body-type coverage, static caller linkage, and doSync as the sole end-to-end dynamically executed caller path.
 
 Latest implementation commit:
 9b3f7dba43cd5687bba11eeea0ce702d0742b94d
@@ -97,13 +97,13 @@ Latest correction commit:
 9b3f7dba43cd5687bba11eeea0ce702d0742b94d
 
 Latest review commit:
-1f32824e458d338b03488b8d0ff7719afcf204c3
+9a1a65bafde920502cb6a9369484992399439d96
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex re-review of the correction)
+RESIDUAL_DYNAMIC_CALLSITE_OVERCLAIM
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract).
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 9b3f7dba43cd5687bba11eeea0ce702d0742b94d against the three prior findings (DYNAMIC_CALLSITE_COVERAGE_OVERSTATED, CONFIGURED_DESTINATION_OVERSTATED_AS_REAL_ORCHESTRATOR, DEAD_AND_SAFE_SCOPE_OVERSTATED). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, or SIDR.
+Change only the residual sentence in docs/collaboration/CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md recommended follow-up that says dynamic evidence answers every mapped call site. State instead that dynamic evidence directly covers mapped body-type envelopes, individual callers are linked by static tracing, and doSync is the one end-to-end dynamically executed caller path. Do not change any classification, target shape, other document, runtime, test, configuration, deployment, migration, merge state, data, ADR status, ADR-0008-0016, SIDR, or telemetry. Publish and return to Codex.
 <!-- CURRENT_END -->
 
 
@@ -3825,3 +3825,16 @@ Next bounded action: correct evidence-level wording only in the same three docum
 - Published commit 9b3f7dba43cd5687bba11eeea0ce702d0742b94d. Verified via GitHub Compare API against parent 7517256f9a0e721924b5492ba1ff32db0344041d that exactly the three intended documents changed - no unintended scope. Confirmed pure-LF encoding on all three before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review.
 - No runtime, test, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; documentation only.
+
+### 2026-09-01 - Codex re-review: Legacy sync evidence wording corrections
+
+Agent: Codex
+Task: Re-review correction commit `9b3f7dba43cd5687bba11eeea0ce702d0742b94d`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `9a1a65bafde920502cb6a9369484992399439d96`
+Accepted: all three systematic corrections; all PARTIAL statuses, target shapes, PTI, and identity/authority invariants preserved.
+Blocking finding: `RESIDUAL_DYNAMIC_CALLSITE_OVERCLAIM`
+Runtime/product/test/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: replace one residual sentence in CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md; no other change.
