@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Decommission PTI Lockout Contract Test
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Added tests/pti_lockout_orchestrator_unavailable.test.mjs (PTI-LOCKOUT-01). Loads the real core-runtime.js, sync.js, and pti.js in one vm context with every fetch failing (simulated unreachable Orchestrator), then calls the real submitPTI(). Proves: the entry persists to local ptiLog synchronously, saveAll() is called, needsPTI() becomes false for the daily cadence after submission, the mandatory blocker's classList "show" is removed, submitPTI() does not throw, and no workspaceId/truckId/driverId is fabricated when canonical attribution authority is unavailable. Discovered while writing the test: PTI submission makes two independent network attempts (syncPTIEntry()'s own fetch plus sync.js's pti:submitted event-forwarder), both of which fail gracefully via their own internal try/catch - confirmed by the test's passing assertions and log output. Verified the assertion has teeth by temporarily mutating a local copy of pti.js to skip the blocker-clear call (test correctly failed), restored via git checkout, then re-ran the full 10-file/28-test regression set clean.
+Codex review 5cd99a663228d3172f01b347e641f5abdadd9d29 confirms real submitPTI/needsPTI/syncPTIEntry execution, valid blocker-clear mutation proof, and 28/28 regressions. Two test-only blockers remain: app restoration via showApp is not asserted, and exact total network count 2 incorrectly normalizes the newly observed redundant event-forwarder instead of proving only the required syncPTIEntry attempt.
 
 Latest implementation commit:
 c9fccac8c25c4a61455f99bb5c0c02057884427a
@@ -97,13 +97,13 @@ Latest correction commit:
 c9fccac8c25c4a61455f99bb5c0c02057884427a
 
 Latest review commit:
-1979323a6f2ab37c818c460ad0ff00507905de79
+5cd99a663228d3172f01b347e641f5abdadd9d29
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex review of the new test)
+PTI_APP_ACCESS_RESTORATION_NOT_ASSERTED; REDUNDANT_PTI_NETWORK_COUNT_NORMALIZED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Newly observed: PTI submission triggers two separate Orchestrator network attempts (syncPTIEntry direct fetch + pti:submitted event-forwarder) - both fail gracefully in this test, not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit c9fccac8c25c4a61455f99bb5c0c02057884427a: run the new test and the cited 10-file regression set, confirm the assertions genuinely exercise submitPTI()/needsPTI()/syncPTIEntry() rather than restating claims about them, and confirm the mutation-catches-regression verification is accurately described. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Change only tests/pti_lockout_orchestrator_unavailable.test.mjs. Add a deterministic global showApp spy and assert it is invoked exactly once after successful local PTI submission despite network failure. Replace the exact total nativeFetchCalls===2 assertion with URL-aware evidence that the real syncPTIEntry /v1/sync/pwa attempt occurred and failed gracefully, without protecting the separate pti:submitted event-forwarder count as desired behavior. Retain all current local persistence, saveAll, needsPTI, blocker-clear, no-fabrication, and failure-handling assertions. Re-run the same 10-file regression set with 0 failures, publish, and return to Codex. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3867,3 +3867,16 @@ Next bounded action: implement test-only PTI-LOCKOUT-01 against actual PTI local
 - Published commit c9fccac8c25c4a61455f99bb5c0c02057884427a. Verified via GitHub Compare API against parent efc5bcaf277d88a618126a6a549d272c7afb141b that exactly one new file was added (160 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
+
+### 2026-09-01 - Codex review: PTI-LOCKOUT-01 contract test
+
+Agent: Codex
+Task: Review implementation commit `c9fccac8c25c4a61455f99bb5c0c02057884427a`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `5cd99a663228d3172f01b347e641f5abdadd9d29`
+Validation: blocker-clear negative mutation failed as intended (`exit 1`); exact 10-file regression -> `28 passed, 0 failed`.
+Blocking findings: `PTI_APP_ACCESS_RESTORATION_NOT_ASSERTED`; `REDUNDANT_PTI_NETWORK_COUNT_NORMALIZED`
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: one-file test correction for showApp invocation and URL-aware syncPTIEntry evidence without freezing duplicate event-forward count.
