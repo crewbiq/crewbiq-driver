@@ -92,8 +92,6 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   if (
-    url.hostname.includes('script.google.com') ||
-    url.hostname.includes('googleapis.com') ||
     url.hostname.includes('railway.app') ||
     event.request.method === 'POST'
   ) {

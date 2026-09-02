@@ -280,7 +280,15 @@
     if (!token || !identityKey(driver)) return { ok: false, reason: 'not_authenticated' };
     const expenses = loadScopedExpenses(driver);
     const recordId = 'expense_sync_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const response = await previousFetch(driver.syncUrl || 'https://script.google.com/macros/s/crewbiq-expenses/exec', {
+    // Historical note: this fallback used to name a dedicated Google Apps
+    // Script endpoint. previousFetch resolves to core-runtime.js's
+    // transport dispatcher (installed before this module loads), which
+    // routes this driver_report-typed call to the Orchestrator regardless
+    // of the URL argument - confirmed redundant with the general
+    // Orchestrator write path (attachExpensesToReport() already injects
+    // scoped expenses into every driver_report call), and confirmed by the
+    // Product Owner to carry no distinct consumer that needs preserving.
+    const response = await previousFetch(driver.syncUrl || 'https://crewbiq-orchestrator-production.up.railway.app', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({

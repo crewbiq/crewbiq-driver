@@ -1440,7 +1440,15 @@ function runLaunchCleanResetOnce() {
   Object.keys(saved).forEach(function(k) { localStorage.setItem(k, saved[k]); });
   localStorage.setItem(key, LAUNCH_CLEAN_RESET_VERSION);
 }
-const DEFAULT_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxsygN14QcavY70qXGherETIzM_VD8OLNBPL2eUU2GxOroK9D4mHIE8pwW6g5nfHvmDGg/exec';
+// Historical note: this constant used to name a Google Apps Script endpoint.
+// core-runtime.js's transport dispatcher (loaded before this script runs)
+// routes every authenticated action-envelope call by JSON body type to the
+// Orchestrator, ignoring the URL argument entirely, so this value is never
+// actually requested for any of those calls. It still needs to be a
+// non-empty string: several call sites guard on `if (!syncUrl) throw ...`
+// before making a matched call, and this is the terminal fallback in
+// getAuthSyncUrl()'s resolution chain.
+const DEFAULT_SYNC_URL = 'https://crewbiq-orchestrator-production.up.railway.app';
 function migrateStorage(){
   let v = parseInt(localStorage.getItem(K+'schemaVersion')||'1');
   if(v < 2){

@@ -6,7 +6,7 @@
   }
   load('core-runtime.js?v=20260712-full-restore');
   load('offline-sync-queue.js?v=20260716-offline-sync-v2');
-  load('restore-hotfix.js?v=20260715-disputes-sync-v1');
+  load('restore-hotfix.js?v=20260902-legacy-cleanup-v1');
   load('settings-hotfix.js?v=20260712-settings-reconcile-v2');
   load('owner-snapshot-hotfix.js?v=20260713-owner-snapshot-v2');
   load('load-order-hotfix.js?v=20260717-load-order-v1');
