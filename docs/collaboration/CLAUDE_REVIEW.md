@@ -4155,3 +4155,41 @@ Runtime/product/configuration files changed by this review: `NONE`
 The transport-interception evidence slice is accepted. It now proves the current production composition routes every mapped body type through the Orchestrator dispatcher, preserves unmatched native pass-through, and deduplicates the redundant second `doSync()` push by `record_id`.
 
 Under `AUTO_CONTINUE_ALLOWED`, the next bounded action is documentation-only reconciliation of the three reopened documents. That correction must distinguish source literals/dead compatibility paths from effective runtime transport, avoid claiming live zero-Google traffic without telemetry, and preserve the remaining cleanup/decommission work without changing runtime or tests.
+
+## Codex Review — Legacy Sync Evidence Documentation Reconciliation
+
+Date: 2026-09-01
+
+Reviewed implementation commit: `b53f6769cfc63eddb1064da781ccfc76b856ba9d`
+
+Verdict: `NEEDS_FIX`
+
+Runtime/product/test/configuration files changed by this review: `NONE`
+
+### Accepted portions
+
+- Reclassifying gap-inventory items 2, 6, 7, and Legacy Independence from `BLOCKED` to `PARTIAL` is directionally and semantically correct; none is promoted to `PROVEN`.
+- The `REMOVE` and `REPLACE_WITH_ORCHESTRATOR` classification values and their target code shapes remain unchanged.
+- PTI local-first graceful degradation and identity/authority invariants remain intact.
+
+### Blocking findings
+
+1. `DYNAMIC_CALLSITE_COVERAGE_OVERSTATED`
+
+   The accepted tests dynamically exercise every mapped **body type**, not every production caller. Only selected compositions, including `doSync()`, are executed through their actual caller path. Static source/load-order tracing connects the other callers to those body types. All three documents repeatedly state that every mapped call site was dynamically proven. Correct this distinction everywhere, including the gap table, map corrections/summary, contract preamble/end-state, and per-test satisfaction notes.
+
+2. `CONFIGURED_DESTINATION_OVERSTATED_AS_REAL_ORCHESTRATOR`
+
+   The action-matrix tests exercise the default production Orchestrator base. Runtime `getOrchestratorBase()` accepts a persisted configurable override and performs path normalization without host validation. Replace unconditional "real Orchestrator" claims with the exact evidence: matched envelopes route to `getOrchestratorBase()`; the tested/default base is the production Orchestrator. Preserve the existing limitation for configurable/misconfigured destinations.
+
+3. `DEAD_AND_SAFE_SCOPE_OVERSTATED`
+
+   The literals are effectively bypassed for mapped, matched envelopes under the accepted load composition; the evidence does not prove they are globally dead or that removal is behavior-risk-free. Likewise, the dedup test proves one native write for one `doSync()` run in one runtime instance and the current recent-record window; it does not justify an unqualified globally "safe" double-write claim. Qualify "dead", "no behavior change", "low-risk", and "safe" language accordingly. State that the two function calls remain sequential in client composition, while the tested second call is suppressed before a second native write.
+
+### Required correction boundary
+
+Correct only the same three documentation files plus coordination state/history. Keep the `PARTIAL` classifications and target code shapes. Clarify that WRITE evidence covers dispatcher transport shapes, not actual load/PTI local-save workflows, unless an end-to-end caller test exists. Do not change runtime, tests, configuration, deployment, migrations, merge state, data, ADR status, ADR-0008-0016, SIDR, or add telemetry.
+
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+
+Next required actor: Claude
