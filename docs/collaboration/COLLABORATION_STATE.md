@@ -79,16 +79,16 @@ Phase:
 Legacy Sync Transport Interception Evidence Tests
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Repaired tests/orchestrator_transport.test.mjs (was stale/unwired, threw immediately on the removed core.js document.write loader) to load core-runtime.js directly and dynamically prove the full mapped action matrix (auth_login, auth_signup, auth_restore, auth_logout, driver_report, pti_report, workspace_driver_roster_read, account_driver_link_read, and all three driver_truck_assignment_*_read views) all route to the configured Orchestrator and never the supplied legacy URL, plus an unmatched-request native-passthrough regression. Added tests/dosync_orchestrator_dedup.test.mjs, which dynamically proves doSync()'s two-step push produces exactly ONE real network call to the Orchestrator's /v1/sync surface per run - the console log of the actual test run shows core-runtime.js's own dedup path returning client_deduplicated:true for the second internal push. Both tests pass locally (node --test), run alongside 11 directly relevant existing tests with zero regressions. Not wired into the CI-blocking test:e2e:tooling script in this slice.
+Codex review c8b96bacb4d4ca0735c2974c241e532c8b3de2d5 accepts the complete action-matrix coverage and the 65/65 regression result, but the dedup test does not assert that the second pushToOrchestrator step actually ran and returned client_deduplicated:true. Console output is not an assertion; removing the second push would leave the current test green. One test-only correction is required before the evidence slice can be accepted.
 
 Latest implementation commit:
 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f
@@ -97,13 +97,13 @@ Latest correction commit:
 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f
 
 Latest review commit:
-6060de722cfbf4ca1c17e9da91efebb805c77040
+c8b96bacb4d4ca0735c2974c241e532c8b3de2d5
 
 Latest state commit:
 (pending this publish)
 
 Blocking findings:
-NONE (pending Codex review of the new/repaired tests)
+DOSYNC_SECOND_STEP_DEDUP_RESULT_NOT_ASSERTED
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Whether/how CREWBIQ_MVP_PRODUCTION_GAP_INVENTORY.md, LEGACY_SYNC_CALL_PATH_MAP.md, and LEGACY_SYNC_DECOMMISSION_CONTRACT.md should now be reclassified given this dynamic evidence remains a genuine open decision, not yet authorized.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f: run both new/repaired tests plus the cited regression set, confirm the action-matrix coverage matches every caller in the accepted map, and confirm the dedup test's assertion (exactly one native /v1/sync call per doSync() run) is not weakened. Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge, data, ADR status, ADR-0008-0016, or SIDR, and do not yet reclassify the three reopened documents - that remains a separate, still-open decision.
+Change only tests/dosync_orchestrator_dedup.test.mjs to assert result.orchestratorCopy exists, succeeded, was not skipped, returned result.client_deduplicated === true, and returned the same record_id carried by the one native first write. Retain the exact-one-native-call assertion and all action-matrix coverage. Re-run the same 13-file regression command with 0 failures, publish, and return to Codex. Do not change runtime/configuration/legacy paths, the action-matrix test unless a hard defect is discovered, or the three reopened documents; do not deploy, migrate, merge, mutate data, promote ADR status, begin ADR-0008-0016, or SIDR.
 <!-- CURRENT_END -->
 
 
@@ -3757,3 +3757,18 @@ Next bounded action: bounded test-only transport-interception evidence slice; no
 - Deliberately did not wire the new tests into package.json's CI-blocking test:e2e:tooling script in this slice, and deliberately did not reclassify the three reopened documents - both remain open decisions outside this bounded test-only task's scope.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No implementation, runtime, configuration, legacy-path, deployment, migration, merge, data, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test files only.
+
+### 2026-09-01 - Codex review: Transport interception evidence tests
+
+Agent: Codex
+Task: Review implementation commit `308a2b2b6e8ef83ef4b6878cecd2d91c99c2cc0f`
+Status: `NEEDS_FIX / AWAITING CLAUDE CORRECTION`
+Review commit: `c8b96bacb4d4ca0735c2974c241e532c8b3de2d5`
+Validation: published 13-file command -> `65 passed, 0 failed`
+Accepted evidence: complete mapped body-type action matrix and unmatched native pass-through.
+Blocking finding: `DOSYNC_SECOND_STEP_DEDUP_RESULT_NOT_ASSERTED`
+Reason: exact-one-native-call is asserted, but the test does not assert that the second pushToOrchestrator step ran and returned `client_deduplicated:true`; console output alone is insufficient.
+Runtime/product/configuration files changed: `NONE`
+Decision gate: `AUTO_CONTINUE_ALLOWED`
+Next required actor: Claude
+Next bounded action: one-file assertion correction in tests/dosync_orchestrator_dedup.test.mjs, then repeat the same regression set.
