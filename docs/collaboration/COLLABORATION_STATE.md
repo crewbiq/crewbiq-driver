@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Atomic Cleanup Correction
+Legacy Sync Decommission Final Legacy-Path Removal
 
 Status:
-PUBLISHED / AWAITING CODEX REVIEW
+NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
 Current owner:
-Codex
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Corrected all four blocking findings from Codex's second NEEDS_FIX on commit d6de6802. (1) ATOMIC_DECOMMISSION_SCOPE_STILL_INCOMPLETE: getAuthSyncUrl() and its full resolution machinery (login-field override, localStorage _savedSyncUrl, driver.syncUrl fallback) are now removed from index.html entirely; all ~9 former call sites (authPost, 3 workspace-read adapters - workspace_driver_roster/driver_truck_assignment/account_driver_link, 2 driver-setup sites, restoreFromCloud, authLogin, authSignup) resolve directly against DEFAULT_SYNC_URL, and startup-session.js now reads deps.defaultSyncUrl (a plain string) instead of calling deps.getAuthSyncUrl() (a function it no longer receives). syncExpensesNow()'s dedicated routing was already removed in the first cleanup commit (a6800954) - re-verified nothing remains there. (2) DOSYNC_FAILURE_SEMANTICS_REGRESSED: independently re-verified this was a real regression before fixing - the old two-step pushToCloud() always threw synchronously on a genuine failure (jumping straight to the outer catch, never reaching pull, never emitting sync:success); the collapsed pushToOrchestrator()-only path in d6de6802 instead returned gracefully and proceeded to pull + emit sync:success even on failure, silently changing the failure contract for the non-forceAll case. Fixed: doSync() now throws on ANY sole-write failure (not just forceAll), which stops before pull, does not mark anything synced, and emits sync:error via the existing outer-catch path - matching the old contract's actual behavior, not just its label. (3) DOSYNC_SIMPLIFY_EQUIVALENCE_UNPROVEN: added a second scenario to tests/dosync_orchestrator_dedup.test.mjs proving the failure path directly - exactly one native call (no retry within the same doSync()), no synced-marking, sync:error emitted (not sync:success), toast reflects real failure. The prior version only proved success-path equivalence. (4) SW_NO_LEGACY_SCOPE_TOO_NARROW: tests/sw_no_legacy_hostname.test.mjs broadened from sw.js-only checks to (a) a PWA-wide static scan of every file in sw.js's own APP_SHELL array (the canonical shipped-file list, reused directly rather than hand-duplicated) for script.google.com/googleapis.com references, and (b) a representative dynamic flow booting the real core-runtime.js + offline-sync-queue.js + restore-hotfix.js + sync.js chain and driving an auth+sync+PTI+restore sequence, proving no call in a realistic flow ever reaches a legacy hostname. This broadened static scan caught one real remaining reference the prior narrow scan missed: an index.html "Sync URL" input's placeholder text still hinted at a script.google.com URL format (cosmetic only, never read as an actual URL, but a genuine remaining source reference) - fixed alongside.
+Correction `8e0c181ec7dbb723ceb63c1be5bc07a9ea750458` fixes single-write failure semantics and strengthens its tests, but retains multiple accepted legacy abstractions/routes and stale Google-primary UI copy. Atomic cleanup remains incomplete.
 
 Latest implementation commit:
 8e0c181ec7dbb723ceb63c1be5bc07a9ea750458
@@ -97,25 +97,25 @@ Latest correction commit:
 8e0c181ec7dbb723ceb63c1be5bc07a9ea750458
 
 Latest review commit:
-93932b69799ca8e855ed68e348eec8668882efc9
+0da31eee5675a9c815c849287391fde90eee8ace
 
 Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE (pending Codex review of this correction)
+`DEFAULT_SYNC_URL_COUPLING_REMAINS`; `DEDICATED_EXPENSE_SYNC_REMAINS`; `REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED`; `STALE_GOOGLE_PRIMARY_UI_COPY`; `SW_NO_LEGACY_STATIC_GATE_INCOMPLETE`
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations; do not broaden this correction into them. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. The unrelated stale `ui-shell-prototype` hash pin remains with its owning track (its core.js/index.html hashes now also diverge further given index.html's real edits this cycle - this is expected and does not change its out-of-scope status; it is not part of the accepted contract set or npm run test:e2e:tooling).
+Historical attribution reconstruction remains deferred post-production. Separate `/v1/events` forwarding and two-layer offline dedup remain observations and are not part of this correction. `CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED` is closed. Unrelated stale prototype hash pins remain with their owning track.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Codex
+Claude
 
 Next bounded action:
-Independently re-verify commit 8e0c181ec7dbb723ceb63c1be5bc07a9ea750458 against baseline f4cdce14: confirm the diff is narrow and matches only the described edits (index.html +16-25, startup-session.js +1-1, sync.js +8-2, tests/dosync_orchestrator_dedup.test.mjs +102-0, tests/driver_projections.test.mjs +2-3, tests/restore_orchestrator_transport.test.mjs +8-7, tests/startup-session-coordinator.test.mjs +1-1, tests/sw_no_legacy_hostname.test.mjs +118-0), confirm no encoding corruption, confirm getAuthSyncUrl() removal is genuinely complete and behavior-preserving (dispatcher still routes every affected envelope type correctly regardless of the now-hardcoded DEFAULT_SYNC_URL), confirm doSync()'s failure semantics now genuinely match invariant section 3.2 (sole write is the only durable authority; a failed write must remain pending/retryable, never marked synced), and confirm SW-NO-LEGACY-01/DOSYNC-SIMPLIFY-01 now actually protect what their names claim at the strengthened scope. Re-run the full regression (accepted 9-file contract set - now 15 subtests - plus npm run test:e2e:tooling). Publish an ACCEPT or NEEDS_FIX verdict. Do not deploy, merge to main, migrate, mutate data, or change ADR/SIDR status.
+Finish this same cleanup: replace the legacy `DEFAULT_SYNC_URL` abstraction with explicit Orchestrator authority; remove the redundant dedicated expense sync while preserving local-first save-trigger behavior through the general Orchestrator path; retarget PTI and remaining sync callers directly; correct stale Google-primary UI copy; expand the static guard to reject all accepted legacy constructs. Preserve cache v96 and the corrected `doSync()` success/failure behavior. Run the complete contract set and `npm run test:e2e:tooling`, publish, then hand back to Codex. No deploy, merge, migration, data mutation, ADR/SIDR change, or unrelated cleanup.
 <!-- CURRENT_END -->
 
 
@@ -4122,3 +4122,11 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published commit 8e0c181ec7dbb723ceb63c1be5bc07a9ea750458 on top of f4cdce14. Verified via GitHub Compare API that the diff is exactly the 8 described file changes with no unintended scope: index.html +16-25, startup-session.js +1-1, sync.js +8-2, tests/dosync_orchestrator_dedup.test.mjs +102-0, tests/driver_projections.test.mjs +2-3, tests/restore_orchestrator_transport.test.mjs +8-7, tests/startup-session-coordinator.test.mjs +1-1, tests/sw_no_legacy_hostname.test.mjs +118-0.
 - Per the role-swap protocol: Next required actor: Codex, for independent review.
 - No deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
+### 2026-09-02 - Codex NEEDS_FIX: Final legacy-path removal
+
+- Reviewed correction `8e0c181ec7dbb723ceb63c1be5bc07a9ea750458` against `f4cdce14c2d0a8cfd30183e5ba609a032df3544b`; review commit `0da31eee5675a9c815c849287391fde90eee8ace`.
+- Accepted corrected `doSync()` failure semantics, strengthened success/failure tests, cache v96, and removal of the dynamic `getAuthSyncUrl()` chain.
+- Regressions: 9-file contract set `15 passed, 0 failed`; tooling `325 passed, 0 failed`.
+- Blocking findings: `DEFAULT_SYNC_URL_COUPLING_REMAINS`; `DEDICATED_EXPENSE_SYNC_REMAINS`; `REMAINING_SYNC_URL_CALLERS_NOT_DECOMMISSIONED`; `STALE_GOOGLE_PRIMARY_UI_COPY`; `SW_NO_LEGACY_STATIC_GATE_INCOMPLETE`.
+- Next required actor: Claude; correction-only action recorded in CURRENT.
+- Runtime/product/configuration files changed by review: `NONE`.
