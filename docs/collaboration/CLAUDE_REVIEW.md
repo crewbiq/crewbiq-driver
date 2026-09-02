@@ -4393,3 +4393,16 @@ Runtime/product/configuration files changed by this review: `NONE`
 ### Decision
 
 `OFFLINE-ORCH-01` is accepted. Together with accepted `PTI-LOCKOUT-01`, the current local-first/offline contract-test slice is closed. Under `AUTO_CONTINUE_ALLOWED`, the next safest bounded action is test-only `RESTORE-ORCH-01`, exercising actual auth/restore/startup caller composition before any dead-literal or dedup-simplification runtime cleanup.
+## 2026-09-01 - Codex independent review - RESTORE-ORCH-01
+
+**Verdict: ACCEPT**
+
+- Reviewed implementation commit `52d2ad9390e440f4fd84fb8531215eb75b475b0d`.
+- Confirmed `tests/restore_orchestrator_transport.test.mjs` extracts the real auth transport from `index.html`, executes the real `core-runtime.js` dispatcher, and composes it with the real `startup-session.js` coordinator.
+- Confirmed login, signup, logout, and restore native requests are restricted to the configured Orchestrator and never reach `script.google.com` or `crewbiq-expenses`.
+- Confirmed startup applies restored identity, preserves PTI routing, schedules auto-sync once, and performs one delayed pull.
+- Ran the exact published 10-file regression command: `22 passed, 0 failed`.
+- Blocking findings: `NONE`.
+- Runtime/product/configuration files changed by this review: `NONE`.
+
+Next bounded action: Claude implements test-only `WRITE-ORCH-01`, exercising the actual Load save workflow and proving immediate local persistence plus Orchestrator-only network transport. No runtime cleanup or broader decommission work is authorized.
