@@ -76,25 +76,25 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Restore Orchestrator Contract Test
+Legacy Sync Decommission Write Orchestrator Contract Test
 
 Status:
-CLOSED / ACCEPT
+PUBLISHED / AWAITING CODEX REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-current production PWA cfd74a22449b974755b8b48bc01a3b261107b93; collaboration contract evidence only
+Added tests/write_orchestrator_load_save.test.mjs (WRITE-ORCH-01). Exercises the REAL saveLoad() from loads.js (editing an existing load, bypassing resolveNewLoadDriverAttribution()'s separate workspace-module dependency the same way a real edit does), wired to the REAL doSync()/pushToCloud()/pushToOrchestrator() from sync.js via the exact injection index.html's own initLoads() uses (doSync: () => doSync()), and the real core-runtime.js dispatcher. Proves: the edited load persists to local state and triggers saveAll()/renderAll() synchronously before any network result is known; the resulting real network calls target only the configured Orchestrator, never script.google.com, despite driver.syncUrl naming the legacy literal. Verified via mutation that removing core-runtime.js's driver_report/pti_report dispatch, and separately removing saveLoad()'s own local-state update, each correctly fail the test. Full 10-file/54-test regression set passes clean.
 
 Latest implementation commit:
-52d2ad9390e440f4fd84fb8531215eb75b475b0d
+6f4e365308f3821b736f1b8a7548f994d32c37ed
 
 Latest correction commit:
-52d2ad9390e440f4fd84fb8531215eb75b475b0d
+6f4e365308f3821b736f1b8a7548f994d32c37ed
 
 Latest review commit:
 bbcf0a221c66612ac74cf67dcb07e956bfdac270
@@ -103,19 +103,19 @@ Latest state commit:
 (pending this publication)
 
 Blocking findings:
-NONE
+NONE (pending Codex review of the new test)
 
 Queued non-blocking findings:
-Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. The separate PTI event-forwarder and two-layer offline dedup defense remain cleanup observations, not authorized work.
+Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued. The separate PTI event-forwarder and two-layer offline dedup defense remain cleanup observations, not authorized work. Newly observed: the load-save workflow's real doSync() also triggers a separate load:updated event-forwarder call to a distinct /v1/events URL, mirroring the PTI event-forwarder pattern found earlier - not yet assessed for redundancy/cleanup scope.
 
 Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Implement test-only WRITE-ORCH-01: exercise the actual Load save workflow and prove immediate local persistence plus Orchestrator-only network transport. Do not change runtime, cleanup legacy paths, broaden to WRITE-ORCH-02..04, deploy, merge, migrate, or mutate data. After publication hand back to Codex for independent review.
+Independently re-verify commit 6f4e365308f3821b736f1b8a7548f994d32c37ed: run the new test and the cited regression set, confirm it genuinely exercises real loads.js/sync.js/core-runtime.js code rather than restating claims. Publish an ACCEPT or NEEDS_FIX verdict. If ACCEPT, decide whether WRITE-ORCH-02..04 (PTI/expense/owner-entity save coverage) are still warranted given PTI-LOCKOUT-01 already covers the PTI submission path, or whether the remaining decommission-contract test slice is now sufficiently covered and the dead-literal/dedup-simplification cleanup itself (or Product Owner scope routing) becomes the next candidate. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3994,3 +3994,14 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Decision gate: AUTO_CONTINUE_ALLOWED.
 - Next required actor: Claude.
 - Next bounded action: test-only WRITE-ORCH-01 for the actual Load save workflow; no runtime cleanup.
+
+### 2026-09-01 - Claude - WRITE-ORCH-01 contract test (implementer role)
+
+- Implemented the authorized WRITE-ORCH-01 test: read loads.js's saveLoad() and its direct dependencies (getLoadTruckSelection/resolveNewLoadTruckAttribution/resolveNewLoadDriverAttribution/getLoadDriverSelection/calcDriverPay/resetLoadForm) in full first, and chose to exercise an EDIT of an existing load rather than a new-load creation, since editing bypasses resolveNewLoadDriverAttribution()'s dependency on the separate workspace-attribution.js module (out of scope for this test) exactly the way a real edit does in production - not a workaround, the same code path.
+- Wrote a test loading real core-runtime.js, sync.js, and loads.js together in production order, wiring CrewBIQLoads.init()'s doSync option to the REAL CrewBIQSync.doSync(), matching index.html's own actual initLoads() injection (doSync: () => doSync()) rather than a mock.
+- Iteratively fixed missing DOM fixture elements (loadPreview, saveLoadBtn, cancelEditBtn) surfaced only by actually running resetLoadForm(), not by static reading.
+- Verified the test has teeth via two separate mutations: removing core-runtime.js's driver_report/pti_report dispatch branch (network-destination regression) and removing saveLoad()'s own loads-array update (local-persistence regression) - both correctly failed the test, both restored via git checkout.
+- Ran a 10-file/54-test regression set (this test plus restore/PTI-lockout/offline-retry/dosync-dedup/orchestrator-transport and fleet-mutation/load-attribution/load-date-ordering coverage) - all pass, zero regressions.
+- Published commit 6f4e365308f3821b736f1b8a7548f994d32c37ed. Verified via GitHub Compare API against parent 5608a799a9aa629d866996b00df33bcf350c72fc that exactly one new file was added (178 additions, 0 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
