@@ -4738,3 +4738,26 @@ Reviewed `MAIN_PUBLICATION_PLAN_V96.md` at commit `ffcf4e113b49fdaf5c658a0588cae
 ### Required bounded correction
 
 Documentation only. Change the plan result to `MAIN_PUBLICATION_PLAN_V96_BLOCKED`, correct the ancestry/conflict/category evidence, and explicitly define the two unresolved tooling prerequisites: an internally consistent disposition for the obsolete Pages Actions workflow contract/package entry, and one real pre-merge execution path for the exact nine-file decommission set. Do not edit workflows, package, tests, runtime/product files, GitHub settings, or execute a merge/deploy. Publish the corrected plan and hand it back for Codex review.
+
+## 2026-09-02 — Codex Re-review: Corrected Pinned v96 Main Publication Plan
+
+**Verdict: ACCEPT / MAIN_PUBLICATION_PLAN_V96_READY**
+
+No blocking findings.
+
+Reviewed corrected plan commit `5215d6b2c73c5e833f53337ccb9c82d3df1e9306` against `origin/main`, pinned candidate `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6`, current collaboration tip `3d6d01c06a7a5eab361e47ba9cbea6290594ed28`, `package.json`, both referenced workflows, and the excluded Pages workflow contract test.
+
+### Four prior findings closed
+
+1. **PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI — CLOSED.** The plan now excludes `tests/e2e/pages-deployment-workflow-contract.test.mjs` together with its excluded workflow and requires removal of exactly that test token from the promoted `package.json`. Repository search found no remaining non-document consumer of the excluded workflow after that disposition.
+2. **GATE1_PREMERGE_CI_HAS_NO_PROMOTED_EXECUTION_PATH — CLOSED.** The plan defines an exact nine-file `node --test` step in the promoted `pwa-auth-contract.yml`. The command is verbatim-identical to the accepted manual gate-1 step, all nine files are in the promotion allowlist, and the promotion PR necessarily triggers this existing workflow through its runtime/workflow path changes.
+3. **ANCESTRY_AND_MERGE_CONFLICT_EVIDENCE_INACCURATE — CLOSED.** Fresh commands produce `origin/main...b5e36f4a = 2/488`; `git merge-tree --write-tree` exits non-zero and reports the same 16 unique conflicting paths listed in the corrected plan.
+4. **CANDIDATE_AND_DIFF_INVENTORY_MISSTATED — CLOSED.** Candidate `b5e36f4a` is 37 commits after implementation `5c6cfdaa`, with no reverse distance. The main-to-candidate diff is 92 files, 20,476 insertions, 397 deletions, including exactly 40 `docs/collaboration/**` paths. There are no non-collaboration-document differences from `e8bcafa8` to the pinned candidate.
+
+### Moving-tip reconciliation
+
+The current collaboration tip is five documentation-only commits beyond the pinned candidate, so its live divergence is `2/493`. A direct diff from pinned candidate to current tip has zero paths outside `docs/collaboration/**`; therefore the pinned product/test candidate and all plan inventory figures remain valid rather than stale.
+
+### Scope conclusion
+
+The corrected document is ready for a separate coordinator decision. This review does not authorize or execute promotion preparation, workflow/package edits, a PR, merge, deploy, migration, settings change, or data mutation.

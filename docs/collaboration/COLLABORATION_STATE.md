@@ -75,38 +75,50 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Pinned v96 Main-Based Publication Plan Correction
+Phase: Pinned v96 Main-Based Publication Plan Re-review
 
-Status: PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: CLOSED / ACCEPT
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: The v96 plan correction is republished at docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit 5215d6b2), content-identical to the correction originally intended in the corrupted commit 4786f092. Recovery sequence this cycle: (1) Product Owner identified 4786f092/93b5aad9 as pointer-stub corruption (root cause: `gh api ... -f content=@file` treats `@file` as a literal string rather than reading it - `-F` is required); (2) recovered both files' full content from verified safe point b5e36f4a in commit 530ff476 (non-destructive, damaged commits preserved in history, not rewritten); (3) re-applied the four-finding correction to MAIN_PUBLICATION_PLAN_V96.md in commit 5215d6b2, this time using `-F content=@file` and independently verifying the published blob's size, and separately the full published content via `git show`, byte-for-byte against the local source before treating the publish as complete. The correction content itself is unchanged from what commit 4786f092 was supposed to contain: closes PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI (excludes tests/e2e/pages-deployment-workflow-contract.test.mjs; documents a package.json script-list deviation), GATE1_PREMERGE_CI_HAS_NO_PROMOTED_EXECUTION_PATH (defines, does not implement, an added step on the promoted pwa-auth-contract.yml), ANCESTRY_AND_MERGE_CONFLICT_EVIDENCE_INACCURATE (divergence 2/488, merge-tree 16 conflicts, both freshly recomputed against the branch tip in use), and CANDIDATE_AND_DIFF_INVENTORY_MISSTATED (candidate reference updated to b5e36f4a with docs/collaboration count recomputed directly as 40). Result field in the document reads MAIN_PUBLICATION_PLAN_V96_BLOCKED pending this re-review.
+Product truth: Codex independently re-reviewed corrected plan commit 5215d6b2 and accepted it as MAIN_PUBLICATION_PLAN_V96_READY. All four prior blockers are closed. Fresh evidence confirms pinned candidate b5e36f4a at divergence 2/488, 16 merge-tree conflicts, 37 commits after implementation 5c6cfdaa, 92 changed files, and 40 collaboration-document paths. The current branch tip is five documentation-only commits beyond the pinned candidate and introduces no non-collaboration-document delta, so the pinned production candidate remains valid. No promotion preparation, workflow/package edit, PR, merge, deploy, migration, settings change, or data mutation was performed by this review.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: 5215d6b2c73c5e833f53337ccb9c82d3df1e9306
 
-Latest review commit: 87b56f90fac0af5531381f399abe4cfc8cbb9450
+Latest review commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE (pending Codex re-review of this correction)
+Blocking findings: NONE
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision (not required for gate-1 coverage on main, per the corrected plan's pwa-auth-contract.yml addition).
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
 Next required actor: Codex
 
-Next bounded action: Independently re-review docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit 5215d6b2c73c5e833f53337ccb9c82d3df1e9306) for whether all four prior findings are correctly and completely closed - same review scope as before the pointer-stub incident: confirm the package.json/test-file disposition leaves no other reference to the excluded test or workflow; confirm the defined gate-1 execution path is complete and correctly placed; independently recompute divergence, merge-tree conflict count, candidate distance, and docs/collaboration file count against the actual current branch tip. Publish an updated verdict: READY (confirmed) or a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict.
+Next bounded action: Codex, under standing Product Owner delegation, must make a separate coordination decision whether to authorize the exact main-based promotion preparation procedure in MAIN_PUBLICATION_PLAN_V96.md section 8. This review cycle does not itself authorize execution. Do not merge or deploy.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex re-review accepts corrected pinned v96 publication plan
+
+- Agent: Codex
+- Task: Independent re-review of `MAIN_PUBLICATION_PLAN_V96.md` correction commit `5215d6b2c73c5e833f53337ccb9c82d3df1e9306`
+- Verdict: `ACCEPT / MAIN_PUBLICATION_PLAN_V96_READY`
+- Four prior blocking findings: all closed
+- Independently recomputed pinned-candidate evidence: divergence `2/488`; merge-tree conflict paths `16`; implementation-to-candidate distance `37`; total diff `92 files, 20,476 insertions, 397 deletions`; `docs/collaboration/**` count `40`
+- Moving-tip check: current tip is five documentation-only commits beyond `b5e36f4a`; zero non-collaboration-document paths differ
+- Runtime/product/workflow/package/settings changes: NONE
+- Merge/deploy/migration/data mutation: NONE
+- Next gate: separate Codex coordinator decision under standing delegation
 
 ### 2026-09-01 - Codex - Production rollout preflight stop
 
