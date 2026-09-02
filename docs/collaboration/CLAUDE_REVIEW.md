@@ -4280,3 +4280,27 @@ Change only `tests/pti_lockout_orchestrator_unavailable.test.mjs`. Retain all cu
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 
 Next required actor: Claude
+
+## Codex Re-review — PTI-LOCKOUT-01 Corrections
+
+Date: 2026-09-01
+
+Reviewed correction commit: `64f63cc524dbb9a2e12c233a151c4d5e25f5a6b7`
+
+Verdict: `ACCEPT`
+
+Blocking findings: `NONE`
+
+Runtime/product/configuration files changed by this review: `NONE`
+
+### Verification
+
+- A deterministic `showApp()` spy now proves app-access restoration is invoked exactly once after local PTI completion despite failed network sync.
+- The network assertion records URLs and proves the real `/v1/sync` attempt occurred without targeting `script.google.com`; it no longer requires the separate `/v1/events` forwarding attempt or any exact total request count.
+- Independent isolated mutation removing the production `showApp()` call failed at the intended assertion (`exit 1`).
+- The unchanged branch passed the exact 10-file regression set: `28 passed, 0 failed` (`exit 0`).
+- All prior local persistence, `saveAll()`, cadence, blocker-clear, no-fabrication, and graceful-failure assertions remain intact.
+
+### Decision
+
+`PTI-LOCKOUT-01` is accepted. Under `AUTO_CONTINUE_ALLOWED`, the next safest pre-cleanup contract slice is test-only `OFFLINE-ORCH-01`: prove a failed authenticated Orchestrator write retains one durable operation identity and retries exactly once after reconnect without Apps Script transport or premature queue acknowledgement.
