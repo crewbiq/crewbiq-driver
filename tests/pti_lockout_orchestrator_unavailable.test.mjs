@@ -47,11 +47,13 @@ const document = {
 // Simulate an unreachable Orchestrator at the network layer: every fetch
 // rejects. This exercises sync.js's REAL syncPTIEntry(), including its own
 // internal try/catch, rather than assuming/mocking that it swallows errors.
-let nativeFetchCalls = 0;
-async function failingFetch() {
-  nativeFetchCalls += 1;
+const nativeFetchUrls = [];
+async function failingFetch(url) {
+  nativeFetchUrls.push(String(url));
   throw new Error('Orchestrator unreachable (simulated network failure)');
 }
+
+let showAppCalls = 0;
 
 const context = {
   console,
@@ -69,6 +71,7 @@ const context = {
 };
 context.window = context;
 context.globalThis = context;
+context.showApp = function () { showAppCalls += 1; };
 
 const runtime = fs.readFileSync(new URL('../core-runtime.js', import.meta.url), 'utf8');
 vm.runInNewContext(runtime, context, { filename: 'core-runtime.js' });
@@ -123,14 +126,35 @@ assert.doesNotThrow(() => context.submitPTI(), 'submitPTI() must not throw even 
 // before the test's own assertions run.
 await new Promise((resolve) => setTimeout(resolve, 0));
 
-// Discovered while writing this test: PTI submission triggers two separate
-// network attempts against the Orchestrator - syncPTIEntry()'s own direct
-// fetch, plus sync.js's registerEventForwarders() reacting to the
-// 'pti:submitted' event it emits via forwardEventToOrchestrator(). Both must
-// independently fail gracefully (confirmed by the "syncPTIEntry silent
-// fail" and "event forward failed" log lines above, neither of which
-// crashed or rejected up to this test).
-assert.equal(nativeFetchCalls, 2, 'both syncPTIEntry() and the pti:submitted event-forwarder must have attempted (and failed gracefully at) exactly one network call each');
+// The required path: syncPTIEntry() must actually have attempted its real
+// Orchestrator sync call (to a /v1/sync-family URL — core-runtime.js's
+// dispatcher routes the pti_report envelope there, never to the
+// script.google.com URL literally passed as driver.syncUrl) and failed
+// gracefully rather than silently skipping or crashing. This asserts only
+// the required call by URL, not a total count — a redundant extra call
+// from sync.js's registerEventForwarders() reacting to 'pti:submitted' via
+// forwardEventToOrchestrator() (observed during development, targeting a
+// separate /v1/events URL) is not asserted here as required or desired
+// behavior; it is tracked separately below purely as an observation.
+const syncCall = nativeFetchUrls.find((url) => url.includes('/v1/sync'));
+assert.ok(syncCall, 'syncPTIEntry() must have attempted its real Orchestrator /v1/sync call: observed calls were ' + JSON.stringify(nativeFetchUrls));
+assert.equal(syncCall.includes('script.google.com'), false, 'the attempted call must not target the literal script.google.com URL despite driver.syncUrl naming it');
+
+// Observation only (not asserted as required): whether the separate
+// pti:submitted event-forwarder also fired. Recording it here keeps this
+// test from silently regressing to zero visibility into that behavior
+// without treating its presence as part of the contract this test proves.
+const eventForwardCall = nativeFetchUrls.find((url) => url.includes('/v1/events'));
+if (eventForwardCall) {
+  console.log('[observation] pti:submitted event-forwarder also attempted a call to:', eventForwardCall);
+}
+
+assert.equal(
+  showAppCalls,
+  1,
+  'showApp() must be invoked exactly once to restore app access after successful local PTI submission, despite the Orchestrator sync failing',
+);
+
 assert.equal(ptiLog.length, 1, 'the PTI entry must be persisted to local ptiLog synchronously, independent of sync outcome');
 assert.equal(savedAllCount, 1, 'saveAll() must have been called to persist the local write');
 assert.equal(
