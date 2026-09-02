@@ -4029,3 +4029,27 @@ Runtime/product files changed by this review: `NONE`
 ### Required correction boundary
 
 Update only `docs/collaboration/LEGACY_SYNC_DECOMMISSION_CONTRACT.md` and coordination state/history. Do not implement the contract, change runtime/tests/configuration, deploy, migrate, merge, mutate data, add telemetry, promote ADR status, or begin ADR-0008-0016/SIDR work.
+
+## Codex Re-review — Legacy Sync Decommission Contract Corrections
+
+Date: 2026-09-01
+
+Reviewed correction commit: `b1630080d8660ef21f7ff53ac37d9d18bc337e1f`
+
+Verdict: `ACCEPT`
+
+Blocking findings: `NONE`
+
+Runtime/product files changed by this review: `NONE`
+
+### Verification
+
+- `pushToOrchestrator()` now uses the exact allowed `REPLACE_WITH_ORCHESTRATOR` classification and is correctly described as the retained/adapted authoritative transport.
+- Immediate local/offline persistence is correctly separated from durable Orchestrator acknowledgement; unacknowledged operations remain pending/retryable.
+- `syncExpensesNow()` no longer treats arbitrary `driver.syncUrl` as proven Apps Script. Its removal rationale is grounded in the verified nested `driver_report` enrichment performed by `restore-hotfix.js::attachExpensesToReport()`.
+- The contract now requires bounded post-publication production evidence for served SHA/cache, health/readiness, representative auth/restore/write behavior, served-source legacy references, and rollback triggers without authorizing deployment.
+- PTI local-first/non-lockout behavior and all original no-implementation boundaries remain intact.
+
+### Decision
+
+The documentation contract is accepted. Under `AUTO_CONTINUE_ALLOWED`, the next safest bounded continuation is test-only: implement the five narrow decommission contract tests specified by the accepted document, without removing or changing any legacy/runtime path.
