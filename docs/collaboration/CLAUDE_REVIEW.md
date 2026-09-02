@@ -4406,3 +4406,17 @@ Runtime/product/configuration files changed by this review: `NONE`
 - Runtime/product/configuration files changed by this review: `NONE`.
 
 Next bounded action: Claude implements test-only `WRITE-ORCH-01`, exercising the actual Load save workflow and proving immediate local persistence plus Orchestrator-only network transport. No runtime cleanup or broader decommission work is authorized.
+
+## 2026-09-01 - Codex independent review - WRITE-ORCH-01
+
+**Verdict: ACCEPT**
+
+- Reviewed implementation commit `6f4e365308f3821b736f1b8a7548f994d32c37ed`.
+- Confirmed the test executes real `loads.js::saveLoad()`, real `sync.js::doSync()` composition, and the real `core-runtime.js` dispatcher.
+- Confirmed local Load state changes synchronously and the production `saveAll` persistence port is invoked before asynchronous completion.
+- Confirmed every observed native call targets the configured Orchestrator; no request targets `script.google.com`.
+- Exact 10-file regression command: `54 passed, 0 failed`.
+- Blocking findings: `NONE`.
+- Runtime/product/configuration files changed by this review: `NONE`.
+
+`WRITE-ORCH-02` is already materially covered by accepted `PTI-LOCKOUT-01`, which executes the real PTI submission path, proves local completion and app access despite transport failure, and verifies the required sync request is Orchestrator-bound. The next warranted bounded contract test is test-only `WRITE-ORCH-03` for the actual expense-save workflow; `WRITE-ORCH-04` remains queued for a later evidence assessment.
