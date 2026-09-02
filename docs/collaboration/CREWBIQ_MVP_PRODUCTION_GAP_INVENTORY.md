@@ -157,9 +157,10 @@ inventory is `BLOCKED` as of this reconciliation.
 
 The original staging-config-test and read-only-map recommendations are
 superseded — both were designed to investigate whether Apps Script is
-reached, which dynamic evidence now answers directly for every mapped call
-site. The remaining safest bounded follow-up is **cleanup, not
-investigation**: remove the Apps Script URL literals (`DEFAULT_SYNC_URL`,
+reached, which dynamic evidence now directly covers for mapped body-type
+envelopes, with individual callers linked by static tracing and `doSync()`
+as the one end-to-end dynamically executed caller path. The remaining
+safest bounded follow-up is **cleanup, not investigation**: remove the Apps Script URL literals (`DEFAULT_SYNC_URL`,
 `.../crewbiq-expenses/exec`) and the `sw.js` Apps Script hostname bypass
 clause now shown to be bypassed for mapped, matched envelopes under the
 tested composition, and simplify `doSync()`'s two-step push (`pushToCloud()`
