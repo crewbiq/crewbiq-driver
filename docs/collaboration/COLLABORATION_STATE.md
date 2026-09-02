@@ -76,19 +76,19 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase:
-Legacy Sync Decommission Pre-Merge Staging Gate
+Legacy Sync Decommission Pre-Merge Staging Gate Execution
 
 Status:
-BLOCKED / EVIDENCE ACCEPTED
+AUTHORIZED / AWAITING CLAUDE
 
 Current owner:
-Product Owner
+Claude
 
 Branch:
 agent/pre-base44-audit
 
 Product truth:
-Legacy Sync Decommission implementation is CLOSED / ACCEPT at 5c6cfdaa. Publication evidence is accepted at 9c5c979bddfd191edbe3d656f81ce94e7b62facd and accurately BLOCKED on contract §5.1–2 staging runs.
+Product Owner authorized staging-only deployment and execution for exact candidate 5c6cfdaa to close contract §5.1–2. Implementation and evidence-document reviews remain accepted.
 
 Latest implementation commit:
 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
@@ -106,19 +106,16 @@ Blocking findings:
 STAGING_CONTRACT_SUITE_NOT_EXECUTED; STAGING_ACCEPTANCE_SUITE_NOT_EXECUTED
 
 Queued non-blocking findings:
-PR CI and a pinned v96 publication workflow remain absent. Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
+PR CI and a pinned v96 production publication workflow remain absent. Historical attribution reconstruction remains deferred post-production. Separate /v1/events forwarding and two-layer offline dedup remain out of scope. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED is closed.
 
 Decision gate:
-PRODUCT_OWNER_DECISION_REQUIRED
+AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Product Owner
-
-Decision required:
-Authorize a separate bounded staging-only deployment and execution of the exact 5c6cfdaa candidate contract and accepted acceptance suites to close contract §5.1–2, or keep publication readiness BLOCKED. Current authorization forbids deploy, merge, migration, data mutation, and production changes.
+Claude
 
 Next bounded action:
-Wait for the Product Owner decision. Do not deploy, merge, migrate, mutate data, change runtime/product files, or start another slice.
+Deploy only the exact accepted candidate 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc to the existing staging target using the established repository mechanism; verify staging identity, served SHA and crewbiq-driver-v96; run the accepted 9-file/15-subtest decommission contract set and the full accepted 325-test acceptance/tooling suite against that exact staging candidate as required by contract §5.1–2; publish deployment/run IDs, commands, results and evidence as STAGING_GATE_PASS or STAGING_GATE_BLOCKED; update CURRENT/HISTORY and hand to Codex for independent review. No production action, merge, migration, staging or production data mutation, runtime/product edit, new workflow, ADR/SIDR change, or unrelated slice. Stop on any target ambiguity or requirement for data mutation.
 <!-- CURRENT_END -->
 
 
@@ -4236,3 +4233,9 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Publication blockers remain contract §5.1–2 staging runs not executed.
 - Review commit: $reviewSha.
 - Next actor: Product Owner for the exact staging-only authorization decision.
+### 2026-09-02 - Product Owner authorization: staging gate execution
+
+- Authorized staging-only deployment of exact candidate `5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc`.
+- Authorized contract §5.1–2 staging execution only.
+- Production, merge, migrations, data mutation, runtime edits, and scope expansion remain prohibited.
+- Next actor: Claude; independent review after publication: Codex.
