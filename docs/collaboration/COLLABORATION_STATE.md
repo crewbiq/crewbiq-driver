@@ -79,22 +79,22 @@ Phase:
 Legacy Sync Decommission Offline Orchestrator Contract Test
 
 Status:
-NEEDS_FIX / AWAITING CLAUDE CORRECTION
+PUBLISHED / AWAITING CODEX RE-REVIEW
 
 Current owner:
-Claude
+Codex
 
 Branch:
 agent/pre-base44-audit; production main bcfd74a22449b974755b8b48bc01a3b261107b93
 
 Product truth:
-Codex review e97190bb874da3cfe8b52dc5dd41f096f50c96b0 confirms pending/acknowledgement/no-Google behavior and 29/29 regressions, but OFFLINE-ORCH-01 does not yet exercise the registered online reconnect handler and measures retry count below core-runtime dedup, where duplicate queue-layer attempts can be hidden. One test-only correction must drive the real online callback and instrument the queue-to-core downstream boundary.
+Corrected tests/offline_orchestrator_retry.test.mjs for both findings. Now invokes the REAL registered 'online' listener captured from offline-sync-queue.js (asserted to exist, exactly one registered) instead of directly re-calling fetch() a second time, and asserts it schedules exactly one doSync({reason:'online'}) via a spy standing in for sync.js's real doSync (out of scope for this queue/dispatcher-focused test). Also instruments the exact queue-to-core-dispatcher boundary (the fetch reference offline-sync-queue.js captures as its own downstreamFetch) separately from the underlying native layer, since core-runtime.js's own recentSyncRecordIds cache can silently absorb a queue-layer duplicate below native-layer-only counting. Verified all three regression scenarios (drop-on-failure, remove same-identity reuse, wrong listener event name) now correctly fail via mutation, restored via git checkout, then re-ran the full 11-file/29-test regression set clean.
 
 Latest implementation commit:
-286b14e42fbeb0e481ef97d6b8fc2cc439875261
+c997eb6bcc26690fe83c92100dc4bc7b08f38b62
 
 Latest correction commit:
-286b14e42fbeb0e481ef97d6b8fc2cc439875261
+c997eb6bcc26690fe83c92100dc4bc7b08f38b62
 
 Latest review commit:
 e97190bb874da3cfe8b52dc5dd41f096f50c96b0
@@ -103,7 +103,7 @@ Latest state commit:
 (pending this publish)
 
 Blocking findings:
-RECONNECT_HANDLER_NOT_EXERCISED; QUEUE_LAYER_SINGLE_RETRY_NOT_PROVEN
+NONE (pending Codex re-review of the correction)
 
 Queued non-blocking findings:
 Historical attribution reconstruction remains deferred post-production. GitHub Community Discussion #206480 may remain monitored. ADR-0007 status promotion, ADR-0008-0016, and SIDR implementation are not authorized. Open Product Owner decision: whether crewbiq-expenses Apps Script endpoint carries non-redundant data (unchanged, restated in the reconciled decommission contract). Observed (not asserted as required): PTI submission also triggers a separate pti:submitted event-forwarder call to a distinct /v1/events URL - not yet assessed for redundancy/cleanup scope. Newly observed: the no-duplicate-write guarantee for offline retries is defended at two independent layers (offline-sync-queue.js identity reuse + core-runtime.js recentSyncRecordIds cache) - not yet assessed for redundancy/cleanup scope.
@@ -112,10 +112,10 @@ Decision gate:
 AUTO_CONTINUE_ALLOWED
 
 Next required actor:
-Claude
+Codex
 
 Next bounded action:
-Change only tests/offline_orchestrator_retry.test.mjs. After the first failed queued write, invoke the real online listener captured from offline-sync-queue.js; prove it schedules exactly one doSync({reason:'online'}) and have that callback submit the same operation through the real queue wrapper. Instrument the exact downstreamFetch boundary captured by offline-sync-queue.js, between queue and core dispatcher, and assert one initial downstream attempt plus exactly one reconnect retry with the same record_id/business payload; retain native-layer one-success/no-Google evidence and queue clearance only after acknowledgement. Mutation removing enqueue same-identity reuse must now fail despite core recentSyncRecordIds dedup. Re-run the same 11-file regression set with 0 failures, publish, and return to Codex. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
+Independently re-verify commit c997eb6bcc26690fe83c92100dc4bc7b08f38b62 against both prior findings (RECONNECT_HANDLER_NOT_EXERCISED, QUEUE_LAYER_SINGLE_RETRY_NOT_PROVEN). Publish an ACCEPT or NEEDS_FIX verdict. Do not change runtime, configuration, legacy paths, deployment, migrations, merge state, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry.
 <!-- CURRENT_END -->
 
 
@@ -3927,3 +3927,13 @@ Runtime/product/configuration files changed: `NONE`
 Decision gate: `AUTO_CONTINUE_ALLOWED`
 Next required actor: Claude
 Next bounded action: one-file test correction using the real online callback and queue-to-core downstream attempt instrumentation.
+
+### 2026-09-01 - Claude - OFFLINE-ORCH-01 correction (implementer role)
+
+- Independently re-verified both Codex findings before correcting: confirmed offline-sync-queue.js's own addEventListener('online', ...) callback (never directly invoked by the prior test) is what actually schedules the reconnect retry, and confirmed core-runtime.js's recentSyncRecordIds cache sits BELOW the point where offline-sync-queue.js captures downstreamFetch, meaning a native-layer-only call count cannot distinguish a queue-layer duplicate from core-runtime's own separate absorption of one.
+- Restructured tests/offline_orchestrator_retry.test.mjs: captured the real 'online' listener via a listener-recording addEventListener mock, invoked it directly, and added a doSync({reason:'online'}) spy (real sync.js not loaded - out of scope for this test) standing in for what the listener actually calls after its 250ms debounce. Added a counting wrapper at the exact point offline-sync-queue.js captures its own downstreamFetch reference (immediately after core-runtime.js installs its dispatcher, before offline-sync-queue.js loads), distinct from the native-layer count, and asserted exactly one initial attempt plus exactly one reconnect retry at that boundary, both carrying the same record_id.
+- Verified via mutation that all three scenarios now correctly fail: dropping the queue entry on network failure, removing enqueue()'s same-identity reuse check (previously invisible to native-layer-only counting - now correctly caught at the queue-to-core boundary with downstreamCallCount going to 3), and registering the online listener under the wrong event name. All restored via git checkout.
+- Re-ran the full 11-file/29-test regression set clean.
+- Published commit c997eb6bcc26690fe83c92100dc4bc7b08f38b62. Verified via GitHub Compare API against parent 0510077ac18bfddbd6ce16f8c299897302b8cd5e that exactly one file changed (69 additions, 37 deletions) - no unintended scope. Confirmed pure-LF encoding before publishing.
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review.
+- No runtime, configuration, legacy-path, deployment, migration, merge, data, existing product behavior, ADR status, ADR-0008-0016, SIDR, or telemetry change occurred; test file only.
