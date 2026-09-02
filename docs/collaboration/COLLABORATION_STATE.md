@@ -76,19 +76,32 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Pre-Main Publication CI Cache Contract Correction
-Status: AUTHORIZED / AWAITING CLAUDE IMPLEMENTATION
-Current owner: Claude
+
+Status: PUBLISHED / AWAITING CODEX REVIEW
+
+Current owner: Codex
+
 Branch: agent/pre-base44-audit
-Product truth: current main
+
+Product truth: Changed exactly the one stale assertion in .github/workflows/pwa-auth-contract.yml's "Verify loader and service-worker cache rotation" step: grep -q "crewbiq-driver-v94" sw.js -> grep -q "crewbiq-driver-v96" sw.js. No other line, trigger, job, or step in that workflow changed; no runtime/product/package.json/test file changed. Published as commit e8bcafa865e1169c7f0f0dd20e8556db211cc27f, diff +1-1 in the one file (verified via GitHub Compare API). Validated the corrected assertion locally against the candidate's sw.js at commit 5c6cfdaa: grep -q "crewbiq-driver-v96" sw.js passes.
+
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
-Latest correction commit: f99502643e82ceb8659dc12cabecb213c4029e2c
+
+Latest correction commit: e8bcafa865e1169c7f0f0dd20e8556db211cc27f
+
 Latest review commit: a4a5e3369181dccf1380b29170c2219d2eb4b4e9
-Latest state commit: 52b4f41204cac56a74a727ea1033ff17af44eafe
-Blocking findings: PWA_AUTH_CI_CACHE_ASSERTION_STALE_FOR_V96
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; pinned v96 main-based production publication mechanism absent; GitHub Discussion #206480
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (pending Codex review of this narrow correction)
+
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED. Pinned v96 main-based production publication mechanism absent (per Product Owner direction, separate not-yet-started work). GitHub Discussion #206480 (Pages Actions-deploy 404) remains recorded as known non-blocking platform issue. pwa-auth-contract.yml is pull_request/push:main-triggered and has never actually run against this branch's commits (no PR opened) - this correction is preventative/precise, not evidence that the workflow has executed successfully end-to-end.
+
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Change only the stale crewbiq-driver-v94 assertion to crewbiq-driver-v96 in the existing .github/workflows/pwa-auth-contract.yml; do not alter triggers, jobs, runtime/product/package/test files, merge, or deploy. Run only the narrow existing workflow/service-worker contract checks, publish exact results, update CURRENT/HISTORY, and hand to Codex for review.
+
+Next required actor: Codex
+
+Next bounded action: Independently review commit e8bcafa865e1169c7f0f0dd20e8556db211cc27f: confirm the diff is exactly the one-line assertion change, confirm no other file or workflow behavior changed, and confirm the corrected assertion is accurate for the accepted v96 cache rotation. Publish an updated verdict. No production deploy, merge to main, migration, data mutation, further workflow change, or ADR/SIDR status change is authorized regardless of verdict.
 <!-- CURRENT_END -->
 
 
@@ -4274,3 +4287,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - New bounded prerequisite authorized: correct only the stale v94 cache assertion in pwa-auth-contract.yml to accepted v96 before main-promotion CI is relied upon.
 - Runtime/product files changed by review: NONE.
 - Next actor: Claude.
+
+### 2026-09-02 - Claude - Pre-main publication CI cache contract correction: pwa-auth-contract.yml stale v94 assertion fixed to v96 (implementer role)
+
+- Per Codex's authorized, narrowly-bounded action, changed exactly one line in .github/workflows/pwa-auth-contract.yml's "Verify loader and service-worker cache rotation" step: the grep assertion checked for the literal crewbiq-driver-v94 in sw.js, stale since this branch's accepted cache rotation to v96 (established starting commit d6de6802). Updated to crewbiq-driver-v96.
+- Fetched the clean baseline via the Contents API, confirmed exactly one occurrence of the stale string and zero of the corrected one before editing, applied the single-line edit, then re-verified pure LF encoding and valid YAML (parsed successfully) before publishing.
+- Validated the corrected assertion is actually true: ran grep -q "crewbiq-driver-v96" sw.js locally against a checkout hard-reset to the candidate commit 5c6cfdaa - passes.
+- Published commit e8bcafa865e1169c7f0f0dd20e8556db211cc27f on top of 2b28c32f. Verified via GitHub Compare API that the diff is exactly +1-1 in the one workflow file.
+- Noted transparently in CURRENT that pwa-auth-contract.yml is pull_request/push:main-triggered and has never actually executed against any commit on this branch (no PR has been opened this session) - this correction prevents a false failure if the workflow is ever triggered, but is not itself evidence the workflow runs successfully end-to-end; that would require an actual PR or a push to main.
+- Per the role-swap protocol: Next required actor: Codex, for independent review.
+- No production deploy, merge to main, migration, data mutation, or ADR/SIDR status change occurred.
