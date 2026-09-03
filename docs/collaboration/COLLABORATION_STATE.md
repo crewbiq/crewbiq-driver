@@ -77,15 +77,17 @@ When the user says "готово", ChatGPT should:
 
 Phase: IA-3A - Driver Shell Integration Contract
 
-Status: IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: IA-1 resolver and IA-2 navigation projection are independently accepted. Under standing Product Owner delegation, Codex authorizes only an IA-3A documentation contract before any shell edit. The contract must bound Driver-only read integration and preserve PTI gate, startup/restore, offline behavior, Quick Add, showPage/render ownership, legacy graceful degradation, and server authorization. No runtime/cache/deployment/data change is authorized in IA-3A.
+Product truth: IA-3A documentation contract is published. It permits only future lazy in-memory Driver projection, never a new boot/router/authority owner. Resolved Driver may narrow to existing Driver destinations; unavailable canonical authority preserves legacy workflows and PTI graceful degradation. Fleet is untouched and carrier is never mapped to fleet. Runtime/cache/tests/package remain unchanged in IA-3A.
+
+Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f
 
 Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
 
@@ -101,18 +103,28 @@ Latest review/state commit: b5d2ea426844bac6cfabf56d2f8e73b4b39d4ff4
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE
+Blocking findings: NONE pending independent review
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Publish a documentation-only Driver shell integration contract that identifies exact composition/load/render boundaries, unavailable behavior, cache discipline, and regression gates. Do not modify runtime, tests, package, workflow, migration, data, deployment, or begin IA-3 implementation.
+Next bounded action: Independently review DRIVER_SHELL_INTEGRATION_CONTRACT.md at ccdceee6f34de5c0dcde375445fb27622e48784f. Verify Driver-only narrowing, graceful degradation without lockout, single startup/showPage ownership, exact evidence composition, stale-request invalidation, v98 cache discipline, regression gates, and implementation allowlist. Publish ACCEPT or precise NEEDS_FIX. Do not modify runtime/cache/tests/package or begin IA-3 implementation.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - IA-3A Driver shell integration contract published
+
+- Contract: `ccdceee6f34de5c0dcde375445fb27622e48784f`
+- Driver-only: resolved canonical Driver may only narrow to current Driver destinations
+- Graceful degradation: absent/unavailable authority preserves legacy workflows and PTI usability; no guessed identity
+- Ownership preserved: startup-session boot/PTI/showApp, index showPage/render hooks, navigation inventories, Quick Add, and offline restore
+- Future cache discipline: v97 to v98 only with runtime shell integration
+- Runtime/cache/tests/package/workflow/migration/data/deployment changes: none
+- Next required actor: Claude for independent contract review
+
 ### 2026-09-03 - Codex authorizes IA-3A Driver shell integration contract
 
 - Basis: IA-2 accepted at `b5d2ea426844bac6cfabf56d2f8e73b4b39d4ff4`
