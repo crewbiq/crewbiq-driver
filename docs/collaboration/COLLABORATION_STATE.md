@@ -75,42 +75,41 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Implementation - Authoritative Relationship Evidence Blockers Confirmed
+Phase: IA-1 Prerequisite - Canonical Relationship Evidence Read Paths
 
-Status: ACCEPT / EVIDENCE INDEPENDENTLY VERIFIED
+Status: IN_PROGRESS
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Independently re-verified PRESENTATION_CONTEXT_IMPLEMENTATION_EVIDENCE.md's claims against the actual crewbiq-driver and crewbiq-orchestrator repositories rather than accepting them at face value. AVAILABLE claims confirmed: account-driver-link.js exists with a normalized read(); driver-truck-assignment.js exists with exactly readCurrent(); active_workspace_id is a real field present across multiple orchestrator files (auth.py, auth_service.py, canonical_registry.py, and their tests). BLOCKED claims confirmed exhaustively: grepped index.html and found truck.carrierAssignment/truck.carrierAssignmentHistory are exactly the legacy local business snapshot described (companyNameSnapshot/mcNumberSnapshot fields, mutable client-editable presentation state), not the ADR-0007 canonical relationship. Listed and read all 12 orchestrator migration files (001 through 009) and confirmed none creates a truck_ownership or carrier_assignments table anywhere in the schema history - not just the one migration the evidence document's own excerpt showed. Investigated the two most plausible-sounding alternative tables independently (not merely trusting their absence from the evidence doc): auth_owner_mappings (005) maps an auth_user_id to a legacy pre-workspace owner_crewbiq_id identity bridge, unrelated to truck ownership; company_authorities (008) verifies a carrier company's own MC/USDOT regulatory authority, unrelated to a CarrierAssignment relationship to another fleet's trucks. Found and read tests/test_canonical_claims.py, which independently and more strongly corroborates the finding: it contains an existing regression test asserting, as executable proof, that a specific migration does not create truck_ownership or carrier_assignments tables - meaning their absence is not merely undiscovered but actively guarded against in the current test suite. The evidence document's decision not to fabricate evidence shapes or ship a partial/weaker resolver is correct and consistent with the accepted IA-1 contract's fail-closed discipline.
+Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Latest implementation commit: NONE (blocked before runtime implementation, correctly)
+Product truth: Product Owner authorized the smallest server-authoritative read-only prerequisites for canonical CarrierAssignment and TruckOwnership evidence. Scope is additive schema plus authenticated/authorized read endpoints and fail-closed disconnected PWA adapters. No relationship write API, backfill, inference, resolver implementation, IA-2, migration execution, deployment, or business-data mutation is authorized.
 
-Latest correction commit: 3b6a81f0587d766d8800a89cc5df294ba23ab9ba
+Latest implementation commit: NONE (prerequisite in progress)
 
-Latest review commit: 865125d189d07802d83b22c13cc6091c2efa1700
+Latest review commit: 1399ed00659fea079b4890a277ddd817a28872ea
 
-Latest evidence commit: ce4260659e9a86759c860176e8df9ed48cee6018
+Blocking findings: CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE; TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE
 
-Latest state commit: (pending this publication)
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Blocking findings: CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE (confirmed, independently verified); TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE (confirmed, independently verified)
+Next required actor: Codex
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-2 through IA-6 remain separate, not-yet-started slices; the required prerequisite (server-authoritative read-only CarrierAssignment and TruckOwnership evidence paths) is not yet defined or authorized.
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Decision required: IA-1 implementation cannot proceed to a complete, contract-honoring resolver until canonical CarrierAssignment and TruckOwnership evidence sources exist. This is a genuine prerequisite decision, not a documentation task: define and authorize the smallest server-authoritative, read-only evidence path for (1) active CarrierAssignment relationships reachable from a carrier's home-workspace membership including authorized cross-workspace subject IDs, and (2) TruckOwnership relationships scoped to the authenticated account and active workspace, including PWA read adapters that validate those shapes fail-closed - or explicitly defer IA-1 implementation until a later phase and select a different next slice.
-
-Next bounded action: Await Product Owner decision on the CarrierAssignment/TruckOwnership evidence prerequisite. Do not implement a partial resolver, do not fabricate or infer evidence shapes, do not start IA-2, and do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, or e2e-harness-manual.yml promotion work in the meantime.
+Next bounded action: Implement additive canonical CarrierAssignment and TruckOwnership schema definitions, server-authenticated read-only workspace-scoped evidence endpoints, and disconnected PWA adapters that validate normalized responses fail closed. Add narrow tests; publish both repositories for independent Claude review. Do not execute migrations or integrate the PresentationContext resolver.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Product Owner authorized IA-1 relationship evidence prerequisites
+
+- Authorized: canonical read-only CarrierAssignment and TruckOwnership evidence paths
+- Executor: Codex
+- Scope: additive schema definitions, authorized read endpoints, disconnected fail-closed PWA adapters, narrow tests
+- Not authorized: migration execution, deployment, writes/backfill, resolver implementation, IA-2
+
 ### 2026-09-03 - IA-1 implementation blocked by missing canonical relationship evidence
 
 - Evidence commit: `ce4260659e9a86759c860176e8df9ed48cee6018`
