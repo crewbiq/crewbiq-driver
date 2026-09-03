@@ -75,15 +75,15 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion Merged, Publication In Progress
+Phase: v96 Main-Based Promotion Published and Verified
 
-Status: MERGED / AWAITING PUBLICATION VERIFICATION
+Status: PUBLISHED / AWAITING CODEX INDEPENDENT VERIFICATION
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: The Product Owner gave explicit in-chat authorization to merge PR #102 (exact head 5ef42cfa), scoped only to a normal merge commit - no squash/rebase, no deploy/migration/data-mutation authorization beyond the merge itself. Immediately before merging, Claude independently re-verified main was still exactly bcfd74a2, PR #102 was still open/merged:false/mergeable_state:clean at head 5ef42cfa, and both required checks (orchestrator-transport / PWA Auth Contract, smoke / E2E PR Smoke) were still success. Merged via `PUT /repos/.../pulls/102/merge` with `merge_method=merge` pinned to the exact verified head SHA (guards against a same-window race). GitHub returned merged:true, merge commit 5351d6a6c1a4b817aefad62de01142198deccbc3. Independently re-verified afterward via two separate API calls: `git/refs/heads/main` now reports 5351d6a6 exactly, and `pulls/102` reports merged:true with merge_commit_sha 5351d6a6. Compare API confirms main is now exactly 2 commits ahead of the pre-merge bcfd74a2 (the promotion commit plus the merge commit) with exactly 33 changed files, matching the accepted plan precisely. Checked Pages status immediately after merge: build_type remains legacy, source remains main:/, and a new build has started (status: building) - consistent with the expected automatic legacy Pages publication behavior (Section 10 of the plan). Full post-publication verification (Section 12: build completion, live asset hashes, cache rotation to v96, smoke tests, orchestrator health) has not yet been performed and is the next required step.
+Product truth: MAIN_PUBLICATION_PLAN_V96.md Section 12 post-publication verification performed and passed on every check reachable without an authenticated user session: (1) Pages API build for merge commit 5351d6a6c1a4b817aefad62de01142198deccbc3 reports status built, error null - matches the merge commit exactly, not a stale or different one. (2) All 6 curated runtime files (core.js, index.html, restore-hotfix.js, startup-session.js, sw.js, sync.js) return HTTP 200 from https://crewbiq.github.io/crewbiq-driver/. (3) Downloaded live bytes for all 6 files independently re-hashed with `git hash-object` and confirmed to equal the merge tree's own Git blob SHAs exactly (fetched via the Git Trees API on commit 5351d6a6) - byte-for-byte, not merely a size or spot check. (4) Live sw.js declares `crewbiq-driver-v96` (grepped from downloaded bytes). (5) Static no-legacy-reference check: grepped all 6 downloaded files for script.google.com, googleapis.com, crewbiq-expenses, and DEFAULT_SYNC_URL - none found. (6) Production Orchestrator (https://crewbiq-orchestrator-production.up.railway.app, extracted from the live core.js) /health and /ready both return HTTP 200. (7) Browser-level smoke: loaded https://crewbiq.github.io/crewbiq-driver/ in a real browser tab, confirmed zero console errors, confirmed the service worker registration is active with exactly one cache present (`crewbiq-driver-v96`, no stale v95 remnant), and confirmed the login shell renders correctly (screenshot taken). Not independently re-verified this cycle (require an authenticated user session, out of scope for automated verification without credentials): full startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF functional smoke test flows and live cross-tenant leakage checks - these were already covered by the pre-merge CI suites (318/318 test:e2e:tooling, 15/15 gate-1 contract set) executed against the exact promoted content before merge, but not re-executed live post-publication.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
@@ -95,13 +95,13 @@ Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. Full post-publication verification per MAIN_PUBLICATION_PLAN_V96.md Section 12 is pending.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. Authenticated-session functional smoke (startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF) and live cross-tenant leakage checks were not independently re-executed post-publication (covered pre-merge by CI only, not by an authenticated live pass) - flagged as a coverage gap, not a blocking finding, since the exact promoted bytes were already proven correct by CI before merge.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Perform MAIN_PUBLICATION_PLAN_V96.md Section 12 post-publication verification: poll the Pages build for merge commit 5351d6a6 to reach status built with no error; confirm every APP_SHELL URL returns HTTP 200; confirm downloaded bytes for the 6 curated runtime files hash exactly to the merge tree's Git objects; confirm live sw.js declares crewbiq-driver-v96; confirm the static no-legacy-reference check (no request ever targets script.google.com/googleapis.com/crewbiq-expenses/DEFAULT_SYNC_URL); confirm production Orchestrator /health and /ready remain green. Publish the verification evidence and hand to Codex for independent confirmation. If any check fails at the first material failure, stop and follow the plan's Section 13 rollback procedure rather than attempting further changes - rollback itself requires the same explicit in-chat Product Owner authorization the merge required, since it is also an irreversible action on a shared production system.
+Next bounded action: Independently re-verify the Section 12 publication evidence above - re-check the Pages build status, re-download and re-hash the 6 live runtime files against the merge tree's blob SHAs, re-check orchestrator health, and re-confirm no legacy-sync references in the served bytes - rather than accepting Claude's report at face value. If Codex's independent re-check confirms everything, publish a final verdict closing this phase. This is a verification-only step. No further merge, deploy, migration, or data mutation is authorized or contemplated at this point - the promotion is complete; only its independent confirmation remains.
 <!-- CURRENT_END -->
 
 
@@ -4521,3 +4521,14 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Checked GitHub Pages status immediately after the merge and confirmed a new build had started automatically (build_type remains legacy, source remains main:/, status: building), consistent with the plan's expected publication mechanics.
 - Did not perform, and is not yet authorized to claim complete, the full post-publication verification (build completion, live asset/cache verification, smoke tests, orchestrator health) required by MAIN_PUBLICATION_PLAN_V96.md Section 12 - that remains the next required step, to be independently verified and published before this phase can be considered fully closed.
 - Per the role-swap protocol: Next required actor: Claude, to complete post-publication verification; the result will then be handed to Codex for independent confirmation.
+
+### 2026-09-02 - Claude - Completed post-publication verification for v96 (Section 12), handed to Codex (implementer role)
+
+- Polled the Pages API and confirmed the latest build's commit field exactly equals the merge commit 5351d6a6c1a4b817aefad62de01142198deccbc3, status built, error null - not merely "a build happened" but specifically the correct one.
+- Independently fetched the merge commit's Git tree via the API and extracted the exact blob SHAs GitHub itself recorded for the 6 curated runtime files, then separately downloaded each file's live served bytes from https://crewbiq.github.io/crewbiq-driver/ and recomputed their blob SHAs locally with `git hash-object` - all 6 matched exactly, providing a genuine byte-for-byte proof rather than a size or spot-check.
+- Confirmed live sw.js content declares crewbiq-driver-v96 and confirmed, by grepping all 6 downloaded files, that none reference script.google.com, googleapis.com, crewbiq-expenses, or DEFAULT_SYNC_URL - the specific decommissioned legacy-sync behavior this whole plan exists to retire, re-proven against production bytes rather than only against staging or local test content.
+- Extracted the production Orchestrator's actual base URL from the live core.js bytes (rather than assuming a URL) and confirmed both /health and /ready return HTTP 200.
+- Opened a real browser tab against the live site, confirmed zero console errors, confirmed via the page's own Service Worker/Cache Storage APIs that the registered worker is active and exactly one cache exists (crewbiq-driver-v96, no stale v95 cache left over from before the promotion), and took a screenshot confirming the login shell renders correctly.
+- Explicitly did not claim full authenticated-session functional smoke coverage (startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF flows, live cross-tenant leakage) as independently re-verified post-publication, since that requires real user credentials not available to this automated verification pass - flagged this precisely as a coverage gap rather than silently treating it as done, while noting the exact promoted bytes were already proven correct by the pre-merge CI suites (318/318 and 15/15) before the merge occurred.
+- Per the role-swap protocol: Next required actor: Codex, to independently re-verify this evidence (re-download, re-hash, re-check) rather than accept Claude's report at face value, consistent with the discipline this entire session has followed in both directions.
+- No further merge, deploy, migration, or data mutation occurred or is contemplated - the promotion itself is complete; this cycle was verification only.
