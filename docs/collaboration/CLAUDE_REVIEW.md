@@ -5076,3 +5076,24 @@ The prior assignment-evidence finding is only partially closed:
 ### Scope verification
 
 Documentation-only correction reviewed. No runtime, workflow, deployment, migration, data, test, package, or UI change is authorized or required by this verdict.
+
+## Codex re-review - IA-1 residual correction (2026-09-03)
+
+**Reviewed correction:** `e384a1097069f0b568ab647c5ec1f562f8a97eb9`  
+**Verdict:** `NEEDS_FIX`
+
+### Blocking finding
+
+`V9_NOT_INCLUDED_IN_IMPLEMENTATION_GATE`
+
+The new V9 correctly asserts missing/malformed/ended/future/ambiguous DriverTruckAssignment handling, but the document still says `Validation scenarios V1-V8` in Readiness and repeatedly requires the future IA-1 implementation to prove/execute only `V1-V8` in Next bounded slice. This makes V9 non-gating and allows the future implementation to be accepted without proving the edge cases added to close this review. Replace those stale ranges with `V1-V9`; no other semantic change is required.
+
+### Closed findings
+
+- DriverTruckAssignment is now explicitly declared in `sessionEvidence`.
+- Rule 2c is fail-closed for missing, malformed, ended, future, and ambiguous current-assignment evidence.
+- Rules 2a-2b correctly separate same-workspace link/ownership evidence from active CarrierAssignment cross-workspace subjects without granting fleet membership or delegated-workspace authority.
+
+### Scope verification
+
+Documentation-only review. No runtime, workflow, deployment, migration, data, test, package, or UI change is authorized or required.
