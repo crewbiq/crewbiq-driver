@@ -30,6 +30,13 @@ export const ROLE_MISSIONS = Object.freeze({
       'EXPENSES-01', 'DISPUTE-01', 'DISPUTE-DELETE-01',
     ],
   }),
+  canonical: Object.freeze({
+    role: 'canonical',
+    applicationRole: 'fleet',
+    tenantAliases: ['A'],
+    specs: ['tests/e2e/staging-canonical-identity.spec.mjs'],
+    journeys: ['ROSTER-01', 'ACCOUNT-LINK-01', 'ASSIGNMENT-READ-01', 'DRIVER-SELF-01'],
+  }),
   recovery: Object.freeze({
     role: 'recovery',
     applicationRole: 'fleet',

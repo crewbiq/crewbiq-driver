@@ -25,7 +25,7 @@ function fixture(overrides = {}) {
     endpointError: (_action, message) => new Error(message),
     ensureDefaultTruckFromDriver: () => events.push('ensure-truck'),
     formatRestoreSummary: () => 'summary',
-    getAuthSyncUrl: () => 'https://sync.example',
+    defaultSyncUrl: 'https://sync.example',
     getDriver: () => driver,
     getPullFromCloud: () => null,
     getSavedSessionToken: () => 'session-1',

@@ -182,25 +182,37 @@ function createIntegratedHarness() {
     loadDriverProfiles: () => [],
     getOwnerSyncData: () => ({ trucks, driverProfiles: [] }),
     applyOwnerSyncData: () => ({ changed: false }),
-    fetch: async () => ({
-      ok: true,
-      async json() {
+    fetch: async () => {
+      throw new Error('pullFromCloud() must not call fetch() directly — it now retargets onto CrewBIQRestoreHotfix.fullRestore()');
+    },
+    // sync.js's pullFromCloud() no longer calls fetch(driver.syncUrl, ...) directly;
+    // it retargets onto restore-hotfix.js's fullRestore(), which is the Orchestrator's
+    // own restore surface. This mock reproduces the same restore data this contract
+    // test has always exercised, via the same call/return shape the real fullRestore()
+    // uses (an object with .ok and an async .json()).
+    CrewBIQRestoreHotfix: {
+      async fullRestore() {
         return {
           ok: true,
-          loads: [
-            {
-              id: 'local-1',
-              loadId: 'LOAD-1',
-              truckId: 'REMOTE',
-              unitNumber: '999',
-              synced: true,
-            },
-          ],
-          ptiLog: [],
-          disputes: [],
+          async json() {
+            return {
+              ok: true,
+              loads: [
+                {
+                  id: 'local-1',
+                  loadId: 'LOAD-1',
+                  truckId: 'REMOTE',
+                  unitNumber: '999',
+                  synced: true,
+                },
+              ],
+              ptiLog: [],
+              disputes: [],
+            };
+          },
         };
       },
-    }),
+    },
     CrewBIQCore: {
       events: {
         on() {},
