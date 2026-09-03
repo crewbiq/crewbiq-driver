@@ -4,7 +4,7 @@ Result: MAIN_PUBLICATION_PLAN_V96_BLOCKED
 
 Status: DESIGN ONLY — NO MERGE / NO DEPLOY / NO WORKFLOW OR SETTINGS CHANGE
 
-Prepared: 2026-09-02 (corrected)
+Prepared: 2026-09-02 (twice corrected)
 
 Repository: `crewbiq/crewbiq-driver`
 
@@ -67,6 +67,31 @@ reported result — reviewer or otherwise — at face value:
    `docs/collaboration/**` file count is **40** (not 25/39 — recomputed
    directly via `git diff --name-only`, not carried over from any prior
    count). Total main-to-candidate diff is **92 files** (not 91).
+
+A fifth issue, `PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY`,
+was found during a subsequent local execution attempt of §8 (steps 1-9,
+never pushed) and is fixed by this same revision:
+
+5. **`PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY`** —
+   confirmed real by actually running `npm run test:e2e:tooling` against
+   the fully-restored promotion tree (not merely reasoning about it):
+   candidate `tests/e2e/pr-workflow-contract.test.mjs` asserts
+   `.github/workflows/e2e-harness-manual.yml` exposes a `canonical`
+   `mission_role` option (`assert.match(manual, /- all\s+- fleet\s+-
+   driver\s+- canonical\s+- recovery\s+- security/)`); the candidate's
+   `e2e-harness-manual.yml` has this role, `main`'s does not, and that
+   workflow is deliberately excluded from promotion (§6, unchanged).
+   Restoring the candidate's test while leaving `main`'s
+   `e2e-harness-manual.yml` in place reproduces the failure
+   deterministically; reverting only this one test file to `main`'s own
+   current content (independently confirmed to make no other assertion
+   this promotion needs) makes all 318 `test:e2e:tooling` tests pass.
+   Disposition fixed in §6/§7/§8/§9/§14 below: this test file joins
+   `tests/e2e/pages-deployment-workflow-contract.test.mjs` as excluded
+   from the restore allowlist, so `main`'s own current, self-consistent
+   version is retained untouched — the same "exclude the test whose
+   assertions outrun what's actually promoted" pattern already used for
+   finding 1, applied to a second, independently-discovered file pair.
 
 ## 1. Decision summary
 
@@ -232,7 +257,8 @@ introduced)
 - `M tests/e2e/missions/role-missions.mjs`
 - `A tests/e2e/pages-deployment-workflow-contract.test.mjs` (**excluded
   this revision — §6, Correction §0 item 1**)
-- `M tests/e2e/pr-workflow-contract.test.mjs`
+- `M tests/e2e/pr-workflow-contract.test.mjs` (**excluded this revision —
+  §6, Correction §0 item 5**)
 - `M tests/e2e/role-mission-runner.test.mjs`
 - `A tests/e2e/staging-canonical-identity.spec.mjs`
 - `M tests/e2e/staging-expenses-lifecycle.spec.mjs`
@@ -303,7 +329,6 @@ these 6 files' contents change.
 - `tests/driver-truck-assignment.test.mjs`
 - `tests/driver_projections.test.mjs`
 - `tests/e2e/missions/role-missions.mjs`
-- `tests/e2e/pr-workflow-contract.test.mjs`
 - `tests/e2e/role-mission-runner.test.mjs`
 - `tests/e2e/staging-canonical-identity.spec.mjs`
 - `tests/e2e/staging-expenses-lifecycle.spec.mjs`
@@ -359,6 +384,26 @@ these 6 files' contents change.
   the shape of the excluded, non-working Actions-deployment workflow — is
   meaningless on a branch that doesn't carry that workflow at all, so
   exclusion is the correct disposition, not merely a workaround.
+- **`tests/e2e/pr-workflow-contract.test.mjs`** (excluded — **new this
+  revision**, Correction §0 item 5, discovered by actually running
+  `npm run test:e2e:tooling` against the fully-restored promotion tree).
+  Candidate's version of this test asserts `.github/workflows/e2e-harness-manual.yml`
+  exposes a `canonical` `mission_role` option; that workflow is excluded
+  from promotion immediately above and `main`'s own copy does not have
+  that role, so restoring candidate's test reproduces a deterministic
+  failure. `main`'s own current version of this test does not make that
+  assertion and is independently confirmed (by running the full
+  `test:e2e:tooling` suite with only this one file left at `main`'s
+  content and every other allowlisted file restored from candidate) to
+  pass cleanly alongside every other required check. Disposition: `main`'s
+  existing test file and its existing `package.json` invocation are
+  retained untouched by this promotion — this is not a content deviation
+  requiring restoration-then-edit (unlike the two §7 deviations), it is
+  simply not restoring this one file at all, so `main`'s current,
+  self-consistent content stands. The test's coverage of
+  `.github/workflows/e2e-pr-smoke.yml` (the other file it reads) is
+  unaffected, since that workflow is identical between `main` and the
+  candidate (independently reverified this revision).
 - Any file not present in this section's allowlist.
 
 ## 7. Mandatory CI-only corrections and content deviations (corrected this revision)
@@ -422,6 +467,8 @@ for the two new deviations):
 4. The workflow and cache assertion agree on `v96`.
 5. `tests/e2e/pages-deployment-workflow-contract.test.mjs` is absent from
    the promoted tree.
+6. `tests/e2e/pr-workflow-contract.test.mjs` is byte-identical to `main`'s
+   pre-promotion content, not candidate `b5e36f4a`'s.
 
 ## 8. Exact future preparation procedure
 
@@ -435,20 +482,27 @@ deviations.
    `bcfd74a22449b974755b8b48bc01a3b261107b93`.
 3. Create a new release branch from that exact main SHA using a normal
    branch creation; never force-push or rewrite it.
-4. Restore the §6 allowlist from the candidate, applying the two §7
-   content deviations (add the gate-1 step to `pwa-auth-contract.yml`;
-   remove the one script token from `package.json`) as part of the same
-   preparation commit, not as a follow-up.
+4. Restore the §6 allowlist from the candidate (which does **not**
+   include `tests/e2e/pr-workflow-contract.test.mjs` — leave `main`'s own
+   current copy untouched), applying the two §7 content deviations (add
+   the gate-1 step to `pwa-auth-contract.yml`; remove the one script
+   token from `package.json`) as part of the same preparation commit, not
+   as a follow-up.
 5. Confirm the §7 item 1 cache assertion (`v95 -> v96`) is present
    (already true on the candidate; verify, do not re-author).
 6. Require `git diff --check` clean.
 7. Require the changed-file set to equal the allowlist exactly (§6, minus
-   the excluded test file, plus the two §7 deviations).
+   the two excluded test files, plus the two §7 deviations) — this is 35
+   files: 6 product, 2 workflow/package (each carrying a documented
+   deviation), 27 validation files.
 8. Require every active runtime file's blob ID to equal candidate
    `b5e36f4a`.
 9. Require no `docs/**` or `prototype/**` path in the promotion diff,
-   confirm neither excluded workflow file (§6) nor the excluded test file
-   is present.
+   confirm neither excluded workflow file (§6) nor either excluded test
+   file (`tests/e2e/pages-deployment-workflow-contract.test.mjs`,
+   `tests/e2e/pr-workflow-contract.test.mjs`) is present, and confirm
+   `tests/e2e/pr-workflow-contract.test.mjs`'s blob ID equals `main`'s
+   pre-promotion blob, not candidate's.
 10. Commit the curated change as one normal promotion commit.
 11. Push the new release branch normally.
 12. Open a PR to `main`; do not merge it.
@@ -475,7 +529,12 @@ The future PR must require all of the following green:
    - `npm ci`
    - `npm run test:e2e:tooling` (with the §7 item 3 `package.json`
      deviation applied — otherwise this step is guaranteed to fail per
-     Correction §0 item 1)
+     Correction §0 item 1 — and with `tests/e2e/pr-workflow-contract.test.mjs`
+     left at `main`'s content, not candidate's — otherwise this step is
+     guaranteed to fail per Correction §0 item 5. Independently confirmed
+     by actually running the full 318-test suite against the fully
+     restored promotion tree this revision: all 318 pass with both
+     dispositions applied.)
    - `npm run test:e2e:self`
    - fail-closed parse of `npm run test:e2e:staging`
    - evidence-policy checks
@@ -488,8 +547,9 @@ The future PR must require all of the following green:
 4. Static inline-script parse/startup-composition smoke.
 5. Exact changed-file and candidate-blob allowlist checks (§6, §8),
    including confirmation that `tests/e2e/pages-deployment-workflow-contract.test.mjs`
-   is absent and that `package.json`'s `test:e2e:tooling` value does not
-   contain that path.
+   is absent, that `package.json`'s `test:e2e:tooling` value does not
+   contain that path, and that `tests/e2e/pr-workflow-contract.test.mjs`
+   is byte-identical to `main`'s pre-promotion content.
 
 Because `main` has no confirmed branch protection or rulesets (unconfirmed
 this cycle — re-verify at execution time), green status must be checked
@@ -611,6 +671,9 @@ Stop before merge if any condition is true:
   `tests/e2e/pages-deployment-workflow-contract.test.mjs`.
 - `tests/e2e/pages-deployment-workflow-contract.test.mjs` is present in
   the promotion diff.
+- `tests/e2e/pr-workflow-contract.test.mjs` differs from `main`'s
+  pre-promotion content (i.e. candidate's version was restored instead
+  of being left excluded).
 - Any required CI/check is missing, skipped, or red.
 - Claude has not accepted the actual promotion PR.
 - Exact coordinator merge authorization is absent.
