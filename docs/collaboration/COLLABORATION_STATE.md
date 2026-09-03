@@ -75,15 +75,15 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: ADR-0007 Acceptance Track Handoff
+Phase: ADR-0007 Acceptance Documentation Correction
 
-Status: CLOSED / ACCEPT
+Status: AUTHORIZED / AWAITING CLAUDE CORRECTION
 
-Current owner: Product Owner / Coordinator
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: The bounded v96 post-publication smoke is closed. Codex independently confirmed unauthenticated `/v1/me` enforcement, production health/readiness, exact Pages publication SHA, and live v96 cache identity. Authenticated live checks remain explicitly deferred as `NOT_EXECUTED_MANUAL_AUTH_REQUIRED`; no credentials were handled and no production mutation occurred.
+Product truth: Product Owner approved ADR-0007 architecture: MVP roles are exactly `driver`, `fleet`, `carrier`; ownership is relationship-based; role authority belongs to `WorkspaceMembership`; client IDs never grant authority; a carrier has one `carrier` membership in its home workspace; cross-fleet carrier visibility derives only from active `CarrierAssignment`; Phase-4 roles remain deferred. ADR acceptance records the architecture/product decision, while governed implementation remains not production-ready until every listed authorization and cross-tenant validation passes.
 
 Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
 
@@ -91,17 +91,17 @@ Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
 Latest review commit: 808eb9c
 
-Latest state commit: (pending this publication)
+Latest state commit: 3d69ecc11e36ab1a8667a0110031a7363308d75d
 
 Blocking findings: NONE
 
 Queued non-blocking findings: Authenticated live smoke and live cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Product Owner
+Next required actor: Claude
 
-Next bounded action: Review and accept or redirect the ADR-0007 acceptance track. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion work.
+Next bounded action: Documentation only: normalize ADR-0007 so `Accepted` means the architecture/product decision is accepted, while implementation is not production-ready until all existing authorization and cross-tenant tests pass. Do not weaken or remove validation requirements. Prepare ADR-0007 as `Accepted`, update CURRENT/HISTORY, and hand to Codex for independent semantic review. No runtime/workflow/deploy/migration/data changes.
 <!-- CURRENT_END -->
 
 
@@ -4582,3 +4582,10 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Authenticated live checks remain `NOT_EXECUTED_MANUAL_AUTH_REQUIRED`; no credential was requested or handled.
 - Runtime/product/workflow files changed: NONE. Production mutation/deploy/migration: NONE.
 - Coordination returned to Product Owner/Coordinator for ADR-0007 acceptance track.
+
+### 2026-09-03 — Product Owner approved ADR-0007 acceptance track
+
+- Architectural direction approved: MVP roles are exactly `driver`, `fleet`, and `carrier`; ownership and delegated visibility are relationship-based.
+- Required correction is documentation-only: distinguish ADR decision acceptance from implementation production-readiness gates without weakening any validation requirement.
+- Current owner: Claude. Next actor after publication: Codex for independent semantic review.
+- Prohibited: broad RBAC rewrite, SIDR, Dispatch, Safety, Truckpedia, #206480, unrelated workflow work, deployment, migration, or business-data mutation.
