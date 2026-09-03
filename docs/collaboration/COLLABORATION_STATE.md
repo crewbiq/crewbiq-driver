@@ -75,17 +75,17 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Population Commands - Independent Review Closed
+Phase: IA-1 - PresentationContext Pure Resolver Implementation
 
-Status: CLOSED / ACCEPT
+Status: IN_PROGRESS
 
-Current owner: Product Owner / Coordinator
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Independently reviewed orchestrator commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 by cloning crewbiq-orchestrator, checking out the exact commit, and reading the full app/routers/relationship_evidence.py (785 lines), migrations/012_relationship_evidence.sql, app/services/capabilities.py diff, and tests/test_relationship_population_commands.py directly - not the diff hunks alone. Ran the new scenario test file directly: 15 passed, 0 failed (all 14 acceptance scenarios plus a manage-capability closure test). Ran the full orchestrator suite: 342 passed, 2 skipped, 0 failed - no regression. Confirmed against RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md: authorization is fully server-derived (_authorized re-checks active_workspace_id, exact-workspace active membership, role, and capability on every command; TruckOwnership create/close/revoke uses canonical.truck_ownership.manage; CarrierAssignment propose/accept/end use their own capabilities exactly as the capability table specifies, with revoke correctly reusing canonical.carrier_assignment.end since the contract defines no separate revoke capability); _ownership_subjects and _proposal_subjects independently re-derive subject legitimacy from workspace_memberships/trucks/fleet_driver_profiles by ID only (grepped for unit_number/mc_number/usdot/account_driver_links/driver_truck_assignments/legacy snapshot tokens - none present); TruckOwnership creation cannot broaden access (target account must already hold active membership in the exact workspace, target truck must already belong to it); CarrierAssignment proposal is genuinely two-party (proposal creates status=pending only, list/accept/reject requires the addressed carrier's own active carrier-role membership in its own workspace, a carrier cannot propose and a fleet cannot accept); the corrected pending-withdrawal rule from commit 91a1804 is implemented exactly (`_change_carrier_assignment` rejects a pending withdrawal via `end` unless fleet_side is true, raising pending_withdrawal_fleet_required; revoke of pending/active remains available from either participating side with no such restriction, matching the contract's unrestricted revoke-for-invalid-evidence framing); every mutating command opens one transaction covering idempotency-begin, row lock+recheck, mutation, audit write, and idempotency-complete; expected_version is checked and incremented atomically; migration 012 is purely additive (create table if not exists, new nullable/defaulted columns, an additive status check, a widened partial unique index) with no insert/update/delete/drop/truncate; canonical_command_idempotency and relationship_audit_events are reused from the pre-existing migration 009 foundation, not reinvented. No delete statement exists anywhere in the router or migration. No migration 012 execution, data population, PWA change, or resolver/IA-2 work occurred in this review.
+Product truth: Canonical relationship read and population prerequisites are accepted. Under standing Product Owner delegation, Codex selects the already-approved lowest-risk continuation: implement the pure fail-closed resolvePresentationContext(sessionEvidence) contract and executable V1-V9 tests. No DOM, navigation, endpoint authorization, persisted role, migration execution, data population, deployment, or IA-2 work is authorized.
 
 Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
 
@@ -93,22 +93,29 @@ Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1d
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review/state commit: (pending this publication)
+Latest review/state commit: f91415728748bc6d61cf4cf0cc088e6312afc761
 
 Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Product Owner
+Next required actor: Codex
 
-Next bounded action: Decide whether to authorize migration 012 execution and staging data population (still separately gated per the contract's own terms and not authorized by this closure), a PWA command-adapter/UI slice, or resumption of IA-1 PresentationContext resolver work - or select a different next step. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
+Next bounded action: Implement a pure PresentationContext resolver against the accepted session and relationship-evidence shapes, execute V1-V9 as deterministic tests, publish, and hand to Claude. Preserve full zeroing for every non-resolved status and all carrier/assignment topology rules. Do not integrate DOM/navigation, execute migration 012, populate data, deploy, or begin IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex authorizes pure PresentationContext resolver
+
+- Basis: population commands accepted at `f91415728748bc6d61cf4cf0cc088e6312afc761`; prerequisite sources are now implementable without schema/data execution
+- Selected continuation: pure `resolvePresentationContext(sessionEvidence)` plus contract V1-V9 tests
+- Not authorized: DOM/navigation, endpoint authorization changes, persisted role changes, migration execution, data population, deployment, or IA-2
+- Decision authority: standing Product Owner delegation for bounded technical sequencing
+
 ### 2026-09-03 - Canonical relationship population commands published
 
 - Orchestrator implementation: `4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1`
