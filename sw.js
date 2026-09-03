@@ -19,7 +19,7 @@
  * query string until this file itself changes.
  */
 
-const CACHE_NAME = 'crewbiq-driver-v95';
+const CACHE_NAME = 'crewbiq-driver-v96';
 
 const APP_SHELL = [
   '/crewbiq-driver/',
@@ -92,8 +92,6 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   if (
-    url.hostname.includes('script.google.com') ||
-    url.hostname.includes('googleapis.com') ||
     url.hostname.includes('railway.app') ||
     event.request.method === 'POST'
   ) {

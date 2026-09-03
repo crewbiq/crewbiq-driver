@@ -5,10 +5,12 @@
     async function restoreSession(options = {}) {
       deps.setFleetRestoreSettled(false);
       const sessionToken = String(options.sessionToken || deps.getSavedSessionToken()).trim();
-      const syncUrl = String(options.syncUrl || deps.getAuthSyncUrl()).trim();
       if (!sessionToken) throw deps.endpointError('auth_restore', 'sessionToken missing before restore');
-      const data = await deps.authPost('auth_restore', { sessionToken }, syncUrl);
-      deps.applyAuthRestoreData(data, syncUrl);
+      const data = await deps.authPost('auth_restore', { sessionToken });
+      // defaultSyncUrl only populates driver.syncUrl (a device/environment
+      // display field) - it no longer affects where authPost() actually
+      // sends anything, since authPost() resolves its own destination.
+      deps.applyAuthRestoreData(data, deps.defaultSyncUrl);
       let fleetRestore = null;
       const driver = deps.getDriver();
       if (driver && driver.crewId && (!deps.loadTrucks().length || !deps.loadDriverProfiles().length)) {
@@ -31,7 +33,7 @@
       deps.scheduleAutoSync();
       const driver = deps.getDriver();
       const pullFromCloud = deps.getPullFromCloud();
-      if (driver && driver.syncUrl && typeof pullFromCloud === 'function') {
+      if (driver && typeof pullFromCloud === 'function') {
         deps.setTimeout(() => pullFromCloud({ silent: true }), 1000);
       }
     }
@@ -47,16 +49,10 @@
       else showApp();
     }
 
-    function start(options = {}) {
+    function start() {
       const savedSession = deps.getSavedSessionToken();
-      const savedUrl = String(options.savedUrl || '').trim();
-      const driver = deps.getDriver();
-      if (savedSession && (savedUrl || (driver && driver.syncUrl))) {
-        return restoreSession({
-          sessionToken: savedSession,
-          syncUrl: savedUrl || driver.syncUrl,
-          silent: true,
-        })
+      if (savedSession) {
+        return restoreSession({ sessionToken: savedSession, silent: true })
           .catch(error => deps.warn('[CrewBIQ Auth] session restore failed:', error.message))
           .finally(() => boot());
       }

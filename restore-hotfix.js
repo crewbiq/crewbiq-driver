@@ -274,35 +274,28 @@
     return cloned;
   }
 
-  async function syncExpensesNow() {
-    const token = tokenFrom({});
-    const driver = storedDriver();
-    if (!token || !identityKey(driver)) return { ok: false, reason: 'not_authenticated' };
-    const expenses = loadScopedExpenses(driver);
-    const recordId = 'expense_sync_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const response = await previousFetch(driver.syncUrl || 'https://script.google.com/macros/s/crewbiq-expenses/exec', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        type: 'driver_report',
-        record_id: recordId,
-        sentAt: new Date().toISOString(),
-        driver,
-        loads: [],
-        ptiLog: [],
-        ownerData: { expenses },
-        expenses,
-      }),
-      cache: 'no-store',
-    });
-    if (!response.ok) return { ok: false, status: response.status };
-    return { ok: true, count: expenses.length };
-  }
-
+  // Historical note: this module used to carry a dedicated syncExpensesNow()
+  // write - a driver_report-typed call to its own hardcoded fallback
+  // endpoint. That write was always redundant with the general Orchestrator
+  // write path: attachExpensesToReport() (above) already injects this same
+  // driver's scoped expenses into every driver_report call, including every
+  // call doSync() makes. Removed outright (confirmed by the Product Owner to
+  // carry no distinct consumer needing preservation) rather than merely
+  // retargeted, per the decommission contract's REMOVE classification.
+  // scheduleExpenseSync() now triggers the general Orchestrator sync instead
+  // of a dedicated write, preserving the local-first save-trigger behavior
+  // (an expense save still prompts a sync shortly after) through the one
+  // real write path rather than a second one. Uses forceFullSync() rather
+  // than doSync() deliberately: doSync() skips the write entirely when there
+  // are no pending loads/PTI/disputes/ownerData, which would silently strand
+  // an expense-only save (attachExpensesToReport() only injects expenses at
+  // the point a driver_report call is actually made - it cannot make one
+  // happen on its own). forceFullSync() bypasses that skip unconditionally.
   function scheduleExpenseSync() {
     clearTimeout(expenseSyncTimer);
     expenseSyncTimer = setTimeout(function () {
-      syncExpensesNow().catch(function (error) {
+      if (typeof global.forceFullSync !== 'function') return;
+      global.forceFullSync().catch(function (error) {
         console.warn('[CrewBIQ Expenses] sync failed:', error && error.message ? error.message : error);
       });
     }, 900);
@@ -346,7 +339,6 @@
   global.CrewBIQRestoreHotfix = {
     version: '0.2.0',
     fullRestore,
-    syncExpensesNow,
     loadScopedExpenses,
     scopedExpensesKey,
   };

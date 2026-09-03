@@ -32,7 +32,7 @@ test('STATIC_CONTRACT startup initializes dependencies before one coordinator st
     'initPTI();',
     'initLoads();',
     'applyRoleUI();',
-    'getStartupCoordinator().start({savedUrl:_savedUrl});',
+    'getStartupCoordinator().start();',
   ]);
   assert.equal(init.match(/getStartupCoordinator\(\)\.start\(/g)?.length, 1);
 });
@@ -42,8 +42,8 @@ test('STATIC_CONTRACT restore applies identity before optional fleet restore and
   assertOrdered(restore, [
     'deps.setFleetRestoreSettled(false);',
     "deps.endpointError('auth_restore', 'sessionToken missing before restore')",
-    "deps.authPost('auth_restore', { sessionToken }, syncUrl)",
-    'deps.applyAuthRestoreData(data, syncUrl);',
+    "deps.authPost('auth_restore', { sessionToken })",
+    'deps.applyAuthRestoreData(data, deps.defaultSyncUrl);',
     'deps.restoreFleetConfigFromOrchestrator(driver.crewId)',
     'deps.saveAll();',
     'deps.saveDriverProfile();',
@@ -54,7 +54,7 @@ test('STATIC_CONTRACT restore applies identity before optional fleet restore and
 });
 
 test('STATIC_CONTRACT boot keeps setup, PTI gate, and app visibility in order', () => {
-  const boot = section(coordinator, 'function boot() {', 'function start(options = {}) {');
+  const boot = section(coordinator, 'function boot() {', 'function start() {');
   assertOrdered(boot, [
     "deps.document.getElementById('setupScreen').style.display = 'flex';",
     'deps.renderStartupShell();',
@@ -74,10 +74,9 @@ test('STATIC_CONTRACT logout clears only primary session shell and preserves con
   assertOrdered(logout, [
     'registerAccountId({crewId: driver.crewId, email: driver.email}, driver.accountId);',
     'importLegacyPaySettingsIntoScope();',
-    "authPost('auth_logout', {sessionToken}, syncUrl)",
+    "authPost('auth_logout', {sessionToken})",
     "localStorage.removeItem(K+'driver');",
     'clearSessionToken();',
-    "localStorage.setItem(K+'_savedSyncUrl', syncUrl);",
     "localStorage.setItem(K+'_savedPtiSched', sched);",
     'location.reload();',
   ]);

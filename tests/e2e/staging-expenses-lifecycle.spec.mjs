@@ -73,24 +73,29 @@ async function seedDriverIdentity(page, config, token) {
   await page.reload({ waitUntil: 'domcontentloaded' });
 }
 
-// Expenses use a wholly separate sync path from loads/PTI: restore-hotfix.js
-// wraps window.saveExpenses to debounce-call syncExpensesNow() 900ms after any
-// change, posting directly (no window.doSync() involvement, no
-// _syncInProgress guard). Calling window.CrewBIQRestoreHotfix.syncExpensesNow()
-// directly skips the debounce instead of waiting on a timer in the test.
+// Expenses no longer have a dedicated sync path: restore-hotfix.js wraps
+// window.saveExpenses to debounce-call window.forceFullSync() 900ms after any
+// change (the dedicated syncExpensesNow() write was removed as redundant -
+// attachExpensesToReport() already injects this driver's scoped expenses into
+// every driver_report call the general sync path makes). forceFullSync() is
+// used rather than doSync() specifically because it bypasses doSync()'s
+// nothing-to-push skip, which would otherwise silently strand an
+// expense-only save. Calling window.forceFullSync() directly here skips the
+// debounce instead of waiting on a timer in the test, and goes through the
+// same _syncInProgress-guarded path as every other sync trigger.
 async function forceExpenseSync(page) {
-  return page.evaluate(() => window.CrewBIQRestoreHotfix.syncExpensesNow());
+  return page.evaluate(() => window.forceFullSync());
 }
 
 test(
   'EXPENSES-01 add expense form entry survives authenticated restore on another device',
   scenario(
-    'An expense added through the real Add Expense form is durably synced via the expenses-specific sync path and appears with the same stable ID and values on a clean authenticated restore.',
+    'An expense added through the real Add Expense form is durably synced via the general Orchestrator sync path and appears with the same stable ID and values on a clean authenticated restore.',
     [
       'Open independent writer and recovery contexts.',
       'Seed the writer context with a real driver identity, PTI gate opted out.',
       'Fill and submit the real Add Expense form.',
-      'Force the expenses-specific sync (syncExpensesNow, not doSync) and confirm it succeeded.',
+      'Force the general Orchestrator sync (forceFullSync) and confirm it succeeded.',
       'Restore on the recovery context and verify the expense, values and stable ID.',
       'Mark the expense denied as an inert cleanup state (no delete sync path exists server-side) and revoke both sessions.',
     ],

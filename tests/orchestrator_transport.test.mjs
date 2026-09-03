@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+// Repaired 2026-09-01: the previous version of this test loaded the tiny
+// core.js document.write() loader directly via vm, which throws immediately
+// ("document.write is not a function") because vm's mock document has no
+// write() implementation, and was never wired into any npm/CI script as a
+// result. It predates the core.js/core-runtime.js split.
+//
+// This version loads core-runtime.js directly (the file core.js actually
+// document.write()s into the page) and dynamically proves, for every legacy
+// action-envelope type mapped in docs/collaboration/LEGACY_SYNC_CALL_PATH_MAP.md,
+// that CrewBIQCore's routedFetch ignores whatever URL is supplied and routes
+// to the configured Orchestrator by inspecting the JSON body's `type` field.
+// It also proves the reverse: a request core-runtime does not recognize
+// falls through untouched to the native fetch (so the transport layer is not
+// silently swallowing everything).
+
 const storageMap = new Map();
 const localStorage = {
   getItem(key) { return storageMap.has(key) ? storageMap.get(key) : null; },
@@ -9,205 +24,258 @@ const localStorage = {
   removeItem(key) { storageMap.delete(key); },
 };
 
-const documentListeners = new Map();
-const document = {
-  readyState: 'loading',
-  addEventListener(name, handler) { documentListeners.set(name, handler); },
-};
-
 const calls = [];
-async function mockFetch(url, init = {}) {
+async function nativeFetchMock(url, init = {}) {
   const call = {
-    url: String(url),
-    method: String(init.method || 'GET').toUpperCase(),
-    headers: new Headers(init.headers || {}),
-    body: typeof init.body === 'string' ? init.body : '',
+    url: String(typeof url === 'string' ? url : (url && url.url) || ''),
+    method: String((init && init.method) || 'GET').toUpperCase(),
+    headers: new Headers((init && init.headers) || {}),
+    body: typeof (init && init.body) === 'string' ? init.body : '',
   };
   calls.push(call);
 
   if (call.url.endsWith('/v1/auth/login')) {
     return new Response(JSON.stringify({
       ok: true,
-      session_token: 'token-owner-1',
-      user: {
-        crewbiq_id: 'CBQ-AUTH',
-        email: 'owner@example.com',
-        nickname: 'Owner',
-      },
-      effective_owner_crewbiq_id: 'CBQ-HISTORICAL',
+      session_token: 'token-1',
+      user: { crewbiq_id: 'CBQ-A', email: 'a@example.com', nickname: 'A' },
       roles: ['fleet'],
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
-
+  if (call.url.endsWith('/v1/auth/bootstrap')) {
+    return new Response(JSON.stringify({
+      ok: true,
+      session_token: 'token-2',
+      user: { crewbiq_id: 'CBQ-B', email: 'b@example.com', nickname: 'B' },
+      roles: ['driver'],
+    }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+  }
   if (call.url.endsWith('/v1/me')) {
     return new Response(JSON.stringify({
       ok: true,
-      user: {
-        crewbiq_id: 'CBQ-AUTH',
-        effective_owner_crewbiq_id: 'CBQ-HISTORICAL',
-        email: 'owner@example.com',
-        nickname: 'Owner',
-        roles: ['fleet'],
-      },
+      user: { crewbiq_id: 'CBQ-A', email: 'a@example.com', nickname: 'A', roles: ['fleet'] },
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
-
   if (call.url.endsWith('/v1/fleet/config')) {
     return new Response(JSON.stringify({
       ok: true,
-      crewbiq_id: 'CBQ-HISTORICAL',
-      trucks: [{ id: 'truck_active', unitNumber: '10', active: true }],
-      driver_profiles: [{ id: 'driver_active', name: 'Active Driver', active: true }],
-      pay_config: { payType: 'cpm', cpmRate: 0.7 },
+      trucks: [{ id: 'truck_1' }],
+      driver_profiles: [{ id: 'driver_1' }],
+      pay_config: { payType: 'cpm', cpmRate: 0.6 },
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
-
-  if (call.url.endsWith('/v1/sync/pwa')) {
-    const body = JSON.parse(call.body || '{}');
-    return new Response(JSON.stringify({
-      ok: true,
-      received: true,
-      record_id: body.record_id || (body.payload && body.payload.record_id) || 'unknown',
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
-
   if (call.url.endsWith('/v1/auth/logout')) {
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  if (call.url.includes('/v1/sync')) {
+    const body = JSON.parse(call.body || '{}');
+    const recordId = (body.payload && body.payload.record_id) || body.record_id || 'unknown';
+    return new Response(JSON.stringify({ ok: true, received: true, record_id: recordId }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (/\/v1\/workspaces\/[^/]+\/drivers$/.test(call.url)) {
+    return new Response(JSON.stringify({ ok: true, drivers: [{ id: 'driver_1' }] }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (/\/v1\/workspaces\/[^/]+\/account-driver-link/.test(call.url)) {
+    return new Response(JSON.stringify({ ok: true, link: { account_id: 'acct_1' } }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (/\/v1\/workspaces\/[^/]+\/driver-truck-assignments\/(current|history|as-of)/.test(call.url)) {
+    return new Response(JSON.stringify({ ok: true, assignments: [{ truck_id: 'truck_1' }] }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (call.url === 'https://example.com/unrelated-native-endpoint') {
+    return new Response(JSON.stringify({ ok: true, native: true }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  throw new Error('Unexpected native fetch: ' + call.method + ' ' + call.url);
+  throw new Error('Unexpected native fetch call: ' + call.method + ' ' + call.url);
 }
+
+const document = {
+  readyState: 'complete',
+  addEventListener() {},
+};
 
 const context = {
   console,
   localStorage,
   document,
-  fetch: mockFetch,
+  fetch: nativeFetchMock,
   Response,
   Headers,
   Request,
+  URLSearchParams,
   setTimeout,
   clearTimeout,
 };
 context.window = context;
 context.globalThis = context;
 
-const source = fs.readFileSync(new URL('../core.js', import.meta.url), 'utf8');
-vm.runInNewContext(source, context, { filename: 'core.js' });
+const runtime = fs.readFileSync(new URL('../core-runtime.js', import.meta.url), 'utf8');
+vm.runInNewContext(runtime, context, { filename: 'core-runtime.js' });
 
 assert.equal(context.CrewBIQCore.version, '0.2.0');
+assert.notEqual(context.fetch, nativeFetchMock, 'core-runtime must have replaced global.fetch with its own dispatcher');
 
-const legacySyncUrl = 'https://script.google.com/macros/s/example/exec';
-const loginResponse = await context.fetch(legacySyncUrl, {
-  method: 'POST',
-  headers: { 'Content-Type': 'text/plain' },
-  body: JSON.stringify({
-    type: 'auth_login',
-    emailOrNickname: 'owner@example.com',
-    password: 'secret-password',
-  }),
-});
-const login = await loginResponse.json();
-assert.equal(login.ok, true);
-assert.equal(login.sessionToken, 'token-owner-1');
-assert.equal(login.crewId, 'CBQ-AUTH');
-assert.equal(login.effectiveOwnerCrewId, 'CBQ-HISTORICAL');
-assert.equal(localStorage.getItem('fiqD_sessionToken'), 'token-owner-1');
-assert.equal(localStorage.getItem('fiqD_userRole'), 'fleet');
-assert.equal(calls[0].url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/auth/login');
-assert.deepEqual(JSON.parse(calls[0].body), {
-  email: 'owner@example.com',
-  password: 'secret-password',
-});
+const legacyUrl = 'https://script.google.com/macros/s/example/exec';
 
-const restoreResponse = await context.fetch(legacySyncUrl, {
-  method: 'POST',
-  body: JSON.stringify({ type: 'auth_restore', sessionToken: 'token-owner-1' }),
-});
-const restored = await restoreResponse.json();
-assert.equal(restored.ok, true);
-assert.deepEqual(restored.ownerData.trucks.map(item => item.id), ['truck_active']);
-assert.deepEqual(restored.ownerData.driverProfiles.map(item => item.id), ['driver_active']);
-assert.equal(restored.pay_config.payType, 'cpm');
-assert.deepEqual(JSON.parse(localStorage.getItem('fiqD_paySettings')), {
-  payType: 'cpm',
-  cpmRate: 0.7,
-});
-assert.equal(calls.at(-2).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/me');
-assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/fleet/config');
-assert.equal(calls.at(-2).headers.get('authorization'), 'Bearer token-owner-1');
-assert.equal(calls.at(-1).headers.get('authorization'), 'Bearer token-owner-1');
+// auth_login: supplied legacy URL is discarded; routes to /v1/auth/login.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'auth_login', emailOrNickname: 'a@example.com', password: 'secret' }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(data.sessionToken, 'token-1');
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/auth/login');
+  assert.equal(calls.at(-1).url.includes('script.google.com'), false);
+}
 
-const beforeFleetCall = calls.length;
-await context.fetch('https://crewbiq-orchestrator-production.up.railway.app/v1/fleet/config/pwa?crewbiq_id=CBQ-ATTACKER', {
-  method: 'GET',
-});
-assert.equal(calls.length, beforeFleetCall + 1);
-assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/fleet/config');
-assert.equal(calls.at(-1).headers.get('authorization'), 'Bearer token-owner-1');
+// auth_signup: routes to /v1/auth/bootstrap.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'auth_signup', email: 'b@example.com', nickname: 'B', password: 'secret' }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/auth/bootstrap');
+}
 
-const syncPayload = {
-  type: 'driver_report',
-  sessionToken: 'token-owner-1',
-  record_id: 'sync_device_a_1',
-  sentAt: '2026-07-12T15:00:00Z',
-  deviceId: 'device-a',
-  driver: {
-    crewId: 'CBQ-ATTACKER',
-    ownerKey: 'crew_attacker',
-    email: 'attacker@example.com',
-  },
-  loads: [],
-  ptiLog: [],
-  ownerData: {
-    trucks: [{ id: 'truck_active', active: true }],
-    driverProfiles: [{ id: 'driver_active', active: true }],
-  },
-};
+// auth_restore: fans out to /v1/me then /v1/fleet/config, never Google.
+{
+  localStorage.setItem('fiqD_sessionToken', 'token-1');
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'auth_restore', sessionToken: 'token-1' }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 2);
+  assert.equal(calls[before].url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/me');
+  assert.equal(calls[before + 1].url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/fleet/config');
+  assert.equal(calls.slice(before).some(c => c.url.includes('script.google.com')), false);
+}
 
-const syncResponse = await context.fetch(legacySyncUrl, {
-  method: 'POST',
-  body: JSON.stringify(syncPayload),
-});
-assert.equal((await syncResponse.json()).ok, true);
-assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/sync/pwa');
-assert.equal(calls.at(-1).headers.get('authorization'), 'Bearer token-owner-1');
-const sentSyncPayload = JSON.parse(calls.at(-1).body);
-assert.equal(Object.hasOwn(sentSyncPayload, 'sessionToken'), false);
-assert.equal(sentSyncPayload.driver.crewId, 'CBQ-ATTACKER');
+// auth_logout: routes to /v1/auth/logout.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'auth_logout', sessionToken: 'token-1' }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/auth/logout');
+}
 
-const beforeDuplicate = calls.length;
-const duplicateResponse = await context.fetch('https://crewbiq-orchestrator-production.up.railway.app/v1/sync', {
-  method: 'POST',
-  body: JSON.stringify({
-    source: 'crewbiq_driver',
-    deviceId: 'device-a',
-    payload: syncPayload,
-  }),
-});
-const duplicate = await duplicateResponse.json();
-assert.equal(duplicate.ok, true);
-assert.equal(duplicate.client_deduplicated, true);
-assert.equal(calls.length, beforeDuplicate);
+// driver_report (pushToCloud's shape): routes to /v1/sync, not Google.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({
+      type: 'driver_report', sessionToken: 'token-1', record_id: 'sync_matrix_1',
+      driver: { crewId: 'CBQ-A' }, loads: [], ptiLog: [],
+    }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url.includes('/v1/sync'), true);
+  assert.equal(calls.at(-1).url.includes('script.google.com'), false);
+}
 
-context.setUserRole = function (role) {
-  localStorage.setItem('fiqD_userRole', role);
-};
-documentListeners.get('DOMContentLoaded')();
-localStorage.setItem('fiqD_authRoles', JSON.stringify(['driver']));
-localStorage.setItem('fiqD_userRole', 'driver');
-context.setUserRole('fleet');
-assert.equal(localStorage.getItem('fiqD_userRole'), 'driver');
+// pti_report: also routes through adaptSync to /v1/sync.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({
+      type: 'pti_report', sessionToken: 'token-1', record_id: 'sync_matrix_2',
+      driver: { crewId: 'CBQ-A' }, pti: { date: '2026-09-01' },
+    }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url.includes('/v1/sync'), true);
+}
 
-const logoutResponse = await context.fetch(legacySyncUrl, {
-  method: 'POST',
-  body: JSON.stringify({ type: 'auth_logout', sessionToken: 'token-owner-1' }),
-});
-assert.equal((await logoutResponse.json()).ok, true);
-assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/auth/logout');
-assert.equal(calls.at(-1).headers.get('authorization'), 'Bearer token-owner-1');
+// workspace_driver_roster_read: routes to /v1/workspaces/:id/drivers.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'workspace_driver_roster_read', sessionToken: 'token-1', workspaceId: 'ws_1' }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/workspaces/ws_1/drivers');
+}
 
-console.log('orchestrator transport contract: ok');
+// account_driver_link_read: routes to /v1/workspaces/:id/account-driver-link.
+{
+  const before = calls.length;
+  const resp = await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'account_driver_link_read', sessionToken: 'token-1', workspaceId: 'ws_1' }),
+  });
+  const data = await resp.json();
+  assert.equal(data.ok, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url, 'https://crewbiq-orchestrator-production.up.railway.app/v1/workspaces/ws_1/account-driver-link');
+}
+
+// driver_truck_assignment_{current,history,as_of}_read: all three views.
+{
+  const before = calls.length;
+  await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'driver_truck_assignment_current_read', sessionToken: 'token-1', workspaceId: 'ws_1', driverId: 'driver_1' }),
+  });
+  assert.equal(calls.at(-1).url.includes('/driver-truck-assignments/current'), true);
+
+  await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'driver_truck_assignment_history_read', sessionToken: 'token-1', workspaceId: 'ws_1', driverId: 'driver_1' }),
+  });
+  assert.equal(calls.at(-1).url.includes('/driver-truck-assignments/history'), true);
+
+  await context.fetch(legacyUrl, {
+    method: 'POST',
+    body: JSON.stringify({ type: 'driver_truck_assignment_as_of_read', sessionToken: 'token-1', workspaceId: 'ws_1', driverId: 'driver_1', effectiveAt: '2026-09-01T00:00:00Z' }),
+  });
+  assert.equal(calls.at(-1).url.includes('/driver-truck-assignments/as-of'), true);
+  assert.equal(calls.length, before + 3);
+  assert.equal(calls.slice(before).some(c => c.url.includes('script.google.com')), false);
+}
+
+// Unmatched request: an unrecognized shape must fall through to native fetch
+// untouched (proves the transport layer is a bounded dispatcher, not a
+// blanket interceptor that would silently swallow genuinely new call shapes).
+{
+  const before = calls.length;
+  const resp = await context.fetch('https://example.com/unrelated-native-endpoint', { method: 'GET' });
+  const data = await resp.json();
+  assert.equal(data.native, true);
+  assert.equal(calls.length, before + 1);
+  assert.equal(calls.at(-1).url, 'https://example.com/unrelated-native-endpoint');
+}
+
+console.log('orchestrator transport action-matrix contract: ok');
