@@ -77,31 +77,31 @@ When the user says "готово", ChatGPT should:
 
 Phase: ADR-0007 Acceptance Documentation Correction
 
-Status: AUTHORIZED / AWAITING CLAUDE CORRECTION
+Status: PUBLISHED / AWAITING CODEX SEMANTIC REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Product Owner approved ADR-0007 architecture: MVP roles are exactly `driver`, `fleet`, `carrier`; ownership is relationship-based; role authority belongs to `WorkspaceMembership`; client IDs never grant authority; a carrier has one `carrier` membership in its home workspace; cross-fleet carrier visibility derives only from active `CarrierAssignment`; Phase-4 roles remain deferred. ADR acceptance records the architecture/product decision, while governed implementation remains not production-ready until every listed authorization and cross-tenant validation passes.
+Product truth: ADR-0007 (crewbiq/crewbiq-docs, branch claude/adr-0007-mvp-roles-and-phase4-backlog, file architecture/ADR/ADR-0007-organization-roles-and-delegated-scope-for-crewbiq-mvp.md) amended in commit d62cb517, published on top of the branch's prior tip 54fb0aec. Three precise, minimal changes, verified via full before/after diff before publishing: (1) header `Status: Proposed` -> `Status: Accepted`. (2) Migration item 5 reworded from "Cross-tenant and cross-role authorization tests are required before this ADR's status can move to Accepted" to state the same tests are a precondition for any *implementation* governed by this ADR to be production-ready, explicitly not a precondition for the ADR's own Accepted status. (3) One clarifying sentence added at the top of the Validation section stating explicitly that section governs implementation production-readiness, not ADR status. No validation requirement was weakened, removed, or reworded beyond this framing - every listed test bullet in Validation is byte-for-byte unchanged; independently re-diffed the full document to confirm only these three points changed. Published via blob/tree/commit against crewbiq-docs (tip re-checked immediately before publish, matching content verified via git show after), Compare API confirms exactly one file, one commit. This branch has not been opened as a PR or merged to crewbiq-docs main this cycle - the ADR-0007 architecture is approved and its documentation is now internally consistent, but formal integration into crewbiq-docs main (if desired) is a separate, not-yet-authorized step.
 
 Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
 
-Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
+Latest correction commit: d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (crewbiq-docs)
 
-Latest review commit: 808eb9c
+Latest review commit: (pending this publication)
 
-Latest state commit: 3d69ecc11e36ab1a8667a0110031a7363308d75d
+Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: Authenticated live smoke and live cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: Authenticated live smoke and live cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision; ADR-0007's integration (PR/merge) into crewbiq-docs main is not yet started - a separate decision from this documentation correction.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Documentation only: normalize ADR-0007 so `Accepted` means the architecture/product decision is accepted, while implementation is not production-ready until all existing authorization and cross-tenant tests pass. Do not weaken or remove validation requirements. Prepare ADR-0007 as `Accepted`, update CURRENT/HISTORY, and hand to Codex for independent semantic review. No runtime/workflow/deploy/migration/data changes.
+Next bounded action: Independently review crewbiq-docs commit d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (branch claude/adr-0007-mvp-roles-and-phase4-backlog) for semantic consistency: confirm the Status/Migration/Validation changes correctly separate "ADR Accepted = architecture decision accepted" from "implementation production-ready only after all listed tests pass," confirm no validation requirement was weakened or removed, and confirm no other part of the ADR was altered. Publish ACCEPT or precise NEEDS_FIX. On ACCEPT: (1) record ADR-0007 as formally Accepted in coordination state, (2) freeze MVP role semantics (driver/fleet/carrier; owner as relationship; WorkspaceMembership-scoped authority; server-derived access; single carrier home-workspace membership with CarrierAssignment-derived cross-fleet visibility; Dispatcher/Safety/Mechanic/Phase-4 deferred), (3) move to MVP Information Architecture / Production UI Integration preparation as the next task. Do not begin a broad RBAC rewrite before the UI architecture freeze. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, or e2e-harness-manual.yml promotion work. No production deployment, migration, or business-data mutation in this slice.
 <!-- CURRENT_END -->
 
 
@@ -4589,3 +4589,13 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Required correction is documentation-only: distinguish ADR decision acceptance from implementation production-readiness gates without weakening any validation requirement.
 - Current owner: Claude. Next actor after publication: Codex for independent semantic review.
 - Prohibited: broad RBAC rewrite, SIDR, Dispatch, Safety, Truckpedia, #206480, unrelated workflow work, deployment, migration, or business-data mutation.
+
+### 2026-09-03 - Claude - ADR-0007 documentation clarification: Accepted status decoupled from implementation-test gating (implementer role)
+
+- Located ADR-0007 in the crewbiq-docs repository (not crewbiq-driver), on a pre-existing working branch (claude/adr-0007-mvp-roles-and-phase4-backlog) that had never been opened as a PR - found via a repo-wide tree search after the file was absent from crewbiq-driver and from crewbiq-docs main.
+- Read the full ADR and located the exact inconsistency the Product Owner described: Migration item 5 said cross-tenant/cross-role authorization tests were required "before this ADR's status can move to Accepted," while the Validation section separately described those same tests as a requirement for implementation PRs - conflating architecture acceptance with implementation completion.
+- Made exactly three minimal, targeted edits, verified via a full before/after diff before publishing (not just trusting each edit in isolation): header Status changed from Proposed to Accepted; Migration item 5 reworded to state the tests gate implementation production-readiness, not the ADR's own status; one clarifying sentence added at the top of Validation stating explicitly which thing that section gates. Did not touch, weaken, or remove any of the listed validation test requirements themselves - confirmed by diff that every test bullet is byte-for-byte unchanged.
+- Published to the existing crewbiq-docs branch via the same blob/tree/commit/ref-update discipline used throughout this session for crewbiq-driver: re-checked the branch tip immediately before publish, verified the resulting blob's size matched the local file, and independently re-fetched the published content via git show to confirm a byte-for-byte match before reporting success. Verified via GitHub Compare API that the diff is exactly the one file, one commit.
+- Did not open a PR or merge this branch into crewbiq-docs main - that formal integration step was not part of this cycle's bounded authorization and remains a separate, not-yet-started decision.
+- Per the role-swap protocol: Next required actor: Codex, for independent semantic review of whether the correction is complete and consistent, before the Product Owner's own next steps (freeze MVP role semantics, move to MVP Information Architecture / Production UI Integration preparation) proceed.
+- No production deployment, migration, business-data mutation, workflow change, or unrelated work (SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, e2e-harness-manual.yml promotion) was performed or started, exactly as bounded.
