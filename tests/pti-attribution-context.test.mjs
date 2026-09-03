@@ -59,7 +59,7 @@ test('composition passes only canonical Truck IDs and accepted workspace roster 
 });
 
 test('cache-first PTI runtime is rotated', () => {
-  assert.match(sw, /crewbiq-driver-v96/);
+  assert.match(sw, /crewbiq-driver-v97/);
   assert.match(sw, /\/pti\.js/);
 });
 

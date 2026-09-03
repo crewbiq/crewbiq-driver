@@ -15,6 +15,7 @@
   <script src="workspace-driver-roster.js?v=20260831-slice4b1b2c-s2-v1"></script>
   <script src="driver-truck-assignment.js?v=20260831-slice4b1b3-s3-v1"></script>
   <script src="account-driver-link.js?v=20260831-slice4b2-s2-v1"></script>
+  <script src="relationship-evidence.js?v=20260903-ia1-prerequisite-v1"></script>
   <script src="driver-self.js?v=20260831-slice4b2-s2-v1"></script>
   <script src="pti.js?v=20260617-pg-pwa"></script>
   <script src="loads.js?v=20260715-bol-load-fields-v1"></script>
@@ -1876,6 +1877,27 @@ function getAccountDriverLinkAdapter(){
     });
   }
   return accountDriverLinkAdapter;
+}
+let relationshipEvidenceAdapter = null;
+function getRelationshipEvidenceAdapter(){
+  if(!relationshipEvidenceAdapter && window.CrewBIQRelationshipEvidence){
+    relationshipEvidenceAdapter = window.CrewBIQRelationshipEvidence.create({
+      request: async function(action, payload){
+        const supported=['truck_ownership_read','carrier_assignments_read'];
+        if(!supported.includes(action)) throw new Error('Unsupported relationship evidence action');
+        const resp=await fetch(ORCHESTRATOR_BASE_URL, {
+          method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+          body:JSON.stringify({type:action, client:'crewbiq-driver-pwa', deviceId:getDeviceId(), ...payload}),
+          cache:'no-store', redirect:'follow'
+        });
+        const responseText=await resp.text();
+        let data={};
+        try{ data=JSON.parse(responseText); }catch(e){ data={ok:false}; }
+        return {status:resp.status, data:data};
+      }
+    });
+  }
+  return relationshipEvidenceAdapter;
 }
 let driverSelfReader = null;
 let driverSelfRequestKey = '';
