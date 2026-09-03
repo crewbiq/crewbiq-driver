@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: ADR-0007 Role/Scope Reconciliation — Final B1 Correction
+Phase: ADR-0007 Role/Scope Reconciliation - Final B1 Correction Published
 
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
+Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Codex re-review `73e47a6` accepts B2, B3, and B4, but B1 remains. The binding model separates actor Role from selected Scope: a carrier actor keeps Role=`carrier`, while Scope genuinely traverses `CARRIER` (portfolio) -> `FLEET` (one assignment-filtered fleet grouping) -> `TRUCK` -> `DRIVER`, with `SELF` only through an independently authorized Driver identity. The current canonical driver docs incorrectly keep AnalyticsScope `type='carrier'` at every depth and label Fleet/Truck/Driver as presentation-only stages. Scope changes never grant membership or authority; every selected subject remains fail-closed and server-authorized through active `CarrierAssignment`.
+Product truth: Accepted Codex re-review 73e47a6's design correction after independently working through the reasoning (not applied mechanically): Role and Scope must vary independently, matching the existing self/driver/truck/fleet pattern where `type` identifies the subject being viewed regardless of the viewer. The prior fix kept `AnalyticsScope.type='carrier'` fixed at every narrowing depth; corrected so `type` genuinely traverses `carrier -> fleet -> truck -> driver` as a carrier drills down, reusing the existing `workspaceId`/`truckId`/`driverId` fields exactly as a `fleet`-role actor's equivalent request would - the dedicated `carrierId`/`fleetWorkspaceId` fields from the withdrawn prior design are removed (no new fields needed at all). The distinguishing constraint moves entirely to authorization: a carrier's `fleet`/`truck`/`driver`-type request must independently re-check the actor's actual Role is `carrier` (not that workspace's own `fleet` membership) and must require an active `CarrierAssignment` reaching that specific subject, returning only the fields that relationship authorizes - never fleet `WorkspaceMembership` or full workspace access. `SELF` remains reachable only through an independent Driver identity, never through `CarrierAssignment`. Published: ANALYTICS_SCOPE_CONTRACT.md commit 14ff2df5 (+17/-15, API-confirmed) and PRODUCTION_UI_INTEGRATION_CONTRACT.md commit df6c8b3b (+26/-18, API-confirmed) - both diff stats pulled from the Commits API before recording them here, not asserted.
 
 Latest implementation commit: 73918286bf94d1e436237fb8cc038481a28ca5db
 
-Latest correction commit: faa9e19aea29cc45c4cf53d94bc94860fc9e4fcf
+Latest correction commit: df6c8b3bb22cd65fe2e3eac933ab30d52e06ee31 (ANALYTICS_SCOPE_CONTRACT.md: 14ff2df58fbf8342a6d32c4b61ec88149e909c46)
 
 Latest review commit: 73e47a671abf84184c8f96078213653f04efc814
 
-Latest state commit: cff02659f07a32cbb420b0aca17f64a585f8cbf8
+Latest state commit: (pending this publication)
 
-Blocking findings: CARRIER_SCOPE_TYPE_TRAVERSAL_CONTRADICTION
+Blocking findings: NONE (pending Codex re-review)
 
-Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main remains a separate future action; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Fix B1 only in `docs/collaboration/ANALYTICS_SCOPE_CONTRACT.md` and `docs/collaboration/PRODUCTION_UI_INTEGRATION_CONTRACT.md`. Preserve Role=`carrier`, but make selected Scope types genuinely change to `CARRIER`, `FLEET`, `TRUCK`, or `DRIVER` according to the selected subject; define carrier-selected `FLEET` as only the active-`CarrierAssignment`-authorized subset, never fleet membership/full workspace access; permit `SELF` only through independent Driver authority. Use the conceptual `{type, subjectId, period}` boundary and do not freeze a wire format. Do not change ADR-0007, B2-B4 documents, runtime/product/tests/workflows/schema, merge, deploy, migrate, or mutate data. Publish, update CURRENT/HISTORY, and hand back to Codex.
+Next bounded action: Independently re-verify the final B1 correction against the actual published diffs: confirm AnalyticsScope.type genuinely changes carrier->fleet->truck->driver in both documents; confirm no dedicated carrierId/fleetWorkspaceId fields remain anywhere in either file; confirm the authorization narrative (Role=carrier check + active CarrierAssignment + restricted field mask, layered on the same request shape a fleet-role actor uses) is stated consistently in both documents; confirm SELF is described as reachable only via independent Driver identity, never via CarrierAssignment; confirm ADR-0007 itself was not touched by this round (it should not need to change, since it never froze a wire format - re-verify this is still true after this design change). Publish ACCEPT or precise NEEDS_FIX. After Codex ACCEPT: mark ADR-0007 Accepted (confirm unaffected by this Scope-only correction), freeze Role/Scope semantics, update collaboration state, and return to Product Owner/Coordinator. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion. No runtime/product/test/workflow/schema/merge/deploy/migration/data changes.
 <!-- CURRENT_END -->
 
 
@@ -4686,3 +4686,13 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Remaining B1: canonical driver docs incorrectly keep `AnalyticsScope.type=carrier` through Fleet/Truck/Driver selection.
 - Required: Role remains `carrier`; selected Scope type traverses `CARRIER -> FLEET -> TRUCK -> DRIVER`, always bounded by active `CarrierAssignment` authorization.
 - Next required actor: Claude; correction limited to two canonical driver documentation files.
+
+### 2026-09-03 - Claude - Final B1 correction: carrier Scope type genuinely traverses CARRIER->FLEET->TRUCK->DRIVER (implementer role)
+
+- Codex's re-review (73e47a6) accepted B2, B3, and B4 but returned B1 with a design correction, not a factual bug report: the prior fix's decision to keep AnalyticsScope.type='carrier' fixed at every narrowing depth was itself wrong, because it breaks the established pattern (already present in this document before any of this session's edits) where scope `type` identifies the subject being viewed, independent of who is viewing it.
+- Worked through the reasoning independently before applying the change (this was a design argument, not a reproducible bug, so "verification" meant checking internal consistency with the document's own pre-existing invariant, not running a command): concluded Codex's model is more consistent with "Analytics scope identifies the subject... not the actor" - a fleet is a fleet whether a fleet-role member or an authorized carrier is viewing it; the difference is authorization, not scope identity.
+- Rewrote both documents accordingly: AnalyticsScope.type now genuinely changes carrier->fleet->truck->driver, reusing the existing workspaceId/truckId/driverId fields exactly as a fleet-role actor's equivalent request would (the dedicated carrierId/fleetWorkspaceId fields introduced in the withdrawn prior design are removed entirely - confirmed via grep that no stray references remain in either file). The distinguishing carrier constraint moved entirely into the authorization/Read-scope-permissions layer: a carrier's fleet/truck/driver-type request must independently confirm the actor's Role is carrier (not that workspace's fleet membership) and require an active CarrierAssignment reaching the specific subject, returning a restricted field mask - never fleet WorkspaceMembership or full workspace access. SELF remains reachable only through an independent Driver identity.
+- Published ANALYTICS_SCOPE_CONTRACT.md (commit 14ff2df5) and PRODUCTION_UI_INTEGRATION_CONTRACT.md (commit df6c8b3b), pulling the real additions/deletions from the Commits API for each before recording them (+17/-15 and +26/-18 respectively) - continuing the discipline established after the B4 finding, never asserting a diff shape without checking.
+- Did not touch ADR-0007 in this round, since it never froze a wire format (its §7 already speaks only conceptually - `scope = { type, subjectId, period }` - not to a specific field list), so this Scope-implementation-level correction does not require an ADR change; flagged this as something Codex should specifically re-confirm rather than assuming it silently.
+- Per the role-swap protocol: Next required actor: Codex, for final re-verification of this correction against the actual published diffs.
+- No runtime, product, test, workflow, schema, merge, deploy, migration, or data change occurred - documentation only.
