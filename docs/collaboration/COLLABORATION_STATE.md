@@ -75,43 +75,24 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Synthetic Driver A fixture procedure / local PostgreSQL proof - Independent Review Closed
-
-Status: CLOSED / ACCEPT (local rehearsal only; staging execution NOT authorized by this closure)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver A staging execution adapter / design only
+Status: IN_PROGRESS / DESIGN AUTHORIZED
+Current owner: Codex
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed orchestrator commit 15f28b19ae017dc5e6e42f83701648f0e63996be and DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md by reproducing every claim from scratch. Cloned crewbiq-orchestrator, checked out the exact commit, and read the full 239-line app/testing/driver_a_fixture_link.py and the full 165-line tests/test_driver_a_fixture_link_postgres.py end to end. Independently spun up a fresh disposable postgres:16-alpine Docker container (separate from the author's own, stopped and removed after this review), applied real repository migrations via the existing migration runner (including 011), and ran the tests myself: tests/test_driver_a_fixture_link_postgres.py gave 26 passed, 0 failed; the full backend suite gave 425 passed, 0 failed - exactly matching the evidence document's claims. Confirmed the implementation faithfully and rigorously realizes the accepted contract: LocalFixtureLink.__init__ hard-codes acceptance to hostname 127.0.0.1, an explicit port, and path exactly /crewbiq_fixture_local with no query/fragment, then independently re-verifies current_database() after connecting - categorically preventing this exact utility from targeting any staging/production endpoint at the code level, on top of the contract's own database-identity checks; _targets() re-validates every predicate the accepted contract specifies (workspace status/owner, both the Driver A account and Fleet A sponsor's person/membership/role chains, the exact Driver/Truck rows, the exact assignment fields, and Fleet A's own link fields) before any write; apply() uses serializable isolation and the exact same advisory-lock key format used by migration 011's own trigger (independently confirmed matching in the prior contract review); _link_rows() treats ANY existing row matching either the target account or the reserved UUID as a conflict, not merely a current-overlap check; a first apply is verified via a whole-database row-hash comparison before and after insertion (excluding only the new row's own identity) to prove zero collateral writes anywhere in the schema; rerun requires an exact full-field receipt match (including original timestamps) before returning a no-write ALREADY_APPLIED, and rollback requires a separate explicit approval, share-row-exclusive locks across every table, and an exact whole-database hash match before deleting precisely one row. Confirmed via the commit's own file list that only app/testing/driver_a_fixture_link.py and tests/test_driver_a_fixture_link_postgres.py changed - no runtime route, auth path, schema, or migration file was touched, and no staging/production credential or connection was used in this implementation step. This closes the local-rehearsal proof specifically; it does not by itself authorize or perform any staging write - a separately reviewed staging execution adapter and its own explicit authorization remain required before CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING can be resolved in staging.
-
-Latest fixture link implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (ACCEPTED as local proof; staging execution separately gated)
-
-Latest fixture link contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67 (ACCEPTED)
-
-Latest fixture discovery commit: be082771d3b60af13ff71d097f94e31dcbd29787 (ACCEPTED)
-
-Latest staging deployment evidence commit: 8766cd1eface4cc8dff8bd01c9c642705b07bbf1 (ACCEPTED)
-
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest review commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
+Product truth: Claude accepted the local fixture proof. Standing Product Owner delegation authorizes only a bounded staging-adapter design for independent review; it does not authorize adapter execution or remote access.
+Latest fixture link implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (local proof ACCEPTED)
+Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
+Latest review commit: 5043e8ed640f2887e526674e5c44a47cb7a5c560
+Latest prior state commit: 5043e8ed640f2887e526674e5c44a47cb7a5c560
+Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
 Release readiness: NOT_READY_FOR_PRODUCTION
-
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging until a separately reviewed staging execution adapter is implemented and explicitly authorized; second-Driver/cross-workspace fixtures, IA-3 harness compatibility, and authenticated browser/mobile/offline evidence remain outstanding
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize designing and independently reviewing a bounded staging execution adapter for this now-accepted local procedure (targeting the exact authorized Railway project/environment/service, reusing the same guard/receipt/rollback discipline), or a different next step. No staging write, credential handling, login, deployment, migration, or IA-4 without that further separate authorization and review. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging; remote adapter design/implementation/execution not yet accepted
+Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Codex
+Next bounded action: Produce only docs/collaboration/DRIVER_A_STAGING_ADAPTER_PLAN.md plus CURRENT/HISTORY. Derive a narrow adapter design from accepted contract/local proof: exact Railway project/environment/service/database binding, independently verified protected provenance, read-only preflight, explicit execution approval, one-row transaction, original receipt/idempotency, concurrency guards, bounded rollback with downstream-use checks and explicit limits of local whole-database fingerprints in staging. Define validation and separate implementation/execution gates. Use existing repository evidence only, no staging credentials/login/DB connection/write or runtime changes. Publish design to Claude for independent review. No deploy, merge, migrations or IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5280,3 +5261,11 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Confirmed via the commit's own file list that only the two testing-scoped files changed - no runtime route, auth path, schema, or migration file was touched, and no staging/production credential or connection was used.
 - Published final ACCEPT for the local rehearsal proof specifically. This does not authorize or perform any staging write; a separately reviewed staging execution adapter and its own explicit authorization remain required before the CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING gap can be resolved in staging.
 - Escalated the next decision to the Product Owner: whether to authorize designing a bounded staging execution adapter reusing this same guard discipline, or a different direction.
+
+### 2026-09-03 - Codex: coordination-only continuation after local fixture ACCEPT
+
+- Fast-forwarded Claude review 5043e8ed640f2887e526674e5c44a47cb7a5c560; preserved its full historical review and local-only ACCEPT.
+- Under standing Product Owner delegation, resolved the routine coordinator checkpoint without requesting another Product Owner decision.
+- Authorized one documentation-only staging-adapter design; implementation and execution remain separate review/authorization gates.
+- Next actor Codex to write DRIVER_A_STAGING_ADAPTER_PLAN.md, then Claude independently reviews. No staging DB access, credentials, fixture writes, migration, runtime edit, deployment or merge authorized here.
+- CURRENT condensed to the authoritative bounded state; historical evidence remains unchanged.
