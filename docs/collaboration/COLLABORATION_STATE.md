@@ -75,39 +75,24 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current staging read-only prerequisite evidence - Independent Review Closed
-
-Status: CLOSED / ACCEPT (evidence only; execution remains BLOCKED)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver staging backend public OpenAPI diagnostic
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md (commit 3981e8a663cf6db9de6bbb3b5b70eb0b47e30467). Independently reproduced the PWA byte-comparison claim from scratch rather than trusting the reported hashes: fetched all ten staging URLs myself (index.html, sw.js, core-runtime.js, driver-self.js, driver-presentation.js, presentation-context.js, navigation-projection.js, navigation-model.js, account-driver-link.js, driver-truck-assignment.js) with a fresh no-cache GET, computed SHA-256 over the raw response bytes, and independently ran `git show c0ec7d884f59f4eca91fee311a8b11cbfa98f628:<path>` for each - all ten hashes matched exactly, both against each other and against the document's own reported values. Independently read tests/e2e/staging-canonical-identity.spec.mjs at the current branch tip and confirmed the document's harness-limitation claims verbatim: it imports and calls loginFleetA, sets `serviceWorkers: 'block'` on its browser context, and calls the old `getDriverSelfReader()` accessor rather than the IA-3 coordinator - independently confirming Fleet A cannot prove driver-only authorization (a fleet-role account exercises the pre-existing broad-capability path), a service-worker-blocked context cannot establish cache-first/offline correctness, and this harness needs reconciliation with IA-3's coordinator composition before being treated as a valid new-path test. Could not and did not attempt to independently reproduce the cancelled SSH diagnostic (no SSH/infrastructure access sought or used); assessed it as consistent with the delegated read-only investigation scope: intended as a read-only checksum command against staging only, produced no output, was cancelled by Codex via Ctrl-C, created no new SSH key, read no key material or server secrets, and issued no write/deploy/restart - the document correctly classifies this as NOT_VERIFIED rather than either fabricating a result or claiming the backend file is missing. No fixture creation, credential retrieval, browser journey dispatch, deployment, merge, or migration occurred in this step or in this review. The two remaining blockers (accepted backend provenance still unverified beyond CI/health signals; canonical harness needs IA-3 compatibility reconciliation before reuse) are correctly disclosed as coverage/prerequisite gaps, not claimed runtime defects.
-
-Latest evidence commit: 3981e8a663cf6db9de6bbb3b5b70eb0b47e30467 (ACCEPTED as evidence; execution remains separately gated)
-
-Latest plan commit: aab642651d6733cd2f4eba2947f5a2f6adb1b286 (ACCEPTED)
-
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest review commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
+Product truth: Public staging OpenAPI has 45 operations versus 55 in accepted backend; ten accepted operations absent from schema. Exact running SHA and own-current authorization remain unproven; no deployment performed.
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Latest review commit: 970598403f6a3c2a1ac673c2eb5b59dacd0bcf27
+Latest prior state commit: 970598403f6a3c2a1ac673c2eb5b59dacd0bcf27
+Evidence: docs/collaboration/DRIVER_STAGING_BACKEND_OPENAPI_EVIDENCE.md
+Validation: public GET 200; operation-set/ID comparison against exact local accepted HEAD; no authenticated tests
 Release readiness: NOT_READY_FOR_PRODUCTION
-
-Blocking findings: accepted backend provenance still not proven beyond CI/health signals (SSH diagnostic inconclusive, not a proof of absence); canonical driver-only fixtures remain unverified; existing staging-canonical-identity harness requires IA-3 coordinator-compatibility reconciliation before reuse; authenticated browser/mobile/offline evidence outstanding
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize (a) a different bounded read-only backend provenance diagnostic (e.g. an alternate non-SSH read path, or a fresh archive-based exact-SHA staging redeploy with recorded digest), (b) reconciling tests/e2e/staging-canonical-identity.spec.mjs with the IA-3 coordinator so it can serve as a real new-path harness, (c) locating or provisioning the canonical driver-only/second-Driver/other-workspace synthetic fixtures, or (d) a different next step. No fixture provisioning, deployment, merge, or migration without further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Blocking findings: STAGING_BACKEND_OPENAPI_MISMATCH; exact runtime provenance and driver-only fixtures unverified; IA-3 canonical harness compatibility gap
+Queued coverage: authenticated browser/mobile/offline; full asset/config equivalence; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: Independently review/reproduce public OpenAPI operation-set mismatch and evidence limits against accepted backend ce5a591a48f1733b4e21128dece0e0350ace41c2. Publish ACCEPT or precise NEEDS_FIX. Do not infer missing own-current capability solely from schema. Return bounded provenance resolution to Codex; any staging deployment remains separately gated. No merge, deployment, provisioning, data mutation, migration, harness edits or IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5166,3 +5151,13 @@ Next required actor: Claude for evidence review. Release remains NOT_READY_FOR_P
 - Confirmed no fixture creation, credential retrieval, browser journey dispatch, deployment, merge, or migration occurred in this step.
 - Published final ACCEPT for the evidence. Execution of any further diagnostic, harness correction, or fixture work remains separately gated and was not authorized by this review.
 - Escalated the next decision to the Product Owner: a different bounded backend-provenance diagnostic, reconciling the canonical harness with IA-3, locating/provisioning the needed synthetic fixtures, or a different direction.
+
+### Read-only backend OpenAPI composition diagnostic
+
+Agent: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Authorization basis: review 970598403f6a3c2a1ac673c2eb5b59dacd0bcf27 and standing coordination delegation; selected only public schema comparison, not redeploy.
+Evidence: DRIVER_STAGING_BACKEND_OPENAPI_EVIDENCE.md. Accepted backend has 55 operations; live schema 45; ten missing operations, zero extras, no changed IDs among common routes. Public schema SHA-256 53e96581df075756cb340993b970fb7ac43500cb4b757e0f4aedcbab7a38829d.
+Finding: STAGING_BACKEND_OPENAPI_MISMATCH. This proves schema composition disagreement, not exact runtime SHA, endpoint 404 behavior or absence of own-current authorization.
+Safety: staging auto-deploy disabled rechecked before publication. No runtime/tests/workflows, SSH, deployment, merge, migration, business-data operation or fixture provisioning.
+Next required actor: Claude. NOT_READY_FOR_PRODUCTION and canonical staging coverage remain unchanged.
