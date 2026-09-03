@@ -75,25 +75,39 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current-assignment read implementation
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver own-current-assignment read implementation - Independent Review Closed
+
+Status: CLOSED / ACCEPT (NOT_READY_FOR_PRODUCTION preserved)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Server own-current read candidate published; authenticated Account link and assignment read share one read-only repeatable-read snapshot. No broad Driver read grant or PWA runtime change. Not deployed.
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest design commit: 1f277ebb4fa5447d210a0d61892cca7e0d07ea71
-Latest review commit: c8b5f72a7969ae11b7a464f20673064f321ff444
-Latest prior state commit: c8b5f72a7969ae11b7a464f20673064f321ff444
-Evidence: docs/collaboration/DRIVER_OWN_ASSIGNMENT_READ_EVIDENCE.md
-Validation: full backend 399 passed, zero failures/skips with disposable local PostgreSQL; PWA regressions 29 passed
-Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED has candidate fix; pending independent implementation review and live integration validation
-Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review orchestrator ce5a591a48f1733b4e21128dece0e0350ace41c2 against accepted DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md and published evidence. Verify own-current-only capability, principal/workspace isolation, real PostgreSQL snapshot proof, existing broad/history/as-of/command behavior and evidence limitations. Publish ACCEPT or precise NEEDS_FIX before continuation. No deploy, merge, IA-4, production/staging migrations or data mutations.
+
+Product truth: Independently reviewed orchestrator implementation commit ce5a591a48f1733b4e21128dece0e0350ace41c2 and DRIVER_OWN_ASSIGNMENT_READ_EVIDENCE.md by reproducing every claim from scratch, not by trusting the report. Cloned crewbiq-orchestrator, checked out the exact commit, and read the full new app/services/driver_self_assignment.py (128 lines), the router diff, the capabilities.py diff, and the full 426-line tests/test_driver_self_assignment.py end to end. Independently spun up a fresh disposable postgres:16-alpine Docker container (unrelated to the authors' own container, stopped and removed after this review) and ran the complete backend suite against it myself: 399 passed, 0 failed, 0 skipped - exactly matching the evidence document's own count, including by copying a sibling crewbiq-driver checkout into place so the cross-repository wire test also ran rather than skipped. Independently re-ran the real-PostgreSQL transaction-isolation test (test_real_postgres_snapshot_survives_link_revocation_then_next_request_denied) and read its full body: it opens a genuine asyncpg connection to the disposable database, creates a unique synthetic schema, holds one in-flight repeatable-read read-only transaction after its account_driver_links read (asserting show transaction_isolation = repeatable read and transaction_read_only = on at that exact point), revokes the link from a second admin connection while the first transaction is paused, proves the paused transaction still observes the original active link and returns only the authenticated driver's own assignment (excluding a second synthetic driver's assignment on the same shared truck), then proves an entirely new subsequent request correctly observes the revocation and returns account_driver_link_not_found - genuine MVCC/snapshot-isolation proof, not a mock. Ran the PWA-side regression suite independently: node --test tests/driver-truck-assignment.test.mjs tests/driver-self.test.mjs tests/driver-self-ui.test.mjs tests/driver-presentation.test.mjs gave 29 passed, 0 failed, matching the evidence exactly. Read the router diff and confirmed the own-only branch is entered only via catching a 403 capability_required exception from the existing broad-capability check (meaning workspace/membership/ambiguity checks already passed), re-derives and re-checks the new capability plus canonical driver membership role explicitly, rejects any query parameter other than a single driver_id (400 own_current_filter_invalid) - closing off truck_id/temporal/duplicate-driver_id attempts to hide ambiguity - and that the existing broad-capability path, history, as-of, create, close, and revoke endpoints are entirely untouched by this branch. Read driver_self_assignment.py and confirmed a mismatched requested_driver_id is rejected (403 driver_scope_required) without ever querying the other driver's data; confirmed provenance is minimized to {} only for included own-only assignment rows; confirmed the assignment-read Conn stub's execute() intentionally pytest.fails the test if invoked, and the real service code contains no insert/update/delete, matching the no-business-write claim. All factual claims in the evidence document were independently reproduced rather than accepted at face value. Release readiness correctly remains NOT_READY_FOR_PRODUCTION: no deployment/merge to main occurred, and authenticated browser/mobile/offline smoke plus CANONICAL_STAGING_JOURNEYS remain outstanding, unexecuted gates.
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest design commit: 1f277ebb4fa5447d210a0d61892cca7e0d07ea71 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
+
+Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
+
+Latest review/state commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (implementation-correctness, independently reproduced); CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED now has a reviewed and accepted candidate fix, not yet merged/deployed
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize (a) merging the accepted orchestrator branch agent/account-driver-link-read to main and deploying it to staging, (b) authenticated browser/mobile/offline smoke against a real canonical Driver account once staged, (c) IA-4 (Fleet shell integration), or (d) a different next step. Do not deploy to production, execute migration/data actions, or begin IA-4 in the meantime without separate explicit authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5092,3 +5106,14 @@ Final results: pytest -q --tb=short equivalent via python -m pytest, 399 passed,
 Safety: no PWA runtime/cache change, deployment, merge, migration-file change or production/staging mutation. Existing fixture migrations ran only in newly provisioned local test container, stopped after validation.
 Readiness: NOT_READY_FOR_PRODUCTION; candidate authorization blocker fix awaits independent review and live integration evidence. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued.
 Next required actor: Claude for independent implementation review. No IA-4 or unrelated work.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the Driver own-current-assignment read implementation (reviewer role)
+
+- Cloned crewbiq-orchestrator, checked out implementation commit ce5a591a48f1733b4e21128dece0e0350ace41c2 directly, and read the full new app/services/driver_self_assignment.py (128 lines), the router diff, the capabilities.py diff, and the complete 426-line tests/test_driver_self_assignment.py end to end - not just the evidence document's summary of them.
+- Independently spun up a fresh disposable postgres:16-alpine Docker container (separate from the authors' own, stopped and removed after this review) and ran the complete backend suite myself: 399 passed, 0 failed, 0 skipped - copied a sibling crewbiq-driver checkout into place so the cross-repository wire test ran for real rather than skipping, matching the evidence document's claimed count exactly rather than trusting it.
+- Read and independently re-ran the real-PostgreSQL transaction-isolation test in full: confirmed it opens a genuine asyncpg connection to a disposable synthetic schema, holds one in-flight repeatable-read read-only transaction (asserting real `show transaction_isolation`/`show transaction_read_only` values at the exact right moment), revokes the underlying link from a second connection mid-transaction, proves the paused transaction still observes the original active link and correctly isolates two synthetic drivers sharing one truck to only the authenticated driver's own assignment, then proves a subsequent fresh request correctly observes the revocation - genuine MVCC/snapshot-isolation proof, not a mock or an assertion on a name alone.
+- Ran the PWA-side regression suite independently (driver-truck-assignment, driver-self, driver-self-ui, driver-presentation): 29 passed, 0 failed, matching the evidence exactly.
+- Read the router diff and confirmed the own-only branch activates only after the existing broad-capability check fails specifically with capability_required (meaning workspace/membership/ambiguity checks already passed), re-derives and independently re-checks the new capability plus canonical driver membership role, and rejects any query parameter other than a single driver_id - closing off every filter-based ambiguity-hiding attempt the design required; confirmed the existing broad-capability, history, as-of, create, close, and revoke paths are entirely untouched.
+- Read driver_self_assignment.py and confirmed a mismatched requested driver_id is rejected before any assignment query (never queries the other driver's data), provenance is minimized to {} only for own-only responses, and the fake DB stub's execute() intentionally fails the test if the read path ever attempts a write - matching the no-business-write claim against actual code, not just the test's name.
+- Published final ACCEPT for implementation correctness while preserving Release readiness: NOT_READY_FOR_PRODUCTION - no deployment/merge occurred, and authenticated browser/mobile/offline smoke plus staging journeys remain outstanding, unexecuted release gates.
+- Escalated the next decision to the Product Owner: whether to authorize merging this accepted orchestrator branch to main and staging it, authenticated smoke once staged, IA-4, or a different direction.
