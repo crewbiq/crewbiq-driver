@@ -75,24 +75,37 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current integration staging validation plan
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver own-current integration staging validation plan - Independent Review Closed
+
+Status: CLOSED / ACCEPT (plan only; execution remains BLOCKED)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Planning evidence published; Product Owner authorized disabling staging PWA auto-deploy only. Railway API confirms disabled; current staging deployment retained. No merge or runtime deployment performed.
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+
+Product truth: Independently reviewed DRIVER_OWN_ASSIGNMENT_STAGING_VALIDATION_PLAN.md (commit aab642651d6733cd2f4eba2947f5a2f6adb1b286). Independently re-verified every externally-checkable factual claim in the plan against the live public endpoints and GitHub API myself, without relying on the document's own report: fetched https://crewbiq-orchestrator-crewbiq-orchestrator-staging.up.railway.app/health (200) and /ready directly - the JSON body exactly matches the plan's claim (env=staging, database connected, required_migrations=[010_driver_truck_assignments.sql, 011_account_driver_links.sql], missing_migrations=[]); fetched https://crewbiq-driver-staging.up.railway.app/sw.js (200) and confirmed CACHE_NAME is exactly crewbiq-driver-v98 as claimed; independently queried the GitHub Actions API for run 33794891841 and confirmed conclusion=success, head_sha=ce5a591a48f1733b4e21128dece0e0350ace41c2 exactly on branch agent/account-driver-link-read, matching the plan's CI claim precisely. Could not independently re-query Railway's internal deployment/auto-deploy-toggle API myself (no credentials sought or used, consistent with the standing no-credentials constraint), but every claim I could externally verify matched exactly, and the described narrow, reversible, staging-only serviceInstanceAutoDeployUpdate(enabled:false) toggle (explicitly confirmed to leave the production PWA service's corresponding state at enabled=true, with no GitHub source disconnect, branch change, runtime deployment, or restart) is consistent, proportionate to the stated operational problem (documentation-only pushes were triggering unwanted staging deployments, conflicting with the standing NO-DEPLOY instruction), and was reported as separately authorized by the Product Owner directly to Codex. Assessed the plan itself as sound and appropriately conservative: it correctly refuses to claim the accepted orchestrator SHA is proven staged (deployment metadata carries null commitHash), correctly refuses to equate the deployed PWA's documentation-descendant commit with byte-level equality to the accepted implementation commit, correctly identifies that no confirmed canonical driver-only synthetic fixture exists yet (blocking the own-only journey specifically), and correctly rejects reusing the existing Fleet A fixture from CANONICAL_STAGING_JOURNEY_EVIDENCE.md as proof - a fleet-role account would exercise the pre-existing broad-capability path, not the new own-current-only path, so its historical pass results cannot substitute for a driver-only test. The 11-item bounded check matrix requires explicit PASS/BLOCKED/NOT_EXECUTED_REQUIRES_MUTATION labeling per scenario, forbids fabricating test data or relabeling an unavailable state as success, and explicitly excludes any endpoint/fixture mutation, workflow dispatch, merge, deployment, or migration from this planning step's own authorization. No test execution, fixture mutation, merge, deployment, migration, or IA-4 occurred in this review cycle.
+
+Latest plan commit: aab642651d6733cd2f4eba2947f5a2f6adb1b286 (ACCEPTED as a plan; execution remains separately gated)
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
 Latest review commit: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6
-Latest prior state commit: 68878e8f1aeb7e2e42a83126e3d20bcaef77e5d7
-Plan: docs/collaboration/DRIVER_OWN_ASSIGNMENT_STAGING_VALIDATION_PLAN.md
-Validation: read-only staging health/readiness 200; server CI 33794891841 success; staging auto-deploy false confirmed 2026-09-03T21:10:35.9928466Z
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: exact accepted server SHA not proven staged; canonical driver-only fixture not verified; authenticated browser/mobile/offline evidence outstanding
-Queued coverage: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review the staging validation plan, exact target identities, historical versus live evidence, driver-only fixture prerequisites and bounded read-only checks. Verify the authorized staging-only auto-deploy disable evidence. Publish ACCEPT or precise NEEDS_FIX and hand back to Codex. No test execution, fixture mutation, merge, deployment, migration, IA-4 or production change is authorized by this planning handoff.
+
+Blocking findings: exact accepted server SHA not proven staged (plan-acknowledged, not yet resolved); canonical driver-only fixture existence not yet confirmed (plan-acknowledged); authenticated browser/mobile/offline evidence outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize execution of the plan's "Minimum execution prerequisites" (exact-SHA staging provenance confirmation, PWA byte-equivalence proof, locating or provisioning the canonical driver-only/second-Driver/other-workspace synthetic fixtures, and only then the bounded read-only browser check matrix) - or a different next step. No fixture creation, merge, deployment, migration, or IA-4 without further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5121,3 +5134,13 @@ Result: authoritative staging auto-deploy enabled=false at 2026-09-03T21:10:35.9
 Scope: one authorized staging trigger toggle and documentation only. No deployment/restart/source disconnect, production mutation, merge, migration or business-data operation.
 Plan: exact targets, server provenance gap, canonical Driver fixture gap, browser/mobile/offline and isolation checks, recovery and evidence limits. No tests executed in this planning step.
 Next required actor: Claude for independent plan review. NOT_READY_FOR_PRODUCTION and queued canonical staging coverage remain unchanged.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the Driver own-current staging validation plan (reviewer role)
+
+- Read DRIVER_OWN_ASSIGNMENT_STAGING_VALIDATION_PLAN.md (commit aab642651d6733cd2f4eba2947f5a2f6adb1b286) in full.
+- Independently re-verified every externally-checkable factual claim rather than trusting the document: fetched the staging orchestrator's /health and /ready endpoints directly and confirmed the JSON body (env=staging, database connected, required_migrations 010/011, missing_migrations=[]) matches exactly; fetched the staging PWA's sw.js directly and confirmed CACHE_NAME is exactly crewbiq-driver-v98; queried the GitHub Actions API for run 33794891841 directly and confirmed conclusion=success with head_sha exactly ce5a591a48f1733b4e21128dece0e0350ace41c2 on branch agent/account-driver-link-read.
+- Could not independently re-query Railway's internal deployment/auto-deploy-toggle state (no credentials sought or used), but every claim I could externally verify was accurate, and the described toggle (staging-only, reversible, production explicitly left untouched, no source-disconnect/branch-change/redeploy) is consistent and proportionate to the disclosed operational problem it was meant to solve.
+- Assessed the plan's own rigor: it correctly refuses to claim the accepted orchestrator SHA is proven staged (null commitHash in deployment metadata), correctly refuses to claim PWA byte-equivalence from a documentation-descendant commit alone, correctly identifies no canonical driver-only fixture is yet confirmed to exist, and - the most substantive catch - correctly rejects reusing the existing Fleet A staging fixture as proof for this new capability, since a fleet-role account would exercise the pre-existing broad-capability path rather than the new own-current-only path being validated.
+- Confirmed the bounded check matrix requires explicit PASS/BLOCKED/NOT_EXECUTED_REQUIRES_MUTATION labeling, forbids fabricating results, and that this planning document itself authorizes no execution, fixture mutation, merge, deployment, or migration.
+- Published final ACCEPT for the plan. Execution of its listed prerequisites remains separately gated and was not authorized by this review.
+- Escalated the next decision to the Product Owner: whether to authorize the plan's minimum execution prerequisites (exact-SHA staging confirmation, PWA byte-equivalence proof, fixture location/provisioning decision, then the bounded read-only browser checks) or a different direction.
