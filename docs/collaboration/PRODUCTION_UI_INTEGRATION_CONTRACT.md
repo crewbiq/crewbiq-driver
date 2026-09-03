@@ -63,24 +63,32 @@ not three separate implementations — a dashboard must never fork into a
 parallel calculation path per persona.
 
 **Carrier drill-down (`DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`; matches
-ADR-0007 §7 scenario D).** `Carrier -> Fleet -> Truck -> Driver` names the
-presentation stages a carrier moves through; it does not name a change of
-`AnalyticsScope.type`. The scope `type` remains `carrier` at every stage —
-selecting a "Fleet" stage inside the carrier's portfolio narrows the same
-`carrier`-type scope to that fleet's active-`CarrierAssignment`-authorized
-subset only (`AnalyticsScope(type='carrier', fleetWorkspaceId=...)`,
-`ANALYTICS_SCOPE_CONTRACT.md`) — it never becomes a `fleet`-type scope and
-never exposes the fleet's complete internal workspace (private
-compensation terms, deduction rules, unrelated trucks/drivers/
-assignments). A carrier's aggregation at the "Fleet" stage is therefore
-always `CarrierAssignment`-filtered under `type='carrier'`, never fleet
-`WorkspaceMembership` or full workspace authority (`ANALYTICS_SCOPE_CONTRACT.md`
-Read-scope permissions). No production `CarrierAssignment` data,
-authorization resolver, selector, or UI exists yet; see
-`MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md` for the carrier
-IA readiness/blocker list. Driver, Fleet, and any future Carrier dashboards
-must reuse this same scope/selector/view-model engine — no persona may
-introduce its own parallel aggregation or authorization path.
+ADR-0007 §7 scenario D).** `Carrier -> Fleet -> Truck -> Driver` names a
+drill-down where `AnalyticsScope.type` genuinely changes at each stage —
+`carrier` (the carrier's own home workspace, full cross-fleet portfolio
+aggregate) narrows to `fleet` (one fleet's `workspaceId`) to `truck` to
+`driver`, exactly as any other drill-down in this document changes `type`
+(e.g. Fleet Today's driver ranking narrowing to a `driver`-type scope).
+What distinguishes a carrier's `fleet`/`truck`/`driver`-type request from
+a `fleet`-role member's identical-shaped request is authorization, not
+scope shape: the resolver must confirm the requesting actor's Role
+(ADR-0007) is `carrier`, not that workspace's own `fleet` membership, and
+must additionally require a currently-active `CarrierAssignment` reaching
+that specific `workspaceId`/`truckId`/`driverId` — then return only the
+fields that relationship authorizes (compliance/dispatch-relevant data),
+never the fleet's complete internal workspace (private compensation
+terms, deduction rules, unrelated trucks/drivers/assignments outside that
+relationship). `SELF` is reachable only through the carrier account's own
+independent Driver identity, never through this drill-down
+(`ANALYTICS_SCOPE_CONTRACT.md` Read-scope permissions). No production
+`CarrierAssignment` data, authorization resolver, selector, or UI exists
+yet; see `MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md` for
+the carrier IA readiness/blocker list. Driver, Fleet, and any future
+Carrier dashboards must reuse this same scope/selector/view-model engine
+— no persona may introduce its own parallel aggregation or authorization
+path, and a carrier's `fleet`-type request must reuse the identical
+selector a `fleet`-role member's request uses, differing only in the
+authorization/field-mask layer.
 
 ## Canonical data inventory
 
