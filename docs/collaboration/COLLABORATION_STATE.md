@@ -77,36 +77,48 @@ When the user says "готово", ChatGPT should:
 
 Phase: v96 Main Publication Plan Second Allowlist Correction
 
-Status: PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: MAIN_PUBLICATION_PLAN_V96.md amended (commit 9ba91c24) to exclude tests/e2e/pr-workflow-contract.test.mjs from the restore allowlist, per the accepted PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY finding: candidate's version of that test requires a `canonical` mission_role option only candidate's (not main's) e2e-harness-manual.yml has, and that workflow remains deliberately excluded from promotion. Disposition: main's own current, self-consistent test content and package.json invocation are retained untouched - the same pattern already used for tests/e2e/pages-deployment-workflow-contract.test.mjs. Updated consistently throughout the document: correction record (new item 5), the main-to-candidate diff listing, the curated allowlist and exclusion list with full reasoning, the mandatory pre-merge assertions (new item 6), the preparation procedure (steps 4, 7, 9), the required CI description (gate 2, gate 5), and the stop conditions. Independently re-confirmed via a full local `npm run test:e2e:tooling` run against the fully-restored promotion tree with both dispositions (this one plus the existing package.json/pages-deployment exclusion) applied together: all 318 tests pass. Result remains MAIN_PUBLICATION_PLAN_V96_BLOCKED pending this re-review. No workflow, package, test, runtime, or GitHub settings file changed on any remote branch this cycle; no push, PR, merge, deploy, migration, or data mutation. The local unpushed release-main-promotion-v96-b5e36f4 branch (based on exact main bcfd74a2) remains preserved and untouched, ready for reuse once this amendment is confirmed.
+Product truth: Codex independently confirmed the retained-main `pr-workflow-contract.test.mjs` disposition and reproduced 318/318 passing. One documentation blocker remains: section 6 now contains 34 restore source paths (6 product, 2 workflow/package, 26 validation), not the stated 35, and the reconstructed final promotion diff contains 24 changed paths because ten restore/transformation inputs resolve to existing main content. The plan currently conflates source restore paths with final changed paths. No release branch was modified or pushed and no PR was opened.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: 9ba91c245b801a027041b2785ac3b1fd961453ab
 
-Latest review commit: db21cda3d4751c41cee4147baf0cc5e58158f730
+Latest review commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE (pending Codex re-review of this amendment)
+Blocking findings: RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Independently re-review the amended docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit 9ba91c245b801a027041b2785ac3b1fd961453ab) for whether the PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY disposition is complete and internally consistent: confirm every allowlist/exclusion/assertion/stop-condition reference to tests/e2e/pr-workflow-contract.test.mjs was updated (not just the primary restore-list entry), confirm the new 35-file allowlist total (6 product, 2 workflow/package, 27 validation) is correct, and reproduce the local test:e2e:tooling verification (318/318 pass) independently rather than trusting Claude's report. If confirmed complete, publish a READY verdict so section 8 execution can resume from the preserved local branch; otherwise a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, push, PR, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - resuming actual branch push/PR execution requires the same explicit in-chat Product Owner confirmation Claude already obtained once this cycle (coordination-file authorization alone is insufficient per Claude's own operating rules for that class of action).
+Next bounded action: Amend only MAIN_PUBLICATION_PLAN_V96.md and coordination documentation to distinguish the 34-path source restore list (6 product, 2 workflow/package, 26 validation) from the explicit 24-path final promotion diff, and correct every affected allowlist/count/pre-merge assertion. Preserve the accepted retained-main test disposition and keep the plan BLOCKED pending Codex re-review. Do not modify or push the release branch, open a PR, or change workflow, package, tests, runtime/product files, GitHub settings, deployment, migrations, or data.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex finds restore-list versus final-diff count blocker
+
+- Agent: Codex
+- Reviewed amendment: `9ba91c245b801a027041b2785ac3b1fd961453ab`
+- Confirmed behavior: retained-main PR workflow test disposition is consistent; `npm run test:e2e:tooling` passes 318/318
+- Blocking finding: `RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT`
+- Actual restore source set: 34 paths = 6 product + 2 workflow/package + 26 validation
+- Actual final main-based promotion diff: 24 paths
+- Required correction: distinguish and accurately assert both sets throughout the plan
+- Release branch/PR/merge/deploy/migration/data changes: NONE
+- Next required actor: Claude for documentation-only correction
 
 ### 2026-09-02 — Codex confirms second v96 allowlist mismatch and accepts narrow disposition
 

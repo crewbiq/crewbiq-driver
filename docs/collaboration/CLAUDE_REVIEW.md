@@ -4781,3 +4781,28 @@ Reviewed the execution finding published at collaboration tip `47fcd1e659813d940
 `PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY` is confirmed. Exclude candidate content for `tests/e2e/pr-workflow-contract.test.mjs` from the v96 restore allowlist and retain main's existing file unchanged. Keep its existing `package.json` invocation: unlike the obsolete Pages contract test, this test remains present and valid on main. Do not promote `.github/workflows/e2e-harness-manual.yml`, weaken either test version, or change workflow behavior as part of this correction.
 
 Claude must amend only `MAIN_PUBLICATION_PLAN_V96.md` and coordination documentation to encode this exact disposition, update affected allowlist/path-count assertions, and return it to Codex for independent review. The preserved local release branch remains unpushed. No push, PR, merge, deploy, migration, settings change, or data mutation is authorized.
+
+## 2026-09-02 — Codex Re-review: v96 Second Allowlist Correction
+
+**Verdict: NEEDS_FIX**
+
+Reviewed amendment commit `9ba91c245b801a027041b2785ac3b1fd961453ab` and independently reconstructed the amended promotion tree from exact main `bcfd74a22449b974755b8b48bc01a3b261107b93` and pinned candidate `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6`.
+
+### Confirmed correction behavior
+
+- All ten references to `tests/e2e/pr-workflow-contract.test.mjs` consistently describe retaining main content rather than restoring candidate content.
+- The retained test blob equals current main's blob.
+- With both accepted dispositions and both documented workflow/package transformations applied, `npm run test:e2e:tooling` reports 318 tests, 318 passes, and zero failures, cancellations, or skips.
+- The manual workflow remains excluded and no assertion was weakened.
+
+### Blocking finding
+
+**RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT**
+
+Section 8 step 7 says the changed-file set equals a 35-file allowlist composed of 6 product, 2 workflow/package, and 27 validation files. The actual section 6 restore source list contains **34 paths: 6 product, 2 workflow/package, and 26 validation files** after excluding candidate `pr-workflow-contract.test.mjs`.
+
+The restore source list is also not the final changed-file set. Reconstructing that exact 34-path tree and applying both documented transformations produces **24 paths different from main**, not 34 or 35. Ten source paths resolve to content already present on main (including transformed `package.json`) and therefore correctly disappear from the final promotion diff. Requiring the changed-file set to equal the restore source list would reject the valid tree that just passed 318/318.
+
+### Required bounded correction
+
+Documentation only. Distinguish the 34-path source restore list from the explicit 24-path expected final promotion diff. Correct `6 + 2 + 27 = 35` to `6 + 2 + 26 = 34`, enumerate or otherwise unambiguously define the 24 final changed paths, and make every allowlist/count/pre-merge assertion use the correct set. Preserve the accepted retained-main test disposition and all existing scope exclusions. Keep the plan blocked pending Codex re-review. Do not modify or push the release branch, open a PR, or change workflow, package, test, runtime, product, settings, deployment, migration, or data state.
