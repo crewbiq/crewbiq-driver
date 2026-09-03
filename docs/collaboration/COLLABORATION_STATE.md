@@ -75,46 +75,30 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-3A - Driver Shell Integration Contract - Independent Review Closed
-
-Status: CLOSED / ACCEPT
-
-Current owner: Product Owner / Coordinator
-
+Phase: IA-3 - Driver Shell Integration
+Status: IN_PROGRESS
+Current owner: Codex
 Branch: agent/pre-base44-audit
-
-Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed DRIVER_SHELL_INTEGRATION_CONTRACT.md at commit ccdceee6f34de5c0dcde375445fb27622e48784f (documentation-only, one new 140-line file, no runtime/cache/tests/package change - confirmed via commit file list). Read the full document and checked it against every item the bounded action named: Driver-only application rule requires status resolved, membershipRole driver, non-blank workspaceId, and presentationPersona driver simultaneously - confirmed this correctly excludes a canonical-fleet-with-legacy-driver-persona account (presentationPersona can be 'driver' for a fleet membershipRole per the accepted IA-2 narrowing rule) from receiving Driver narrowing, keeping fleet on its legacy shell pending IA-4 exactly as the document states; graceful degradation section correctly requires legacy presentation/offline workflows and PTI submittability to be preserved for unavailable/unauthorized/ambiguous/no-account/network-down cases, with an explicit no-lockout and no-inference rule and a rule against caching a failed canonical result as authority; existing-owners section correctly preserves startup-session.js as sole boot/restore/PTI-gate/showApp owner and index.html::showPage() as sole DOM router, matching every prior accepted contract's non-goals; exact integration shape defines a single derived snapshot key (session token + canonical account ID + server-active workspace ID) and requires only-the-newest-snapshot-key updates with stale async results discarded; cache section correctly claims the current cache is crewbiq-driver-v97 (independently verified by reading sw.js at the current branch tip: const CACHE_NAME = 'crewbiq-driver-v97') and requires rotation to v98 plus every exact cache assertion updated in the actual implementation slice, explicitly noting no rotation occurs in this documentation slice (confirmed true - the diff touches only the new .md file); the 10 required-implementation-tests map one-to-one onto the contract's own rules with no gaps; the implementation allowlist is tightly bounded (one new coordinator module, index.html script/wiring only, sw.js v98 rotation, targeted tests, package.json test wiring, collaboration evidence) and explicitly excludes endpoint/role/capability/navigation-inventory/business-logic/migration/data/deployment/later-IA-slice changes, consistent with every prior accepted IA-1/IA-2 boundary. No contradiction found against the accepted PresentationContext or Navigation Projection contracts. No runtime/cache/tests/package file was touched by this slice, and none was touched by this review.
-
-Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
-
-Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
-
-Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
-
-Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
-
-Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 (ACCEPTED)
-
-Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
-
-Latest review/state commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
+Product truth: IA-3A is independently accepted. Under standing Product Owner delegation, Codex authorizes only the accepted allowlist: one in-memory Driver coordinator, narrow index wiring, v98 cache rotation, targeted tests, and collaboration evidence. Preserve legacy graceful degradation, PTI/startup/offline/Quick Add, server authority, and existing domain ownership.
+Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f
+Latest accepted IA-2 commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a
+Latest accepted IA-1 commit: fac6d21dd896caaf3df04dc654680594d27d0647
+Latest review/state commit: e9c63ea79bdf2caaa14f9f2bb4cffd88e35d6850
 Blocking findings: NONE
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize IA-3 implementation (the Driver shell integration itself, per the now-accepted contract and its implementation allowlist), orchestrator migration 012 execution plus staging relationship data population, a PWA relationship-command adapter/UI slice, or a different next step. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Codex
+Next bounded action: Implement DRIVER_SHELL_INTEGRATION_CONTRACT.md only. Reuse one evidence refresh path, discard stale promises, apply only resolved canonical Driver narrowing, retain legacy workflows otherwise, rotate cache to v98, run required regressions, publish, and hand to Claude. No migration/data/deployment, endpoint/role change, Fleet/Carrier integration, or IA-4.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex authorizes IA-3 Driver shell implementation
+
+- Basis: accepted IA-3A contract ccdceee6f34de5c0dcde375445fb27622e48784f; review/state e9c63ea79bdf2caaa14f9f2bb4cffd88e35d6850
+- Authorized: exact accepted coordinator/index/cache/test allowlist only
+- Prohibited: migration/data/deployment, endpoint/role change, Fleet/Carrier integration, and IA-4
+- Decision authority: standing Product Owner delegation for bounded technical sequencing
 ### 2026-09-03 - IA-3A Driver shell integration contract published
 
 - Contract: `ccdceee6f34de5c0dcde375445fb27622e48784f`
