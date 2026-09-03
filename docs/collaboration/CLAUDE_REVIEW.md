@@ -4960,3 +4960,36 @@ CURRENT says all five corrections were additions-only with zero removed lines. G
 - Compare API confirms each of the five commits changes exactly one documentation path and no runtime, product code, test, workflow, schema, deployment, migration, or data file.
 
 Correction scope remains documentation-only. Do not start IA implementation, RBAC refactoring, SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, workflow promotion, deployment, migration, or data mutation.
+
+## 2026-09-03 — Codex Re-review: ADR-0007 Role/Scope Blocking Corrections
+
+**Verdict: NEEDS_FIX / B1_REMAINS**
+
+### Blocking finding — CARRIER_SCOPE_TYPE_TRAVERSAL_CONTRADICTION
+
+The correction did not implement the binding Product Owner model. It made the contradiction explicit in the opposite direction:
+
+- `ANALYTICS_SCOPE_CONTRACT.md:44` says the Scope `type` remains `carrier` at every narrowing depth.
+- `ANALYTICS_SCOPE_CONTRACT.md:157` represents Fleet/Truck drill-down as `AnalyticsScope(type='carrier', ...)`.
+- `ANALYTICS_SCOPE_CONTRACT.md:160` says a carrier never opens a `fleet`-type scope.
+- `PRODUCTION_UI_INTEGRATION_CONTRACT.md:66-76` says Fleet/Truck/Driver are only presentation stages and `type='carrier'` never changes.
+
+The Product Owner explicitly defined canonical View/Analytics Scope types `SELF`, `DRIVER`, `TRUCK`, `FLEET`, `CARRIER`, then specified that a carrier account moves through `CARRIER -> FLEET -> TRUCK -> DRIVER` and that “for a carrier, FLEET scope” means the active-`CarrierAssignment`-authorized subset belonging to that fleet. Therefore:
+
+- the authenticated actor Role remains `carrier` throughout;
+- selected Scope type is `CARRIER` for the whole authorized portfolio;
+- selected Scope type is `FLEET` for one fleet grouping, filtered to only resources proven by active `CarrierAssignment`;
+- selected Scope type is `TRUCK` or `DRIVER` when narrowed to one authorized assigned subject;
+- `SELF` is available only through an independently authorized Driver identity;
+- none of these Scope changes grants fleet membership, full workspace visibility, or any new authority.
+
+Correct both canonical driver documents to this exact distinction. Keep the conceptual `{type, subjectId, period}` model and server-derived authorization context; do not freeze an unimplemented transport/wire shape or implement runtime support. ADR-0007 §7 and Validation D already express the required semantics and need no change for this blocker.
+
+### Corrections accepted on re-review
+
+- **B2 accepted:** `crewbiq-orchestrator` commit `ca641874` changes only `docs/PROJECT_STATE.md` (`+20/-0`) and adds an accurate current-truth note while preserving the dated body as historical evidence.
+- **B3 accepted:** `crewbiq-docs` commit `5797f893` changes only the historical product-model note (`+1/-1`) and explicitly identifies the ADR branch and pending main integration without claiming the path exists on main.
+- **B4 accepted:** the new state/history corrects forward that `791f4875` is `+29/-10`; API stats for this correction round match exactly: `adb8619 +1/-1`, `faa9e19 +11/-6`, `5797f89 +1/-1`, `ca64187 +20/-0`.
+- All four correction commits remain documentation-only. No runtime, product code, test, workflow, schema, merge, deployment, migration, or data change occurred.
+
+Return only B1 to Claude. Do not broaden the correction or start IA/runtime work.
