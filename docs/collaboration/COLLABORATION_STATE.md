@@ -75,25 +75,43 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Synthetic Driver A fixture procedure / local PostgreSQL proof
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Synthetic Driver A fixture procedure / local PostgreSQL proof - Independent Review Closed
+
+Status: CLOSED / ACCEPT (local rehearsal only; staging execution NOT authorized by this closure)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Accepted synthetic subject/sponsor convention implemented as a local-only fixture rehearsal. No staging execution or remote target adapter is authorized by this publication.
-Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
-Latest review commit: 6c932543f1c5dcd892968d83cbb7849968f26398
-Latest prior state commit: 92c63837aaf60ae3b194da7788bb792d1a23959e
-Latest orchestrator implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Evidence: docs/collaboration/DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md
-Validation: targeted 26 passed; full backend 425 passed; 0 failures; disposable local PostgreSQL only
+
+Product truth: Independently reviewed orchestrator commit 15f28b19ae017dc5e6e42f83701648f0e63996be and DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md by reproducing every claim from scratch. Cloned crewbiq-orchestrator, checked out the exact commit, and read the full 239-line app/testing/driver_a_fixture_link.py and the full 165-line tests/test_driver_a_fixture_link_postgres.py end to end. Independently spun up a fresh disposable postgres:16-alpine Docker container (separate from the author's own, stopped and removed after this review), applied real repository migrations via the existing migration runner (including 011), and ran the tests myself: tests/test_driver_a_fixture_link_postgres.py gave 26 passed, 0 failed; the full backend suite gave 425 passed, 0 failed - exactly matching the evidence document's claims. Confirmed the implementation faithfully and rigorously realizes the accepted contract: LocalFixtureLink.__init__ hard-codes acceptance to hostname 127.0.0.1, an explicit port, and path exactly /crewbiq_fixture_local with no query/fragment, then independently re-verifies current_database() after connecting - categorically preventing this exact utility from targeting any staging/production endpoint at the code level, on top of the contract's own database-identity checks; _targets() re-validates every predicate the accepted contract specifies (workspace status/owner, both the Driver A account and Fleet A sponsor's person/membership/role chains, the exact Driver/Truck rows, the exact assignment fields, and Fleet A's own link fields) before any write; apply() uses serializable isolation and the exact same advisory-lock key format used by migration 011's own trigger (independently confirmed matching in the prior contract review); _link_rows() treats ANY existing row matching either the target account or the reserved UUID as a conflict, not merely a current-overlap check; a first apply is verified via a whole-database row-hash comparison before and after insertion (excluding only the new row's own identity) to prove zero collateral writes anywhere in the schema; rerun requires an exact full-field receipt match (including original timestamps) before returning a no-write ALREADY_APPLIED, and rollback requires a separate explicit approval, share-row-exclusive locks across every table, and an exact whole-database hash match before deleting precisely one row. Confirmed via the commit's own file list that only app/testing/driver_a_fixture_link.py and tests/test_driver_a_fixture_link_postgres.py changed - no runtime route, auth path, schema, or migration file was touched, and no staging/production credential or connection was used in this implementation step. This closes the local-rehearsal proof specifically; it does not by itself authorize or perform any staging write - a separately reviewed staging execution adapter and its own explicit authorization remain required before CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING can be resolved in staging.
+
+Latest fixture link implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (ACCEPTED as local proof; staging execution separately gated)
+
+Latest fixture link contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67 (ACCEPTED)
+
+Latest fixture discovery commit: be082771d3b60af13ff71d097f94e31dcbd29787 (ACCEPTED)
+
+Latest staging deployment evidence commit: 8766cd1eface4cc8dff8bd01c9c642705b07bbf1 (ACCEPTED)
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest review commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; staging execution/target adapter not completed
-Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review orchestrator 15f28b19ae017dc5e6e42f83701648f0e63996be and DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md against the accepted contract. Assess guard/concurrency/receipt/rollback sufficiency and explicitly distinguish local proof from staging readiness. No staging writes, login, deployment, migrations remotely, merge or IA-4. Return bounded corrections to Codex if needed.
+
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging until a separately reviewed staging execution adapter is implemented and explicitly authorized; second-Driver/cross-workspace fixtures, IA-3 harness compatibility, and authenticated browser/mobile/offline evidence remain outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize designing and independently reviewing a bounded staging execution adapter for this now-accepted local procedure (targeting the exact authorized Railway project/environment/service, reusing the same guard/receipt/rollback discipline), or a different next step. No staging write, credential handling, login, deployment, migration, or IA-4 without that further separate authorization and review. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5252,3 +5270,13 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Railway publication safety checked read-only: PWA staging auto-deploy disabled; orchestrator staging trigger follows feat/deduction-period-integrity, not the implementation branch. No setting change or deployment.
 - CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING remains; no staging/production fixture mutation, remote migration, login or merge occurred.
 - CURRENT replaced; next actor Claude for independent review before any staging execution.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the local-only Driver A fixture procedure proof (reviewer role)
+
+- Cloned crewbiq-orchestrator, checked out commit 15f28b19ae017dc5e6e42f83701648f0e63996be directly, and read the full app/testing/driver_a_fixture_link.py (239 lines) and tests/test_driver_a_fixture_link_postgres.py (165 lines) end to end.
+- Independently spun up a fresh disposable postgres:16-alpine Docker container (separate from the author's own, stopped and removed after this review), applied real repository migrations via the existing migration runner including 011, and ran the tests myself: 26 passed / 0 failed for the fixture test file, 425 passed / 0 failed for the full backend suite - exactly matching the evidence document's claims rather than trusting them.
+- Confirmed the implementation is locked to 127.0.0.1 with an exact database name and no query/fragment, re-verified via current_database() after connecting - categorically preventing this exact utility from targeting staging/production, independent of the contract's own guard logic.
+- Confirmed _targets() re-validates every predicate the accepted contract specified (workspace, both accounts' full membership/role chains, exact Driver/Truck/assignment fields, and Fleet A's own link fields) before any write, that apply() reuses migration 011's exact advisory-lock key format, that a whole-database row-hash comparison proves zero collateral writes on first apply, that rerun requires an exact full-field receipt match before returning a no-write result, and that rollback requires separate approval plus a whole-database hash match under table locks before deleting exactly one row.
+- Confirmed via the commit's own file list that only the two testing-scoped files changed - no runtime route, auth path, schema, or migration file was touched, and no staging/production credential or connection was used.
+- Published final ACCEPT for the local rehearsal proof specifically. This does not authorize or perform any staging write; a separately reviewed staging execution adapter and its own explicit authorization remain required before the CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING gap can be resolved in staging.
+- Escalated the next decision to the Product Owner: whether to authorize designing a bounded staging execution adapter reusing this same guard discipline, or a different direction.
