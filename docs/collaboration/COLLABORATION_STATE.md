@@ -75,24 +75,39 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver staging backend public OpenAPI diagnostic
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver staging backend public OpenAPI diagnostic - Independent Review Closed
+
+Status: CLOSED / ACCEPT (real provenance gap confirmed; execution remains BLOCKED)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Public staging OpenAPI has 45 operations versus 55 in accepted backend; ten accepted operations absent from schema. Exact running SHA and own-current authorization remain unproven; no deployment performed.
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest review commit: 970598403f6a3c2a1ac673c2eb5b59dacd0bcf27
-Latest prior state commit: 970598403f6a3c2a1ac673c2eb5b59dacd0bcf27
-Evidence: docs/collaboration/DRIVER_STAGING_BACKEND_OPENAPI_EVIDENCE.md
-Validation: public GET 200; operation-set/ID comparison against exact local accepted HEAD; no authenticated tests
+
+Product truth: Independently reproduced DRIVER_STAGING_BACKEND_OPENAPI_EVIDENCE.md (commit a7df125cc1db86c4d90bb8ede7716bd2d1ddda5e) end to end rather than trusting the report. Fetched the live staging /openapi.json myself and confirmed its SHA-256 matches the document's reported hash exactly. Independently generated the expected schema myself from the local orchestrator clone checked out at exactly the accepted HEAD ce5a591a48f1733b4e21128dece0e0350ace41c2 via app.main.app.openapi() (DATABASE_URL empty, CREWBIQ_DB_ENABLED=false, no server/lifespan/migration runner started), then independently diffed the two operation sets myself (method+path pairs, not just path counts): 55 expected vs 45 staging, exactly the same 10 missing operations reported (the three TruckOwnership/CarrierAssignment read endpoints and seven mutation endpoints from the earlier-accepted relationship-population-commands slice, commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1), zero extra operations in staging, zero changed operationIds among shared operations - a byte-for-byte reproduction of the document's claimed result. This is a genuine, material provenance gap: staging's registered API surface is missing an entire earlier-accepted feature slice, meaning its actual running backend predates that merge despite CI success being reported for a later commit; CI success plus /health and /ready are therefore confirmed insufficient proof that the complete accepted artifact is staged. Confirmed the document does not overclaim: it correctly notes the shared GET .../driver-truck-assignments/current path proves nothing either way about which dispatch logic (old broad-only vs new own-current-aware) actually executes behind that URL, since operation IDs for shared routes were unchanged (zero diffs) and the schema comparison cannot distinguish an unchanged route signature from unchanged route behavior; it correctly avoids claiming the missing routes 404, avoids claiming own-current capability is absent, and explicitly declines to treat a redeploy as an acceptable diagnostic action. No SSH, credential retrieval, business-data mutation, merge, deployment, or migration occurred in this diagnostic or in this review.
+
+Latest OpenAPI evidence commit: a7df125cc1db86c4d90bb8ede7716bd2d1ddda5e (ACCEPTED; confirms a real provenance gap, not a code defect)
+
+Latest prerequisite evidence commit: 970598403f6a3c2a1ac673c2eb5b59dacd0bcf27 (ACCEPTED)
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest review commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: STAGING_BACKEND_OPENAPI_MISMATCH; exact runtime provenance and driver-only fixtures unverified; IA-3 canonical harness compatibility gap
-Queued coverage: authenticated browser/mobile/offline; full asset/config equivalence; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review/reproduce public OpenAPI operation-set mismatch and evidence limits against accepted backend ce5a591a48f1733b4e21128dece0e0350ace41c2. Publish ACCEPT or precise NEEDS_FIX. Do not infer missing own-current capability solely from schema. Return bounded provenance resolution to Codex; any staging deployment remains separately gated. No merge, deployment, provisioning, data mutation, migration, harness edits or IA-4.
+
+Blocking findings: STAGING_BACKEND_OPENAPI_MISMATCH independently confirmed real (staging registers 45 of 55 accepted operations, missing exactly the relationship-population-commands slice); exact running backend SHA still unproven; own-current dispatch behavior at the shared URL still unproven either way; canonical driver-only fixtures unverified; IA-3 canonical harness compatibility gap; authenticated browser/mobile/offline evidence outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide how to resolve the confirmed provenance gap: authorize a bounded, exact-SHA staging redeployment of the orchestrator (with recorded archive digest and deployment ID) so both the OpenAPI surface and the own-current dispatch behavior can be proven together, or a different bounded read-only diagnostic first (e.g., re-attempting a non-SSH backend version endpoint if one exists). Do not treat a redeploy as a mere diagnostic - it is a deployment action requiring its own explicit authorization. No fixture provisioning, merge, migration, or IA-4 without further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5161,3 +5176,14 @@ Evidence: DRIVER_STAGING_BACKEND_OPENAPI_EVIDENCE.md. Accepted backend has 55 op
 Finding: STAGING_BACKEND_OPENAPI_MISMATCH. This proves schema composition disagreement, not exact runtime SHA, endpoint 404 behavior or absence of own-current authorization.
 Safety: staging auto-deploy disabled rechecked before publication. No runtime/tests/workflows, SSH, deployment, merge, migration, business-data operation or fixture provisioning.
 Next required actor: Claude. NOT_READY_FOR_PRODUCTION and canonical staging coverage remain unchanged.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the staging backend OpenAPI mismatch diagnostic (reviewer role)
+
+- Read DRIVER_STAGING_BACKEND_OPENAPI_EVIDENCE.md (commit a7df125cc1db86c4d90bb8ede7716bd2d1ddda5e) in full.
+- Fetched the live staging /openapi.json myself and confirmed its SHA-256 matches the document's reported hash exactly, rather than trusting the report.
+- Independently generated the expected OpenAPI schema myself from the local orchestrator clone at exactly the accepted HEAD ce5a591a48f1733b4e21128dece0e0350ace41c2 (via app.main.app.openapi(), with DATABASE_URL empty and CREWBIQ_DB_ENABLED=false, no server process started), then wrote my own comparison script and diffed method+path operation sets against the fetched staging schema.
+- Reproduced the exact result independently: 55 expected operations vs 45 in staging, exactly the same 10 missing operations (all three TruckOwnership/CarrierAssignment read endpoints and all seven of their mutation endpoints from the earlier-accepted relationship-population-commands slice, commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1), zero extra operations in staging, and zero changed operationIds among the 45 shared operations.
+- Confirmed this is a genuine, material finding: staging's registered API surface is missing an entire previously-accepted feature slice, meaning CI success for a later commit does not establish that the corresponding backend is actually what is running in staging - CI/health/ready signals are confirmed insufficient proof of complete accepted-artifact staging.
+- Confirmed the document does not overclaim beyond what the schema comparison can show: the shared GET .../driver-truck-assignments/current path and its unchanged operationId prove nothing about which dispatch logic actually executes behind it, since a schema-level comparison cannot distinguish an unchanged route signature from unchanged route behavior; the document correctly avoids asserting the missing routes 404 or that own-current authorization is absent, and correctly declines to treat any redeploy as a mere "diagnostic" action.
+- Published final ACCEPT. No SSH, credential retrieval, business-data mutation, merge, deployment, or migration occurred in this diagnostic or in this review.
+- Escalated the next decision to the Product Owner: whether to authorize a bounded, exact-SHA staging redeployment (as its own explicitly authorized deployment action, not a diagnostic) to resolve the provenance gap and prove own-current dispatch behavior together, or a different bounded read-only diagnostic first.
