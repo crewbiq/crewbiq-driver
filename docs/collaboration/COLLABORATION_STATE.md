@@ -75,43 +75,25 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current-assignment read prerequisite design - Independent Review Closed
-
-Status: CLOSED / ACCEPT
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver own-current-assignment read implementation
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md (commit 1f277ebb4fa5447d210a0d61892cca7e0d07ea71, documentation/design only, no runtime change) against the exact orchestrator source and ADR-0007. Fetched and read app/routers/auth.py, app/services/auth_service.py::authenticate_token, app/routers/account_driver_links.py, and app/routers/driver_truck_assignments.py directly from the orchestrator's agent/account-driver-link-read branch and confirmed every factual claim in the design document: authenticate_token checks session expiry/revocation/active Account and performs exactly one bookkeeping write (auth_sessions.last_seen_at); account_driver_link_read returns full link history ordered by effective_from and does NOT select a single currently-effective link server-side, matching the claim exactly; driver_truck_assignments' current/history/as-of endpoints all default to capability=DRIVER_TRUCK_ASSIGNMENT_READ via _authorized_workspace_id, and driver_id/truck_id are plain optional SQL filter parameters with no ownership semantics (confirmed by reading _read() and current_driver_truck_assignments() directly); capabilities.py grants canonical driver only ACCOUNT_DRIVER_LINK_READ (re-confirmed). Confirmed the client's driver-truck-assignment.js normalizer already requires provenance to be a plain object (accepts {}) and already treats a zero-length assignments array as not-found, so the proposed own-only provenance:{} minimization and existing-empty-envelope reuse are both compatible with the current PWA without a client change. Assessed the proposed design itself as sound: a new least-privilege capability (canonical.driver_truck_assignment.read_own_current) scoped to canonical driver only, explicitly excluded from authorizing history/as-of/list/create/close/revoke or any generic workspace-only fallback; a single aware-UTC-instant, single-transaction read of both the Account's links and assignments (avoiding a TOCTOU race between two separate HTTP calls that a naive two-endpoint approach would have left open); server-derived Account identity with client-supplied workspace/driver_id treated strictly as lookup/consistency checks, never as a grant (a mismatched driver_id is rejected outright, never queried); exactly-one-effective-link and exactly-one-effective-assignment required with explicit ambiguity/not-found error codes, never a first/latest guess; truck_id and temporal overrides explicitly rejected on the own-only branch; reused existing error-code conventions (403/409/502/503 families) for continuity, with new codes honestly flagged as requiring tests rather than claimed as already implemented. The 11-item required future proof matrix and the explicit PostgreSQL-transaction-isolation requirement (mock-only tests cannot prove it) are appropriately rigorous for a security-sensitive capability boundary change. This design does not close CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED by itself and does not authorize implementation, migration, deployment, or IA-4.
-
-Latest design commit: 1f277ebb4fa5447d210a0d61892cca7e0d07ea71 (ACCEPTED)
-
-Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
-
-Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
-
-Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
-
-Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 (ACCEPTED)
-
-Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
-
-Latest review/state commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
-Blocking findings: NONE (design-correctness); CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains open pending implementation
-
+Product truth: Server own-current read candidate published; authenticated Account link and assignment read share one read-only repeatable-read snapshot. No broad Driver read grant or PWA runtime change. Not deployed.
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Latest design commit: 1f277ebb4fa5447d210a0d61892cca7e0d07ea71
+Latest review commit: c8b5f72a7969ae11b7a464f20673064f321ff444
+Latest prior state commit: c8b5f72a7969ae11b7a464f20673064f321ff444
+Evidence: docs/collaboration/DRIVER_OWN_ASSIGNMENT_READ_EVIDENCE.md
+Validation: full backend 399 passed, zero failures/skips with disposable local PostgreSQL; PWA regressions 29 passed
+Release readiness: NOT_READY_FOR_PRODUCTION
+Blocking findings: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED has candidate fix; pending independent implementation review and live integration validation
+Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-
-Next required actor: Codex
-
-Next bounded action: Under standing Product Owner delegation, Codex may now implement the accepted design's proposed implementation boundary only: app/services/capabilities.py (new own-current constant, driver grant only), app/routers/driver_truck_assignments.py (own-only dispatch branch, preserving all existing broad/history/as-of/command behavior unchanged), a new app/services/driver_self_assignment.py snapshot-scoped helper, and targeted/real-PostgreSQL tests per the 11-item proof matrix. No PWA runtime, service worker, package, CI, schema, or deployment change is included. Publish for Claude's independent review before any further step. No broader capability grant, no deployment, no IA-4.
+Next required actor: Claude
+Next bounded action: Independently review orchestrator ce5a591a48f1733b4e21128dece0e0350ace41c2 against accepted DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md and published evidence. Verify own-current-only capability, principal/workspace isolation, real PostgreSQL snapshot proof, existing broad/history/as-of/command behavior and evidence limitations. Publish ACCEPT or precise NEEDS_FIX before continuation. No deploy, merge, IA-4, production/staging migrations or data mutations.
 <!-- CURRENT_END -->
 
 
@@ -5097,3 +5079,16 @@ Next required actor: Claude for independent design review, then Codex if accepte
 - Confirmed the required future proof matrix (11 items) appropriately demands real PostgreSQL transaction-isolation evidence rather than accepting mock-only tests as sufficient proof for this security-sensitive boundary.
 - Published final ACCEPT for the design. This does not by itself close CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED and does not authorize implementation, migration, deployment, or IA-4 - only the bounded implementation slice the design itself names.
 - Per the role-swap protocol: next required actor is Codex, to implement the accepted allowlist (capabilities.py constant/grant, driver_truck_assignments.py dispatch branch, new driver_self_assignment.py helper, targeted plus real-PostgreSQL tests) and publish for independent review before any further step.
+
+### Driver own-current-assignment implementation publication
+
+Agent: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Design review/authorization: c8b5f72a7969ae11b7a464f20673064f321ff444
+Cross-repository implementation: crewbiq/crewbiq-orchestrator branch agent/account-driver-link-read at ce5a591a48f1733b4e21128dece0e0350ace41c2.
+Runtime scope: capabilities.py, driver_truck_assignments.py, new driver_self_assignment.py. Tests: new own-read suite and exact auth capability-list expectation only.
+Evidence: DRIVER_OWN_ASSIGNMENT_READ_EVIDENCE.md records commands, initial failures, final results and disposable local PostgreSQL target.
+Final results: pytest -q --tb=short equivalent via python -m pytest, 399 passed, zero failures/skips; PWA assignment/SELF/presentation suites 29 passed. Real PostgreSQL snapshot/concurrent revocation test executed.
+Safety: no PWA runtime/cache change, deployment, merge, migration-file change or production/staging mutation. Existing fixture migrations ran only in newly provisioned local test container, stopped after validation.
+Readiness: NOT_READY_FOR_PRODUCTION; candidate authorization blocker fix awaits independent review and live integration evidence. CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued.
+Next required actor: Claude for independent implementation review. No IA-4 or unrelated work.
