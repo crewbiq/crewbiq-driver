@@ -75,35 +75,35 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Population Commands
+Phase: IA-1 Prerequisite - Canonical Relationship Population Commands - Independent Review Closed
 
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Status: CLOSED / ACCEPT
 
-Current owner: Claude
+Current owner: Product Owner / Coordinator
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: The accepted orchestrator-only relationship population commands are published. Server-derived workspace/role/capability checks, explicit subjects/provenance, two-party CarrierAssignment activation, fleet-only pending withdrawal, optimistic versioning, durable idempotency, immutable audit, and non-deleting lifecycle transitions are implemented. Migration 012 was not executed and no relationship data was populated.
+Product truth: Independently reviewed orchestrator commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 by cloning crewbiq-orchestrator, checking out the exact commit, and reading the full app/routers/relationship_evidence.py (785 lines), migrations/012_relationship_evidence.sql, app/services/capabilities.py diff, and tests/test_relationship_population_commands.py directly - not the diff hunks alone. Ran the new scenario test file directly: 15 passed, 0 failed (all 14 acceptance scenarios plus a manage-capability closure test). Ran the full orchestrator suite: 342 passed, 2 skipped, 0 failed - no regression. Confirmed against RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md: authorization is fully server-derived (_authorized re-checks active_workspace_id, exact-workspace active membership, role, and capability on every command; TruckOwnership create/close/revoke uses canonical.truck_ownership.manage; CarrierAssignment propose/accept/end use their own capabilities exactly as the capability table specifies, with revoke correctly reusing canonical.carrier_assignment.end since the contract defines no separate revoke capability); _ownership_subjects and _proposal_subjects independently re-derive subject legitimacy from workspace_memberships/trucks/fleet_driver_profiles by ID only (grepped for unit_number/mc_number/usdot/account_driver_links/driver_truck_assignments/legacy snapshot tokens - none present); TruckOwnership creation cannot broaden access (target account must already hold active membership in the exact workspace, target truck must already belong to it); CarrierAssignment proposal is genuinely two-party (proposal creates status=pending only, list/accept/reject requires the addressed carrier's own active carrier-role membership in its own workspace, a carrier cannot propose and a fleet cannot accept); the corrected pending-withdrawal rule from commit 91a1804 is implemented exactly (`_change_carrier_assignment` rejects a pending withdrawal via `end` unless fleet_side is true, raising pending_withdrawal_fleet_required; revoke of pending/active remains available from either participating side with no such restriction, matching the contract's unrestricted revoke-for-invalid-evidence framing); every mutating command opens one transaction covering idempotency-begin, row lock+recheck, mutation, audit write, and idempotency-complete; expected_version is checked and incremented atomically; migration 012 is purely additive (create table if not exists, new nullable/defaulted columns, an additive status check, a widened partial unique index) with no insert/update/delete/drop/truncate; canonical_command_idempotency and relationship_audit_events are reused from the pre-existing migration 009 foundation, not reinvented. No delete statement exists anywhere in the router or migration. No migration 012 execution, data population, PWA change, or resolver/IA-2 work occurred in this review.
 
 Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
 
-Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1
+Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 (ACCEPTED)
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review/state commit: a8fe1b8610af699828b0e895603a0d9f27d70564
+Latest review/state commit: (pending this publication)
 
-Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
+Latest state commit: (pending this publication)
 
-Blocking findings: NONE pending independent review
+Blocking findings: NONE
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Claude
+Next required actor: Product Owner
 
-Next bounded action: Independently review orchestrator commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 against RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md and scenarios 1-14. Re-run focused tests and inspect authorization, lifecycle, idempotency, audit, versioning, schema additivity, and no-inference/no-delete boundaries. Publish ACCEPT or precise NEEDS_FIX. Do not execute migration 012, populate data, deploy, change PWA, or begin resolver/IA-2.
+Next bounded action: Decide whether to authorize migration 012 execution and staging data population (still separately gated per the contract's own terms and not authorized by this closure), a PWA command-adapter/UI slice, or resumption of IA-1 PresentationContext resolver work - or select a different next step. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
 <!-- CURRENT_END -->
 
 
@@ -4922,3 +4922,19 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Published final ACCEPT for the full RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md, closing this documentation-only prerequisite slice.
 - Escalated the actual next decision to the Product Owner rather than choosing unilaterally: whether to authorize the orchestrator-only implementation sequencing this same contract already names as its own next step, or a different direction.
 - No runtime, schema, migration, deployment, or data change occurred in this cycle - independent verification only.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the relationship population command implementation (reviewer role)
+
+- Cloned crewbiq-orchestrator, checked out orchestrator commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 directly (not just read the diff), and read the full app/routers/relationship_evidence.py (785 lines), the migration 012 diff, the capabilities.py diff, and the new tests/test_relationship_population_commands.py in full.
+- Ran the new scenario test file directly: 15 passed, 0 failed, covering all 14 contract acceptance scenarios plus manage-capability role closure.
+- Ran the full orchestrator test suite on this commit: 342 passed, 2 skipped, 0 failed - confirmed no regression was introduced anywhere else in the codebase.
+- Verified authorization is fully server-derived on every command via _authorized: exact active_workspace_id match, single active membership in that workspace, required role present, required capability present - confirmed by reading the function body, not by trusting its name.
+- Verified TruckOwnership creation cannot broaden workspace access: _ownership_subjects requires the target account already hold exactly one active membership in the exact target workspace and the target truck already belong to that workspace before any insert; confirmed the query executes before the insert by reading _ownership_subjects is awaited prior to the insert statement in create_truck_ownership.
+- Verified CarrierAssignment proposal is genuinely two-party: a fleet proposal always inserts status='pending' and creates no carrier visibility; only the addressed carrier's own active carrier-role membership in its own server-derived workspace can list or decide a pending proposal (list_carrier_assignment_proposals and decide_carrier_assignment_proposal both call _authorized with role="carrier" and the carrier workspace path parameter); a carrier cannot self-propose (capability canonical.carrier_assignment.propose is fleet-only) and a fleet cannot self-accept (canonical.carrier_assignment.accept is carrier-only) - confirmed against capabilities_for_roles output directly, not just the capability table in the contract.
+- Verified the corrected pending-withdrawal rule from contract commit 91a1804 is implemented exactly as specified: _change_carrier_assignment raises pending_withdrawal_fleet_required when a pending row's `end` is attempted from the carrier side, and permits it only when the active workspace equals fleet_workspace_id; confirmed revoke of a pending or active row remains available from either participating side without that restriction, matching the contract's own text that revoke (for invalid evidence) is not restricted to one side while routine withdrawal (via end) is fleet-only.
+- Verified idempotency, versioning, and audit: every mutating command runs inside one transaction covering idempotency-begin (conflict on mismatched fingerprint, replay on identical), row lock-and-recheck, the mutation itself, an immutable relationship_audit_events insert, and idempotency-complete; expected_version is checked before mutation and incremented atomically in the same update statement.
+- Verified migration 012 is purely additive: every table use is `create table if not exists`; every new column on existing (already-additive, not-yet-executed) tables is nullable or has a default; the status check constraint was widened, never narrowed; the partial unique index was widened to also cover 'pending' (needed for the new proposal-overlap requirement) without weakening the existing active-row uniqueness; grepped the full file for insert/update/delete/drop/truncate outside comments - none present.
+- Verified canonical_command_idempotency and relationship_audit_events are reused from the pre-existing migration 009 foundation (grepped migrations/ for their origin), not reimplemented, matching the contract's explicit instruction to reuse existing orchestrator command conventions.
+- Confirmed via full-file grep that no delete statement, no unit_number/mc_number/usdot/account_driver_links/driver_truck_assignments/legacy-snapshot token, and no inference path exists anywhere in the new router code.
+- Published final ACCEPT. No migration execution, data population, deployment, PWA change, or resolver/IA-2 work occurred in this review cycle - independent verification only.
+- Escalated the next decision to the Product Owner: whether to authorize migration 012 execution plus staging population, a PWA command-adapter/UI slice, or IA-1 resolver resumption.
