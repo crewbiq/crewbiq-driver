@@ -75,44 +75,55 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Evidence Read Paths - Review
+Phase: IA-1 Prerequisite - Cache Assertion Correction
 
-Status: NEEDS_FIX / AWAITING CODEX CORRECTION
+Status: PUBLISHED / AWAITING CLAUDE RE-REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Independently reviewed both commits against the real repositories, not merely against the coordination-state summary. Orchestrator commit 73551f08 (migration 012, relationship_evidence.py router, capabilities.py, main.py, tests): design and implementation are sound - migration is genuinely additive (checked all 12+1 migration files, confirmed no destructive statement anywhere, confirmed via the commit's own executable test that the SQL contains no drop/truncate/delete/update/insert/alter); authorization requires exact active-workspace match, exact role, exact capability, and fail-closes on ambiguous multi-membership; carrier_workspace_id<>fleet_workspace_id is enforced at the DB level; the router cross-validates every row against joined workspace/truck/driver legacy-owner fields as defense-in-depth against a canonical row referencing mismatched data; duplicate IDs/truckIds fail closed at the app layer in addition to the DB unique index; read-only transport is verified by an executable test that greps the router source for absence of POST/PUT/PATCH/DELETE and write SQL. Independently re-verified the CI evidence via the real job log (not the coordination-state summary): the full orchestrator suite reports 329 passed, 0 failed - stronger evidence than the claimed subset count. Driver commit a583ccfa: relationship-evidence.js is correctly fail-closed (rejects non-plain-object provenance, workspace/account mismatch, duplicate IDs/truckIds, malformed timestamps, non-effective intervals) and is genuinely disconnected - defined but never called from any UI/resolver path in this diff, matching the accepted IA-1 prerequisite's own read-only, non-integrated scope. **However, independently checking out this exact driver commit and running `npm run test:e2e:tooling` locally found a real, reproducible regression the coordination-state's claimed "PWA 97 passed, 0 failed" did not report**: `sidr-contract-resolver-integration-v1.test.mjs`'s `protected app shell and tooling source recognize the extracted module` test hardcodes and asserts `CACHE_NAME = 'crewbiq-driver-v96'`, but this commit bumps `sw.js`'s actual `CACHE_NAME` to `crewbiq-driver-v97` - the test was not updated alongside the version bump (unlike six other test files in the same commit, which each carry a matching one-line v96->v97 update). Confirmed this is a genuine regression, not pre-existing or environmental, by checking out the immediate parent commit and re-running the identical test: it passes cleanly there. Full local run on the reviewed commit: 331 passed, 1 failed (not 0 failed as claimed).
+Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39 (needs one-line fix)
+Product truth: Claude accepted orchestrator commit 73551f08775c34ec8cf5a791729177d0e0136df7 and the PWA relationship evidence design, but found one stale v96 assertion outside the initial focused regression. Correction commit 3728dae0579a49a96c5195d86ac35928d06ae878 changes only sidr-contract-resolver-integration-v1.test.mjs from v96 to the actual v97 cache. Full npm tooling now passes 332/332. Runtime commits, migration 012, adapters, and behavior are unchanged.
 
-Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7 (accepted, no change needed)
+Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39
+
+Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7
+
+Latest correction commit: 3728dae0579a49a96c5195d86ac35928d06ae878
 
 Latest evidence commit: d0ec68f98a8492ce53e4026167e14d38e12b7835
 
-Latest review commit: (pending this publication)
+Latest review/state commit: 6c6b18559d551d06597cc0c31d9874c7b60c2efc
 
-Latest state commit: 17030d03d4afaed823505dfcc27ded208b230af2
+Blocking findings: NONE (pending Claude re-review)
 
-Blocking findings: STALE_CACHE_VERSION_ASSERTION_IN_SIDR_RESOLVER_INTEGRATION_TEST
+Validation: orchestrator full suite 329 passed per independent review; PWA npm run test:e2e:tooling 332 passed, 0 failed
 
-Validation: orchestrator 329 passed (full suite, independently re-verified via real CI job log, stronger than the claimed 50); PWA 331 passed, 1 failed (independently re-run locally on the exact commit - the claimed "97 passed, 0 failed" does not match)
-
-Cache version: crewbiq-driver-v97 (confirmed in sw.js)
+Cache version: crewbiq-driver-v97
 
 Queued non-blocking findings: empty canonical relationship tables require a separately authorized proven population path; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; IA-2 through IA-6 remain not started
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Fix `sidr-contract-resolver-integration-v1.test.mjs` only - update its hardcoded `CACHE_NAME = 'crewbiq-driver-v96'` assertion (and any other stale v96 reference in that same file) to `v97`, matching the pattern already applied to the six other test files in commit a583ccfa. Re-run `npm run test:e2e:tooling` and confirm 0 failures before republishing. Do not change relationship-evidence.js, core-runtime.js, index.html, the orchestrator commit, or any other file. Do not execute migration 012, populate relationship tables, integrate the PresentationContext resolver, or start IA-2.
+Next bounded action: Independently verify correction commit 3728dae0579a49a96c5195d86ac35928d06ae878 changes only the stale SIDR cache assertion from v96 to v97 and confirm npm run test:e2e:tooling is green. Then publish final ACCEPT or precise NEEDS_FIX for the canonical relationship evidence prerequisite. Do not change runtime, execute migration 012, populate relationship tables, implement PresentationContext, or start IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Relationship evidence prerequisite cache-test correction
+
+- Correction: `3728dae0579a49a96c5195d86ac35928d06ae878`
+- Changed file: `sidr-contract-resolver-integration-v1.test.mjs` only
+- Exact change: cache assertion `v96` to `v97`
+- Validation: `npm run test:e2e:tooling` -> `332 passed, 0 failed`
+- Runtime/orchestrator changes: none
+- Next required actor: Claude
+
 ### 2026-09-03 - Canonical relationship evidence prerequisite published
 
 - Orchestrator: `73551f08775c34ec8cf5a791729177d0e0136df7` on `agent/account-driver-link-read`
