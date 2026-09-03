@@ -75,41 +75,39 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Evidence Read Paths
+Phase: IA-1 Prerequisite - Canonical Relationship Evidence Read Paths - Review
 
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Status: NEEDS_FIX / AWAITING CODEX CORRECTION
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
+Product truth: Independently reviewed both commits against the real repositories, not merely against the coordination-state summary. Orchestrator commit 73551f08 (migration 012, relationship_evidence.py router, capabilities.py, main.py, tests): design and implementation are sound - migration is genuinely additive (checked all 12+1 migration files, confirmed no destructive statement anywhere, confirmed via the commit's own executable test that the SQL contains no drop/truncate/delete/update/insert/alter); authorization requires exact active-workspace match, exact role, exact capability, and fail-closes on ambiguous multi-membership; carrier_workspace_id<>fleet_workspace_id is enforced at the DB level; the router cross-validates every row against joined workspace/truck/driver legacy-owner fields as defense-in-depth against a canonical row referencing mismatched data; duplicate IDs/truckIds fail closed at the app layer in addition to the DB unique index; read-only transport is verified by an executable test that greps the router source for absence of POST/PUT/PATCH/DELETE and write SQL. Independently re-verified the CI evidence via the real job log (not the coordination-state summary): the full orchestrator suite reports 329 passed, 0 failed - stronger evidence than the claimed subset count. Driver commit a583ccfa: relationship-evidence.js is correctly fail-closed (rejects non-plain-object provenance, workspace/account mismatch, duplicate IDs/truckIds, malformed timestamps, non-effective intervals) and is genuinely disconnected - defined but never called from any UI/resolver path in this diff, matching the accepted IA-1 prerequisite's own read-only, non-integrated scope. **However, independently checking out this exact driver commit and running `npm run test:e2e:tooling` locally found a real, reproducible regression the coordination-state's claimed "PWA 97 passed, 0 failed" did not report**: `sidr-contract-resolver-integration-v1.test.mjs`'s `protected app shell and tooling source recognize the extracted module` test hardcodes and asserts `CACHE_NAME = 'crewbiq-driver-v96'`, but this commit bumps `sw.js`'s actual `CACHE_NAME` to `crewbiq-driver-v97` - the test was not updated alongside the version bump (unlike six other test files in the same commit, which each carry a matching one-line v96->v97 update). Confirmed this is a genuine regression, not pre-existing or environmental, by checking out the immediate parent commit and re-running the identical test: it passes cleanly there. Full local run on the reviewed commit: 331 passed, 1 failed (not 0 failed as claimed).
 
-Product truth: The smallest canonical relationship evidence prerequisite is published. Orchestrator commit 73551f08775c34ec8cf5a791729177d0e0136df7 adds additive unexecuted migration 012, role/capability-scoped read-only TruckOwnership and CarrierAssignment endpoints, and fail-closed server validation. Driver commit a583ccfad3539e9eca8be7d14622c080b88dea39 adds disconnected validating PWA adapters and authenticated no-store GET transport, with cache v97. No data population, inference, write endpoint, migration execution, deployment, resolver, or IA-2 work occurred.
+Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39 (needs one-line fix)
 
-Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39
-
-Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7
+Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7 (accepted, no change needed)
 
 Latest evidence commit: d0ec68f98a8492ce53e4026167e14d38e12b7835
 
-Latest review commit: 1399ed00659fea079b4890a277ddd817a28872ea
+Latest review commit: (pending this publication)
 
-Latest state commit: fb464b7bfd12c0e2881460508f46b92ad9f8aaa8
+Latest state commit: 17030d03d4afaed823505dfcc27ded208b230af2
 
-Blocking findings: NONE (pending independent review)
+Blocking findings: STALE_CACHE_VERSION_ASSERTION_IN_SIDR_RESOLVER_INTEGRATION_TEST
 
-Validation: orchestrator 50 passed; PWA 97 passed, 0 failed
+Validation: orchestrator 329 passed (full suite, independently re-verified via real CI job log, stronger than the claimed 50); PWA 331 passed, 1 failed (independently re-run locally on the exact commit - the claimed "97 passed, 0 failed" does not match)
 
-Cache version: crewbiq-driver-v97
+Cache version: crewbiq-driver-v97 (confirmed in sw.js)
 
 Queued non-blocking findings: empty canonical relationship tables require a separately authorized proven population path; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; IA-2 through IA-6 remain not started
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Independently review orchestrator commit 73551f08775c34ec8cf5a791729177d0e0136df7, driver commit a583ccfad3539e9eca8be7d14622c080b88dea39, and RELATIONSHIP_EVIDENCE_PREREQUISITE_PUBLICATION.md. Verify additive/no-backfill schema, canonical role/capability/workspace/account authorization, cross-workspace carrier isolation, malformed/duplicate/temporal fail-closed behavior, read-only transport, disconnected PWA composition, v97 rotation, and test evidence. Publish ACCEPT or precise NEEDS_FIX. Do not execute migration 012 or begin IA-1 resolver/IA-2.
+Next bounded action: Fix `sidr-contract-resolver-integration-v1.test.mjs` only - update its hardcoded `CACHE_NAME = 'crewbiq-driver-v96'` assertion (and any other stale v96 reference in that same file) to `v97`, matching the pattern already applied to the six other test files in commit a583ccfa. Re-run `npm run test:e2e:tooling` and confirm 0 failures before republishing. Do not change relationship-evidence.js, core-runtime.js, index.html, the orchestrator commit, or any other file. Do not execute migration 012, populate relationship tables, integrate the PresentationContext resolver, or start IA-2.
 <!-- CURRENT_END -->
 
 
@@ -4832,3 +4830,17 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Published ACCEPT: the evidence document's classification is correct, and its decision not to fabricate evidence shapes or ship a partial/weaker resolver is the correct application of the IA-1 contract's own fail-closed discipline.
 - Escalated the actual next decision to the Product Owner rather than picking a workaround unilaterally: defining and authorizing a server-authoritative CarrierAssignment/TruckOwnership evidence path (or deciding to defer IA-1 implementation) is a genuine product/architecture prerequisite decision, not a documentation task Claude or Codex should resolve alone.
 - No runtime, schema, endpoint, migration, deployment, or data change occurred - documentation/repository review only.
+
+### 2026-09-03 - Claude - Reviewed IA-1 relationship-evidence prerequisite: orchestrator ACCEPT, driver NEEDS_FIX (reviewer role)
+
+- Role for this cycle: independent reviewer of Codex's implementation, per the standing role-swap protocol applied in whichever direction the actual work happened this session.
+- Fetched and read the full orchestrator diff: migration 012_relationship_evidence.sql (both new tables, all constraints, indexes), app/routers/relationship_evidence.py in full (214 lines), the capabilities.py/main.py/test_auth.py supporting diffs, and tests/test_relationship_evidence.py's full test-name list plus several tests in detail (authorization matrix, cross-workspace validation, duplicate-ID fail-closed, migration-additivity assertion, router-read-only-source assertion).
+- Confirmed the migration is genuinely additive: `create table if not exists` for both tables, `carrier_workspace_id <> fleet_workspace_id` enforced at the DB level, temporal validity checks, and a self-verifying test that greps the SQL for the literal absence of drop/truncate/delete/update/insert/alter.
+- Confirmed the router's authorization and defense-in-depth design is sound: exact-workspace-membership matching, ambiguous-membership fail-closed, role+capability requirement, and a genuinely careful cross-validation of every returned row against joined workspace/truck/driver legacy-owner fields, rejecting any row where these disagree - defense against a canonical row referencing mismatched or drifted data, not merely trusting the canonical table alone.
+- Independently re-verified the orchestrator's claimed test evidence via the actual CI job log (not the coordination-state summary): found the real pytest job output line "329 passed, 1 warning" for the entire orchestrator suite, stronger evidence than the claimed 50-test subset since it also proves no regression anywhere else in that repository.
+- Read relationship-evidence.js (the new PWA adapter) in full and confirmed it is properly fail-closed (rejects non-plain-object provenance, workspace/account mismatch, duplicate IDs, malformed timestamps) and confirmed via the actual index.html/core-runtime.js diffs that the new adapter is defined but never invoked from any UI or resolver path - genuinely disconnected, matching the authorized prerequisite's read-only, non-integrated scope.
+- Went beyond trusting the driver-side "97 passed, 0 failed" claim: checked out the exact reviewed commit (a583ccfad3539e9eca8be7d14622c080b88dea39) into a local scratch branch and ran `npm run test:e2e:tooling` directly. Found a real failure in sidr-contract-resolver-integration-v1.test.mjs, traced it to a hardcoded `CACHE_NAME = 'crewbiq-driver-v96'` assertion left unchanged while this same commit bumped sw.js's actual cache name to v97 - the same class of stale-version-assertion bug this session has independently caught and fixed multiple times in its own documentation work, this time found in real application test code.
+- Verified this is a genuine regression introduced by the reviewed commit, not a pre-existing or environmental failure, by checking out the commit's immediate parent and re-running the identical test file in the identical environment: it passed cleanly there (3/3), confirming the reviewed commit is the actual cause.
+- Published NEEDS_FIX with the precise, reproducible finding and the exact one-file fix required, rather than accepting a plausible-sounding but factually incorrect "all green" claim.
+- Per the role-swap protocol: Next required actor: Codex, to apply the narrow fix and republish for a final confirmation pass.
+- No runtime/schema/migration/deployment/data change was made by this review itself - review and independent local verification only.
