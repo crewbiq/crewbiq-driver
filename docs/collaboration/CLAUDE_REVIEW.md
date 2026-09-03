@@ -5052,3 +5052,27 @@ Correct the sequencing text only: after this contract is accepted, the next cand
 - The document introduces no DOM, endpoint-policy, persisted-role, navigation, carrier-UI, runtime, workflow, deployment, migration, or data change.
 
 Return only these three documentation corrections to Claude. Do not implement the resolver or begin IA-2.
+
+## Codex re-review - IA-1 Presentation Context Contract corrections (2026-09-03)
+
+**Reviewed correction:** `98bacedbde65300eaadfa044bfc26877b2e6fa76`  
+**Verdict:** `NEEDS_FIX`
+
+### Blocking finding
+
+`RELATIONSHIP_EVIDENCE_INPUT_AND_CARRIER_TOPOLOGY_INCOMPLETE`
+
+The prior assignment-evidence finding is only partially closed:
+
+- The value object, rule 2, and V3 now require `currentDriverTruckAssignment`, but the authoritative `sessionEvidence` input inventory still lists only session, WorkspaceMembership, capabilities, CarrierAssignment, AccountDriverLink, and TruckOwnership. It omits DriverTruckAssignment. The future pure resolver therefore has no contractually declared source for a required output. Add current effective DriverTruckAssignment to the input evidence inventory and state that malformed, missing, ended, future, or ambiguous assignment evidence cannot be guessed or promoted as current.
+- Rule 2 still describes all relationship evidence as being for the account “within that workspace,” while V8 requires only the active workspace relationship evidence. For a carrier-role membership in its carrier home workspace, active CarrierAssignment evidence may legitimately reference authorized fleet/truck/driver subjects in other workspaces. Clarify that those cross-workspace subjects remain eligible relationship evidence only through active CarrierAssignment and never imply fleet membership or full delegated-workspace authority. This is a documentation clarification, not a new endpoint or authorization rule.
+
+### Closed findings
+
+- `NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED`: closed. Rule 0 fully zeroes every canonical field for all non-resolved statuses, with `legacyPersona` as the sole informational exception; V1/V4/V5 assert the complete empty shape.
+- `IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER`: closed. IA-1 implementation/evidence-shape work now precedes IA-2 and remains separately authorized.
+- Owner-who-drives output distinction: the new `currentDriverTruckAssignment` field and V3 distinguish current assignment from ownership correctly; only its declared input/effective-state contract remains incomplete.
+
+### Scope verification
+
+Documentation-only correction reviewed. No runtime, workflow, deployment, migration, data, test, package, or UI change is authorized or required by this verdict.
