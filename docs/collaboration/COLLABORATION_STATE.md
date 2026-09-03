@@ -75,38 +75,48 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Presentation Context Contract - Corrections Published
+Phase: IA-1 Presentation Context Contract - Residual Correction
 
-Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: All three findings from Codex review ec610335 independently reproduced before being fixed, then the fix independently re-verified via git show byte-diff and the exact Commits-API diff stats. (1) NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED: confirmed the prior rules only zeroed `membershipRole` for `unavailable`/`unauthorized` and said nothing about any field for `ambiguous` - a resolver could legally leave `workspaceId`/`capabilities`/`relationshipScope` populated from partial evidence in those branches. Fixed by adding an explicit rule 0 requiring every field except `status` and `legacyPersona` to be fully zeroed whenever `status` is not `'resolved'`, and extending V1/V4/V5 to assert this explicitly rather than only asserting the `status` value. (2) OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED: confirmed `truckOwnershipIds` (which trucks are owned) and `accountDriverLinkId` (which Driver profile) together do not carry which truck, if any, that Driver is *currently assigned to drive* - the actual fact ADR-0007 scenario A needs. Fixed by adding `relationshipScope.currentDriverTruckAssignment` to the value object and extending V3 to assert it resolves correctly. (3) IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER: confirmed the "Next bounded slice" section named IA-2 (Navigation projection adapter) as the direct next step even though `resolvePresentationContext` remains `NOT_YET_IMPLEMENTED` - IA-2 cannot meaningfully consume a resolver that doesn't exist. Fixed by inserting an explicit IA-1-implementation slice (build and prove the resolver against real evidence shapes, execute V1-V8) before IA-2 becomes a meaningful next step. Published as commit 98bacedb (+97/-38, API-confirmed); full diff review confirmed every removed line was replaced by a stricter or more complete version of the same rule/scenario, never a weakening.
+Product truth: Rule-0 fail-closed payload semantics and IA sequencing are corrected. One documentation blocker remains: current DriverTruckAssignment is required in the output but omitted from the declared sessionEvidence inputs, and carrier-home relationship evidence must explicitly preserve active CarrierAssignment references to authorized subjects in other workspaces without granting fleet membership or full workspace authority.
 
 Latest implementation commit: NONE (documentation-only contract slice)
 
 Latest correction commit: 98bacedbde65300eaadfa044bfc26877b2e6fa76
 
-Latest review commit: ec610335216010c05ca21ca64221849e68f5a85d
+Latest review commit: 610081619aa4b3cbb0be7564e9e0b1dc73e3b014
 
-Latest state commit: (pending this publication)
+Latest state commit: 3583c1c662b90c56e4670647df786609c9f4cbfe
 
-Blocking findings: NONE (pending Codex re-review)
+Blocking findings: RELATIONSHIP_EVIDENCE_INPUT_AND_CARRIER_TOPOLOGY_INCOMPLETE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1-implementation and IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1 implementation and IA-2 through IA-6 remain separate, not-yet-started slices
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Independently re-review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit 98bacedbde65300eaadfa044bfc26877b2e6fa76) against the actual published diff: confirm rule 0 correctly and completely zeroes every non-status/non-legacyPersona field for every non-resolved status, and that V1/V4/V5 assert this explicitly; confirm currentDriverTruckAssignment is correctly specified and V3 asserts it distinctly from truckOwnershipIds; confirm the corrected Next-bounded-slice section no longer skips straight to IA-2 and correctly gates it behind an IA-1-implementation step. Publish ACCEPT or precise NEEDS_FIX. Documentation-only review; no runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate is IA-1-implementation (not IA-2), which requires its own separate future authorization - do not begin implementing the resolver automatically.
+Next bounded action: Correct PRESENTATION_CONTEXT_CONTRACT.md only: declare current effective DriverTruckAssignment in sessionEvidence and specify fail-closed treatment for malformed, missing, ended, future, or ambiguous assignment evidence; clarify that carrier-home active CarrierAssignment evidence may reference authorized subjects in other workspaces without granting fleet membership or full delegated-workspace authority. Documentation only; do not implement the resolver or IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex IA-1 correction re-review
+
+- Reviewed correction: `98bacedbde65300eaadfa044bfc26877b2e6fa76`
+- Review commit: `610081619aa4b3cbb0be7564e9e0b1dc73e3b014`
+- Verdict: `NEEDS_FIX`
+- Closed: complete non-resolved payload zeroing; IA-1 implementation now precedes IA-2
+- Blocking finding: `RELATIONSHIP_EVIDENCE_INPUT_AND_CARRIER_TOPOLOGY_INCOMPLETE`
+- Runtime/product files changed: none
+- Next required actor: Claude
+
 ### 2026-09-03 - Codex IA-1 contract review published
 
 - Review commit: `ec610335216010c05ca21ca64221849e68f5a85d`
