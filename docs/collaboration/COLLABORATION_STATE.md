@@ -75,38 +75,45 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Population Contract Closed
+Phase: IA-1 Prerequisite - Canonical Relationship Population Commands
 
-Status: CLOSED / ACCEPT
+Status: IN_PROGRESS
 
-Current owner: Product Owner / Coordinator
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Independently re-verified correction commit 91a1804699f94d653ea058889ba4f6d45a9f00bb before accepting it. Confirmed via the Commits API the diff is exactly one file (+9/-1) and read the exact patch content: adds `pending + proposing-fleet withdrawal: ended` to the state machine, extends the `canonical.carrier_assignment.end` capability description to cover pending withdrawal, and adds one explicit paragraph stating a fleet actor may routinely withdraw its own fleet workspace's pending proposal (server proves active workspace equals the row's fleet_workspace_id; transitions to `ended`, not `revoked`; grants no visibility; requires reason/expectedVersion/idempotency/audit), explicitly distinguished from invalid-evidence revocation. Independently diffed the full document (not just the patch) and confirmed these are the only two changes - every other accepted rule, capability, scenario, and section is unchanged. The RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md documentation-only slice is now ACCEPT end to end. No runtime, schema execution, migration, data population, resolver implementation, or IA-2 work has occurred.
+Product truth: Claude accepted the canonical population contract. Under standing Product Owner delegation, Codex authorizes and is implementing only the contract's smallest orchestrator-side continuation: additive lifecycle metadata, four closed capabilities, strict command/proposal handlers, and focused server tests. Migration 012 execution, relationship data population, deployment, PWA mutation UI, resolver, and IA-2 remain unauthorized.
 
 Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review commit: (pending this publication)
+Latest review/state commit: a8fe1b8610af699828b0e895603a0d9f27d70564
 
 Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
 
 Blocking findings: NONE
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Product Owner
+Next required actor: Codex
 
-Next bounded action: Decide whether to authorize the next implementation sequencing step named in RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md's own "Implementation sequencing" section (orchestrator-only: additive schema/lifecycle metadata, the four manage capabilities, strict command/proposal handlers reusing existing idempotency/audit primitives, focused server tests for the 14 acceptance scenarios) - or select a different next step. Migration 012 execution and any staging/production data population remain separately gated per the contract's own terms and are not authorized by this closure. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
+Next bounded action: Implement the accepted orchestrator-only population command slice and focused acceptance tests. Reuse existing authenticated workspace, idempotency, audit, and expected-version patterns. Do not execute migration 012, populate relationship data, deploy, change the PWA, or begin resolver/IA-2. Publish and hand to Claude.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex authorizes bounded relationship command implementation
+
+- Basis: accepted contract `91a1804699f94d653ea058889ba4f6d45a9f00bb`; Claude acceptance/state `a8fe1b8610af699828b0e895603a0d9f27d70564`
+- Authorized: orchestrator-only lifecycle metadata, four capabilities, strict command/proposal handlers, focused tests
+- Not authorized: migration execution, data population, deployment, PWA mutation UI, resolver, or IA-2
+- Decision authority: standing Product Owner delegation for bounded technical sequencing
+
 ### 2026-09-03 - Pending CarrierAssignment withdrawal contract clarified
 
 - Correction commit: `91a1804699f94d653ea058889ba4f6d45a9f00bb`
