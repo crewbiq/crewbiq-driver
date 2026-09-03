@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: ADR-0007 Role/Scope Reconciliation - Blocking Corrections Published
+Phase: ADR-0007 Role/Scope Reconciliation — Final B1 Correction
 
-Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: All four blockers from Codex review c293dad independently reproduced before being fixed, then each fix independently re-verified via git show/API byte-diff and the exact Compare/commits-API diff stats (not assumed). (B1 CARRIER_SCOPE_TYPE_TRAVERSAL_CONTRADICTION) Reproduced: ANALYTICS_SCOPE_CONTRACT.md's carrier validation row required carrierId (the carrier's own home workspace) to be reachable via an active CarrierAssignment - logically impossible, since a carrier has no CarrierAssignment to itself; separately, PRODUCTION_UI_INTEGRATION_CONTRACT.md described the carrier's aggregation as "FLEET-shaped," which read as a change of AnalyticsScope.type to 'fleet', contradicting ANALYTICS_SCOPE_CONTRACT.md's explicit type='carrier'-always rule. Fixed both: ANALYTICS_SCOPE_CONTRACT.md commit adb86195 (+1/-1) now validates carrierId via the actor's own carrier-role WorkspaceMembership, only the optional narrowing identifiers via CarrierAssignment; PRODUCTION_UI_INTEGRATION_CONTRACT.md commit faa9e19a (+11/-6) now states explicitly that "Carrier -> Fleet -> Truck -> Driver" names presentation stages, not a scope-type change, and the type remains 'carrier' throughout. (B2 CURRENT_ORCHESTRATOR_PRODUCT_STATE_REMAINS_CONTRADICTORY) Reproduced: crewbiq-orchestrator/docs/PROJECT_STATE.md's "Current Priority" still named the pre-ADR-0007 Driver/Owner-Op/Fleet/Dispatcher role model and claimed Google Apps Script remains the primary sync path. Fixed via crewbiq-orchestrator main commit ca641874 (+20/-0): added one current-truth note after the header pointing to ADR-0007 (branch-qualified) and to the already-merged Legacy Sync Decommission (crewbiq-driver main 5351d6a6), preserving the rest of the document unchanged. (B3 DOCS_MAIN_POINTS_TO_ADR_ABSENT_FROM_DOCS_MAIN) Reproduced: the prior FUNCTIONAL_ENTITY_ROLE_MODEL_2026-07-19.md note pointed to the ADR-0007 file path as if it existed on crewbiq-docs main - it does not; the file exists only on branch claude/adr-0007-mvp-roles-and-phase4-backlog, unmerged. Fixed via crewbiq-docs main commit 5797f893 (+1/-1): the note now explicitly names the branch and states "not yet merged to main." (B4 PUBLICATION_EVIDENCE_MISSTATES_DIFF) Confirmed: the prior HISTORY entry claimed commit 791f4875 was "additions only, zero removed lines," but the commits API reports +29/-10 - a genuine misstatement, caused by conflating "no validation requirement was removed" (still true) with "zero lines deleted" (false, since table-row edits necessarily replace old line text). Corrected going forward by recording the exact real diff stats for every commit in this cycle rather than repeating the same claim pattern.
+Product truth: Codex re-review `73e47a6` accepts B2, B3, and B4, but B1 remains. The binding model separates actor Role from selected Scope: a carrier actor keeps Role=`carrier`, while Scope genuinely traverses `CARRIER` (portfolio) -> `FLEET` (one assignment-filtered fleet grouping) -> `TRUCK` -> `DRIVER`, with `SELF` only through an independently authorized Driver identity. The current canonical driver docs incorrectly keep AnalyticsScope `type='carrier'` at every depth and label Fleet/Truck/Driver as presentation-only stages. Scope changes never grant membership or authority; every selected subject remains fail-closed and server-authorized through active `CarrierAssignment`.
 
 Latest implementation commit: 73918286bf94d1e436237fb8cc038481a28ca5db
 
-Latest correction commit: faa9e19aea29cc45c4cf53d94bc94860fc9e4fcf (crewbiq-driver); adb861952f15d6f305c08cfdaa7f340abab6a288 (crewbiq-driver); 5797f8933393e058c9db63cc44d8f46cda32fb25 (crewbiq-docs); ca641874071178c85f8f02247ac5baa0e464e452 (crewbiq-orchestrator)
+Latest correction commit: faa9e19aea29cc45c4cf53d94bc94860fc9e4fcf
 
-Latest review commit: c293dad45dcc19c399f528e099b5b327f448923e
+Latest review commit: 73e47a671abf84184c8f96078213653f04efc814
 
-Latest state commit: (pending this publication)
+Latest state commit: cff02659f07a32cbb420b0aca17f64a585f8cbf8
 
-Blocking findings: NONE (pending Codex re-review)
+Blocking findings: CARRIER_SCOPE_TYPE_TRAVERSAL_CONTRADICTION
 
-Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main remains a separate future action; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Independently re-review all four corrections against the actual published diffs (not this report): confirm ANALYTICS_SCOPE_CONTRACT.md's carrier row is now internally consistent (carrierId via WorkspaceMembership, narrowing via CarrierAssignment, type always 'carrier'); confirm PRODUCTION_UI_INTEGRATION_CONTRACT.md no longer implies a scope-type change at the carrier's "Fleet" stage and agrees with ANALYTICS_SCOPE_CONTRACT.md; confirm crewbiq-orchestrator/docs/PROJECT_STATE.md's current-truth note is accurate and its historical content is otherwise unchanged; confirm the crewbiq-docs main note now correctly identifies ADR-0007 as branch-only/unmerged; confirm every diff-stat claim in the latest HISTORY entry matches the actual Commits API stats. Publish ACCEPT or precise NEEDS_FIX. After Codex ACCEPT: mark ADR-0007 Accepted (confirm this reconciliation round changes nothing about that status), freeze Role/Scope semantics, update collaboration state, and return to Product Owner/Coordinator. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion. No runtime/product/test/workflow/schema/merge/deploy/migration/data changes.
+Next bounded action: Fix B1 only in `docs/collaboration/ANALYTICS_SCOPE_CONTRACT.md` and `docs/collaboration/PRODUCTION_UI_INTEGRATION_CONTRACT.md`. Preserve Role=`carrier`, but make selected Scope types genuinely change to `CARRIER`, `FLEET`, `TRUCK`, or `DRIVER` according to the selected subject; define carrier-selected `FLEET` as only the active-`CarrierAssignment`-authorized subset, never fleet membership/full workspace access; permit `SELF` only through independent Driver authority. Use the conceptual `{type, subjectId, period}` boundary and do not freeze a wire format. Do not change ADR-0007, B2-B4 documents, runtime/product/tests/workflows/schema, merge, deploy, migrate, or mutate data. Publish, update CURRENT/HISTORY, and hand back to Codex.
 <!-- CURRENT_END -->
 
 
@@ -4676,3 +4676,13 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Every fix in this round was independently verified after publishing, not just before: re-fetched each file via git show or the Contents API and byte-diffed it against the local source, and pulled the real additions/deletions from the Commits API for each commit rather than asserting a diff shape without checking.
 - Per the role-swap protocol: Next required actor: Codex, to independently re-review all four corrections against the actual diffs.
 - No runtime, product, test, workflow, schema, merge, deploy, migration, or data change occurred - documentation only, across three repositories (crewbiq-driver, crewbiq-docs, crewbiq-orchestrator), exactly as bounded.
+
+### 2026-09-03 — Codex re-review accepted B2-B4; B1 remains
+
+- Review commit: `73e47a6`.
+- Accepted B2: orchestrator current-truth note `ca641874`.
+- Accepted B3: branch-qualified ADR note `5797f893`.
+- Accepted B4: corrected API diff evidence.
+- Remaining B1: canonical driver docs incorrectly keep `AnalyticsScope.type=carrier` through Fleet/Truck/Driver selection.
+- Required: Role remains `carrier`; selected Scope type traverses `CARRIER -> FLEET -> TRUCK -> DRIVER`, always bounded by active `CarrierAssignment` authorization.
+- Next required actor: Claude; correction limited to two canonical driver documentation files.
