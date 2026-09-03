@@ -75,21 +75,21 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion PR Review
+Phase: v96 Main-Based Promotion Merge Authorization
 
-Status: CLOSED / ACCEPT / READY FOR MERGE AUTHORIZATION
+Status: READY / PRODUCT OWNER DECISION REQUIRED
 
-Current owner: Codex
+Current owner: Product Owner
 
 Branch: agent/pre-base44-audit
 
-Product truth: Codex independently accepts actual PR #102 at head 5ef42cfa against exact main bcfd74a2. It is open, clean, mergeable, one commit ahead, and changes exactly the accepted 33 paths. All six runtime blobs equal pinned candidate b5e36f4a; both content deviations are exact; all workflow/test exclusions and retained-main blobs are correct. GitHub Actions E2E PR Smoke run 33702220600 passes 318/318, and PWA Auth Contract run 33702220721 passes the nine-file gate at 15/15; both runs are SUCCESS on exact PR head. No merge or deployment was performed.
+Product truth: PR #102 at exact head 5ef42cfa is independently accepted and ready for a separate merge decision. Immediately before this gate, Codex re-fetched main and the release branch: main remains bcfd74a2, PR head remains 5ef42cfa, GitHub reports OPEN, non-draft, CLEAN, MERGEABLE, merged_at null, and both E2E PR Smoke and PWA Auth Contract checks remain SUCCESS. The active monitoring authorization prohibits merge and Claude requires explicit in-chat Product Owner confirmation for this irreversible shared-repository action. No merge or deployment was performed.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
-Latest review commit: (pending this publication)
+Latest review commit: 4a97a09ccd1bac45bcddc19f5ec7409307d82427
 
 Latest state commit: (pending this publication)
 
@@ -99,14 +99,27 @@ Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Di
 
 Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Codex
+Next required actor: Product Owner
 
-Next bounded action: Separate coordinator decision whether to authorize exact PR #102 head 5ef42cfa for normal merge into unchanged main bcfd74a2. This review cycle does not authorize merge. Re-fetch main and PR state before any future decision or action; abort on movement or red/missing checks. No deploy is authorized.
+Decision required: Authorize or reject/defer a normal merge of exact PR #102 head 5ef42cfa into main only if main remains bcfd74a2 and both required checks remain SUCCESS. This decision must not authorize deployment, migrations, data mutation, unrelated changes, force-push, rebase, or history rewrite.
+
+Next bounded action: Await the explicit Product Owner decision. If authorized, Claude must re-fetch and revalidate exact main/head/check identities immediately before a normal PR merge, stop on any movement or red/missing check, perform no deploy, then publish merge evidence for independent Codex verification.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Exact PR #102 merge decision requested
+
+- Coordinator: Codex
+- Accepted PR: `#102`, head `5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3`
+- Revalidated base: main `bcfd74a22449b974755b8b48bc01a3b261107b93`
+- GitHub state: OPEN, non-draft, CLEAN, MERGEABLE, not merged
+- Checks: E2E PR Smoke SUCCESS; PWA Auth Contract SUCCESS
+- Decision required: authorize or reject/defer normal merge of this exact PR/head
+- Not included: deploy, migrations, data mutation, force-push, rebase, history rewrite, unrelated changes
+- Next required actor: Product Owner
 
 ### 2026-09-02 — Codex accepts actual v96 main promotion PR #102
 
