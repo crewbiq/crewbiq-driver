@@ -75,38 +75,47 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 - Presentation Context Contract
+Phase: IA-1 Presentation Context Contract - Blocking Corrections
 
-Status: PUBLISHED / AWAITING CODEX REVIEW
+Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: The standing coordination loop had been idle across many consecutive 10-minute checks awaiting an explicit Product Owner decision on the next MVP Information Architecture slice. The Product Owner explicitly delegated next-slice decision authority to Claude in chat, while Claude's own operating rules continue to require explicit in-chat confirmation for irreversible actions (merge/deploy/migration/data mutation) regardless of this delegation - that boundary was restated and is unchanged. Claude selected IA-1 (Presentation-context contract and pure resolver) as the next bounded slice, exactly matching MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md's own pre-existing "Recommended next bounded slice" section - not an arbitrary new direction. Published docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit 17b67921): formalizes a PresentationContext value object (extending the IA-0 preparation shape with accountDriverLinkId/truckOwnershipIds to carry the owner-who-drives relationship evidence), a pure resolvePresentationContext(sessionEvidence) resolver contract with 8 fail-closed resolution rules (no-session, clean single-role resolution, ambiguous-membership fail-closed, unrecognized-role fail-closed rather than coerced, owner never appears as membershipRole by construction, legacyPersona informational-only and never an input to any rule, CarrierAssignment forward-visibility-only, every outcome reachable via existing graceful-degradation states), and 8 validation scenarios (V1-V8) covering no-session, clean resolution, owner-who-drives, ambiguous membership, unrecognized role, legacy-persona-never-promotes, ended carrier assignments, and multi-workspace non-contamination. Explicitly out of scope, matching IA-1's own IA-0-defined boundary: no DOM, endpoint authorization, persisted-role, navigation, or scope-selector change; no carrier UI. Verified via GitHub Compare API that the publish is exactly one file, one commit.
+Product truth: The IA-1 contract is directionally consistent with ADR-0007 but is not accepted. Non-resolved payloads are not fully fail-closed, DriverTruckAssignment/current-truck evidence is dropped or overstated, and the sequence skips the unimplemented resolver.
 
-Latest implementation commit: 73918286bf94d1e436237fb8cc038481a28ca5db
+Latest implementation commit: NONE (documentation-only contract slice)
 
 Latest correction commit: 17b679217166f5d5e14660ec7707db7f33f2ee1d
 
-Latest review commit: 73e47a671abf84184c8f96078213653f04efc814
+Latest review commit: ec610335216010c05ca21ca64221849e68f5a85d
 
-Latest state commit: (pending this publication)
+Latest state commit: 7ab5c0dcb6549a25cb5fa749a2e9c1cc1b29b9b4
 
-Blocking findings: NONE
+Blocking findings: NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED; OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED; IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER
 
-Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main; IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Independently review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit 17b679217166f5d5e14660ec7707db7f33f2ee1d) for: correct composition with ADR-0007 (Role) and ANALYTICS_SCOPE_CONTRACT.md (Scope) without duplicating or contradicting either; the 8 resolution rules are genuinely fail-closed with no heuristic/first-match/coercion fallback anywhere; the owner-who-drives scenario (V3) resolves membershipRole:'fleet' only, never 'owner'; legacyPersona is verified informational-only (not read by any resolution rule); multi-workspace non-contamination (V8) is correctly specified; and the document introduces no DOM/endpoint-authorization/persisted-role/navigation/carrier-UI change, consistent with its own stated non-goals. Publish ACCEPT or precise NEEDS_FIX. This review is documentation-only. No runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate slice is IA-2 (Navigation projection adapter), which requires its own separate future authorization - do not begin implementing IA-1's resolver or IA-2 automatically.
+Next bounded action: Correct PRESENTATION_CONTEXT_CONTRACT.md only: make every non-resolved payload explicitly fail closed and extend V1/V4/V5; reconcile DriverTruckAssignment/current-assignment evidence or narrow the claim while preserving cross-workspace carrier evidence; sequence a separately authorized IA-1 resolver implementation/evidence-shape slice before IA-2. Documentation only; no implementation.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex IA-1 contract review published
+
+- Review commit: `ec610335216010c05ca21ca64221849e68f5a85d`
+- Verdict: `NEEDS_FIX`
+- Blocking findings: `NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED`, `OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED`, `IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER`
+- Runtime/product files changed: none
+- Next required actor: Claude
+- Next bounded action: documentation-only IA-1 contract correction
+
 
 ### 2026-09-02 — Product Owner authorizes bounded v96 authenticated production smoke
 
