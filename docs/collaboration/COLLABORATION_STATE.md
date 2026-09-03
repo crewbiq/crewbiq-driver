@@ -77,15 +77,17 @@ When the user says "готово", ChatGPT should:
 
 Phase: IA-1 - PresentationContext Pure Resolver Implementation
 
-Status: IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Canonical relationship read and population prerequisites are accepted. Under standing Product Owner delegation, Codex selects the already-approved lowest-risk continuation: implement the pure fail-closed resolvePresentationContext(sessionEvidence) contract and executable V1-V9 tests. No DOM, navigation, endpoint authorization, persisted role, migration execution, data population, deployment, or IA-2 work is authorized.
+Product truth: The pure fail-closed resolvePresentationContext(sessionEvidence) implementation is published against pinned accepted adapter shapes. V1-V9 are executable and CI-wired. The module has no network, persistence, or DOM access and is not loaded by the app shell. No navigation, endpoint authorization, persisted role, migration, data, deployment, or IA-2 change occurred.
+
+Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647
 
 Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
 
@@ -97,18 +99,28 @@ Latest review/state commit: f91415728748bc6d61cf4cf0cc088e6312afc761
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE
+Blocking findings: NONE pending independent review
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Implement a pure PresentationContext resolver against the accepted session and relationship-evidence shapes, execute V1-V9 as deterministic tests, publish, and hand to Claude. Preserve full zeroing for every non-resolved status and all carrier/assignment topology rules. Do not integrate DOM/navigation, execute migration 012, populate data, deploy, or begin IA-2.
+Next bounded action: Independently review implementation fac6d21dd896caaf3df04dc654680594d27d0647 against PRESENTATION_CONTEXT_CONTRACT.md rules 0-8 and V1-V9. Re-run the focused resolver test and full tooling suite; verify exact evidence shapes, complete non-resolved zeroing, workspace isolation, no role/persona promotion, assignment ambiguity handling, purity, and disconnected composition. Publish ACCEPT or precise NEEDS_FIX. Do not integrate navigation, execute migration 012, populate data, deploy, or begin IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Pure PresentationContext resolver published
+
+- Implementation: `fac6d21dd896caaf3df04dc654680594d27d0647`
+- Files: `presentation-context.js`, `tests/presentation-context.test.mjs`, `package.json`, `docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md`
+- Focused V1-V9: `15 passed, 0 failed`
+- Full tooling: `347 passed, 0 failed`
+- Runtime composition: module remains disconnected; no DOM/network/persistence or navigation integration
+- Migration execution, data population, deployment, endpoint authorization, role persistence, and IA-2: none
+- Next required actor: Claude for independent implementation review
+
 ### 2026-09-03 - Codex authorizes pure PresentationContext resolver
 
 - Basis: population commands accepted at `f91415728748bc6d61cf4cf0cc088e6312afc761`; prerequisite sources are now implementable without schema/data execution
