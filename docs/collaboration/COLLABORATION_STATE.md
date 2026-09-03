@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Presentation Context Contract - Blocking Corrections
+Phase: IA-1 Presentation Context Contract - Corrections Published
 
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
+Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: The IA-1 contract is directionally consistent with ADR-0007 but is not accepted. Non-resolved payloads are not fully fail-closed, DriverTruckAssignment/current-truck evidence is dropped or overstated, and the sequence skips the unimplemented resolver.
+Product truth: All three findings from Codex review ec610335 independently reproduced before being fixed, then the fix independently re-verified via git show byte-diff and the exact Commits-API diff stats. (1) NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED: confirmed the prior rules only zeroed `membershipRole` for `unavailable`/`unauthorized` and said nothing about any field for `ambiguous` - a resolver could legally leave `workspaceId`/`capabilities`/`relationshipScope` populated from partial evidence in those branches. Fixed by adding an explicit rule 0 requiring every field except `status` and `legacyPersona` to be fully zeroed whenever `status` is not `'resolved'`, and extending V1/V4/V5 to assert this explicitly rather than only asserting the `status` value. (2) OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED: confirmed `truckOwnershipIds` (which trucks are owned) and `accountDriverLinkId` (which Driver profile) together do not carry which truck, if any, that Driver is *currently assigned to drive* - the actual fact ADR-0007 scenario A needs. Fixed by adding `relationshipScope.currentDriverTruckAssignment` to the value object and extending V3 to assert it resolves correctly. (3) IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER: confirmed the "Next bounded slice" section named IA-2 (Navigation projection adapter) as the direct next step even though `resolvePresentationContext` remains `NOT_YET_IMPLEMENTED` - IA-2 cannot meaningfully consume a resolver that doesn't exist. Fixed by inserting an explicit IA-1-implementation slice (build and prove the resolver against real evidence shapes, execute V1-V8) before IA-2 becomes a meaningful next step. Published as commit 98bacedb (+97/-38, API-confirmed); full diff review confirmed every removed line was replaced by a stricter or more complete version of the same rule/scenario, never a weakening.
 
 Latest implementation commit: NONE (documentation-only contract slice)
 
-Latest correction commit: 17b679217166f5d5e14660ec7707db7f33f2ee1d
+Latest correction commit: 98bacedbde65300eaadfa044bfc26877b2e6fa76
 
 Latest review commit: ec610335216010c05ca21ca64221849e68f5a85d
 
-Latest state commit: 7ab5c0dcb6549a25cb5fa749a2e9c1cc1b29b9b4
+Latest state commit: (pending this publication)
 
-Blocking findings: NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED; OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED; IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER
+Blocking findings: NONE (pending Codex re-review)
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1-implementation and IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Correct PRESENTATION_CONTEXT_CONTRACT.md only: make every non-resolved payload explicitly fail closed and extend V1/V4/V5; reconcile DriverTruckAssignment/current-assignment evidence or narrow the claim while preserving cross-workspace carrier evidence; sequence a separately authorized IA-1 resolver implementation/evidence-shape slice before IA-2. Documentation only; no implementation.
+Next bounded action: Independently re-review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit 98bacedbde65300eaadfa044bfc26877b2e6fa76) against the actual published diff: confirm rule 0 correctly and completely zeroes every non-status/non-legacyPersona field for every non-resolved status, and that V1/V4/V5 assert this explicitly; confirm currentDriverTruckAssignment is correctly specified and V3 asserts it distinctly from truckOwnershipIds; confirm the corrected Next-bounded-slice section no longer skips straight to IA-2 and correctly gates it behind an IA-1-implementation step. Publish ACCEPT or precise NEEDS_FIX. Documentation-only review; no runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate is IA-1-implementation (not IA-2), which requires its own separate future authorization - do not begin implementing the resolver automatically.
 <!-- CURRENT_END -->
 
 
@@ -4725,3 +4725,14 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Published as commit 17b679217166f5d5e14660ec7707db7f33f2ee1d (verified tip unchanged immediately before publish, blob size independently verified against the local source, and the published content independently re-fetched via git show and byte-diffed against the local source after push). Verified via GitHub Compare API that the diff is exactly the one new file, one commit.
 - Per the role-swap protocol: Next required actor: Codex, for independent review before any further slice (IA-2 or otherwise) is even considered.
 - No runtime, workflow, deploy, migration, or data change occurred, and none is authorized by this cycle - documentation/contract only, exactly matching IA-1's own explicit scope boundary from the IA-0 document Claude did not author under this delegation.
+
+### 2026-09-03 - Claude - Fixed all three IA-1 contract findings from Codex review (implementer role)
+
+- Independently reproduced each of Codex's three findings against the actual published PRESENTATION_CONTEXT_CONTRACT.md text before fixing any of them, per this session's standing discipline.
+- Confirmed NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED: the prior resolution rules only specified membershipRole:null for the unavailable/unauthorized branches and said nothing at all about any field for the ambiguous branch - a technically compliant resolver implementation could leave workspaceId, capabilities, or relationshipScope populated from partial/stale evidence in those branches while still satisfying the letter of the prior rules. Fixed by adding an explicit rule 0 stating every field except status and legacyPersona must be fully zeroed whenever status is not 'resolved', and extended V1/V4/V5 to assert this explicitly (not just assert the status value).
+- Confirmed OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED: the value object's relationshipScope carried truckOwnershipIds (which trucks the account owns/has fleet authority over) and accountDriverLinkId (which Driver profile is linked), but never carried which truck, if any, that Driver profile is currently effectively assigned to drive - the specific fact ADR-0007 §7 scenario A actually needs to distinguish "Truck A specifically" from the general ownership list. Fixed by adding relationshipScope.currentDriverTruckAssignment (truckId/driverId/effectiveFrom) and extending V3 to assert it resolves to exactly the assigned truck, not merely implied by truckOwnershipIds containing it.
+- Confirmed IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER: the document's own "Next bounded slice" section named IA-2 (Navigation projection adapter) as the direct next step, even though the same document's Readiness table already lists resolvePresentationContext as NOT_YET_IMPLEMENTED - IA-2 explicitly consumes a resolved PresentationContext, so it cannot be meaningfully built or reviewed against a resolver that doesn't exist. Fixed by inserting an explicit IA-1-implementation slice (build the resolver against real evidence shapes, execute V1-V8 as real tests) between this contract and IA-2, and stating neither is authorized by this document.
+- Reviewed the full before/after diff before publishing to confirm every removed line was replaced by a stricter or more complete version of the same rule or scenario - no requirement was weakened, matching this session's established discipline for every documentation correction.
+- Published as commit 98bacedbde65300eaadfa044bfc26877b2e6fa76 (verified tip unchanged immediately before publish, blob size independently verified against local source, published content independently re-fetched via git show and byte-diffed after push, and the real +97/-38 diff stat pulled from the Commits API rather than asserted).
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review of all three fixes against the actual published diff.
+- No runtime, workflow, deploy, migration, or data change occurred - documentation/contract only.
