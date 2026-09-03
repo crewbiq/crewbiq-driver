@@ -75,19 +75,19 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-2 - PresentationContext Navigation Projection Adapter
+Phase: IA-2 - PresentationContext Navigation Projection Adapter - Independent Review Closed
 
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Status: CLOSED / ACCEPT
 
-Current owner: Claude
+Current owner: Product Owner / Coordinator
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: IA-2 pure navigation projection is published and remains disconnected. Canonical driver cannot be elevated by legacy persona; canonical fleet may preserve only a narrower legacy presentation; canonical carrier remains explicitly unavailable rather than mapped to fleet. The adapter references existing navigation inventories and owns no DOM/router/network/storage behavior.
+Product truth: Independently reviewed implementation commit cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a, which introduces NAVIGATION_PROJECTION_CONTRACT.md, navigation-projection.js, and tests/navigation-projection.test.mjs together (contract and implementation published as one bounded slice, matching the exact IA-2 scope named in the accepted PresentationContext contract's own next-bounded-slice section). Read the 49-line contract in full and confirmed it stays within the authorized IA-2 boundary: no DOM/router/rendering/persistence/transport/mutation, ROLE_CONFIG/FUNCTION_GROUPS/PAGE_REGISTRY/page IDs/showPage()/render hooks remain owned by their existing files, no carrier UI, no IA-3 work. Read the full 76-line navigation-projection.js and hand-traced every branch: non-resolved statuses (unavailable/unauthorized/ambiguous) are passed through unchanged with a fully empty/frozen payload; canonical driver always projects the driver persona regardless of legacyPersona (owner_op/fleet legacy values cannot elevate it); canonical fleet defaults to the fleet persona but may narrow to a legacy driver/owner_op presentation only when legacyPersona holds one of those two values, with membershipRole and workspaceId always reported as the true canonical fleet role, never mutated by the persona choice; canonical carrier is gated before any persona/menu computation and returns status unavailable with reason carrier_navigation_not_available, never approximated as fleet; invalid role/workspace/persona/navigation-model input returns unauthorized. Independently confirmed the implementation defeats the existing navigation-model.js's own legacy invalid-role-to-driver fallback (roleConfig(role) returns ROLE_CONFIG[role] || ROLE_CONFIG.driver internally) by comparing the returned roleConfig against navigationModel.ROLE_CONFIG[persona] by reference and failing closed (navigation_model_inconsistent) if they differ - read the real, unmodified navigation-model.js from the repository (not a mock) to confirm this fallback genuinely exists and is genuinely defeated, not merely asserted. Ran tests/navigation-projection.test.mjs directly with node --test: 9 passed, 0 failed, covering non-resolved zeroing, no persona promotion, fleet-only narrowing, carrier unavailability, canonical-registry-reference-only (grepped the source for replacement ROLE_CONFIG/FUNCTION_GROUPS/PAGE_REGISTRY declarations - none found), page-ID/order preservation against the real model, invalid-input failure without driver fallback, and purity/no-mutation/no-DOM-router-network-storage tokens. Ran the full npm run test:e2e:tooling suite on this exact commit: 356 passed, 0 failed - no regression anywhere else. Confirmed via grep that navigation-projection.js is referenced nowhere in index.html, sw.js, or core-runtime.js, and git show --stat confirmed only the contract, package.json, navigation-projection.js, and its test file changed - genuinely disconnected from the app shell as claimed. No DOM/shell integration, migration, data population, or deployment occurred.
 
-Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a
+Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
 
 Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
 
@@ -97,17 +97,17 @@ Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1d
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review/state commit: 022eca1f7e7f969db7dda5f338510432ffdbcd58
+Latest review/state commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE pending independent review
+Blocking findings: NONE
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Claude
+Next required actor: Product Owner
 
-Next bounded action: Independently review cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a against NAVIGATION_PROJECTION_CONTRACT.md and IA-2 boundaries. Re-run focused and full tooling tests; verify fail-closed output, no persona elevation/carrier-as-fleet shortcut, canonical inventory identity/order, purity, and disconnected composition. Publish ACCEPT or precise NEEDS_FIX. Do not integrate shell/DOM, execute migration/data/deployment, or begin IA-3.
+Next bounded action: Decide whether to authorize IA-3 (shell/DOM integration of the now-accepted PresentationContext resolver and navigation projection), orchestrator migration 012 execution plus staging relationship data population, a PWA relationship-command adapter/UI slice, or a different next step. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
 <!-- CURRENT_END -->
 
 
@@ -4990,3 +4990,15 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Read the full PRESENTATION_CONTEXT_CONTRACT.md diff (36+/26-) line by line and confirmed it only updates the status/readiness/next-slice sections to reflect the now-published implementation and adds one new paragraph pinning the exact accepted evidence shapes - no existing rule 0-8 or V1-V9 text was weakened, narrowed, or removed.
 - Published final ACCEPT. No navigation integration, endpoint authorization change, persisted-role change, migration execution, data population, or deployment occurred in this review cycle - independent verification only.
 - Escalated the next decision to the Product Owner: whether to authorize IA-2 (navigation projection adapter consuming this now-accepted resolver), orchestrator migration 012 execution plus staging population, a PWA relationship-command adapter/UI slice, or a different direction.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the IA-2 navigation projection contract+implementation (reviewer role)
+
+- Checked out crewbiq-driver commit cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a directly and read NAVIGATION_PROJECTION_CONTRACT.md (49 lines), navigation-projection.js (76 lines), and tests/navigation-projection.test.mjs (71 lines) in full, plus the real, unmodified navigation-model.js the tests and implementation both import.
+- Confirmed the contract itself stays within the exact IA-2 boundary already authorized by the accepted PresentationContext contract's own "next bounded slice" section: no DOM/router/rendering/persistence/transport/mutation, existing navigation inventories/page IDs/showPage()/render hooks untouched, no carrier UI, IA-3 explicitly excluded.
+- Hand-traced projectNavigation(): non-resolved PresentationContext statuses pass through unchanged with a fully empty/frozen payload; canonical driver always projects the driver persona regardless of legacyPersona; canonical fleet defaults to fleet but may narrow to a legacy driver/owner_op presentation only, with membershipRole/workspaceId always reflecting true canonical role rather than the display persona; canonical carrier is gated first and returns unavailable/carrier_navigation_not_available, never approximated as fleet; invalid role/workspace/persona/model input fails closed to unauthorized.
+- Found and independently verified the one subtle correctness point worth checking closely: the existing navigation-model.js's own roleConfig(role) function has a legacy fallback (returns ROLE_CONFIG.driver when the role key is missing). Confirmed the new projection code defeats this fallback rather than silently inheriting it, by comparing the returned config object against navigationModel.ROLE_CONFIG[persona] by reference and failing closed with navigation_model_inconsistent on any mismatch - read the real navigation-model.js (not a mock) to confirm the fallback genuinely exists in production code and is genuinely defeated here, not merely asserted by the contract's prose.
+- Ran tests/navigation-projection.test.mjs directly with node --test: 9 passed, 0 failed, independently reproducing every claimed scenario rather than trusting the publication's own count.
+- Ran the full npm run test:e2e:tooling suite on this exact commit after npm install: 356 passed, 0 failed - confirmed no regression was introduced anywhere else in the tooling suite by this addition.
+- Confirmed via grep that navigation-projection.js is referenced nowhere in index.html, sw.js, or core-runtime.js, and via git show --stat that only the contract, package.json, navigation-projection.js, and its test file changed in this commit - genuinely disconnected from the app shell as the contract claims.
+- Published final ACCEPT. No DOM/shell integration, endpoint authorization change, migration, data population, or deployment occurred in this review cycle - independent verification only.
+- Escalated the next decision to the Product Owner: whether to authorize IA-3 (shell/DOM integration), orchestrator migration 012 execution plus staging population, a PWA relationship-command adapter/UI slice, or a different direction.
