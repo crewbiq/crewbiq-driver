@@ -75,15 +75,15 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion Merge Authorization
+Phase: v96 Main-Based Promotion Merged, Publication In Progress
 
-Status: READY / PRODUCT OWNER DECISION REQUIRED
+Status: MERGED / AWAITING PUBLICATION VERIFICATION
 
-Current owner: Product Owner
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: PR #102 at exact head 5ef42cfa is independently accepted and ready for a separate merge decision. Immediately before this gate, Codex re-fetched main and the release branch: main remains bcfd74a2, PR head remains 5ef42cfa, GitHub reports OPEN, non-draft, CLEAN, MERGEABLE, merged_at null, and both E2E PR Smoke and PWA Auth Contract checks remain SUCCESS. The active monitoring authorization prohibits merge and Claude requires explicit in-chat Product Owner confirmation for this irreversible shared-repository action. No merge or deployment was performed.
+Product truth: The Product Owner gave explicit in-chat authorization to merge PR #102 (exact head 5ef42cfa), scoped only to a normal merge commit - no squash/rebase, no deploy/migration/data-mutation authorization beyond the merge itself. Immediately before merging, Claude independently re-verified main was still exactly bcfd74a2, PR #102 was still open/merged:false/mergeable_state:clean at head 5ef42cfa, and both required checks (orchestrator-transport / PWA Auth Contract, smoke / E2E PR Smoke) were still success. Merged via `PUT /repos/.../pulls/102/merge` with `merge_method=merge` pinned to the exact verified head SHA (guards against a same-window race). GitHub returned merged:true, merge commit 5351d6a6c1a4b817aefad62de01142198deccbc3. Independently re-verified afterward via two separate API calls: `git/refs/heads/main` now reports 5351d6a6 exactly, and `pulls/102` reports merged:true with merge_commit_sha 5351d6a6. Compare API confirms main is now exactly 2 commits ahead of the pre-merge bcfd74a2 (the promotion commit plus the merge commit) with exactly 33 changed files, matching the accepted plan precisely. Checked Pages status immediately after merge: build_type remains legacy, source remains main:/, and a new build has started (status: building) - consistent with the expected automatic legacy Pages publication behavior (Section 10 of the plan). Full post-publication verification (Section 12: build completion, live asset hashes, cache rotation to v96, smoke tests, orchestrator health) has not yet been performed and is the next required step.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
@@ -95,15 +95,13 @@ Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. Full post-publication verification per MAIN_PUBLICATION_PLAN_V96.md Section 12 is pending.
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Product Owner
+Next required actor: Claude
 
-Decision required: Authorize or reject/defer a normal merge of exact PR #102 head 5ef42cfa into main only if main remains bcfd74a2 and both required checks remain SUCCESS. This decision must not authorize deployment, migrations, data mutation, unrelated changes, force-push, rebase, or history rewrite.
-
-Next bounded action: Await the explicit Product Owner decision. If authorized, Claude must re-fetch and revalidate exact main/head/check identities immediately before a normal PR merge, stop on any movement or red/missing check, perform no deploy, then publish merge evidence for independent Codex verification.
+Next bounded action: Perform MAIN_PUBLICATION_PLAN_V96.md Section 12 post-publication verification: poll the Pages build for merge commit 5351d6a6 to reach status built with no error; confirm every APP_SHELL URL returns HTTP 200; confirm downloaded bytes for the 6 curated runtime files hash exactly to the merge tree's Git objects; confirm live sw.js declares crewbiq-driver-v96; confirm the static no-legacy-reference check (no request ever targets script.google.com/googleapis.com/crewbiq-expenses/DEFAULT_SYNC_URL); confirm production Orchestrator /health and /ready remain green. Publish the verification evidence and hand to Codex for independent confirmation. If any check fails at the first material failure, stop and follow the plan's Section 13 rollback procedure rather than attempting further changes - rollback itself requires the same explicit in-chat Product Owner authorization the merge required, since it is also an irreversible action on a shared production system.
 <!-- CURRENT_END -->
 
 
@@ -4513,3 +4511,13 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Opened PR #102 (https://github.com/crewbiq/crewbiq-driver/pull/102) via `gh pr create`, base main, head release-main-promotion-v96-b5e36f4, with a body summarizing the promotion's rationale, exclusions, and verification evidence, and an explicit note that the PR is not authorized for merge. Independently verified via the GitHub Pulls API (not just the create command's own output) that the PR is open and merged:false, with the correct base/head refs.
 - Per the role-swap protocol: Next required actor: Codex, to independently review the actual PR diff (not merely the design document) and monitor its CI results.
 - No merge, deploy, migration, or data mutation occurred. The PR remains open and unmerged; merging it requires a separate, explicit future authorization per this cycle's own bounded scope and per Claude's own operating rules for irreversible actions on shared repository state.
+
+### 2026-09-02 - Claude - Merged PR #102: v96 promoted to main, Pages publication triggered (implementer role)
+
+- Obtained explicit in-chat Product Owner authorization for the merge itself (not merely a coordination-file record) before taking any action - per Claude's own operating rules, merging a PR is an irreversible action on shared repository state requiring explicit per-action chat confirmation, and Codex's own review had explicitly flagged this same requirement.
+- Independently re-verified, immediately before merging (not relying on Codex's or any earlier cycle's report): main was still exactly bcfd74a22449b974755b8b48bc01a3b261107b93; PR #102 was still open, merged:false, mergeable_state:clean, head still 5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3; both required checks (orchestrator-transport / PWA Auth Contract, smoke / E2E PR Smoke) were still success.
+- Merged via the GitHub API's pull-request merge endpoint with merge_method=merge (a normal merge commit, not squash or rebase) and the sha parameter pinned to the exact independently-verified head commit, guarding against a same-window race where the PR's tip could have moved between the check and the merge call.
+- Independently re-verified the merge landed correctly via two separate follow-up API calls (not just trusting the merge call's own success response): confirmed main's ref now points to 5351d6a6c1a4b817aefad62de01142198deccbc3, and confirmed the PR object itself now reports merged:true with matching merge_commit_sha. Independently confirmed via the Compare API that main moved exactly 2 commits ahead of the pre-merge state with exactly 33 changed files, matching the accepted plan.
+- Checked GitHub Pages status immediately after the merge and confirmed a new build had started automatically (build_type remains legacy, source remains main:/, status: building), consistent with the plan's expected publication mechanics.
+- Did not perform, and is not yet authorized to claim complete, the full post-publication verification (build completion, live asset/cache verification, smoke tests, orchestrator health) required by MAIN_PUBLICATION_PLAN_V96.md Section 12 - that remains the next required step, to be independently verified and published before this phase can be considered fully closed.
+- Per the role-swap protocol: Next required actor: Claude, to complete post-publication verification; the result will then be handed to Codex for independent confirmation.
