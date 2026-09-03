@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-0 — MVP Information Architecture / Production UI Integration Preparation
+Phase: ADR-0007 Role/Scope Reconciliation and Cross-Repository Documentation Alignment
 
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Status: AUTHORIZED / AWAITING CLAUDE EXECUTION
 
 Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: ADR-0007 is Accepted and MVP role semantics are frozen. IA-0 preparation commit `7391828` inventories the exact v96 shell/navigation boundary, separates legacy local personas (`driver/owner_op/fleet`) from canonical authority (`driver/fleet/carrier`), defines a fail-closed presentation-context boundary, and sequences one reviewed read-only surface at a time. It does not treat navigation visibility as authorization, rename `owner_op`, simulate `carrier` as `fleet`, replace the production shell, or modify runtime.
+Product truth: Product Owner clarified that authorization Role and operational View/Analytics Scope are distinct. Canonical MVP roles remain exactly `driver`, `fleet`, `carrier`; canonical scopes are `SELF`, `DRIVER`, `TRUCK`, `FLEET`, `CARRIER`. `owner` may be a derived UI persona from fleet authority plus ownership relationships and optional Driver identity, but is never a `WorkspaceMembership` role. Scope changes do not change identity, role, or authority and must be normalized/authorized fail-closed. Carrier `FLEET` scope is only a `CarrierAssignment`-filtered subset, never fleet membership or full workspace visibility. ADR-0007 is not finally frozen until this documentation-only reconciliation is independently accepted.
 
 Latest implementation commit: 73918286bf94d1e436237fb8cc038481a28ca5db
 
-Latest correction commit: d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (crewbiq-docs)
+Latest correction commit: d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (crewbiq-docs; superseded pending role/scope reconciliation)
 
-Latest review commit: 3943058
+Latest review commit: 3943058 (superseded pending role/scope reconciliation)
 
-Latest state commit: 8c3dead8bcf8f96a3c994950ae4bd36e09cb990f
+Latest state commit: 9de30eac8f88f087eaac89989466e3c7754e93e7
 
-Blocking findings: NONE
+Blocking findings: ADR_0007_ROLE_SCOPE_RECONCILIATION_REQUIRED; CANONICAL_SCOPE_ENUM_MISSING_CARRIER_IN_CURRENT_DOCUMENTATION
 
-Queued non-blocking findings: Canonical-vs-legacy presentation role bridge is missing; Fleet IA is partial; Carrier IA requires assignment-scoped field/view-model and authorization contracts; ADR-0007 integration into crewbiq-docs main; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: IA-0 independent review is paused and its role/scope statements must be reconciled after this gate; ADR-0007 integration into crewbiq-docs main; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
 Next required actor: Claude
 
-Next bounded action: Independently review `docs/collaboration/MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md` against production v96, ADR-0007, and accepted navigation/UI/scope contracts. Confirm the role/authority separation, current surface inventory, readiness classifications, guardrails, and IA-1 recommendation are semantically sound and do not broaden scope. Publish ACCEPT or precise NEEDS_FIX, update CURRENT/HISTORY, and hand back to Codex. Documentation review only; no runtime, workflow, deploy, migration, or data change.
+Next bounded action: Documentation only. Read live CURRENT; inventory current role/scope/ownership documentation across `crewbiq-docs`, `crewbiq-driver`, and any canonical CrewBIQ documentation repository referenced by them; publish a concise CANONICAL/ALIGNED/STALE/CONTRADICTORY/HISTORICAL_ONLY inventory; update ADR-0007, `PRODUCTION_UI_INTEGRATION_CONTRACT.md`, every current canonical AnalyticsScope definition, and any current canonical owner-role contradiction exactly as authorized by the Product Owner. Preserve historical evidence, all fail-closed and validation requirements, and mark runtime CARRIER scope `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`. Update CURRENT/HISTORY and hand to Codex for independent review. No runtime/UI/test/workflow/schema/deploy/migration/data changes.
 <!-- CURRENT_END -->
 
 
@@ -4617,3 +4617,14 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Recommended post-review continuation: IA-1 presentation-context contract and pure fail-closed resolver, with no DOM change.
 - Runtime/workflow/deploy/migration/data changes: NONE.
 - Next required actor: Claude for independent documentation review.
+
+### 2026-09-03 — Product Owner required ADR-0007 Role/Scope reconciliation
+
+- Canonical Roles: `driver`, `fleet`, `carrier`. Canonical View/Analytics Scopes: `SELF`, `DRIVER`, `TRUCK`, `FLEET`, `CARRIER`.
+- `owner` is permitted only as a derived product/UI persona, never a `WorkspaceMembership` role.
+- Owner-who-drives and Carrier scope traversal are mandatory documentation acceptance scenarios.
+- Carrier `FLEET` scope is constrained to active `CarrierAssignment` resources and never grants fleet membership or full tenant visibility.
+- Current canonical documents must align through ADR-0007 and `PRODUCTION_UI_INTEGRATION_CONTRACT.md`; historical records remain preserved/classified.
+- Prior IA-0 review is paused until reconciliation is accepted.
+- Documentation only; runtime/UI/tests/workflows/schema/deploy/migrations/data are not authorized.
+- Current owner: Claude; Codex independently reviews after publication.
