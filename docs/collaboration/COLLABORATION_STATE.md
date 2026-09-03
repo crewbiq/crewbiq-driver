@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Presentation Context Contract - Residual Correction
+Phase: IA-1 Presentation Context Contract - Residual Correction Published
 
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
+Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Rule-0 fail-closed payload semantics and IA sequencing are corrected. One documentation blocker remains: current DriverTruckAssignment is required in the output but omitted from the declared sessionEvidence inputs, and carrier-home relationship evidence must explicitly preserve active CarrierAssignment references to authorized subjects in other workspaces without granting fleet membership or full workspace authority.
+Product truth: Both findings from Codex review 61008161 independently reproduced before being fixed, then re-verified via git show byte-diff and the exact Commits-API diff stats. (1) DriverTruckAssignment was required by the output (relationshipScope.currentDriverTruckAssignment, added in the prior correction round) but never declared as a sessionEvidence input - fixed by adding it explicitly to the input list. (2) Rule 2's "populated... within that workspace" qualifier is correct for AccountDriverLink/TruckOwnership (workspace-scoped relationships by definition) but was self-contradictory for CarrierAssignment, which by definition (ADR-0007 §4) targets trucks in other fleet workspaces than the carrier's own home workspace being resolved - a literal reading made carrierAssignmentIds population impossible. Fixed by splitting rule 2 into 2a (workspace-scoped link/ownership evidence), 2b (CarrierAssignment evidence explicitly spanning other workspaces, restated as evidence-only granting no fleet membership or full delegated-workspace authority), and 2c (explicit fail-closed handling for missing/malformed/ended/future/ambiguous DriverTruckAssignment evidence, all resolving currentDriverTruckAssignment:null without affecting overall status). Added V9 covering the five DriverTruckAssignment fail-closed edge cases. Published as commit e384a109 (+61/-8, API-confirmed).
 
 Latest implementation commit: NONE (documentation-only contract slice)
 
-Latest correction commit: 98bacedbde65300eaadfa044bfc26877b2e6fa76
+Latest correction commit: e384a1097069f0b568ab647c5ec1f562f8a97eb9
 
 Latest review commit: 610081619aa4b3cbb0be7564e9e0b1dc73e3b014
 
-Latest state commit: 3583c1c662b90c56e4670647df786609c9f4cbfe
+Latest state commit: (pending this publication)
 
-Blocking findings: RELATIONSHIP_EVIDENCE_INPUT_AND_CARRIER_TOPOLOGY_INCOMPLETE
+Blocking findings: NONE (pending Codex re-review)
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1 implementation and IA-2 through IA-6 remain separate, not-yet-started slices
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1-implementation and IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Correct PRESENTATION_CONTEXT_CONTRACT.md only: declare current effective DriverTruckAssignment in sessionEvidence and specify fail-closed treatment for malformed, missing, ended, future, or ambiguous assignment evidence; clarify that carrier-home active CarrierAssignment evidence may reference authorized subjects in other workspaces without granting fleet membership or full delegated-workspace authority. Documentation only; do not implement the resolver or IA-2.
+Next bounded action: Independently re-review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit e384a1097069f0b568ab647c5ec1f562f8a97eb9) against the actual published diff: confirm DriverTruckAssignment is now correctly declared as a sessionEvidence input; confirm rules 2a-2c correctly separate workspace-scoped evidence from CarrierAssignment's necessarily cross-workspace evidence without granting fleet membership or delegated-workspace authority anywhere; confirm 2c's fail-closed handling is complete (missing/malformed/ended/future/ambiguous) and V9 asserts it. Publish ACCEPT or precise NEEDS_FIX. Documentation-only review; no runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate remains IA-1-implementation (not IA-2), which requires its own separate future authorization.
 <!-- CURRENT_END -->
 
 
@@ -4745,4 +4745,15 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Reviewed the full before/after diff before publishing to confirm every removed line was replaced by a stricter or more complete version of the same rule or scenario - no requirement was weakened, matching this session's established discipline for every documentation correction.
 - Published as commit 98bacedbde65300eaadfa044bfc26877b2e6fa76 (verified tip unchanged immediately before publish, blob size independently verified against local source, published content independently re-fetched via git show and byte-diffed after push, and the real +97/-38 diff stat pulled from the Commits API rather than asserted).
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review of all three fixes against the actual published diff.
+- No runtime, workflow, deploy, migration, or data change occurred - documentation/contract only.
+
+### 2026-09-03 - Claude - Fixed residual IA-1 findings: declared input + carrier cross-workspace rule (implementer role)
+
+- Independently reproduced both findings from Codex's review before fixing either, per this session's standing discipline.
+- Confirmed the sessionEvidence input list omitted DriverTruckAssignment records entirely, even though the value object's currentDriverTruckAssignment field (added in the prior correction round) requires them as an input - a genuine gap between declared inputs and required output. Fixed by adding DriverTruckAssignment records to the declared input list.
+- Confirmed rule 2's "relationshipScope populated... for that account within that workspace" phrasing is correct for AccountDriverLink and TruckOwnership (both workspace-scoped relationships by ADR-0007 §2's own definition) but is self-contradictory when applied to CarrierAssignment, which by ADR-0007 §4's own definition targets trucks/fleets in workspaces *other than* the carrier's own home workspace being resolved - read literally, the rule made it impossible for carrierAssignmentIds to ever populate at all. Fixed by splitting rule 2 into three explicit sub-rules (2a: workspace-scoped link/ownership evidence; 2b: CarrierAssignment evidence explicitly spanning other workspaces, restated precisely as surfaced evidence only - granting no fleet membership, no full delegated-workspace authority, and no read access beyond what the assignment itself authorizes, with all actual reads remaining independently server-authorized per request; 2c: explicit fail-closed handling for DriverTruckAssignment evidence that is missing, malformed, ended, future-dated, or ambiguous, all resolving to null without affecting the overall resolved status).
+- Added V9, a new validation scenario asserting all five DriverTruckAssignment fail-closed edge cases from rule 2c resolve to null rather than a guessed/nearest/most-recent value.
+- Reviewed the full before/after diff before publishing: confirmed every removed line was replaced by the more precise 2a-2c split, with no requirement weakened.
+- Published as commit e384a1097069f0b568ab647c5ec1f562f8a97eb9 (verified tip unchanged immediately before publish, blob size independently verified against local source, published content independently re-fetched via git show and byte-diffed after push, and the real +61/-8 diff stat pulled from the Commits API rather than asserted).
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review of both fixes against the actual published diff.
 - No runtime, workflow, deploy, migration, or data change occurred - documentation/contract only.
