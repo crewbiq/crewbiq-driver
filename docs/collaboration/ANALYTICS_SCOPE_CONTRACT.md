@@ -20,8 +20,6 @@ AnalyticsScope = {
   workspaceId: 'stable-workspace-id',
   driverId: null | 'stable-driver-id',
   truckId: null | 'stable-truck-id',
-  carrierId: null | 'stable-carrier-workspace-id',
-  fleetWorkspaceId: null | 'stable-fleet-workspace-id',
   period: 'today' | 'week' | 'month' | 'quarter' | 'custom',
   dateFrom: 'YYYY-MM-DD',
   dateTo: 'YYYY-MM-DD',
@@ -31,17 +29,17 @@ AnalyticsScope = {
 
 `companyId` may be carried as workspace metadata, but `workspaceId` is the mandatory tenancy boundary because current authenticated membership and canonical company reads already expose a workspace identifier. A selector must receive a normalized, immutable scope whose dates have already been resolved. `dateFrom` and `dateTo` are inclusive local operational dates.
 
-`carrierId` and `fleetWorkspaceId` are added for the `carrier` type (below) and are `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`: no production selector, authorization resolver, or UI currently constructs or consumes them. Their exact shape may be refined when carrier scope implementation is actually undertaken; this contract fixes only their meaning, not a frozen wire format.
+No new fields are required for carrier support (corrected from an earlier revision of this contract, which briefly added dedicated `carrierId`/`fleetWorkspaceId` fields — those are withdrawn below in favor of reusing the existing shape). Scope `type` **genuinely changes** as a carrier drills down: `carrier` (its own home workspace — the full cross-fleet portfolio aggregate) narrows to `fleet` (one fleet's `workspaceId`), then to `truck` or `driver`, each using exactly the same `workspaceId`/`truckId`/`driverId` fields a `fleet`-role actor's equivalent request would use. What differs is authorization, not shape — see Read-scope permissions. This whole area is `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`: no production selector, authorization resolver, or UI currently constructs or consumes a `carrier`-type request, or authorizes a carrier actor's `fleet`/`truck`/`driver`-type request differently from a fleet actor's.
 
 ### Validation rules
 
 | Type | Required identifiers | Forbidden/empty identifiers | Meaning |
 | --- | --- | --- | --- |
-| `self` | `workspaceId`, resolved linked `driverId` | `truckId`, `carrierId` | Personal operational activity of the authenticated account's explicitly linked Driver profile. |
-| `driver` | `workspaceId`, selected `driverId` | `truckId`, `carrierId` | One authorized driver, independent of the actor's own profile. |
-| `truck` | `workspaceId`, selected `truckId` | `driverId` as a filter unless a future explicit composite scope is approved; `carrierId` | Truck activity during the period, including every effective driver assignment. |
-| `fleet` | `workspaceId` | `driverId`, `truckId`, `carrierId` | Authorized workspace aggregate. |
-| `carrier` | `carrierId` = the carrier's own home workspace, validated via the actor's own `carrier`-role `WorkspaceMembership` (never via `CarrierAssignment` — a carrier has no `CarrierAssignment` to itself); optionally `fleetWorkspaceId`/`truckId`/`driverId` to narrow, each validated via an active `CarrierAssignment` reaching that specific truck/driver | `fleetWorkspaceId`, `truckId`, or `driverId` not reachable through an active `CarrierAssignment` from this `carrierId` | The carrier's authorized cross-fleet portfolio (`fleetWorkspaceId`/`truckId`/`driverId` unset), or a `CarrierAssignment`-filtered narrowing to one fleet/truck/driver. The scope `type` remains `carrier` at every narrowing depth — it is never rewritten to `fleet`, even when narrowed to a single fleet's resources; see Read-scope permissions. |
+| `self` | `workspaceId`, resolved linked `driverId` | `truckId` | Personal operational activity of the authenticated account's explicitly linked Driver profile. |
+| `driver` | `workspaceId`, selected `driverId` | `truckId` | One authorized driver, independent of the actor's own profile. When the requesting actor's Role is `carrier`, this request is additionally gated to an active `CarrierAssignment` reaching `driverId` and returns only the fields that relationship authorizes. See Read-scope permissions. |
+| `truck` | `workspaceId`, selected `truckId` | `driverId` as a filter unless a future explicit composite scope is approved | Truck activity during the period, including every effective driver assignment. When the requesting actor's Role is `carrier`, this request is additionally gated to an active `CarrierAssignment` reaching `truckId` and returns only the fields that relationship authorizes. See Read-scope permissions. |
+| `fleet` | `workspaceId` | `driverId`, `truckId` | Authorized workspace aggregate. When the requesting actor's Role (ADR-0007) is `carrier` rather than `fleet`, this same request type is additionally gated to an active `CarrierAssignment` reaching `workspaceId`, and the authorized result is a restricted, assignment-relevant field subset — never the fleet's complete internal workspace. See Read-scope permissions. |
+| `carrier` | `workspaceId` = the carrier's own home workspace, validated via the actor's own `carrier`-role `WorkspaceMembership` (never via `CarrierAssignment` — a carrier has no `CarrierAssignment` to itself) | `driverId`, `truckId` | The carrier's full authorized cross-fleet portfolio aggregate. To narrow to one fleet, truck, or driver, the caller issues a `fleet`/`truck`/`driver`-type request instead (see above and Read-scope permissions) — narrowing is a `type` change, not a parameter added to `carrier`-type. |
 
 Invalid, unauthorized, ambiguous, or unresolved scopes must fail closed with a structured reason. They must never fall back to the first driver, first truck, actor name, or all-fleet data.
 
@@ -131,9 +129,9 @@ UI visibility is not authorization. A trusted permission resolver must authorize
 | Driver (`driver` role) | `self` only, unless explicitly granted another scope. |
 | Owner-operator (UI persona backed by a `fleet` role plus ownership relationships plus, optionally, its own `driver` role) | `self` when linked; owned/authorized trucks; authorized workspace aggregate — see ADR-0007 §7 for the full role-vs-scope walkthrough of this exact case. |
 | Fleet (`fleet` role) | Authorized drivers, authorized trucks, and `fleet` aggregate inside its own workspace only. |
-| Carrier (`carrier` role) | `carrier` (its full authorized cross-fleet `CarrierAssignment` portfolio), narrowable to one assigned fleet/truck/driver. `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`. A carrier's authorized `fleet`-type scope over another workspace's `workspaceId` **does not exist** — a carrier never receives `fleet`-type access to a delegated fleet's workspace; it only ever receives `carrier`-type access narrowed to that fleet, which exposes exclusively the fields an active `CarrierAssignment` authorizes, never the fleet's complete internal workspace (compensation terms, deduction rules, unrelated trucks/drivers/assignments). See ADR-0007 §4 and §7. |
+| Carrier (`carrier` role) | `carrier`-type over its own home workspace (the full authorized cross-fleet `CarrierAssignment` portfolio aggregate). May also request `fleet`/`truck`/`driver`-type scope over any workspace/truck/driver reachable through an active `CarrierAssignment` — the request shape is identical to a `fleet`-role actor's equivalent request, but the resolver must independently re-check the requesting actor's actual Role (ADR-0007) is `carrier`, not `fleet`, and must additionally require a currently-active `CarrierAssignment` reaching that specific `workspaceId`/`truckId`/`driverId` before authorizing it — returning only the fields that relationship authorizes (compliance/dispatch-relevant data), never the fleet's complete internal workspace (private compensation terms, deduction rules, unrelated trucks/drivers/assignments outside that relationship). `SELF` is authorized only through an independent Driver identity (`AccountDriverLink`) the carrier account may separately hold — never derived from any `CarrierAssignment`. `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED` end to end: no production `CarrierAssignment` data, resolver, or UI exists yet. See ADR-0007 §4 and §7. |
 
-Permission output should be an explicit allow/deny decision with workspace and entity IDs. Selectors must not accept unverified IDs directly from DOM controls. Cross-workspace aggregation is outside this contract, except for the carrier's own `CarrierAssignment`-scoped case above, which ADR-0007 explicitly authorizes and bounds.
+Permission output should be an explicit allow/deny decision with workspace and entity IDs. Selectors must not accept unverified IDs directly from DOM controls. Cross-workspace aggregation is outside this contract, except for the carrier's own `CarrierAssignment`-authorized `fleet`/`truck`/`driver`-type requests above, which ADR-0007 explicitly authorizes and bounds.
 
 ## Scope selection and drill-down
 
@@ -149,15 +147,19 @@ Fleet -> Drivers -> Ranking -> Driver
                               `-> AnalyticsScope(type='driver', driverId=...)
 ```
 
-Carrier drill-down (`DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`) follows the identical drill-down-changes-scope pattern, one level deeper:
+Carrier drill-down (`DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`) follows the identical drill-down-changes-scope pattern: selecting a subject genuinely changes `type`, exactly as Fleet -> Drivers -> Driver above changes `type` from `fleet` to `driver`.
 
 ```text
-Carrier -> Fleet (CarrierAssignment-filtered) -> Truck -> Driver
-        |                                     |
-        `-> AnalyticsScope(type='carrier')    `-> AnalyticsScope(type='carrier', fleetWorkspaceId=..., truckId=...)
+Carrier -> Fleet -> Truck -> Driver
+   |          |        |        |
+   `-carrier  `-fleet  `-truck  `-driver
+AnalyticsScope(type='carrier')
+  -> AnalyticsScope(type='fleet', workspaceId=<fleet>)
+    -> AnalyticsScope(type='truck', workspaceId=<fleet>, truckId=...)
+      -> AnalyticsScope(type='driver', workspaceId=<fleet>, driverId=...)
 ```
 
-Selecting a fleet from the carrier's portfolio narrows to that fleet's `CarrierAssignment`-authorized subset; it does not open a `fleet`-type scope over that workspace, per Read-scope permissions above.
+Selecting a fleet from the carrier's portfolio issues a genuine `fleet`-type request over that fleet's `workspaceId` — the same request shape a `fleet`-role member of that workspace would make. What distinguishes the carrier's request is authorization, not scope shape: the resolver must confirm the requesting actor's Role is `carrier` (not that workspace's own `fleet` membership) and that an active `CarrierAssignment` reaches that `workspaceId`, then return only the `CarrierAssignment`-authorized field subset — per Read-scope permissions above. `SELF` is never reached through this drill-down; it requires the carrier account's own independent Driver identity.
 
 ## SIDR reuse
 
