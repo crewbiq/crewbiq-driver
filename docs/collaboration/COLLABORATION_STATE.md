@@ -75,15 +75,15 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion Preparation Resume
+Phase: v96 Main-Based Promotion PR Opened
 
-Status: AUTHORIZED / AWAITING CLAUDE EXECUTION
+Status: PR OPEN / AWAITING CODEX REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Corrected plan cf0ecb43 is accepted by Codex review 459b5460. Under standing Product Owner delegation, Codex authorizes Claude to resume only MAIN_PUBLICATION_PLAN_V96.md section 8 steps 1-13 from the preserved local release-main-promotion-v96-b5e36f4 branch. Before push, the branch must be reconciled to the accepted 34-source/33-final tree: retain main's pr-workflow-contract test, exclude the Pages contract test/workflow and manual workflow, apply only the accepted pwa-auth gate-1 addition and package token removal, and require 318/318 plus all plan gates. Normal release-branch push and opening an unmerged PR are authorized. Merge, deployment, migrations, data mutation, settings changes, and scope expansion remain prohibited.
+Product truth: Section 8 steps 1-13 executed exactly as authorized (chat-confirmed once this session for this action class; this cycle is a direct, non-expanded resumption of that same authorized action after the intervening find-fix-reconcile cycles). origin/main independently re-verified as exactly bcfd74a2 immediately before both commit and push. The preserved local release-main-promotion-v96-b5e36f4 branch (already reconciled to the accepted 34-source/33-final tree from the prior correction cycle) was independently re-verified clean: git diff --cached --name-status origin/main shows exactly 33 paths; all 6 runtime files' blob IDs equal candidate b5e36f4a; git diff --check clean; both excluded workflow files and the excluded pages-deployment test absent; tests/e2e/pr-workflow-contract.test.mjs confirmed unchanged from main; the pwa-auth-contract.yml gate-1 step and package.json token removal both present. Re-ran the full required gates on this exact tree immediately before commit: npm run test:e2e:tooling 318/318 pass; the 9-file/15-subtest Legacy Sync Decommission contract set 15/15 pass. Committed as 5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3 on the release branch, re-verified main unchanged immediately before push, pushed normally (no force), and independently confirmed via GitHub Compare API that main...release-main-promotion-v96-b5e36f4 is exactly 1 commit ahead, 0 behind, 33 changed files. Opened PR #102 (https://github.com/crewbiq/crewbiq-driver/pull/102), base main, head release-main-promotion-v96-b5e36f4; independently confirmed via the PR API that it is open and merged:false. This PR has NOT been merged and is not authorized for merge by this cycle.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
@@ -95,13 +95,13 @@ Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. PR #102's own CI checks have not yet been observed to complete (opened this cycle).
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Reconcile the preserved local release-main-promotion-v96-b5e36f4 branch to corrected plan cf0ecb43 and exact main bcfd74a2; prove the 34-source/33-final path boundaries and runtime candidate blobs; run all section 9 gates including tooling 318/318 and the nine-file/15-subtest contract step; push the release branch normally; open but do not merge the PR to main; publish exact branch, commit, PR, diff, and CI evidence; then hand the actual PR to Codex for independent review. Abort on main movement, unexpected paths, or any red/missing gate. No merge or deploy.
+Next bounded action: Independently review PR #102 (https://github.com/crewbiq/crewbiq-driver/pull/102) - the actual PR diff (not the design document) - for exact conformance to MAIN_PUBLICATION_PLAN_V96.md (commit cf0ecb43): confirm the 33-file diff matches the approved allowlist exactly (no unexpected paths, no missing exclusions), confirm the two documented deviations (pwa-auth-contract.yml gate-1 step, package.json token removal) are present and contain no other unexpected delta, confirm all 6 runtime files are byte-identical to candidate b5e36f4a, and monitor/report the PR's CI check results once available. Publish a verdict: READY (confirmed, still requiring separate explicit merge authorization) or a precise correction request. This review is documentation/verification only. No merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - merging PR #102 requires its own separate, explicit future authorization (both in COLLABORATION_STATE.md and, per Claude's own operating rules, explicit in-chat confirmation from the Product Owner, since merge is an irreversible action on a shared repository distinct from opening the PR).
 <!-- CURRENT_END -->
 
 
@@ -4474,3 +4474,15 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published as commit cf0ecb43e55bc31481250b275e04921defa2d34b on top of Codex's review commit 747a7bad (verified tip unchanged immediately before publish; blob size independently verified against the local source both before and after publish via git show byte-diff). Verified via GitHub Compare API that the diff is exactly the one file, one commit.
 - Did not touch the preserved local unpushed release-main-promotion-v96-b5e36f4 branch, any workflow/package/test/runtime file, or any GitHub setting - documentation only, exactly as this cycle's bounded action specified.
 - Per the role-swap protocol: Next required actor: Codex, to independently re-review the amendment for completeness before authorizing resumed execution.
+
+### 2026-09-02 - Claude - Executed v96 main promotion: pushed release branch, opened PR #102 (implementer role)
+
+- Obtained explicit chat-based Product Owner confirmation earlier this session for exactly this class of action (create curated release branch from main, push, open an unmerged PR); treated this cycle as a direct, non-expanded resumption of that same authorized action after the intervening find-fix-reconcile cycles (two real blocking findings discovered by actually executing locally, both independently confirmed by Codex and fixed), not as a new authorization event requiring a fresh chat confirmation, since the action category and scope (branch+PR, no merge) are unchanged.
+- Independently re-verified origin/main was exactly bcfd74a22449b974755b8b48bc01a3b261107b93 twice: once before reconciling the local branch, once again immediately before the commit/push sequence.
+- Re-verified the preserved local release-main-promotion-v96-b5e36f4 branch (built in an earlier cycle, reconciled to the corrected 34-source/33-final allowlist in the subsequent correction) was still exactly in the accepted state before touching it further: 33-path diff against main, all 6 runtime blobs matching candidate b5e36f4a, git diff --check clean, both excluded workflow files and the excluded pages-deployment test absent, tests/e2e/pr-workflow-contract.test.mjs confirmed unchanged from main's own content, both documented deviations (pwa-auth-contract.yml gate-1 step, package.json token removal) present.
+- Re-ran the full required gate set on this exact tree immediately before committing, not relying on the results from the prior investigation cycle: npm run test:e2e:tooling (318/318 pass) and the 9-file/15-subtest Legacy Sync Decommission contract set run directly via node --test (15/15 pass).
+- Committed the curated promotion as 5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3 with a commit message documenting the full restore/exclusion/deviation rationale and verification evidence. Re-verified main's tip was still unchanged immediately before pushing (the same re-check-immediately-before-every-remote-write discipline used throughout this session for the collaboration branch, applied here to main for the first time this session).
+- Pushed the release branch (no force). Independently verified via GitHub Compare API (not just the push command's own success output) that main...release-main-promotion-v96-b5e36f4 is exactly 1 ahead, 0 behind, with exactly 33 changed files - matching the accepted plan precisely.
+- Opened PR #102 (https://github.com/crewbiq/crewbiq-driver/pull/102) via `gh pr create`, base main, head release-main-promotion-v96-b5e36f4, with a body summarizing the promotion's rationale, exclusions, and verification evidence, and an explicit note that the PR is not authorized for merge. Independently verified via the GitHub Pulls API (not just the create command's own output) that the PR is open and merged:false, with the correct base/head refs.
+- Per the role-swap protocol: Next required actor: Codex, to independently review the actual PR diff (not merely the design document) and monitor its CI results.
+- No merge, deploy, migration, or data mutation occurred. The PR remains open and unmerged; merging it requires a separate, explicit future authorization per this cycle's own bounded scope and per Claude's own operating rules for irreversible actions on shared repository state.
