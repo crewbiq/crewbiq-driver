@@ -75,31 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Population Contract - Correction
+Phase: IA-1 Prerequisite - Canonical Relationship Population Contract Closed
 
-Status: PUBLISHED / AWAITING CLAUDE RE-REVIEW
+Status: CLOSED / ACCEPT
 
-Current owner: Claude
+Current owner: Product Owner / Coordinator
 
 Branch: agent/pre-base44-audit
 
-Product truth: The sole review finding is corrected. A fleet actor may withdraw its own workspace's pending CarrierAssignment proposal through canonical.carrier_assignment.end; the server must prove the fleet workspace side, transition to ended, grant no visibility, and enforce reason/version/idempotency/audit. Routine withdrawal remains distinct from revoke for invalid evidence. All other accepted authority and lifecycle rules remain unchanged; no runtime/schema/data action occurred.
+Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Latest contract correction commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
+Product truth: Independently re-verified correction commit 91a1804699f94d653ea058889ba4f6d45a9f00bb before accepting it. Confirmed via the Commits API the diff is exactly one file (+9/-1) and read the exact patch content: adds `pending + proposing-fleet withdrawal: ended` to the state machine, extends the `canonical.carrier_assignment.end` capability description to cover pending withdrawal, and adds one explicit paragraph stating a fleet actor may routinely withdraw its own fleet workspace's pending proposal (server proves active workspace equals the row's fleet_workspace_id; transitions to `ended`, not `revoked`; grants no visibility; requires reason/expectedVersion/idempotency/audit), explicitly distinguished from invalid-evidence revocation. Independently diffed the full document (not just the patch) and confirmed these are the only two changes - every other accepted rule, capability, scenario, and section is unchanged. The RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md documentation-only slice is now ACCEPT end to end. No runtime, schema execution, migration, data population, resolver implementation, or IA-2 work has occurred.
+
+Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review commit: d5d38b5d92e03fc0c20e9f3f629a405e6070e90d
+Latest review commit: (pending this publication)
 
 Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
 
-Blocking findings: NONE pending independent re-review
+Blocking findings: NONE
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Claude
+Next required actor: Product Owner
 
-Next bounded action: Independently re-review correction 91a1804699f94d653ea058889ba4f6d45a9f00bb only. Confirm pending withdrawal is authorized only from the proposing fleet workspace through canonical.carrier_assignment.end, grants no visibility, is audited/idempotent/versioned, and remains distinct from invalid-evidence revoke. Publish ACCEPT or precise NEEDS_FIX. Do not implement commands, execute migration 012, populate data, or begin IA-1 resolver/IA-2.
+Next bounded action: Decide whether to authorize the next implementation sequencing step named in RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md's own "Implementation sequencing" section (orchestrator-only: additive schema/lifecycle metadata, the four manage capabilities, strict command/proposal handlers reusing existing idempotency/audit primitives, focused server tests for the 14 acceptance scenarios) - or select a different next step. Migration 012 execution and any staging/production data population remain separately gated per the contract's own terms and are not authorized by this closure. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
 <!-- CURRENT_END -->
 
 
@@ -4892,3 +4894,12 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Published NEEDS_FIX with the precise clarification needed, explicitly noting this is a lifecycle-completeness gap, not a security defect - a proposal sitting pending indefinitely is not unsafe, but the contract should say so rather than leave the withdrawal path ambiguous, since the review checklist specifically asked for lifecycle verification.
 - Per the role-swap protocol: Next required actor: Codex, to add the one clarification and republish for final review.
 - No runtime, schema, migration, deployment, or data change occurred - documentation review only.
+
+### 2026-09-03 - Claude - Independently verified and accepted the pending-withdrawal correction, closing the population contract (reviewer role)
+
+- Independently re-verified correction commit 91a1804699f94d653ea058889ba4f6d45a9f00bb before accepting it, per this session's standing discipline.
+- Confirmed via the Commits API that the diff touches exactly one file with a +9/-1 change, then read the exact patch content directly: adds a new state-machine transition (pending + proposing-fleet withdrawal: ended), extends the canonical.carrier_assignment.end capability description, and adds one precise paragraph specifying the withdrawal is fleet-workspace-scoped, transitions to ended (not revoked, keeping the distinction from invalid-evidence revocation clean), grants no visibility, and carries the same reason/version/idempotency/audit requirements as every other mutating command in the contract.
+- Independently diffed the full before/after document (not only the patch) to confirm these were the only two changes and that every other accepted rule, capability, and acceptance scenario remained untouched - matching the bounded action's explicit "do not change anything else" scope.
+- Published final ACCEPT for the full RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md, closing this documentation-only prerequisite slice.
+- Escalated the actual next decision to the Product Owner rather than choosing unilaterally: whether to authorize the orchestrator-only implementation sequencing this same contract already names as its own next step, or a different direction.
+- No runtime, schema, migration, deployment, or data change occurred in this cycle - independent verification only.
