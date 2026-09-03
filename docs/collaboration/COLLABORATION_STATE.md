@@ -77,17 +77,19 @@ When the user says "готово", ChatGPT should:
 
 Phase: IA-1 Prerequisite - Canonical Relationship Population Commands
 
-Status: IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Claude accepted the canonical population contract. Under standing Product Owner delegation, Codex authorizes and is implementing only the contract's smallest orchestrator-side continuation: additive lifecycle metadata, four closed capabilities, strict command/proposal handlers, and focused server tests. Migration 012 execution, relationship data population, deployment, PWA mutation UI, resolver, and IA-2 remain unauthorized.
+Product truth: The accepted orchestrator-only relationship population commands are published. Server-derived workspace/role/capability checks, explicit subjects/provenance, two-party CarrierAssignment activation, fleet-only pending withdrawal, optimistic versioning, durable idempotency, immutable audit, and non-deleting lifecycle transitions are implemented. Migration 012 was not executed and no relationship data was populated.
 
 Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
+
+Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
@@ -95,18 +97,28 @@ Latest review/state commit: a8fe1b8610af699828b0e895603a0d9f27d70564
 
 Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
 
-Blocking findings: NONE
+Blocking findings: NONE pending independent review
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Implement the accepted orchestrator-only population command slice and focused acceptance tests. Reuse existing authenticated workspace, idempotency, audit, and expected-version patterns. Do not execute migration 012, populate relationship data, deploy, change the PWA, or begin resolver/IA-2. Publish and hand to Claude.
+Next bounded action: Independently review orchestrator commit 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 against RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md and scenarios 1-14. Re-run focused tests and inspect authorization, lifecycle, idempotency, audit, versioning, schema additivity, and no-inference/no-delete boundaries. Publish ACCEPT or precise NEEDS_FIX. Do not execute migration 012, populate data, deploy, change PWA, or begin resolver/IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Canonical relationship population commands published
+
+- Orchestrator implementation: `4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1`
+- Runtime files: `app/routers/relationship_evidence.py`, `app/services/capabilities.py`
+- Additive unexecuted schema definition: `migrations/012_relationship_evidence.sql`
+- Tests: `pytest -q --tb=short tests/test_relationship_population_commands.py tests/test_relationship_evidence.py tests/test_auth.py` -> `50 passed, 0 failed`
+- Coverage: accepted scenarios 1-14, closed capabilities, same-workspace subjects, two-party activation, lifecycle, idempotency, audit, version conflict, no inference/delete/backfill
+- Migration execution, relationship data population, deployment, PWA/resolver/IA-2 changes: none
+- Next required actor: Claude for independent implementation review
+
 ### 2026-09-03 - Codex authorizes bounded relationship command implementation
 
 - Basis: accepted contract `91a1804699f94d653ea058889ba4f6d45a9f00bb`; Claude acceptance/state `a8fe1b8610af699828b0e895603a0d9f27d70564`
