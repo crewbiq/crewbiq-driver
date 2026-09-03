@@ -75,24 +75,39 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current staging fixture discovery
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver own-current staging fixture discovery - Independent Review Closed
+
+Status: CLOSED / ACCEPT (real fixture gap confirmed; authenticated positive path remains BLOCKED)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Existing synthetic CBQ-E2E-DRIVER-A has one active driver-only membership but zero AccountDriverLinks. Fleet A has a link/assignment but cannot substitute for Driver authority. No fixture mutation performed.
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest review commit: 081a138c87ae6dc61a9818b9fda21a8b2e0f1749
-Latest prior state commit: 081a138c87ae6dc61a9818b9fda21a8b2e0f1749
-Evidence: docs/collaboration/DRIVER_OWN_CURRENT_FIXTURE_DISCOVERY.md
-Validation: read-only repeatable-read staging DB inspection of four exact version-controlled synthetic Accounts; no login or tests
+
+Product truth: Independently reviewed DRIVER_OWN_CURRENT_FIXTURE_DISCOVERY.md (commit be082771d3b60af13ff71d097f94e31dcbd29787). Independently verified the discovery's provenance claim by reading app/testing/e2e_provisioning.py::_IDENTITIES directly in the local accepted-commit checkout: confirmed it is a real, pre-existing, version-controlled fixture-identity list defining exactly the four cited Account IDs (CBQ-E2E-DRIVER-A, CBQ-E2E-OWNEROP-A, CBQ-E2E-FLEET-A, CBQ-E2E-FLEET-B) with roles (driver/fleet/fleet/fleet) and tenant groupings (DRIVER-A and FLEET-A sharing CBQ-E2E-TENANT-A; FLEET-B on the separate CBQ-E2E-TENANT-B) matching the discovery's reported workspace groupings exactly - confirming the discovery used only known, already-authorized synthetic identities rather than inferring subjects from arbitrary names or database row order. Assessed the read-only database inspection itself as appropriately scoped: a single repeatable-read transaction against the same staging Postgres service already used for the accepted deployment's preflight, targeting only these four exact Accounts, with no email/password/password-hash/session-token value selected or exposed, no provisioning module executed, and no login/authentication endpoint invoked. The finding itself (CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING: the canonical driver-only Account exists with an active membership but zero AccountDriverLink rows, so it cannot presently supply the positive own-current proof chain) is a genuine, narrow, honestly-reported gap - not a fabricated pass and not an inflated failure. Confirmed the interpretation correctly refuses to substitute Fleet A's own link/assignment for Driver A's missing one despite sharing a workspace, correctly declines to infer any subject Driver ID for Driver A's still-missing link, and correctly notes the existing PWA staging prerequisite helper only validates Fleet A/B credential contracts, not Driver-only readiness. No fixture/role/link/assignment mutation, login, credential reset, deployment, migration, or backfill occurred in this discovery step or in this review.
+
+Latest fixture discovery commit: be082771d3b60af13ff71d097f94e31dcbd29787 (ACCEPTED; confirms a real, narrow fixture gap)
+
+Latest staging deployment evidence commit: 8766cd1eface4cc8dff8bd01c9c642705b07bbf1 (ACCEPTED)
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest review commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING; complete second-Driver/cross-workspace fixtures unproven; canonical harness IA-3 compatibility gap
-Queued coverage: authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review fixture discovery evidence and its scope. Confirm the positive Driver-only path is blocked by zero AccountDriverLinks, not absent Account; do not borrow Fleet A identity or infer a subject Driver. Publish ACCEPT or precise NEEDS_FIX and return one bounded fixture/harness contract action to Codex. No provisioning, credential reset, login, role/link mutation, deployment, merge, migration or IA-4 under this review handoff.
+
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING (independently confirmed real); complete second-Driver/cross-workspace Driver fixtures still unproven; existing staging-canonical-identity harness still requires IA-3 coordinator-compatibility reconciliation; authenticated browser/mobile/offline evidence and CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remain outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize (a) a separately bounded, explicitly-scoped provisioning of exactly one AccountDriverLink for CBQ-E2E-DRIVER-A (with its own target/provenance/count guard and independent review before and after), (b) reconciling tests/e2e/staging-canonical-identity.spec.mjs with the IA-3 coordinator in parallel, or (c) a different next step. No fixture mutation, credential handling, login, deployment, migration, or IA-4 without further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5204,3 +5219,12 @@ Evidence: DRIVER_OWN_CURRENT_FIXTURE_DISCOVERY.md. At 2026-09-03T22:58:49.962271
 Finding: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING. No subject Driver guessed and no account/link/assignment inserted or changed. Full synthetic cross-principal fixture set and browser readiness remain unproven.
 Safety: read-only transaction; no login or test-account credential retrieval; existing DB connection injected by Railway, no secret output. No deployment/merge/migration/runtime/harness change; PWA auto-deploy disabled reconfirmed before publication.
 Next required actor: Claude. NOT_READY_FOR_PRODUCTION and canonical staging coverage remain queued.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the Driver own-current staging fixture discovery (reviewer role)
+
+- Read DRIVER_OWN_CURRENT_FIXTURE_DISCOVERY.md (commit be082771d3b60af13ff71d097f94e31dcbd29787) in full.
+- Independently verified the discovery's provenance claim by reading app/testing/e2e_provisioning.py::_IDENTITIES directly in the local accepted-commit checkout: confirmed it is a real, pre-existing, version-controlled list of exactly the four cited Account IDs, with roles and tenant groupings matching the discovery's reported workspace assignments exactly (Driver A and Fleet A sharing one tenant/workspace, Fleet B on a separate one) - confirming no subject was inferred from arbitrary names or row order.
+- Assessed the read-only database inspection as appropriately scoped: one repeatable-read transaction against the same staging Postgres already used in the prior accepted deployment's preflight, targeting only the four known Accounts, with no credential values selected/exposed and no provisioning or login endpoint executed.
+- Confirmed the core finding (CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING: the canonical driver-only Account exists but has zero AccountDriverLink rows) is a genuine, narrow, honestly-reported gap, and that the document correctly refuses to substitute Fleet A's own link/assignment for Driver A's missing one, correctly declines to infer any subject Driver ID, and correctly notes the existing PWA staging helper validates only Fleet A/B, not Driver-only readiness.
+- Published final ACCEPT. No fixture/role/link/assignment mutation, login, credential reset, deployment, migration, or backfill occurred in this discovery step or in this review.
+- Escalated the next decision to the Product Owner: whether to authorize a separately bounded, explicitly-scoped AccountDriverLink provisioning for CBQ-E2E-DRIVER-A, harness reconciliation in parallel, or a different direction.
