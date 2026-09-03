@@ -49,7 +49,7 @@ any row, infer a relationship from legacy records, change PWA UI, or integrate
 | `canonical.truck_ownership.manage` | `fleet` | Explicitly create/close/revoke ownership evidence inside the actor's active fleet workspace. |
 | `canonical.carrier_assignment.propose` | `fleet` | Propose a relationship for a truck already in the actor's active fleet workspace. |
 | `canonical.carrier_assignment.accept` | `carrier` | Accept or reject a proposal addressed to the actor's active carrier home workspace. |
-| `canonical.carrier_assignment.end` | `fleet`, `carrier` | End forward visibility from either participating workspace, subject to relationship-side validation. |
+| `canonical.carrier_assignment.end` | `fleet`, `carrier` | Withdraw a pending proposal from its fleet workspace or end forward visibility from either participating workspace, subject to relationship-side validation. |
 
 Read capabilities remain separate. Possessing a manage capability does not
 replace the role, workspace, subject, lifecycle, or version checks below.
@@ -111,6 +111,7 @@ resource, this evidence does not expand the workspace boundary.
 fleet proposal: pending
 pending + carrier acceptance: active
 pending + carrier rejection: rejected
+pending + proposing-fleet withdrawal: ended
 active + either-side close: ended
 pending/active + authorized revocation: revoked
 ```
@@ -164,6 +165,13 @@ Server requirements:
 
 ### End and revoke
 
+- A fleet actor may routinely withdraw its fleet workspace's own `pending`
+  proposal before carrier decision only with
+  `canonical.carrier_assignment.end`. The server must prove the actor's active
+  workspace equals the row's `fleet_workspace_id`; withdrawal transitions the
+  proposal to `ended`, grants no visibility, and requires a non-blank reason,
+  expected version, idempotency, and audit. This is not revocation for invalid
+  evidence.
 - Either participating side may end an active relationship from its own
   authenticated active workspace with `canonical.carrier_assignment.end`.
 - The server proves that the active workspace equals either the row's
