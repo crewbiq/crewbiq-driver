@@ -75,15 +75,15 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Publication Verification
+Phase: v96 Post-Publication Authenticated Smoke
 
-Status: CLOSED / ACCEPT / PRODUCTION PUBLICATION VERIFIED
+Status: AUTHORIZED / AWAITING CLAUDE EXECUTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Codex independently confirms v96 production publication. origin/main and the latest successful Pages build are exact merge commit 5351d6a6, whose parents are prior main bcfd74a2 and accepted PR head 5ef42cfa. All six live runtime files return HTTP 200 and have Git blob hashes exactly matching the merge tree; live sw.js declares v96; served bytes contain zero legacy-sync references. Production Orchestrator health and readiness both return HTTP 200, database connectivity is true, and missing migrations are empty. Authenticated live functional journeys remain a declared non-blocking coverage gap. No further merge, deploy, migration, settings change, or data mutation was performed.
+Product truth: Product Owner authorizes one bounded, non-destructive authenticated production smoke against exact published v96 main 5351d6a6 using only an existing authorized test account/session. Claude must verify login/session startup, `/v1/me`, restore, workspace isolation, Driver roster read, Load read/open, PTI read/open, Driver SELF read, no cross-tenant leakage, and no legacy Google/Apps Script traffic. Prefer read-only checks. Any check requiring creation/edit/deletion of real business data must be reported `NOT_EXECUTED_REQUIRES_MUTATION`; no test data may be invented. No production data, settings, migrations, workflows, roles, ADR status, or deployment may change.
 
 Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
 
@@ -95,18 +95,29 @@ Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. Authenticated-session functional smoke (startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF) and live cross-tenant leakage checks were not independently re-executed post-publication (covered pre-merge by CI only, not by an authenticated live pass) - flagged as a coverage gap, not a blocking finding, since the exact promoted bytes were already proven correct by CI before merge.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion. SIDR, Dispatch, Safety, Truckpedia, ADR-0007 acceptance, and all queued work remain out of scope until this smoke is independently closed.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Continue coordination monitoring only. Preserve CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED, GitHub Discussion #206480, and the separate e2e-harness-manual.yml promotion decision as queued items. Do not start a new slice, merge, deploy, migrate, or mutate data without a newly recorded bounded authorization.
+Next bounded action: Execute the authorized read-only authenticated production smoke against exact published v96 with an existing authorized test account/session. Record exact endpoints, status codes, served SHA/cache, and the test account/workspace scope used without exposing credentials. Verify every listed check and network destination; classify any mutation-dependent check as `NOT_EXECUTED_REQUIRES_MUTATION`. Publish PASS or BLOCKED evidence in collaboration documentation, replace CURRENT and append HISTORY, then hand to Codex for independent review. Do not start SIDR, Dispatch, Safety, Truckpedia, ADR-0007, e2e-harness-manual promotion, or GitHub #206480 work.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Product Owner authorizes bounded v96 authenticated production smoke
+
+- Scope: exact published v96 main `5351d6a6c1a4b817aefad62de01142198deccbc3`
+- Executor: Claude
+- Identity boundary: existing authorized test account/session only
+- Required checks: login/session startup; `/v1/me`; restore; workspace isolation; Driver roster read; Load read/open; PTI read/open; Driver SELF read; no cross-tenant leakage; no legacy Google/Apps Script traffic
+- Mutation policy: read-only preferred; any mutation-dependent check is `NOT_EXECUTED_REQUIRES_MUTATION`
+- Prohibited: real-record create/edit/delete; production data/settings/migrations/workflows/roles/ADR/deployment changes
+- Explicitly excluded: SIDR, Dispatch, Safety, Truckpedia, ADR-0007 acceptance, e2e-harness-manual promotion, GitHub #206480 work
+- Next required actor: Claude; Codex independently reviews publication evidence
 
 ### 2026-09-02 — Codex independently verifies v96 production publication
 
