@@ -75,38 +75,48 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Presentation Context Contract - V9 Gate Correction Published
+Phase: IA-1 Implementation - Presentation Context Pure Resolver
 
-Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: AUTHORIZED / READY FOR CODEX IMPLEMENTATION
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Confirmed via grep that four references in Readiness and Next-bounded-slice still named "V1-V8" as the implementation/proof gate after V9 was added in the prior correction round, silently excluding V9 (the DriverTruckAssignment fail-closed edge cases) from what a future IA-1-implementation slice must prove. Fixed by replacing all four occurrences with "V1-V9"; confirmed via diff this is the only change (+4/-4, API-confirmed) and no other content was touched.
+Product truth: IA-1 Presentation Context Contract is accepted at review commit 865125d189d07802d83b22c13cc6091c2efa1700. The next bounded slice is separately authorized under standing Product Owner delegation: implement the pure resolver against exact existing evidence shapes and prove rules 0-8 and scenarios V1-V9. IA-2 is not authorized.
 
-Latest implementation commit: NONE (documentation-only contract slice)
+Latest implementation commit: NONE (IA-1 implementation not started)
 
 Latest correction commit: 3b6a81f0587d766d8800a89cc5df294ba23ab9ba
 
-Latest review commit: ae0fe67dcc673d617a0a1b8959e6b7e52b1c86ec
+Latest review commit: 865125d189d07802d83b22c13cc6091c2efa1700
 
-Latest state commit: (pending this publication)
+Latest state commit: c7e1d88995ffb15c54fe92d239a824e09d69745c
 
-Blocking findings: NONE (pending Codex re-review)
+Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1-implementation and IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-2 through IA-6 remain separate, not-yet-started slices
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
 Next required actor: Codex
 
-Next bounded action: Independently re-review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit 3b6a81f0587d766d8800a89cc5df294ba23ab9ba) to confirm all V1-V8 references were correctly updated to V1-V9 and no other content changed. Publish ACCEPT or precise NEEDS_FIX. Documentation-only review; no runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate remains IA-1-implementation (not IA-2), which requires its own separate future authorization.
+Next bounded action: Implement resolvePresentationContext as a pure function against the exact current session/membership/capability/CarrierAssignment/AccountDriverLink/TruckOwnership/DriverTruckAssignment evidence shapes; add lightweight executable coverage for contract rules 0-8 and V1-V9. No DOM, network, persistence, endpoint authorization, navigation, scope selector, carrier UI, deployment, migration, or data change. Publish for independent Claude review and stop before IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - IA-1 Presentation Context Contract accepted
+
+- Final correction: `3b6a81f0587d766d8800a89cc5df294ba23ab9ba`
+- Codex review: `865125d189d07802d83b22c13cc6091c2efa1700`
+- Verdict: `ACCEPT`
+- Blocking findings: none
+- MVP Role/Scope and fail-closed PresentationContext semantics preserved
+- Next authorized slice: IA-1 pure resolver implementation with V1-V9 evidence
+- IA-2 remains unauthorized
+
 ### 2026-09-03 - Codex IA-1 residual correction re-review
 
 - Reviewed correction: `e384a1097069f0b568ab647c5ec1f562f8a97eb9`
