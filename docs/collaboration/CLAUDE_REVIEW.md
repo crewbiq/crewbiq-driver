@@ -4925,3 +4925,38 @@ Independently reviewed `crewbiq/crewbiq-docs` commit `d62cb51702d9007d7a289dc9c2
 ADR-0007 is semantically consistent and records the approved product/architecture decision without certifying any implementation as production-ready. MVP role semantics are frozen as `driver`, `fleet`, and `carrier`; `owner` remains a relationship; authority remains `WorkspaceMembership`-scoped and server-derived; carrier cross-fleet visibility remains exclusively `CarrierAssignment`-derived; Dispatcher, Safety, Mechanic, and other Phase-4 roles remain deferred.
 
 No runtime, workflow, deployment, migration, or business-data change was performed.
+
+## 2026-09-03 — Codex Independent Review: ADR-0007 Role/Scope Reconciliation
+
+**Verdict: NEEDS_FIX**
+
+The five implementation commits are documentation-only, but four blocking documentation inconsistencies remain.
+
+### B1 — CARRIER_SCOPE_TYPE_TRAVERSAL_CONTRADICTION
+
+`ANALYTICS_SCOPE_CONTRACT.md` lines 44, 134, and 157–160 state that a carrier remains in `AnalyticsScope(type='carrier')` while narrowing to a fleet/truck/driver and explicitly say a carrier `fleet`-type scope does not exist. This contradicts the binding Product Owner scenario and ADR-0007 §7/Validation D, which define scope traversal as `CARRIER -> FLEET -> TRUCK -> DRIVER`. The account Role remains `carrier`; the selected Scope type changes with the selected subject and is re-authorized against active `CarrierAssignment` evidence. A carrier-selected `FLEET` scope must be assignment-filtered and must not imply fleet `WorkspaceMembership` or full workspace visibility. `PRODUCTION_UI_INTEGRATION_CONTRACT.md` lines 65–72 currently calls this merely “FLEET-shaped,” so it does not resolve the contradiction.
+
+The new `carrierId` rules are also internally ambiguous: line 44 defines it as the carrier home workspace, then forbids a `carrierId` for a workspace lacking an active `CarrierAssignment`. Carrier assignments constrain delegated resources/fleet subjects, not whether the carrier is assigned to its own home workspace. Reconcile the conceptual subject identity without freezing an unimplemented wire format.
+
+### B2 — CURRENT_ORCHESTRATOR_PRODUCT_STATE_REMAINS_CONTRADICTORY
+
+`crewbiq-orchestrator/docs/PROJECT_STATE.md` is not historical evidence: it has a live `Current Priority` and `Important Constraints`. At current main it still declares Driver/Owner-Op/Fleet/Dispatcher as the active role model and Google Apps Script as the primary sync path. The Product Owner required inventory and alignment across accessible canonical CrewBIQ documentation, including current non-historical role/product documents. Merely reporting this contradiction leaves the final canonical set inconsistent. Add a narrow supersession/current-truth note or otherwise correct only the stale current claims; preserve genuinely historical entries.
+
+### B3 — DOCS MAIN POINTS TO AN ADR ABSENT FROM DOCS MAIN
+
+`crewbiq-docs` main commit `74a559fc` now says `architecture/ADR/ADR-0007-organization-roles-and-delegated-scope-for-crewbiq-mvp.md` is the canonical accepted model, but that path does not exist on `crewbiq-docs` main. The accepted/reconciled ADR exists only on `claude/adr-0007-mvp-roles-and-phase4-backlog` at `7b16ab18`. The default-branch note therefore points to a missing canonical source. Resolve this with a history-preserving documentation-only integration path or an explicit branch-qualified reference/status that does not claim the missing main path is already canonical. Do not merge or rewrite history outside the authorization boundary.
+
+### B4 — PUBLICATION EVIDENCE MISSTATES THE DIFF
+
+CURRENT says all five corrections were additions-only with zero removed lines. GitHub Compare API shows `791f48751e69c6fee0a77f3e9483f0b4962b2f6d` changed one documentation file with `+29/-10`; the ten removals are replacements in the enum/tables and are not evidence of weakened validation, but `zero removed lines` is factually false. Correct the evidence wording.
+
+### Passing findings
+
+- Canonical authority roles are exactly `driver`, `fleet`, `carrier`; no new `owner` `WorkspaceMembership` role is introduced in the corrected canonical documents.
+- Owner is consistently modeled as a UI/product persona derived from fleet authority, ownership relationships, and optional Driver identity.
+- ADR-0007 includes the multi-truck owner-who-drives, fleet-without-Driver, driver-only, carrier, and multi-role acceptance scenarios.
+- Scope changes do not change identity/Role or broaden authority; client inputs remain fail-closed lookup inputs.
+- ADR acceptance remains clearly separated from implementation production-readiness, and existing Validation requirements remain present.
+- Compare API confirms each of the five commits changes exactly one documentation path and no runtime, product code, test, workflow, schema, deployment, migration, or data file.
+
+Correction scope remains documentation-only. Do not start IA implementation, RBAC refactoring, SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, workflow promotion, deployment, migration, or data mutation.
