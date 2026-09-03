@@ -77,34 +77,43 @@ When the user says "готово", ChatGPT should:
 
 Phase: IA-1 Prerequisite - Canonical Relationship Population Contract
 
-Status: IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Product Owner authorized a bounded proven population path for canonical truck_ownership and carrier_assignments. Before runtime mutation code, Codex is defining a separately reviewed fail-closed contract for server-derived authority, explicit provenance, idempotency, effective dating, audit, and carrier/fleet consent. No schema execution, endpoint implementation, relationship population, deployment, resolver, or IA-2 work is authorized in this contract step.
+Product truth: The documentation-only population contract preserves server authority and explicit provenance. TruckOwnership is same-workspace evidence and cannot broaden authority. CarrierAssignment requires fleet proposal plus addressed carrier acceptance before cross-workspace visibility. No runtime/schema execution/data population occurred.
 
-Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39
+Latest contract commit: 7d78f8a54604c033b62f2939943c779c4e2f7e96
 
-Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7
+Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review/state commit: f36b83c1792c87972171bd43fe7013e6dfa5234d
+Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
 
-Blocking findings: POPULATION_AUTHORITY_AND_PROVENANCE_CONTRACT_NOT_YET_DEFINED
+Blocking findings: NONE pending independent review
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Inventory accepted canonical command/idempotency/audit patterns and publish a documentation-only population contract for TruckOwnership and CarrierAssignment. The contract must prevent client IDs from granting authority and prevent unilateral carrier access. Hand to Claude for independent review before any implementation.
+Next bounded action: Independently review RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md. Verify same-workspace TruckOwnership authority, two-party CarrierAssignment activation, lifecycle, idempotency, audit, optimistic versioning, no delete/no inference, and that neither side can self-authorize both steps. Publish ACCEPT or precise NEEDS_FIX. Do not implement commands, execute migration 012, populate data, or begin IA-1 resolver/IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Canonical relationship population contract published
+
+- Contract commit: `7d78f8a54604c033b62f2939943c779c4e2f7e96`
+- TruckOwnership: explicit same-workspace evidence; no authority broadening or inference
+- CarrierAssignment: fleet proposal plus addressed carrier acceptance required before visibility
+- Lifecycle: effective-dated, idempotent, versioned, audited, and non-deleting
+- Runtime/schema execution/data population/deployment: none
+- Next required actor: Claude for independent documentation review
+
 ### 2026-09-03 - Product Owner authorized relationship population path
 
 - Selected option: bounded proven population path for canonical TruckOwnership and CarrierAssignment
