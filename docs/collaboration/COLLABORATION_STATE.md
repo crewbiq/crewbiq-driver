@@ -75,24 +75,43 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current-assignment read prerequisite design
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver own-current-assignment read prerequisite design - Independent Review Closed
+
+Status: CLOSED / ACCEPT
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: IA-3 accepted; own-current server read design is proposed, not implemented. Broad assignment-read access is not granted to Driver. No runtime or server permission changes in this publication.
-Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest review commit: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77
-Latest prior state commit: 7dd427c64f6fb6e77887b33963736b85db4a0524
-Design artifact: docs/collaboration/DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md (this publication)
-Orchestrator source inspected: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1
-Validation: source/ADR inspection only; no tests executed for documentation-only design
-Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains open
-Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+
+Product truth: Independently reviewed DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md (commit 1f277ebb4fa5447d210a0d61892cca7e0d07ea71, documentation/design only, no runtime change) against the exact orchestrator source and ADR-0007. Fetched and read app/routers/auth.py, app/services/auth_service.py::authenticate_token, app/routers/account_driver_links.py, and app/routers/driver_truck_assignments.py directly from the orchestrator's agent/account-driver-link-read branch and confirmed every factual claim in the design document: authenticate_token checks session expiry/revocation/active Account and performs exactly one bookkeeping write (auth_sessions.last_seen_at); account_driver_link_read returns full link history ordered by effective_from and does NOT select a single currently-effective link server-side, matching the claim exactly; driver_truck_assignments' current/history/as-of endpoints all default to capability=DRIVER_TRUCK_ASSIGNMENT_READ via _authorized_workspace_id, and driver_id/truck_id are plain optional SQL filter parameters with no ownership semantics (confirmed by reading _read() and current_driver_truck_assignments() directly); capabilities.py grants canonical driver only ACCOUNT_DRIVER_LINK_READ (re-confirmed). Confirmed the client's driver-truck-assignment.js normalizer already requires provenance to be a plain object (accepts {}) and already treats a zero-length assignments array as not-found, so the proposed own-only provenance:{} minimization and existing-empty-envelope reuse are both compatible with the current PWA without a client change. Assessed the proposed design itself as sound: a new least-privilege capability (canonical.driver_truck_assignment.read_own_current) scoped to canonical driver only, explicitly excluded from authorizing history/as-of/list/create/close/revoke or any generic workspace-only fallback; a single aware-UTC-instant, single-transaction read of both the Account's links and assignments (avoiding a TOCTOU race between two separate HTTP calls that a naive two-endpoint approach would have left open); server-derived Account identity with client-supplied workspace/driver_id treated strictly as lookup/consistency checks, never as a grant (a mismatched driver_id is rejected outright, never queried); exactly-one-effective-link and exactly-one-effective-assignment required with explicit ambiguity/not-found error codes, never a first/latest guess; truck_id and temporal overrides explicitly rejected on the own-only branch; reused existing error-code conventions (403/409/502/503 families) for continuity, with new codes honestly flagged as requiring tests rather than claimed as already implemented. The 11-item required future proof matrix and the explicit PostgreSQL-transaction-isolation requirement (mock-only tests cannot prove it) are appropriately rigorous for a security-sensitive capability boundary change. This design does not close CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED by itself and does not authorize implementation, migration, deployment, or IA-4.
+
+Latest design commit: 1f277ebb4fa5447d210a0d61892cca7e0d07ea71 (ACCEPTED)
+
+Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
+
+Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
+
+Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
+
+Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 (ACCEPTED)
+
+Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
+
+Latest review/state commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
+Blocking findings: NONE (design-correctness); CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains open pending implementation
+
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md against ADR-0007 and the exact orchestrator/client source. Check current-only separate capability, authenticated Account link derivation, snapshot consistency, cross-driver/workspace denial, response projection and implementation/test boundaries. Publish ACCEPT or precise NEEDS_FIX. After ACCEPT return to Codex for bounded implementation authorization; do not implement during review. No deployment, migration/data action, broad permission grant, IA-4 or unrelated work.
+
+Next required actor: Codex
+
+Next bounded action: Under standing Product Owner delegation, Codex may now implement the accepted design's proposed implementation boundary only: app/services/capabilities.py (new own-current constant, driver grant only), app/routers/driver_truck_assignments.py (own-only dispatch branch, preserving all existing broad/history/as-of/command behavior unchanged), a new app/services/driver_self_assignment.py snapshot-scoped helper, and targeted/real-PostgreSQL tests per the 11-item proof matrix. No PWA runtime, service worker, package, CI, schema, or deployment change is included. Publish for Claude's independent review before any further step. No broader capability grant, no deployment, no IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5068,3 +5087,13 @@ Tests: not run; documentation/source inspection only. Required future PostgreSQL
 Files changed: this state and the new contract only. No runtime, permissions, tests, deployment, migration or business data changes.
 Blocker: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains open; NOT_READY_FOR_PRODUCTION preserved.
 Next required actor: Claude for independent design review, then Codex if accepted. No IA-4.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the Driver own-current-assignment read design (reviewer role)
+
+- Read DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md (commit 1f277ebb4fa5447d210a0d61892cca7e0d07ea71, documentation/design only) in full, then independently fetched and read the exact orchestrator source it cites from the agent/account-driver-link-read branch: app/routers/auth.py, app/services/auth_service.py::authenticate_token, app/routers/account_driver_links.py, and app/routers/driver_truck_assignments.py.
+- Verified every factual claim rather than trusting the document's own description: authenticate_token checks session expiry/revocation/active-Account and performs exactly one bookkeeping write; account_driver_link_read returns full link history (not a single selected current link); driver_truck_assignments' current/history/as-of endpoints default to capability=DRIVER_TRUCK_ASSIGNMENT_READ with driver_id/truck_id as plain optional SQL filters carrying no ownership semantics; capabilities.py grants canonical driver only ACCOUNT_DRIVER_LINK_READ.
+- Verified client compatibility claims by reading driver-truck-assignment.js directly: its provenance validator accepts a plain object including {}, and a zero-length assignments array is already mapped to not-found - confirming the proposed own-only provenance minimization and empty-envelope reuse require no client change.
+- Assessed the design itself: a new least-privilege capability scoped to canonical driver only and explicitly barred from authorizing history/as-of/list/mutation or any generic workspace fallback; a single-instant, single-transaction read of both link and assignment evidence (closing a TOCTOU gap a naive two-separate-endpoint approach would leave open); server-derived Account identity with client-supplied workspace/driver_id used only for consistency rejection, never as a grant; strict exactly-one-effective-link/assignment requirements with explicit ambiguity/not-found codes rather than any first/latest guess; reused existing error-code families for continuity with new codes honestly flagged as not-yet-implemented.
+- Confirmed the required future proof matrix (11 items) appropriately demands real PostgreSQL transaction-isolation evidence rather than accepting mock-only tests as sufficient proof for this security-sensitive boundary.
+- Published final ACCEPT for the design. This does not by itself close CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED and does not authorize implementation, migration, deployment, or IA-4 - only the bounded implementation slice the design itself names.
+- Per the role-swap protocol: next required actor is Codex, to implement the accepted allowlist (capabilities.py constant/grant, driver_truck_assignments.py dispatch branch, new driver_self_assignment.py helper, targeted plus real-PostgreSQL tests) and publish for independent review before any further step.
