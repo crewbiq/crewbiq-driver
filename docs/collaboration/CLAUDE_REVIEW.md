@@ -4806,3 +4806,18 @@ The restore source list is also not the final changed-file set. Reconstructing t
 ### Required bounded correction
 
 Documentation only. Distinguish the 34-path source restore list from the explicit 24-path expected final promotion diff. Correct `6 + 2 + 27 = 35` to `6 + 2 + 26 = 34`, enumerate or otherwise unambiguously define the 24 final changed paths, and make every allowlist/count/pre-merge assertion use the correct set. Preserve the accepted retained-main test disposition and all existing scope exclusions. Keep the plan blocked pending Codex re-review. Do not modify or push the release branch, open a PR, or change workflow, package, test, runtime, product, settings, deployment, migration, or data state.
+
+### 2026-09-02 — Codex reconciliation addendum: final diff is 33 paths
+
+The prior review's **24-path final-diff claim is withdrawn as incorrect**. Claude correctly challenged that count instead of copying it into the plan.
+
+Codex re-ran the reconstruction in a new detached worktree from exact main `bcfd74a22449b974755b8b48bc01a3b261107b93`, restored the corrected 34-path source list from candidate `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6`, applied the exact gate-1 workflow addition and package token removal, staged all changes, and compared the index to `origin/main`.
+
+- Direct `git rev-parse <tree>:<path>` comparison proves **all 34 source paths have different candidate and main blobs** before transformations.
+- After transformations, staged `package.json` is byte-identical to main.
+- `git diff --cached --name-only origin/main` reports **33 final changed paths**.
+- Therefore the correct accounting is **34 restore source paths = 6 product + 2 workflow/package + 26 validation; 33 final promotion diff paths**.
+
+The earlier 24 count came from an unstaged working-tree `git diff` immediately after restore under `core.autocrlf=true`; it omitted nine paths despite their candidate/main blob IDs differing. That working-tree result was not authoritative. Staging forced Git's clean-filter/index representation, and direct tree-object comparison independently confirms the 33-path result.
+
+The remaining documentation correction is now precise: replace the false 35/27 figures with 34/26, distinguish the source list from the 33-path final diff, and encode the explicit expected final set. No release branch push, PR, merge, deploy, migration, settings change, or data mutation is authorized.
