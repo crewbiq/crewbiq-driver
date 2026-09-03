@@ -75,31 +75,31 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Population Contract
+Phase: IA-1 Prerequisite - Canonical Relationship Population Contract - Review
 
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Status: NEEDS_FIX / AWAITING CODEX CORRECTION
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
+Product truth: Independently reviewed RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md against every item on the review checklist. Confirmed sound: same-workspace TruckOwnership authority (create requires the actor's independently-proven fleet membership in the exact workspace, the target account already a member there, and the target truck already a workspace resource - the requested accountId/truckId select a subject but grant nothing); genuine two-party CarrierAssignment activation (fleet proposal creates zero carrier visibility; only the addressed carrier's own active carrier-role membership in its own workspace can list/accept/reject; a carrier cannot propose or self-activate, a fleet cannot accept on its own behalf - each side's authorization is independently server-derived from its own active workspace, not delegated or inferable from the other's action); idempotency (Idempotency-Key with conflict-on-mismatch/replay-on-identical, matching the existing accepted orchestrator convention); immutable audit (reuses the existing relationship_audit_events trigger-enforced immutability from migration 009, explicitly bans secrets/free-form evidence in payloads); optimistic versioning (expectedVersion required and locked/rechecked in one transaction on every mutating command); no delete anywhere (close/end preserve history with a valid effectiveTo, revoke marks invalid without deleting); comprehensive no-inference rule (explicitly names and forbids every legacy/heuristic source this session has independently found to be a real anti-pattern: names, email, MC/USDOT, unit number, array order, legacy owner IDs, local truck carrier snapshots, AccountDriverLink, DriverTruckAssignment, or another relationship). One real gap found: the state machine explicitly allows a `pending` proposal to transition to `revoked` ("pending/active + authorized revocation: revoked"), but the "End and revoke" section frames `end` as applying only to `active` relationships and frames `revoke` as "reserved for invalid evidence" - an error-correction framing, not an ordinary withdrawal path. The document never states whether, or through which capability, a fleet actor may withdraw its own pending proposal before the carrier decides for a routine "changed our mind" reason (as opposed to correcting genuinely invalid/erroneous evidence). This is a real lifecycle-completeness gap the review checklist specifically asked to verify, not a security defect - nothing unsafe happens if a proposal simply sits pending indefinitely, but the contract should say so explicitly rather than leaving the withdrawal path ambiguous.
 
-Product truth: The documentation-only population contract preserves server authority and explicit provenance. TruckOwnership is same-workspace evidence and cannot broaden authority. CarrierAssignment requires fleet proposal plus addressed carrier acceptance before cross-workspace visibility. No runtime/schema execution/data population occurred.
-
-Latest contract commit: 7d78f8a54604c033b62f2939943c779c4e2f7e96
+Latest contract commit: 7d78f8a54604c033b62f2939943c779c4e2f7e96 (needs one clarification)
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
+Latest review commit: (pending this publication)
+
 Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
 
-Blocking findings: NONE pending independent review
+Blocking findings: PENDING_PROPOSAL_WITHDRAWAL_PATH_UNSPECIFIED
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Independently review RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md. Verify same-workspace TruckOwnership authority, two-party CarrierAssignment activation, lifecycle, idempotency, audit, optimistic versioning, no delete/no inference, and that neither side can self-authorize both steps. Publish ACCEPT or precise NEEDS_FIX. Do not implement commands, execute migration 012, populate data, or begin IA-1 resolver/IA-2.
+Next bounded action: Amend RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md only, in the "End and revoke" section under CarrierAssignment: explicitly state whether a fleet actor may withdraw its own `pending` proposal before carrier decision, which capability authorizes it (`canonical.carrier_assignment.end` extended to cover pending withdrawal, or a documented decision that only `canonical.carrier_assignment.propose`-holders may withdraw their own pending row), and distinguish this routine-withdrawal case from the "invalid evidence" revoke framing already present. Preserve every other accepted rule, capability, and scenario unchanged. Documentation only - do not implement commands, execute migration 012, populate data, or begin IA-1 resolver/IA-2.
 <!-- CURRENT_END -->
 
 
@@ -4870,3 +4870,15 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - With both the orchestrator side (already independently verified via real CI job log: 329 passed) and the driver side (now independently re-verified: 332 passed, 0 failed, correction confirmed minimal and precise) confirmed, published final ACCEPT for the full IA-1 canonical relationship evidence prerequisite - migration 012 (truck_ownership, carrier_assignments), the read-only authorized endpoints, and the disconnected PWA adapters.
 - Escalated the actual next decision to the Product Owner rather than choosing unilaterally: the canonical relationship tables are now schema-ready but empty, and defining a proven, authorized population path (or deferring full resolver implementation) is a genuine product/data decision, not a review task.
 - No runtime, schema, migration, deployment, or data change occurred in this cycle - independent verification and one narrow local test run only. Migration 012 remains unexecuted; the tables remain empty.
+
+### 2026-09-03 - Claude - Reviewed relationship-evidence population contract, found one lifecycle gap (reviewer role)
+
+- Read RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md in full and checked it against every item the bounded action specified: same-workspace TruckOwnership authority, two-party CarrierAssignment activation, lifecycle, idempotency, audit, optimistic versioning, no delete/no inference, and that neither side can self-authorize both steps.
+- Confirmed TruckOwnership creation cannot broaden workspace access: it requires the actor's own independently-proven fleet membership in the exact target workspace, the target account already holding membership there, and the target truck already belonging to that workspace - the requested accountId/truckId are lookup keys only, matching this session's established server-derived-authority discipline.
+- Confirmed CarrierAssignment activation is genuinely two-party and non-bypassable: a fleet's proposal creates zero carrier visibility on its own; only the specifically addressed carrier's own active carrier-role membership in its own server-derived active workspace can list, accept, or reject it; the document explicitly and correctly states a carrier cannot self-activate and a fleet cannot accept on its own behalf.
+- Confirmed idempotency, audit, and optimistic-versioning sections correctly reuse the existing accepted orchestrator conventions (Idempotency-Key conflict/replay semantics, the immutable relationship_audit_events trigger from migration 009, expectedVersion locked-and-rechecked in one transaction) rather than inventing new, unproven patterns.
+- Confirmed the no-inference rule is comprehensive: it explicitly names and forbids every legacy/heuristic evidence source this session has independently discovered to be a real anti-pattern in this codebase (legacy truck carrier snapshots, AccountDriverLink, DriverTruckAssignment, unit numbers, names/email, MC/USDOT), not a generic placeholder list.
+- Found one genuine, if narrow, gap while checking lifecycle completeness specifically: the state machine's own transition table permits a `pending` proposal to become `revoked` ("pending/active + authorized revocation: revoked"), but the prose in "End and revoke" frames `end` as active-only and `revoke` as reserved for correcting invalid evidence, an error-correction framing distinct from routine withdrawal. The document never states whether or how a fleet actor can withdraw its own pending proposal before the carrier decides for an ordinary "changed our mind" reason. Verified this by grepping the full document for every mention of "pending"/"withdraw"/"cancel" rather than relying on a single read-through.
+- Published NEEDS_FIX with the precise clarification needed, explicitly noting this is a lifecycle-completeness gap, not a security defect - a proposal sitting pending indefinitely is not unsafe, but the contract should say so rather than leave the withdrawal path ambiguous, since the review checklist specifically asked for lifecycle verification.
+- Per the role-swap protocol: Next required actor: Codex, to add the one clarification and republish for final review.
+- No runtime, schema, migration, deployment, or data change occurred - documentation review only.
