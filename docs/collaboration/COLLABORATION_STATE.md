@@ -75,43 +75,23 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-3 - Driver Shell Integration - Independent Review Closed
-
-Status: CLOSED / ACCEPT (NOT_READY_FOR_PRODUCTION preserved)
-
-Current owner: Product Owner / Coordinator
-
+Phase: IA-3 accepted / Driver own-assignment read prerequisite design
+Status: IN_PROGRESS / COORDINATION AUTHORIZED
+Current owner: Codex
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed implementation commit c0ec7d884f59f4eca91fee311a8b11cbfa98f628 and DRIVER_SHELL_INTEGRATION_EVIDENCE.md. Cloned crewbiq-driver, checked out the exact commit, and read the full 91-line driver-presentation.js and the full index.html diff (77 changed lines) directly, not just the evidence document's claims. Confirmed the coordinator's applyDriver gate requires selfState.status==='success' AND projection.status==='resolved' AND membershipRole==='driver' AND non-blank workspaceId AND presentationPersona==='driver' simultaneously - all five, not a subset. Confirmed index.html's new getDriverShellPresentationRole() correctly defaults to the existing getUserRole() (full legacy behavior, zero regression for any unconnected/non-canonical-Driver account) unless a live snapshot-key match plus a genuinely resolved canonical Driver projection both hold, and that applyRoleUI()/primaryDestinationForPage() now route through this gate - confirmed this cannot elevate a canonical Fleet/Carrier account or promote a legacy persona, matching the accepted IA-3A Driver-only rule exactly. Independently verified the disclosed blocking dependency CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED is real and accurately described: read app/services/capabilities.py on the orchestrator's agent/account-driver-link-read branch directly and confirmed the driver role's capability set contains only canonical.account_driver_link.read, not canonical.driver_truck_assignment.read; read app/routers/driver_truck_assignments.py and confirmed the current-assignment endpoint's default authorization capability is exactly DRIVER_TRUCK_ASSIGNMENT_READ - so a genuine canonical Driver account would receive a real authorization denial on that read today, exactly as Codex disclosed, not a fabricated or exaggerated caveat. Confirmed no workaround was taken (capabilities.py untouched in this commit) and that the client's own denial-handling path is correct, not merely assumed: ran tests/driver-presentation.test.mjs directly with node --test (10 passed, 0 failed), including the specific assignment-authorization-denial scenario, which proves selfState becomes 'unauthorized' and applyDriver stays false rather than treating a denied read as successful integration. Ran the full npm run test:e2e:tooling suite on this exact commit: 366 passed, 0 failed, matching the evidence document's claim exactly and confirming no regression. Verified sw.js rotated crewbiq-driver-v97 to v98 with all three new module paths added to the cache-first app shell, and that every one of the eight test files carrying a hardcoded v97/getUserRole() assertion was updated in the same commit (spot-checked sidr-contract-resolver-integration-v1.test.mjs and tests/navigation_shell.test.mjs directly) - the exact discipline a prior session regression in this same file taught was necessary. Confirmed via the commit's own file list that no server role/capability, endpoint, migration, business-data, or deployment file was touched. Release readiness remains correctly NOT_READY_FOR_PRODUCTION: this slice is unit/static-contract evidence only: no authenticated browser/mobile/offline smoke, and no real canonical Driver has completed the assignment-read chain end to end against the live backend capability boundary.
-
-Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
-
-Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
-
-Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
-
-Latest contract commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
-
-Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1 (ACCEPTED)
-
-Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
-
-Latest review/state commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
-Blocking findings: NONE (implementation-correctness); CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains an open, independently-confirmed real dependency gating production readiness, not a code defect in this slice
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize (a) an orchestrator-only slice granting the canonical driver role its own-scope DRIVER_TRUCK_ASSIGNMENT_READ capability (server must independently enforce it is the authenticated Driver's own current assignment only, never workspace-wide), (b) authenticated browser/mobile/offline smoke against a real canonical Driver account once that capability exists, (c) IA-4 (Fleet shell integration), or (d) a different next step. Do not deploy, expand any capability as an unreviewed workaround, execute migration/data actions, or begin IA-4 in the meantime without separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Product truth: IA-3 client integration is independently accepted. Canonical Driver authority remains server-derived and own-scope only; no workspace-wide read grant is authorized. Existing legacy graceful degradation remains required.
+Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f
+Latest review commit: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77
+Latest prior state commit: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77
+Validation: IA-3 independently confirmed 10/10 targeted and 366/366 tooling
+Release readiness: NOT_READY_FOR_PRODUCTION
+Blocking findings: NONE for IA-3 correctness; CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED gates production readiness
+Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Codex
+Next bounded action: Documentation/design only: inspect accepted ADR-0007 and orchestrator session, AccountDriverLink and assignment-read authorization paths; specify the smallest server-derived own-current-assignment read contract, with cross-workspace, cross-driver, ambiguous-link and effective-date fail-closed checks. Identify exact proposed implementation/test boundaries and any unresolved policy question. Publish the design and hand to Claude for independent review before implementation. Do not grant a capability or modify runtime, roles, endpoints, migrations, data or deployment in this step. No IA-4 or unrelated work.
 <!-- CURRENT_END -->
 
 
@@ -5066,3 +5046,12 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Confirmed via the commit's own file list that no server role/capability, endpoint, migration, business-data, or deployment file was touched.
 - Published final ACCEPT for implementation correctness while explicitly preserving Release readiness: NOT_READY_FOR_PRODUCTION - this remains unit/static-contract evidence only, with no authenticated browser/mobile/offline smoke executed and no real canonical Driver having completed the assignment-read chain end to end against the live backend capability boundary.
 - Escalated the next decision to the Product Owner: whether to authorize a narrowly-scoped orchestrator capability grant (own-scope DRIVER_TRUCK_ASSIGNMENT_READ for the driver role, server-enforced to the authenticated Driver's own current assignment only), authenticated smoke once that exists, IA-4, or a different direction - explicitly warning against granting any broader/workspace-wide capability as an unreviewed workaround.
+
+### Coordination handoff correction after IA-3 ACCEPT
+
+Agent: Codex
+Basis: standing Product Owner delegation and explicit routine-checkpoint handoff correction rule.
+Reviewed state: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77; IA-3 ACCEPT retained without changing Claude's historical review.
+Decision: choose the blocking own-assignment read prerequisite before browser smoke or IA-4, beginning with documentation/design only. This is not permission to widen server capabilities or change security ownership.
+Scope: only CURRENT replacement and this HISTORY entry. Runtime/product/server permissions and deployment are unchanged.
+Next required actor: Codex for the bounded design, then Claude for independent review. Production readiness remains NOT_READY_FOR_PRODUCTION.
