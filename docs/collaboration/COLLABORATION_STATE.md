@@ -76,22 +76,24 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Synthetic Driver A fixture procedure / local PostgreSQL proof
-Status: IN_PROGRESS / IMPLEMENTATION AUTHORIZED
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Claude accepted the explicit synthetic subject and sponsor convention. Under standing delegation, authorize procedure implementation and disposable local PostgreSQL validation only. Staging execution remains separately gated.
+Product truth: Accepted synthetic subject/sponsor convention implemented as a local-only fixture rehearsal. No staging execution or remote target adapter is authorized by this publication.
 Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
 Latest review commit: 6c932543f1c5dcd892968d83cbb7849968f26398
-Latest prior state commit: 6c932543f1c5dcd892968d83cbb7849968f26398
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest prior state commit: 92c63837aaf60ae3b194da7788bb792d1a23959e
+Latest orchestrator implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be
 Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Evidence: docs/collaboration/DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md
+Validation: targeted 26 passed; full backend 425 passed; 0 failures; disposable local PostgreSQL only
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; staging write not authorized
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; staging execution/target adapter not completed
 Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Implement accepted DRIVER_A_FIXTURE_LINK_CONTRACT.md as a bounded standalone fixture utility in orchestrator app/testing/driver_a_fixture_link.py, with targeted tests/test_driver_a_fixture_link_postgres.py (and small pure-unit tests only if needed). Preserve runtime routes, auth, schema, deployments and existing provisioning utility. Implement read-only dry-run, guarded single-row apply, exact no-write rerun and separately gated rollback. Prove contract guards/concurrency/row preservation against disposable local PostgreSQL using real migrations including 011; run relevant fixture/link tests and full backend pytest. Publish implementation and evidence to Claude before any staging execution. No staging/production credentials, login, fixture writes, migrations, merge, deployment or IA-4; migrations/fixture changes allowed only in isolated disposable local test DB.
+Next required actor: Claude
+Next bounded action: Independently review orchestrator 15f28b19ae017dc5e6e42f83701648f0e63996be and DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md against the accepted contract. Assess guard/concurrency/receipt/rollback sufficiency and explicitly distinguish local proof from staging readiness. No staging writes, login, deployment, migrations remotely, merge or IA-4. Return bounded corrections to Codex if needed.
 <!-- CURRENT_END -->
 
 
@@ -5240,3 +5242,13 @@ Review: 6c932543f1c5dcd892968d83cbb7849968f26398 accepted contract ab41ad4e1e5ab
 Decision: authorize only standalone testing utility plus focused real-PostgreSQL tests and collaboration evidence. This routine technical continuation does not require changing product policy or staging data.
 Next required actor: Codex, then Claude for independent implementation review. Actual staging application/rollback remains subject to separate explicit authorization after local proof.
 Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote test-account credentials or login; no staging/production writes, migration, deployment, merge or IA-4. Local disposable test DB is the only database eligible for mutation in this implementation step.
+### 2026-09-03 - Codex: local Driver A fixture procedure published
+
+- Orchestrator implementation: 15f28b19ae017dc5e6e42f83701648f0e63996be on agent/account-driver-link-read.
+- Added only app/testing/driver_a_fixture_link.py and tests/test_driver_a_fixture_link_postgres.py; no runtime/auth/schema/provisioning changes.
+- Disposable local PostgreSQL proof: 26 targeted tests passed in 19.26s; full backend 425 passed in 38.10s, zero failures.
+- Two test setup SQL defects were corrected with explicit user permission before the successful final runs.
+- Evidence: DRIVER_A_FIXTURE_LINK_LOCAL_EVIDENCE.md. Local-only target restriction, synthetic provenance input and conservative rollback limitations are explicit; this is not staging execution readiness.
+- Railway publication safety checked read-only: PWA staging auto-deploy disabled; orchestrator staging trigger follows feat/deduction-period-integrity, not the implementation branch. No setting change or deployment.
+- CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING remains; no staging/production fixture mutation, remote migration, login or merge occurred.
+- CURRENT replaced; next actor Claude for independent review before any staging execution.
