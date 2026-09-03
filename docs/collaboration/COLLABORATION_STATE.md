@@ -75,23 +75,41 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Synthetic Driver A single-link fixture contract
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Synthetic Driver A single-link fixture contract - Independent Review Closed
+
+Status: CLOSED / ACCEPT (design only; staging execution NOT authorized by this closure)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
-Product truth: Proposed new explicit synthetic subject designation for Driver A, not inferred identity. One-row link contract only; no fixture writes, credentials, login or deployment.
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest review commit: d3896910345b86ff57d2067066c389432973215b
-Latest prior state commit: d3896910345b86ff57d2067066c389432973215b
-Contract: docs/collaboration/DRIVER_A_FIXTURE_LINK_CONTRACT.md
-Validation: provisioning source and migration 011 constraints inspected; no execution/tests in this documentation step
+
+Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
+
+Product truth: Independently reviewed DRIVER_A_FIXTURE_LINK_CONTRACT.md (commit ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67), a documentation-only design for a single-row synthetic AccountDriverLink to unblock the CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING finding. Explicitly accepted the proposed subject designation: reusing the already-verified Fleet A synthetic Driver/Truck (e2e-staging-20260714-fleet-a-driver-active / -truck-active) as a NEW, distinct test relationship for Driver A, not an inference of real identity - this is a reasonable engineering choice to exercise the own-current read/authorization mechanism using already-validated data, and the contract correctly discloses it does not by itself create a second-Driver/cross-workspace negative-test fixture, which remains a separate outstanding gap. Independently verified the contract's key technical claims against the actual orchestrator source rather than trusting them: read migrations/011_account_driver_links.sql in full and confirmed its trigger uses pg_advisory_xact_lock(hashtextextended('account-driver-link:' || workspace_id || ':' || account_id, 0)) exactly matching the contract's proposed advisory-lock key, and that its active-link overlap check filters on existing.account_id = new.account_id - confirming the contract's claim that the overlap constraint is scoped per workspace+Account, not per Driver, so a new Driver A link can structurally coexist with Fleet A's existing link without conflict or borrowed authority; confirmed the same trigger independently re-validates account-workspace-membership and driver-workspace-ownership consistency at the database level regardless of the proposed procedure's own application-level guards, providing a second independent enforcement layer. Confirmed attributed_by_account_id is a real FK-enforced column requiring an existing auth_users.crewbiq_id, and that using CBQ-E2E-FLEET-A there is explicitly disclaimed in the contract as a fixture-provenance convention only, never a claim that a Fleet A session performed the write, with real automation-executor identity required separately in the reason field. Assessed the atomic-guard sequence (revalidate exact target rows and lock them in one transaction; validate the sponsor account without modifying it; lock and snapshot Fleet A's untouched link/assignment; acquire the same advisory lock the migration's own trigger uses; require zero pre-existing Driver A links of any status and zero rows at the reserved UUID; insert exactly one row with RETURNING verification; verify Fleet A's rows are unchanged before commit) as thorough, defense-in-depth, and consistent with every fail-closed pattern accepted earlier in this session. Confirmed the rerun/rollback semantics are appropriately strict (rerun only returns ALREADY_APPLIED on an exact field-for-field match, never refreshing timestamps; rollback requires an exact match on every field including original T, deletes exactly one row, and is not implicitly authorized by this contract). Confirmed the document explicitly requires implementing and proving the procedure against disposable PostgreSQL with real migration 011 constraints (not mocks) before any staging write is attempted, matching the rigor already established for every prior implementation in this session. This document itself performed no data mutation, executed no login, and does not authorize staging execution - it is a design acceptance only.
+
+Latest fixture link contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67 (ACCEPTED as design; staging execution separately gated)
+
+Latest fixture discovery commit: be082771d3b60af13ff71d097f94e31dcbd29787 (ACCEPTED)
+
+Latest staging deployment evidence commit: 8766cd1eface4cc8dff8bd01c9c642705b07bbf1 (ACCEPTED)
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest review commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; proposed subject/sponsor convention needs explicit review; harness and cross-principal coverage outstanding
-Queued coverage: authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review DRIVER_A_FIXTURE_LINK_CONTRACT.md, explicitly accept or reject the proposed synthetic subject and sponsor convention, one-row mutation boundary, concurrency/provenance/rerun/rollback guards and disposable-PostgreSQL validation requirements. Publish ACCEPT or precise NEEDS_FIX. After acceptance return bounded fixture-procedure implementation/testing authorization to Codex; no staging execution is authorized by this contract publication. No deployment, merge, migration, account/role change or IA-4.
+
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists until this design is implemented, tested against disposable PostgreSQL, and separately authorized for staging execution; second-Driver/cross-workspace fixtures, IA-3 harness compatibility, and authenticated browser/mobile/offline evidence remain outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize Codex to implement the accepted fixture-link procedure, prove it against disposable PostgreSQL with real migration 011 constraints per the contract's own validation section, and only then request separate explicit authorization for the actual bounded staging write. No staging execution, credential handling, login, deployment, migration, or IA-4 without that further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5222,3 +5240,13 @@ Artifact: DRIVER_A_FIXTURE_LINK_CONTRACT.md. Proposes explicit synthetic Driver 
 Observed migration 011 overlap constraint is per Account/workspace, not per Driver across Accounts. This is structural compatibility, not inferred identity or automatic permission to mutate.
 No runtime/test/harness changes, fixture writes, credential action, login, deployment or migration. Existing Fleet link and assignment must remain untouched.
 Next required actor: Claude must review explicit subject semantics and guards. Execution remains unauthorized; NOT_READY_FOR_PRODUCTION and queued coverage unchanged.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the synthetic Driver A fixture-link design (reviewer role)
+
+- Read DRIVER_A_FIXTURE_LINK_CONTRACT.md (commit ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67) in full - a documentation-only design, execution explicitly not authorized by the document itself.
+- Explicitly accepted the proposed subject designation (reusing Fleet A's already-verified synthetic Driver/Truck as a new, distinct test relationship for Driver A) as a reasonable engineering choice for exercising the own-current mechanism, and confirmed it correctly discloses this does not create the still-missing second-Driver/cross-workspace negative-test fixture.
+- Independently verified the contract's key technical claims against migrations/011_account_driver_links.sql directly rather than trusting them: confirmed the trigger's advisory-lock key format matches exactly, and that its active-link overlap check is scoped to existing.account_id = new.account_id (per workspace+Account, not per Driver) - confirming the proposed new Driver A link can structurally coexist with Fleet A's existing link without conflict, and that the database trigger independently re-enforces account-workspace-membership and driver-workspace-ownership consistency as a second layer beyond the proposed procedure's own application-level guards.
+- Confirmed attributed_by_account_id is FK-enforced against a real existing account, and that using CBQ-E2E-FLEET-A there is explicitly and correctly disclaimed as a provenance convention only, never implying a Fleet A session performed the write.
+- Assessed the full atomic-guard/rerun/rollback sequence as thorough and consistent with every fail-closed pattern already established and accepted in this session, and confirmed the contract requires proving the procedure against disposable PostgreSQL with real migration 011 constraints before any staging write is attempted.
+- Published final ACCEPT for the design. No data mutation, login, or staging execution occurred in this review or is authorized by it.
+- Escalated the next decision to the Product Owner: whether to authorize implementing and disposable-PostgreSQL-proving the fixture procedure, with the actual staging write requiring its own further separate authorization afterward.
