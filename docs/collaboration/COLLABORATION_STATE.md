@@ -75,39 +75,23 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current-assignment read implementation - Independent Review Closed
-
-Status: CLOSED / ACCEPT (NOT_READY_FOR_PRODUCTION preserved)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Accepted Driver own-current integration / staging validation preparation
+Status: IN_PROGRESS / COORDINATION AUTHORIZED
+Current owner: Codex
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed orchestrator implementation commit ce5a591a48f1733b4e21128dece0e0350ace41c2 and DRIVER_OWN_ASSIGNMENT_READ_EVIDENCE.md by reproducing every claim from scratch, not by trusting the report. Cloned crewbiq-orchestrator, checked out the exact commit, and read the full new app/services/driver_self_assignment.py (128 lines), the router diff, the capabilities.py diff, and the full 426-line tests/test_driver_self_assignment.py end to end. Independently spun up a fresh disposable postgres:16-alpine Docker container (unrelated to the authors' own container, stopped and removed after this review) and ran the complete backend suite against it myself: 399 passed, 0 failed, 0 skipped - exactly matching the evidence document's own count, including by copying a sibling crewbiq-driver checkout into place so the cross-repository wire test also ran rather than skipped. Independently re-ran the real-PostgreSQL transaction-isolation test (test_real_postgres_snapshot_survives_link_revocation_then_next_request_denied) and read its full body: it opens a genuine asyncpg connection to the disposable database, creates a unique synthetic schema, holds one in-flight repeatable-read read-only transaction after its account_driver_links read (asserting show transaction_isolation = repeatable read and transaction_read_only = on at that exact point), revokes the link from a second admin connection while the first transaction is paused, proves the paused transaction still observes the original active link and returns only the authenticated driver's own assignment (excluding a second synthetic driver's assignment on the same shared truck), then proves an entirely new subsequent request correctly observes the revocation and returns account_driver_link_not_found - genuine MVCC/snapshot-isolation proof, not a mock. Ran the PWA-side regression suite independently: node --test tests/driver-truck-assignment.test.mjs tests/driver-self.test.mjs tests/driver-self-ui.test.mjs tests/driver-presentation.test.mjs gave 29 passed, 0 failed, matching the evidence exactly. Read the router diff and confirmed the own-only branch is entered only via catching a 403 capability_required exception from the existing broad-capability check (meaning workspace/membership/ambiguity checks already passed), re-derives and re-checks the new capability plus canonical driver membership role explicitly, rejects any query parameter other than a single driver_id (400 own_current_filter_invalid) - closing off truck_id/temporal/duplicate-driver_id attempts to hide ambiguity - and that the existing broad-capability path, history, as-of, create, close, and revoke endpoints are entirely untouched by this branch. Read driver_self_assignment.py and confirmed a mismatched requested_driver_id is rejected (403 driver_scope_required) without ever querying the other driver's data; confirmed provenance is minimized to {} only for included own-only assignment rows; confirmed the assignment-read Conn stub's execute() intentionally pytest.fails the test if invoked, and the real service code contains no insert/update/delete, matching the no-business-write claim. All factual claims in the evidence document were independently reproduced rather than accepted at face value. Release readiness correctly remains NOT_READY_FOR_PRODUCTION: no deployment/merge to main occurred, and authenticated browser/mobile/offline smoke plus CANONICAL_STAGING_JOURNEYS remain outstanding, unexecuted gates.
-
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
-
-Latest design commit: 1f277ebb4fa5447d210a0d61892cca7e0d07ea71 (ACCEPTED)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
-
-Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
-
-Latest review/state commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
-Blocking findings: NONE (implementation-correctness, independently reproduced); CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED now has a reviewed and accepted candidate fix, not yet merged/deployed
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize (a) merging the accepted orchestrator branch agent/account-driver-link-read to main and deploying it to staging, (b) authenticated browser/mobile/offline smoke against a real canonical Driver account once staged, (c) IA-4 (Fleet shell integration), or (d) a different next step. Do not deploy to production, execute migration/data actions, or begin IA-4 in the meantime without separate explicit authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Product truth: Own-current implementation independently accepted. No merge or deployment authorized in this step. Prepare exact-SHA staging validation using existing accepted procedures; do not infer production readiness from unit/SQL evidence.
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Latest review commit: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6
+Latest prior state commit: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6
+Validation: Claude independently reproduced backend 399/399 and PWA 29/29, including real PostgreSQL isolation
+Release readiness: NOT_READY_FOR_PRODUCTION
+Blocking findings: NONE in accepted implementation; deployed own-current access and authenticated integration remain unverified
+Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Codex
+Next bounded action: Read-only discovery and documentation only: prepare the smallest exact-SHA staging integration validation plan for accepted orchestrator ce5a591a48f1733b4e21128dece0e0350ace41c2 and PWA c0ec7d884f59f4eca91fee311a8b11cbfa98f628. Inspect existing staging procedures, environment/revision/schema evidence and authorized synthetic account prerequisites; specify browser/mobile/offline, cross-principal denial and legacy graceful-degradation checks, recovery and exact missing prerequisites. Do not assume merge to main is necessary for staging. No merge, deploy, infrastructure/configuration changes, migration or data mutation, new runtime code or IA-4. Publish the bounded plan and hand to Claude for review before any execution.
 <!-- CURRENT_END -->
 
 
@@ -5117,3 +5101,12 @@ Next required actor: Claude for independent implementation review. No IA-4 or un
 - Read driver_self_assignment.py and confirmed a mismatched requested driver_id is rejected before any assignment query (never queries the other driver's data), provenance is minimized to {} only for own-only responses, and the fake DB stub's execute() intentionally fails the test if the read path ever attempts a write - matching the no-business-write claim against actual code, not just the test's name.
 - Published final ACCEPT for implementation correctness while preserving Release readiness: NOT_READY_FOR_PRODUCTION - no deployment/merge occurred, and authenticated browser/mobile/offline smoke plus staging journeys remain outstanding, unexecuted release gates.
 - Escalated the next decision to the Product Owner: whether to authorize merging this accepted orchestrator branch to main and staging it, authenticated smoke once staged, IA-4, or a different direction.
+
+### Coordination after independent own-current implementation ACCEPT
+
+Agent: Codex
+Review: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6; backend 399/399 and PWA 29/29 independently reproduced.
+Decision under standing Product Owner delegation: prioritize closing authenticated integration evidence before IA-4. Authorize read-only staging validation planning only, not the offered merge/deploy option.
+Reason: standing monitor scope prohibits merge/deploy; a plan can identify exact staging prerequisites and safe exact-SHA routing without changing any environment. No direct Product Owner decision is needed for this documentation-only step.
+CURRENT ownership changed from routine Product Owner checkpoint to Codex. Claude's review remains preserved in HISTORY. Accepted code and NOT_READY_FOR_PRODUCTION remain unchanged.
+Next: Codex publishes bounded plan, Claude independently reviews. No runtime, configuration, workflow, migration or business-data change.
