@@ -75,19 +75,19 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-3A - Driver Shell Integration Contract
+Phase: IA-3A - Driver Shell Integration Contract - Independent Review Closed
 
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Status: CLOSED / ACCEPT
 
-Current owner: Claude
+Current owner: Product Owner / Coordinator
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: IA-3A documentation contract is published. It permits only future lazy in-memory Driver projection, never a new boot/router/authority owner. Resolved Driver may narrow to existing Driver destinations; unavailable canonical authority preserves legacy workflows and PTI graceful degradation. Fleet is untouched and carrier is never mapped to fleet. Runtime/cache/tests/package remain unchanged in IA-3A.
+Product truth: Independently reviewed DRIVER_SHELL_INTEGRATION_CONTRACT.md at commit ccdceee6f34de5c0dcde375445fb27622e48784f (documentation-only, one new 140-line file, no runtime/cache/tests/package change - confirmed via commit file list). Read the full document and checked it against every item the bounded action named: Driver-only application rule requires status resolved, membershipRole driver, non-blank workspaceId, and presentationPersona driver simultaneously - confirmed this correctly excludes a canonical-fleet-with-legacy-driver-persona account (presentationPersona can be 'driver' for a fleet membershipRole per the accepted IA-2 narrowing rule) from receiving Driver narrowing, keeping fleet on its legacy shell pending IA-4 exactly as the document states; graceful degradation section correctly requires legacy presentation/offline workflows and PTI submittability to be preserved for unavailable/unauthorized/ambiguous/no-account/network-down cases, with an explicit no-lockout and no-inference rule and a rule against caching a failed canonical result as authority; existing-owners section correctly preserves startup-session.js as sole boot/restore/PTI-gate/showApp owner and index.html::showPage() as sole DOM router, matching every prior accepted contract's non-goals; exact integration shape defines a single derived snapshot key (session token + canonical account ID + server-active workspace ID) and requires only-the-newest-snapshot-key updates with stale async results discarded; cache section correctly claims the current cache is crewbiq-driver-v97 (independently verified by reading sw.js at the current branch tip: const CACHE_NAME = 'crewbiq-driver-v97') and requires rotation to v98 plus every exact cache assertion updated in the actual implementation slice, explicitly noting no rotation occurs in this documentation slice (confirmed true - the diff touches only the new .md file); the 10 required-implementation-tests map one-to-one onto the contract's own rules with no gaps; the implementation allowlist is tightly bounded (one new coordinator module, index.html script/wiring only, sw.js v98 rotation, targeted tests, package.json test wiring, collaboration evidence) and explicitly excludes endpoint/role/capability/navigation-inventory/business-logic/migration/data/deployment/later-IA-slice changes, consistent with every prior accepted IA-1/IA-2 boundary. No contradiction found against the accepted PresentationContext or Navigation Projection contracts. No runtime/cache/tests/package file was touched by this slice, and none was touched by this review.
 
-Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f
+Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f (ACCEPTED)
 
 Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a (ACCEPTED)
 
@@ -99,17 +99,17 @@ Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1d
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review/state commit: b5d2ea426844bac6cfabf56d2f8e73b4b39d4ff4
+Latest review/state commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE pending independent review
+Blocking findings: NONE
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Claude
+Next required actor: Product Owner
 
-Next bounded action: Independently review DRIVER_SHELL_INTEGRATION_CONTRACT.md at ccdceee6f34de5c0dcde375445fb27622e48784f. Verify Driver-only narrowing, graceful degradation without lockout, single startup/showPage ownership, exact evidence composition, stale-request invalidation, v98 cache discipline, regression gates, and implementation allowlist. Publish ACCEPT or precise NEEDS_FIX. Do not modify runtime/cache/tests/package or begin IA-3 implementation.
+Next bounded action: Decide whether to authorize IA-3 implementation (the Driver shell integration itself, per the now-accepted contract and its implementation allowlist), orchestrator migration 012 execution plus staging relationship data population, a PWA relationship-command adapter/UI slice, or a different next step. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
 <!-- CURRENT_END -->
 
 
@@ -5022,3 +5022,15 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Confirmed via grep that navigation-projection.js is referenced nowhere in index.html, sw.js, or core-runtime.js, and via git show --stat that only the contract, package.json, navigation-projection.js, and its test file changed in this commit - genuinely disconnected from the app shell as the contract claims.
 - Published final ACCEPT. No DOM/shell integration, endpoint authorization change, migration, data population, or deployment occurred in this review cycle - independent verification only.
 - Escalated the next decision to the Product Owner: whether to authorize IA-3 (shell/DOM integration), orchestrator migration 012 execution plus staging population, a PWA relationship-command adapter/UI slice, or a different direction.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the IA-3A Driver Shell Integration Contract (reviewer role)
+
+- Read DRIVER_SHELL_INTEGRATION_CONTRACT.md (commit ccdceee6f34de5c0dcde375445fb27622e48784f, 140 lines, documentation-only) in full and confirmed via the commit's file list that only this one new file was added - no runtime, cache, test, or package change occurred in this slice.
+- Verified the Driver-only application rule (status resolved + membershipRole driver + non-blank workspaceId + presentationPersona driver, all four required) correctly excludes a canonical-fleet-role account carrying a legacy driver persona from receiving IA-3 narrowing, since the accepted IA-2 navigation projection can set presentationPersona to 'driver' for a fleet membershipRole but this contract additionally requires membershipRole itself be driver - traced this interaction between the two accepted contracts by hand rather than assuming it was consistent.
+- Verified the existing-owners section correctly preserves startup-session.js as the sole boot/restore/PTI-gate/showApp owner and index.html::showPage() as the sole DOM router/render-hook dispatcher, matching the non-goals already accepted in the PresentationContext and Navigation Projection contracts.
+- Verified the graceful-degradation section requires legacy presentation, offline workflows, and PTI submittability to be preserved for every non-resolved/no-account/network-down case, with explicit no-inference, no-lockout, and no-caching-a-failed-result-as-authority rules - consistent with the fail-closed philosophy every prior accepted contract in this sequence has followed.
+- Independently verified the document's factual claim that the current cache version is crewbiq-driver-v97 by reading sw.js at the current branch tip directly (const CACHE_NAME = 'crewbiq-driver-v97') rather than trusting the document's own assertion, confirming the required v97->v98 rotation instruction for the future implementation slice is accurate.
+- Confirmed the 10 required-implementation-tests map one-to-one onto the contract's own rules (script order/no-load-side-effects, driver-only narrowing without persona writes, graceful degradation under no-account/network-down, unauthorized/ambiguous non-application, fleet/carrier non-alteration, stale-snapshot invalidation, single coordinator refresh path, showPage()/route-history/Quick-Add stability, and full existing regression suite gates) with no gap.
+- Confirmed the implementation allowlist is tightly bounded to one new coordinator module, index.html script/wiring only, sw.js v98 rotation, targeted tests, package.json test wiring, and collaboration evidence - explicitly excluding endpoint/role/capability/navigation-inventory/business-logic/migration/data/deployment/later-IA-slice changes, consistent with every prior accepted IA-1/IA-2 boundary in this sequence.
+- Published final ACCEPT. No runtime/cache/tests/package file was touched by this slice or by this review - documentation review only.
+- Escalated the next decision to the Product Owner: whether to authorize the actual IA-3 implementation now that its governing contract is accepted, orchestrator migration 012 execution plus staging population, a PWA relationship-command adapter/UI slice, or a different direction.
