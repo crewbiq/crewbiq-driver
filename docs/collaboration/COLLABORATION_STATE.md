@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Presentation Context Contract - V9 Gate Correction
+Phase: IA-1 Presentation Context Contract - V9 Gate Correction Published
 
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
+Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: DriverTruckAssignment input/fail-closed semantics and carrier cross-workspace relationship evidence are now correct. One stale documentation range remains: Readiness and Next bounded slice still gate IA-1 implementation on V1-V8 instead of the complete V1-V9 contract.
+Product truth: Confirmed via grep that four references in Readiness and Next-bounded-slice still named "V1-V8" as the implementation/proof gate after V9 was added in the prior correction round, silently excluding V9 (the DriverTruckAssignment fail-closed edge cases) from what a future IA-1-implementation slice must prove. Fixed by replacing all four occurrences with "V1-V9"; confirmed via diff this is the only change (+4/-4, API-confirmed) and no other content was touched.
 
 Latest implementation commit: NONE (documentation-only contract slice)
 
-Latest correction commit: e384a1097069f0b568ab647c5ec1f562f8a97eb9
+Latest correction commit: 3b6a81f0587d766d8800a89cc5df294ba23ab9ba
 
 Latest review commit: ae0fe67dcc673d617a0a1b8959e6b7e52b1c86ec
 
-Latest state commit: b22245b6527ce041c2238411b88dcc4d43cd1eaf
+Latest state commit: (pending this publication)
 
-Blocking findings: V9_NOT_INCLUDED_IN_IMPLEMENTATION_GATE
+Blocking findings: NONE (pending Codex re-review)
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1 implementation and IA-2 through IA-6 remain separate, not-yet-started slices
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1-implementation and IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Correct PRESENTATION_CONTEXT_CONTRACT.md only by replacing stale V1-V8 implementation/readiness ranges with V1-V9 so V9 is mandatory for the future IA-1 implementation. Preserve all accepted semantics. Documentation only; do not implement the resolver or IA-2.
+Next bounded action: Independently re-review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit 3b6a81f0587d766d8800a89cc5df294ba23ab9ba) to confirm all V1-V8 references were correctly updated to V1-V9 and no other content changed. Publish ACCEPT or precise NEEDS_FIX. Documentation-only review; no runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate remains IA-1-implementation (not IA-2), which requires its own separate future authorization.
 <!-- CURRENT_END -->
 
 
@@ -4766,4 +4766,12 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Reviewed the full before/after diff before publishing: confirmed every removed line was replaced by the more precise 2a-2c split, with no requirement weakened.
 - Published as commit e384a1097069f0b568ab647c5ec1f562f8a97eb9 (verified tip unchanged immediately before publish, blob size independently verified against local source, published content independently re-fetched via git show and byte-diffed after push, and the real +61/-8 diff stat pulled from the Commits API rather than asserted).
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review of both fixes against the actual published diff.
+- No runtime, workflow, deploy, migration, or data change occurred - documentation/contract only.
+
+### 2026-09-03 - Claude - Fixed V9 implementation-gate omission in IA-1 contract (implementer role)
+
+- Independently reproduced the finding via grep before fixing: confirmed four literal "V1-V8" references remained in the Readiness table and Next-bounded-slice section after V9 was added in the immediately prior correction round - meaning the document, as published, silently excluded V9's DriverTruckAssignment fail-closed edge cases from what a future IA-1-implementation slice would be required to prove.
+- Fixed with a targeted find-and-replace of exactly the four "V1-V8" occurrences to "V1-V9", verified by diff to be the only change in the file - no other content, rule, or scenario was touched.
+- Published as commit 3b6a81f0587d766d8800a89cc5df294ba23ab9ba (verified tip unchanged immediately before publish, blob size independently verified against local source, published content independently re-fetched via git show and byte-diffed after push, and the real +4/-4 diff stat pulled from the Commits API).
+- Per the role-swap protocol: Next required actor: Codex, for independent re-review confirming the fix is complete and no other stale reference remains.
 - No runtime, workflow, deploy, migration, or data change occurred - documentation/contract only.
