@@ -76,18 +76,22 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: IA-3 - Driver Shell Integration
-Status: IN_PROGRESS
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
-Product truth: IA-3A is independently accepted. Under standing Product Owner delegation, Codex authorizes only the accepted allowlist: one in-memory Driver coordinator, narrow index wiring, v98 cache rotation, targeted tests, and collaboration evidence. Preserve legacy graceful degradation, PTI/startup/offline/Quick Add, server authority, and existing domain ownership.
+Product truth: The bounded client implementation is published with snapshot-key invalidation and legacy graceful degradation. Server capabilities are unchanged. Successful canonical Driver end-to-end assignment read is not proven and is blocked by the existing backend capability boundary.
+Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
 Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f
-Latest accepted IA-2 commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a
-Latest accepted IA-1 commit: fac6d21dd896caaf3df04dc654680594d27d0647
-Latest review/state commit: e9c63ea79bdf2caaa14f9f2bb4cffd88e35d6850
-Blocking findings: NONE
+Latest review commit: e9c63ea79bdf2caaa14f9f2bb4cffd88e35d6850
+Latest prior state commit: 4c8c141a62700722ae01f1f1fe01243f12b81f0e
+Validation: coordinator 10 passed; full tooling 366 passed; 0 failures
+Cache: crewbiq-driver-v98
+Release readiness: NOT_READY_FOR_PRODUCTION
+Blocking findings: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED
+Queued coverage: authenticated browser/mobile/offline smoke not executed; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Implement DRIVER_SHELL_INTEGRATION_CONTRACT.md only. Reuse one evidence refresh path, discard stale promises, apply only resolved canonical Driver narrowing, retain legacy workflows otherwise, rotate cache to v98, run required regressions, publish, and hand to Claude. No migration/data/deployment, endpoint/role change, Fleet/Carrier integration, or IA-4.
+Next required actor: Claude
+Next bounded action: Independently review c0ec7d884f59f4eca91fee311a8b11cbfa98f628 against the accepted IA-3A contract, snapshot invalidation and graceful-degradation tests, and DRIVER_SHELL_INTEGRATION_EVIDENCE.md. Confirm the server capability dependency and distinguish controlled test success from real Driver end-to-end readiness. Publish ACCEPT or precise NEEDS_FIX; no deployment, server-permission expansion, migration/data action, or IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5018,3 +5022,15 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Confirmed the implementation allowlist is tightly bounded to one new coordinator module, index.html script/wiring only, sw.js v98 rotation, targeted tests, package.json test wiring, and collaboration evidence - explicitly excluding endpoint/role/capability/navigation-inventory/business-logic/migration/data/deployment/later-IA-slice changes, consistent with every prior accepted IA-1/IA-2 boundary in this sequence.
 - Published final ACCEPT. No runtime/cache/tests/package file was touched by this slice or by this review - documentation review only.
 - Escalated the next decision to the Product Owner: whether to authorize the actual IA-3 implementation now that its governing contract is accepted, orchestrator migration 012 execution plus staging population, a PWA relationship-command adapter/UI slice, or a different direction.
+
+### 2026-09-03 - IA-3 implementation and approved stale-state correction published
+
+- Implementation: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+- User approved narrow client correction; render-time key guard now rejects stale session/account/workspace projection
+- Tests: coordinator 10 passed; full tooling 366 passed; 0 failures
+- Runtime files: index.html, sw.js, driver-presentation.js; cache v98
+- Evidence: DRIVER_SHELL_INTEGRATION_EVIDENCE.md
+- Remaining blocker: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED; no backend permissions changed
+- Live authenticated/browser/mobile/offline verification was not performed; no production-ready claim
+- No deployment, merge, migration, or business-data mutation
+- Next required actor: Claude for independent review
