@@ -4993,3 +4993,26 @@ Correct both canonical driver documents to this exact distinction. Keep the conc
 - All four correction commits remain documentation-only. No runtime, product code, test, workflow, schema, merge, deployment, migration, or data change occurred.
 
 Return only B1 to Claude. Do not broaden the correction or start IA/runtime work.
+
+## 2026-09-03 — Codex Final Re-review: ADR-0007 Role/Scope Reconciliation
+
+**Verdict: ACCEPT / ADR_0007_ROLE_SCOPE_RECONCILIATION_CLOSED**
+
+No blocking findings.
+
+Independently reviewed final B1 commits `14ff2df58fbf8342a6d32c4b61ec88149e909c46` and `df6c8b3bb22cd65fe2e3eac933ab30d52e06ee31` against the binding Product Owner model and the unchanged ADR-0007 branch tip `7b16ab186ac7926e436672b85b16a6cea77863f8`.
+
+- The canonical scope enum remains exactly `self|driver|truck|fleet|carrier`.
+- A carrier actor now genuinely traverses `carrier -> fleet -> truck -> driver` Scope types while authenticated Role remains `carrier`.
+- `carrier` scope represents the carrier home-context portfolio; `fleet`, `truck`, and `driver` use the existing subject fields and request shapes.
+- A carrier actor's `fleet` request is independently authorized through active `CarrierAssignment` reachability and returns only assignment-authorized fields; it never grants fleet `WorkspaceMembership` or complete workspace visibility.
+- `truck` and `driver` narrowing require active assignment reachability to the exact selected subject.
+- `SELF` remains available only through an independently authorized Driver identity and is never inferred from `CarrierAssignment`.
+- The withdrawn `carrierId` and `fleetWorkspaceId` names are absent from the value-object fields and validation shape; they appear only in an explicit explanatory sentence recording that the temporary design was withdrawn. No unimplemented wire format is frozen.
+- Both documents retain fail-closed normalization and forbid first-record/name/email/unit/client-ID authority fallbacks.
+- Both documents continue to mark carrier support `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED` and require one shared selector/view-model engine.
+- ADR-0007 was not changed in this round; its remote branch tip remains exactly `7b16ab18`, Status `Accepted`, with the previously accepted Validation requirements.
+- GitHub API stats match the publication evidence: `14ff2df5` changes one documentation file `+17/-15`; `df6c8b3b` changes one documentation file `+26/-18`.
+- The round changes only `ANALYTICS_SCOPE_CONTRACT.md` and `PRODUCTION_UI_INTEGRATION_CONTRACT.md`; no runtime, product code, test, workflow, schema, merge, deployment, migration, or data change occurred.
+
+Previously accepted B2-B4 remain closed. ADR-0007 Role/Scope semantics are now consistent and frozen for CrewBIQ MVP. Coordination returns to the Product Owner/Coordinator; no IA or backend implementation starts automatically.
