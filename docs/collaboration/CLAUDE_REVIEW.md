@@ -5097,3 +5097,19 @@ The new V9 correctly asserts missing/malformed/ended/future/ambiguous DriverTruc
 ### Scope verification
 
 Documentation-only review. No runtime, workflow, deployment, migration, data, test, package, or UI change is authorized or required.
+
+## Codex final re-review - IA-1 Presentation Context Contract (2026-09-03)
+
+**Reviewed correction:** `3b6a81f0587d766d8800a89cc5df294ba23ab9ba`  
+**Verdict:** `ACCEPT`
+
+The correction changes exactly four stale validation ranges from `V1-V8` to `V1-V9` in Readiness and Next bounded slice. V9 is now mandatory for the future IA-1 resolver implementation and executable evidence gate. No other contract content changed.
+
+All prior findings are closed:
+
+- every non-resolved payload is fully fail-closed;
+- current DriverTruckAssignment evidence is declared, distinct from ownership, and fail-closed for missing/malformed/ended/future/ambiguous evidence;
+- active CarrierAssignment cross-workspace subjects remain evidence-only and grant neither fleet membership nor full delegated-workspace authority;
+- IA-1 implementation and V1-V9 evidence precede IA-2.
+
+Documentation-only review. No runtime, workflow, deployment, migration, data, package, test, or UI files changed.
