@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: MVP Information Architecture / Production UI Integration Preparation
+Phase: IA-0 — MVP Information Architecture / Production UI Integration Preparation
 
-Status: AUTHORIZED / IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: ADR-0007 is Accepted at `crewbiq-docs` commit `d62cb51702d9007d7a289dc9c2b4330b2e95e3c8` and independently accepted by Codex review `3943058`. MVP role semantics are frozen: exactly `driver`, `fleet`, `carrier`; `owner` is a relationship; authority is `WorkspaceMembership`-scoped and server-derived; carrier cross-fleet visibility derives only from active `CarrierAssignment`; Dispatcher, Safety, Mechanic, and Phase-4 roles remain deferred. Implementation remains not production-ready until every ADR validation requirement passes.
+Product truth: ADR-0007 is Accepted and MVP role semantics are frozen. IA-0 preparation commit `7391828` inventories the exact v96 shell/navigation boundary, separates legacy local personas (`driver/owner_op/fleet`) from canonical authority (`driver/fleet/carrier`), defines a fail-closed presentation-context boundary, and sequences one reviewed read-only surface at a time. It does not treat navigation visibility as authorization, rename `owner_op`, simulate `carrier` as `fleet`, replace the production shell, or modify runtime.
 
-Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
+Latest implementation commit: 73918286bf94d1e436237fb8cc038481a28ca5db
 
 Latest correction commit: d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (crewbiq-docs)
 
 Latest review commit: 3943058
 
-Latest state commit: (pending this publication)
+Latest state commit: 8c3dead8bcf8f96a3c994950ae4bd36e09cb990f
 
 Blocking findings: NONE
 
-Queued non-blocking findings: ADR-0007 integration into crewbiq-docs main; authenticated live smoke and cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: Canonical-vs-legacy presentation role bridge is missing; Fleet IA is partial; Carrier IA requires assignment-scoped field/view-model and authorization contracts; ADR-0007 integration into crewbiq-docs main; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Documentation-only IA-0 preparation: inventory the exact v96 production navigation/shell and accepted product/role contracts, define role-specific information-architecture boundaries and the safest production UI integration sequence, and identify explicit blockers/unknowns. Do not change runtime, begin a broad RBAC rewrite, or start SIDR, Dispatch, Safety, Truckpedia, #206480, or workflow work. Publish the preparation artifact and hand it to Claude for independent review.
+Next bounded action: Independently review `docs/collaboration/MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md` against production v96, ADR-0007, and accepted navigation/UI/scope contracts. Confirm the role/authority separation, current surface inventory, readiness classifications, guardrails, and IA-1 recommendation are semantically sound and do not broaden scope. Publish ACCEPT or precise NEEDS_FIX, update CURRENT/HISTORY, and hand back to Codex. Documentation review only; no runtime, workflow, deploy, migration, or data change.
 <!-- CURRENT_END -->
 
 
@@ -4607,3 +4607,13 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Frozen semantics: `driver`, `fleet`, `carrier`; relationship-based ownership; `WorkspaceMembership` authority; server-derived access; `CarrierAssignment`-only delegated carrier visibility; Phase-4 roles deferred.
 - Next phase authorized by Product Owner: documentation-only MVP Information Architecture / Production UI Integration preparation.
 - Runtime/workflow/deploy/migration/data changes: NONE.
+
+### 2026-09-03 — Codex published IA-0 preparation
+
+- Artifact: `docs/collaboration/MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md`.
+- Implementation/document commit: `7391828`.
+- Current v96 shell and navigation ownership inventoried; presentation visibility explicitly separated from ADR-0007 authority.
+- Legacy `owner_op` retained only as presentation compatibility; no canonical-role reinterpretation or carrier-as-fleet shortcut approved.
+- Recommended post-review continuation: IA-1 presentation-context contract and pure fail-closed resolver, with no DOM change.
+- Runtime/workflow/deploy/migration/data changes: NONE.
+- Next required actor: Claude for independent documentation review.
