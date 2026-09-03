@@ -4869,3 +4869,22 @@ Independently reviewed open PR #102, base `main` at `bcfd74a22449b974755b8b48bc0
 - PWA Auth Contract run `33702220721`, job `100483739508`, completed `SUCCESS` on exact head `5ef42cfa`; the new Legacy Sync Decommission step reports 15 tests, 15 passes, zero failures, cancellations, or skips. Every existing job step also succeeded.
 
 PR #102 is ready for a separate explicit merge authorization. This review does not authorize or perform merge, deploy, migration, settings change, or data mutation.
+
+## 2026-09-02 — Codex Independent Verification: v96 Main Publication
+
+**Verdict: ACCEPT / PRODUCTION_PUBLICATION_VERIFIED**
+
+No blocking findings.
+
+Independently verified merge commit `5351d6a6c1a4b817aefad62de01142198deccbc3` and live publication after PR #102 merged.
+
+- `origin/main` is exactly `5351d6a6`; its parents are prior main `bcfd74a22449b974755b8b48bc01a3b261107b93` and accepted PR head `5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3`.
+- GitHub Pages latest build reports `built`, error `null`, and exact commit `5351d6a6`; created `2026-09-03T01:24:10Z`, updated `2026-09-03T01:24:55Z`.
+- Live `core.js`, `index.html`, `restore-hotfix.js`, `startup-session.js`, `sw.js`, and `sync.js` each return HTTP 200.
+- Each downloaded file's independently computed Git blob hash exactly equals its blob in merge tree `5351d6a6`.
+- Live `sw.js` declares `crewbiq-driver-v96`.
+- The six served files contain zero matches for `script.google.com`, `googleapis.com`, `crewbiq-expenses`, or `DEFAULT_SYNC_URL`.
+- Production Orchestrator `/health` returns HTTP 200 with `ok:true`.
+- Production Orchestrator `/ready` returns HTTP 200 with database connected, required migrations 010/011 recognized, and `missing_migrations:[]`.
+
+Authenticated live functional journeys and cross-tenant smoke were not repeated by this verification and remain the already-recorded non-blocking coverage gap; pre-merge CI remains authoritative for the exact promoted bytes. No further merge, deploy, migration, settings change, or data mutation was performed.

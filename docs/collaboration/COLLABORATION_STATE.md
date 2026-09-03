@@ -75,21 +75,21 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion Published and Verified
+Phase: v96 Main-Based Publication Verification
 
-Status: PUBLISHED / AWAITING CODEX INDEPENDENT VERIFICATION
+Status: CLOSED / ACCEPT / PRODUCTION PUBLICATION VERIFIED
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: MAIN_PUBLICATION_PLAN_V96.md Section 12 post-publication verification performed and passed on every check reachable without an authenticated user session: (1) Pages API build for merge commit 5351d6a6c1a4b817aefad62de01142198deccbc3 reports status built, error null - matches the merge commit exactly, not a stale or different one. (2) All 6 curated runtime files (core.js, index.html, restore-hotfix.js, startup-session.js, sw.js, sync.js) return HTTP 200 from https://crewbiq.github.io/crewbiq-driver/. (3) Downloaded live bytes for all 6 files independently re-hashed with `git hash-object` and confirmed to equal the merge tree's own Git blob SHAs exactly (fetched via the Git Trees API on commit 5351d6a6) - byte-for-byte, not merely a size or spot check. (4) Live sw.js declares `crewbiq-driver-v96` (grepped from downloaded bytes). (5) Static no-legacy-reference check: grepped all 6 downloaded files for script.google.com, googleapis.com, crewbiq-expenses, and DEFAULT_SYNC_URL - none found. (6) Production Orchestrator (https://crewbiq-orchestrator-production.up.railway.app, extracted from the live core.js) /health and /ready both return HTTP 200. (7) Browser-level smoke: loaded https://crewbiq.github.io/crewbiq-driver/ in a real browser tab, confirmed zero console errors, confirmed the service worker registration is active with exactly one cache present (`crewbiq-driver-v96`, no stale v95 remnant), and confirmed the login shell renders correctly (screenshot taken). Not independently re-verified this cycle (require an authenticated user session, out of scope for automated verification without credentials): full startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF functional smoke test flows and live cross-tenant leakage checks - these were already covered by the pre-merge CI suites (318/318 test:e2e:tooling, 15/15 gate-1 contract set) executed against the exact promoted content before merge, but not re-executed live post-publication.
+Product truth: Codex independently confirms v96 production publication. origin/main and the latest successful Pages build are exact merge commit 5351d6a6, whose parents are prior main bcfd74a2 and accepted PR head 5ef42cfa. All six live runtime files return HTTP 200 and have Git blob hashes exactly matching the merge tree; live sw.js declares v96; served bytes contain zero legacy-sync references. Production Orchestrator health and readiness both return HTTP 200, database connectivity is true, and missing migrations are empty. Authenticated live functional journeys remain a declared non-blocking coverage gap. No further merge, deploy, migration, settings change, or data mutation was performed.
 
-Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
+Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
 
 Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
-Latest review commit: 4a97a09ccd1bac45bcddc19f5ec7409307d82427
+Latest review commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
@@ -101,12 +101,27 @@ Decision gate: AUTO_CONTINUE_ALLOWED
 
 Next required actor: Codex
 
-Next bounded action: Independently re-verify the Section 12 publication evidence above - re-check the Pages build status, re-download and re-hash the 6 live runtime files against the merge tree's blob SHAs, re-check orchestrator health, and re-confirm no legacy-sync references in the served bytes - rather than accepting Claude's report at face value. If Codex's independent re-check confirms everything, publish a final verdict closing this phase. This is a verification-only step. No further merge, deploy, migration, or data mutation is authorized or contemplated at this point - the promotion is complete; only its independent confirmation remains.
+Next bounded action: Continue coordination monitoring only. Preserve CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED, GitHub Discussion #206480, and the separate e2e-harness-manual.yml promotion decision as queued items. Do not start a new slice, merge, deploy, migrate, or mutate data without a newly recorded bounded authorization.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex independently verifies v96 production publication
+
+- Agent: Codex
+- Merge/main SHA: `5351d6a6c1a4b817aefad62de01142198deccbc3`
+- Merge parents: prior main `bcfd74a2`; accepted PR head `5ef42cfa`
+- Verdict: `ACCEPT / PRODUCTION_PUBLICATION_VERIFIED`
+- Pages: latest build `built`, error null, exact merge SHA
+- Live runtime: 6/6 HTTP 200 and blob-identical to merge tree
+- Cache: `crewbiq-driver-v96`
+- Legacy reference scan: 0 matches
+- Orchestrator: `/health` 200; `/ready` 200; database connected; missing migrations none
+- Remaining coverage gap: authenticated live functional/cross-tenant smoke not independently repeated post-publication
+- Further merge/deploy/migration/data changes: NONE
+- Next action: coordination monitoring only; no new slice authorized
 
 ### 2026-09-02 — Exact PR #102 merge decision requested
 
