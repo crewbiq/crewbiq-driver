@@ -75,25 +75,39 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current staging read-only prerequisite evidence
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver own-current staging read-only prerequisite evidence - Independent Review Closed
+
+Status: CLOSED / ACCEPT (evidence only; execution remains BLOCKED)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Ten served PWA artifacts exactly match accepted bytes; complete runtime and backend provenance remain unverified. No authenticated journey or fixture mutation performed.
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest plan commit: aab642651d6733cd2f4eba2947f5a2f6adb1b286
-Latest review commit: a5989a1b4ed548057d6b1718b91d913c27bdc79e
-Latest prior state commit: a5989a1b4ed548057d6b1718b91d913c27bdc79e
-Evidence: docs/collaboration/DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md
-Validation: 10/10 served-byte comparisons; staging auto-deploy disabled reconfirmed before push; backend SSH diagnostic cancelled without result
+
+Product truth: Independently reviewed DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md (commit 3981e8a663cf6db9de6bbb3b5b70eb0b47e30467). Independently reproduced the PWA byte-comparison claim from scratch rather than trusting the reported hashes: fetched all ten staging URLs myself (index.html, sw.js, core-runtime.js, driver-self.js, driver-presentation.js, presentation-context.js, navigation-projection.js, navigation-model.js, account-driver-link.js, driver-truck-assignment.js) with a fresh no-cache GET, computed SHA-256 over the raw response bytes, and independently ran `git show c0ec7d884f59f4eca91fee311a8b11cbfa98f628:<path>` for each - all ten hashes matched exactly, both against each other and against the document's own reported values. Independently read tests/e2e/staging-canonical-identity.spec.mjs at the current branch tip and confirmed the document's harness-limitation claims verbatim: it imports and calls loginFleetA, sets `serviceWorkers: 'block'` on its browser context, and calls the old `getDriverSelfReader()` accessor rather than the IA-3 coordinator - independently confirming Fleet A cannot prove driver-only authorization (a fleet-role account exercises the pre-existing broad-capability path), a service-worker-blocked context cannot establish cache-first/offline correctness, and this harness needs reconciliation with IA-3's coordinator composition before being treated as a valid new-path test. Could not and did not attempt to independently reproduce the cancelled SSH diagnostic (no SSH/infrastructure access sought or used); assessed it as consistent with the delegated read-only investigation scope: intended as a read-only checksum command against staging only, produced no output, was cancelled by Codex via Ctrl-C, created no new SSH key, read no key material or server secrets, and issued no write/deploy/restart - the document correctly classifies this as NOT_VERIFIED rather than either fabricating a result or claiming the backend file is missing. No fixture creation, credential retrieval, browser journey dispatch, deployment, merge, or migration occurred in this step or in this review. The two remaining blockers (accepted backend provenance still unverified beyond CI/health signals; canonical harness needs IA-3 compatibility reconciliation before reuse) are correctly disclosed as coverage/prerequisite gaps, not claimed runtime defects.
+
+Latest evidence commit: 3981e8a663cf6db9de6bbb3b5b70eb0b47e30467 (ACCEPTED as evidence; execution remains separately gated)
+
+Latest plan commit: aab642651d6733cd2f4eba2947f5a2f6adb1b286 (ACCEPTED)
+
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest review commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: accepted backend provenance unverified; driver-only fixtures unverified; canonical harness requires IA-3 compatibility reconciliation
-Queued coverage: authenticated browser/mobile/offline; full artifact/config equivalence; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review read-only prerequisite evidence, byte-comparison scope, inconclusive SSH diagnostic and Fleet-only/old-accessor/service-worker-blocked harness limitations. Publish ACCEPT or precise NEEDS_FIX and return one bounded read-only diagnostic or harness-contract correction to Codex. No deployment, merge, fixture provisioning, migration, business-data action or IA-4.
+
+Blocking findings: accepted backend provenance still not proven beyond CI/health signals (SSH diagnostic inconclusive, not a proof of absence); canonical driver-only fixtures remain unverified; existing staging-canonical-identity harness requires IA-3 coordinator-compatibility reconciliation before reuse; authenticated browser/mobile/offline evidence outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize (a) a different bounded read-only backend provenance diagnostic (e.g. an alternate non-SSH read path, or a fresh archive-based exact-SHA staging redeploy with recorded digest), (b) reconciling tests/e2e/staging-canonical-identity.spec.mjs with the IA-3 coordinator so it can serve as a real new-path harness, (c) locating or provisioning the canonical driver-only/second-Driver/other-workspace synthetic fixtures, or (d) a different next step. No fixture provisioning, deployment, merge, or migration without further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5142,3 +5156,13 @@ Evidence: DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md records ten exa
 Result: partial artifact proof, not end-to-end validation. Backend exact SHA and canonical Driver-only fixture existence remain unverified. Old Fleet A scenario is not a substitute for the new own-only path and blocks service workers.
 Safety: auto-deploy disabled reconfirmed before publication; no deployment, merge, credential retrieval, fixture/business writes, migration or runtime change. Existing staging SSH key was used for connection only, not modified or exposed.
 Next required actor: Claude for evidence review. Release remains NOT_READY_FOR_PRODUCTION; canonical staging coverage stays queued.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the Driver own-current staging prerequisite evidence (reviewer role)
+
+- Read DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md (commit 3981e8a663cf6db9de6bbb3b5b70eb0b47e30467) in full.
+- Independently reproduced the ten-artifact PWA byte-comparison from scratch rather than trusting the reported hashes: fetched every staging URL myself with a fresh no-cache GET, computed SHA-256 over the raw bytes, and independently ran `git show c0ec7d884f59f4eca91fee311a8b11cbfa98f628:<path>` for each of index.html, sw.js, core-runtime.js, driver-self.js, driver-presentation.js, presentation-context.js, navigation-projection.js, navigation-model.js, account-driver-link.js, and driver-truck-assignment.js - all ten matched exactly.
+- Independently read tests/e2e/staging-canonical-identity.spec.mjs and confirmed every claimed harness limitation verbatim in the actual file: loginFleetA is imported and called, `serviceWorkers: 'block'` is set on the browser context, and the old `getDriverSelfReader()` accessor is called rather than the IA-3 coordinator - confirming Fleet A cannot prove the new driver-only capability path and the harness needs reconciliation before reuse.
+- Assessed the cancelled SSH diagnostic: could not and did not attempt to reproduce it myself (no SSH/infrastructure access sought or used), but the described action (a read-only checksum command against staging only, cancelled via Ctrl-C with no output, no key created, no secrets read, no write/deploy/restart issued) is consistent with the delegated read-only investigation scope, and the document correctly classifies the result as NOT_VERIFIED rather than fabricating a pass or claiming the backend file is absent.
+- Confirmed no fixture creation, credential retrieval, browser journey dispatch, deployment, merge, or migration occurred in this step.
+- Published final ACCEPT for the evidence. Execution of any further diagnostic, harness correction, or fixture work remains separately gated and was not authorized by this review.
+- Escalated the next decision to the Product Owner: a different bounded backend-provenance diagnostic, reconciling the canonical harness with IA-3, locating/provisioning the needed synthetic fixtures, or a different direction.
