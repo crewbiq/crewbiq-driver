@@ -63,12 +63,17 @@ not three separate implementations — a dashboard must never fork into a
 parallel calculation path per persona.
 
 **Carrier drill-down (`DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`; matches
-ADR-0007 §7 scenario D).** `Carrier -> Fleet -> Truck -> Driver`, where
-selecting a `Fleet` inside the carrier's portfolio narrows to that fleet's
-active-`CarrierAssignment`-authorized subset only — never the fleet's
-complete internal workspace (private compensation terms, deduction rules,
-unrelated trucks/drivers/assignments). A carrier's `FLEET`-shaped
-aggregation is therefore always `CarrierAssignment`-filtered, never fleet
+ADR-0007 §7 scenario D).** `Carrier -> Fleet -> Truck -> Driver` names the
+presentation stages a carrier moves through; it does not name a change of
+`AnalyticsScope.type`. The scope `type` remains `carrier` at every stage —
+selecting a "Fleet" stage inside the carrier's portfolio narrows the same
+`carrier`-type scope to that fleet's active-`CarrierAssignment`-authorized
+subset only (`AnalyticsScope(type='carrier', fleetWorkspaceId=...)`,
+`ANALYTICS_SCOPE_CONTRACT.md`) — it never becomes a `fleet`-type scope and
+never exposes the fleet's complete internal workspace (private
+compensation terms, deduction rules, unrelated trucks/drivers/
+assignments). A carrier's aggregation at the "Fleet" stage is therefore
+always `CarrierAssignment`-filtered under `type='carrier'`, never fleet
 `WorkspaceMembership` or full workspace authority (`ANALYTICS_SCOPE_CONTRACT.md`
 Read-scope permissions). No production `CarrierAssignment` data,
 authorization resolver, selector, or UI exists yet; see
