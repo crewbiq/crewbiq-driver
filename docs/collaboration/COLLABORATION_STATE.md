@@ -75,17 +75,17 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 - PresentationContext Pure Resolver - Independent Review Closed
+Phase: IA-2 - PresentationContext Navigation Projection Adapter
 
-Status: CLOSED / ACCEPT
+Status: IN_PROGRESS
 
-Current owner: Product Owner / Coordinator
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Independently reviewed implementation commit fac6d21dd896caaf3df04dc654680594d27d0647 by cloning crewbiq-driver, checking out the exact commit, reading the full 106-line presentation-context.js and the 77-line tests/presentation-context.test.mjs directly, and hand-tracing every branch against PRESENTATION_CONTEXT_CONTRACT.md rules 0-8. Ran tests/presentation-context.test.mjs directly with node --test: 15 passed, 0 failed, covering V1-V9. Ran the full npm run test:e2e:tooling suite on this exact commit: 347 passed, 0 failed - no regression anywhere else. Confirmed: rule 0 fail-closed zeroing holds for every non-resolved status (unavailable/ambiguous/unauthorized all return the exact empty payload via a single empty() helper, legacyPersona alone exempted); rule 1 requires authenticated session, non-blank active workspace, and an array of memberships or returns unavailable; rule 2 requires exactly one active membership for the active workspace with roles.length===1 and that role in the closed driver/fleet/carrier set, and this is the only path that populates any field beyond status/legacyPersona; rule 2a scopes accountDriverLinkId/truckOwnershipIds to workspaceId-matching rows only (workspaceIdOf checked per row); rule 2b scopes carrierAssignmentIds to the resolved workspace as carrierWorkspaceId while explicitly not constraining fleetWorkspaceId, correctly preserving cross-workspace reach; rule 2c returns currentDriverTruckAssignment only when linked to the resolved AccountDriverLink's driverId, workspace-matched, currently effective, and unambiguous (any malformed row anywhere in the set, or more than one simultaneously effective row, forces null, never a best guess); rule 3 (multiple memberships) and rule 4 (unrecognized/multi-value role) both independently verified to return ambiguous/unauthorized with full rule-0 zeroing, including a genuine multi-role-array case exercised in V5 that I additionally hand-verified is a defensible, tested, fail-closed extension of rule 4's closed-set requirement, not an undocumented behavior; rule 5 confirmed unreachable-by-construction (ROLES set never contains 'owner'); rule 6 confirmed legacyPersona is read only for pass-through output, never as a resolution input (V6 case: fleet-role membership with legacyPersona owner_op still resolves membershipRole driver correctly per its own membership); rule 7 confirmed ended/revoked CarrierAssignment rows are excluded via the same effective() check as every other relationship type; rule 8 not separately testable at this layer (shell rendering paths), but no new status value or shape was introduced beyond the four defined. Confirmed via grep that presentation-context.js is referenced nowhere in index.html, sw.js, or core-runtime.js - genuinely disconnected from the app shell as claimed. Confirmed the module contains no fetch(/localStorage/sessionStorage/document./XMLHttpRequest tokens (asserted by its own test and independently grepped). Confirmed the accompanying PRESENTATION_CONTEXT_CONTRACT.md diff only updates status/readiness/next-slice sections to reflect implementation and adds the pinned evidence-shape paragraph - no rule 0-8 or V1-V9 text was weakened, narrowed, or removed. No navigation, endpoint authorization, persisted-role, migration, data, or deployment change occurred.
+Product truth: IA-1 pure PresentationContext resolver is independently accepted. Under standing Product Owner delegation, Codex authorizes only IA-2: a pure, disconnected navigation projection adapter consuming resolved PresentationContext while retaining existing page IDs, showPage ownership, render hooks, legacy compatibility, and current navigation inventories. No shell/DOM integration, persisted-role/RBAC change, migration/data/deployment, or later IA slice is authorized.
 
 Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
 
@@ -95,22 +95,29 @@ Latest orchestrator implementation commit: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1d
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review/state commit: (pending this publication)
+Latest review/state commit: 022eca1f7e7f969db7dda5f338510432ffdbcd58
 
 Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Product Owner
+Next required actor: Codex
 
-Next bounded action: Decide whether to authorize IA-2 (Navigation projection adapter, consuming the now-accepted PresentationContext resolver), orchestrator migration 012 execution plus staging relationship data population, a PWA relationship-command adapter/UI slice, or a different next step. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
+Next bounded action: Define and implement a pure disconnected IA-2 navigation projection over copies of the current navigation models, with fail-closed non-resolved output and deterministic tests. Do not alter index.html, showPage, render hooks, ROLE_CONFIG, FUNCTION_GROUPS, runtime shell composition, migration/data/deployment, or begin IA-3.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex authorizes disconnected IA-2 navigation projection
+
+- Basis: IA-1 resolver accepted at `022eca1f7e7f969db7dda5f338510432ffdbcd58`
+- Authorized: pure navigation projection adapter over copies of accepted model inventories, plus deterministic tests
+- Not authorized: shell/DOM integration, `showPage`, render hooks, persisted roles/RBAC, migration/data/deployment, or IA-3
+- Decision authority: standing Product Owner delegation for bounded technical sequencing
+
 ### 2026-09-03 - Pure PresentationContext resolver published
 
 - Implementation: `fac6d21dd896caaf3df04dc654680594d27d0647`
