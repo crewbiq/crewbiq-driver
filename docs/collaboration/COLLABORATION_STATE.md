@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: ADR-0007 Role/Scope Reconciliation - Final B1 Correction Published
+Phase: ADR-0007 Role/Scope Reconciliation Closed
 
-Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: CLOSED / ACCEPT
 
-Current owner: Codex
+Current owner: Product Owner / Coordinator
 
 Branch: agent/pre-base44-audit
 
-Product truth: Accepted Codex re-review 73e47a6's design correction after independently working through the reasoning (not applied mechanically): Role and Scope must vary independently, matching the existing self/driver/truck/fleet pattern where `type` identifies the subject being viewed regardless of the viewer. The prior fix kept `AnalyticsScope.type='carrier'` fixed at every narrowing depth; corrected so `type` genuinely traverses `carrier -> fleet -> truck -> driver` as a carrier drills down, reusing the existing `workspaceId`/`truckId`/`driverId` fields exactly as a `fleet`-role actor's equivalent request would - the dedicated `carrierId`/`fleetWorkspaceId` fields from the withdrawn prior design are removed (no new fields needed at all). The distinguishing constraint moves entirely to authorization: a carrier's `fleet`/`truck`/`driver`-type request must independently re-check the actor's actual Role is `carrier` (not that workspace's own `fleet` membership) and must require an active `CarrierAssignment` reaching that specific subject, returning only the fields that relationship authorizes - never fleet `WorkspaceMembership` or full workspace access. `SELF` remains reachable only through an independent Driver identity, never through `CarrierAssignment`. Published: ANALYTICS_SCOPE_CONTRACT.md commit 14ff2df5 (+17/-15, API-confirmed) and PRODUCTION_UI_INTEGRATION_CONTRACT.md commit df6c8b3b (+26/-18, API-confirmed) - both diff stats pulled from the Commits API before recording them here, not asserted.
+Product truth: ADR-0007 remains `Accepted` at `crewbiq-docs` branch commit `7b16ab18` and its CrewBIQ MVP semantics are frozen. Authorization Roles are exactly `driver`, `fleet`, `carrier`. View/Analytics Scopes are exactly `SELF`, `DRIVER`, `TRUCK`, `FLEET`, `CARRIER`. `owner` is a derived UI/product persona, never a `WorkspaceMembership` role. Scope selection never changes identity, Role, membership, or authority. A carrier actor may traverse `CARRIER -> FLEET -> TRUCK -> DRIVER`, but every non-portfolio scope is independently bounded by active `CarrierAssignment`; carrier-selected `FLEET` never exposes full workspace authority. `SELF` always requires independent Driver identity. Implementations remain not production-ready until all ADR authorization/cross-tenant validation requirements pass.
 
 Latest implementation commit: 73918286bf94d1e436237fb8cc038481a28ca5db
 
-Latest correction commit: df6c8b3bb22cd65fe2e3eac933ab30d52e06ee31 (ANALYTICS_SCOPE_CONTRACT.md: 14ff2df58fbf8342a6d32c4b61ec88149e909c46)
+Latest correction commit: df6c8b3bb22cd65fe2e3eac933ab30d52e06ee31
 
-Latest review commit: 73e47a671abf84184c8f96078213653f04efc814
+Latest review commit: bd5c37996dac33d15b211553794b042acc82eda2
 
-Latest state commit: (pending this publication)
+Latest state commit: 5dbb196b565921a8d18e66b9aa431deae3cffee4
 
-Blocking findings: NONE (pending Codex re-review)
+Blocking findings: NONE
 
-Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main remains a separate future action; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: ADR-0007 default-branch integration into crewbiq-docs main; MVP Information Architecture freeze / Production UI Integration preparation; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Codex
+Next required actor: Product Owner
 
-Next bounded action: Independently re-verify the final B1 correction against the actual published diffs: confirm AnalyticsScope.type genuinely changes carrier->fleet->truck->driver in both documents; confirm no dedicated carrierId/fleetWorkspaceId fields remain anywhere in either file; confirm the authorization narrative (Role=carrier check + active CarrierAssignment + restricted field mask, layered on the same request shape a fleet-role actor uses) is stated consistently in both documents; confirm SELF is described as reachable only via independent Driver identity, never via CarrierAssignment; confirm ADR-0007 itself was not touched by this round (it should not need to change, since it never froze a wire format - re-verify this is still true after this design change). Publish ACCEPT or precise NEEDS_FIX. After Codex ACCEPT: mark ADR-0007 Accepted (confirm unaffected by this Scope-only correction), freeze Role/Scope semantics, update collaboration state, and return to Product Owner/Coordinator. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion. No runtime/product/test/workflow/schema/merge/deploy/migration/data changes.
+Next bounded action: Confirm the exact next documentation/architecture slice for MVP Information Architecture freeze plus CrewBIQ Production UI Integration preparation, using the frozen Role/Scope semantics and existing IA-0 artifact as input. Do not automatically begin a backend/RBAC refactor, runtime implementation, SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, or workflow promotion.
 <!-- CURRENT_END -->
 
 
@@ -4696,3 +4696,13 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Did not touch ADR-0007 in this round, since it never froze a wire format (its §7 already speaks only conceptually - `scope = { type, subjectId, period }` - not to a specific field list), so this Scope-implementation-level correction does not require an ADR change; flagged this as something Codex should specifically re-confirm rather than assuming it silently.
 - Per the role-swap protocol: Next required actor: Codex, for final re-verification of this correction against the actual published diffs.
 - No runtime, product, test, workflow, schema, merge, deploy, migration, or data change occurred - documentation only.
+
+### 2026-09-03 — Codex closed ADR-0007 Role/Scope reconciliation
+
+- Final review commit: `bd5c379`. Verdict: `ACCEPT`.
+- Final B1 commits accepted: `14ff2df5` and `df6c8b3b`; API stats match publication evidence.
+- Frozen Roles: `driver`, `fleet`, `carrier`. Frozen Scopes: `SELF`, `DRIVER`, `TRUCK`, `FLEET`, `CARRIER`.
+- Carrier Role remains stable while selected Scope traverses `CARRIER -> FLEET -> TRUCK -> DRIVER`; every delegated subject remains active-`CarrierAssignment` bounded.
+- B2-B4 remain accepted; ADR Status and Validation requirements remain unchanged.
+- Runtime/product/test/workflow/schema/merge/deploy/migration/data changes: NONE.
+- Coordination returned to Product Owner/Coordinator for the next MVP IA / Production UI preparation decision.
