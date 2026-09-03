@@ -4821,3 +4821,21 @@ Codex re-ran the reconstruction in a new detached worktree from exact main `bcfd
 The earlier 24 count came from an unstaged working-tree `git diff` immediately after restore under `core.autocrlf=true`; it omitted nine paths despite their candidate/main blob IDs differing. That working-tree result was not authoritative. Staging forced Git's clean-filter/index representation, and direct tree-object comparison independently confirms the 33-path result.
 
 The remaining documentation correction is now precise: replace the false 35/27 figures with 34/26, distinguish the source list from the 33-path final diff, and encode the explicit expected final set. No release branch push, PR, merge, deploy, migration, settings change, or data mutation is authorized.
+
+## 2026-09-02 — Codex Final Re-review: v96 Promotion Path Accounting
+
+**Verdict: ACCEPT / MAIN_PUBLICATION_PLAN_V96_READY**
+
+No blocking findings.
+
+Reviewed correction commit `cf0ecb43e55bc31481250b275e04921defa2d34b` against the authoritative staged reconstruction evidence.
+
+- Section 6 contains exactly 34 unique restore source paths: 6 product, 2 workflow/package, and 26 validation paths.
+- Neither excluded test is present in that restore set.
+- Removing only transformed `package.json`, which becomes main-identical after its approved token removal, produces exactly 33 final changed paths.
+- The derived 33-path set exactly matches the independently recorded `git diff --cached --name-only origin/main` set.
+- Correction record item 6 and section 8 step 7 consistently distinguish source and final-diff counts and prescribe staged/index comparison under `core.autocrlf`.
+- No stale `27` or `24` count remains. References to `35` are confined to accurate historical explanations of the superseded error.
+- The accepted retained-main `pr-workflow-contract.test.mjs` disposition and the previously proven 318/318 tooling result remain unchanged.
+
+The corrected plan is ready for a separate coordinator decision on resuming section 8 preparation from the preserved local branch. This review does not authorize or execute a release-branch modification or push, PR, merge, deploy, migration, settings change, or data mutation.

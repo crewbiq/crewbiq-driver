@@ -77,36 +77,48 @@ When the user says "готово", ChatGPT should:
 
 Phase: v96 Main Publication Plan Second Allowlist Correction
 
-Status: PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: CLOSED / ACCEPT
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: MAIN_PUBLICATION_PLAN_V96.md amended (commit cf0ecb43) to state the reconciled counts: 34 restore-source paths (6 product, 2 workflow/package, 26 validation) and an explicit, separately-stated 33-path final promotion diff against main, with package.json identified as the sole restore-source path that becomes byte-identical to main's existing content after its documented section 7 deviation (the other 33 paths all produce a real change). Added correction record item 6 documenting the two-round discrepancy and its reconciliation (Claude's initial 33/one-coinciding figure, Codex's initial 24/ten-coinciding figure withdrawn after Codex's own fresh-worktree staged-diff re-verification matched Claude's), and corrected section 8 step 7 to state both counts explicitly with the staged-diff/core.autocrlf methodology noted so a future re-verification does not repeat the same unstaged-diff undercount either party hit initially. Result remains MAIN_PUBLICATION_PLAN_V96_BLOCKED pending this re-review. No workflow, package, test, runtime, or GitHub settings file changed on any remote branch this cycle; no push, PR, merge, deploy, migration, or data mutation. The local unpushed release-main-promotion-v96-b5e36f4 branch (based on exact main bcfd74a2) remains preserved, ready for reuse once this amendment is confirmed.
+Product truth: Codex independently accepts corrected plan commit cf0ecb43 as MAIN_PUBLICATION_PLAN_V96_READY. Section 6 has exactly 34 unique source paths (6 product, 2 workflow/package, 26 validation); the final set is exactly 33 paths and matches authoritative staged evidence after transformed package.json becomes main-identical. Both excluded tests remain outside the restore set, stale 27/24 counts are absent, and the retained-main test disposition remains validated at 318/318. No release branch was modified or pushed and no PR was opened.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
-Latest review commit: 747a7bad5ff7a3b8b85ec1f374e519856632f00f
+Latest review commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE (pending Codex re-review of this amendment)
+Blocking findings: NONE
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
 Next required actor: Codex
 
-Next bounded action: Independently re-review the amended docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit cf0ecb43e55bc31481250b275e04921defa2d34b) for whether the reconciled 34-source/33-final-diff counts are stated completely and correctly everywhere the document references them (section 0 item 6, section 6, section 8 step 7), and whether any other count in the document is now inconsistent with this correction. If confirmed complete, publish a READY verdict so section 8 execution can resume from the preserved local branch; otherwise a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, push, PR, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - resuming actual branch push/PR execution still requires the same explicit in-chat Product Owner confirmation Claude already obtained once this session (coordination-file authorization alone is insufficient per Claude's own operating rules for that class of action).
+Next bounded action: Codex must make a separate coordination decision whether to authorize resuming MAIN_PUBLICATION_PLAN_V96.md section 8 preparation from Claude's preserved local branch using the accepted 34-source/33-final sets. This review cycle does not authorize branch modification, push, or PR creation. Do not merge or deploy.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex accepts corrected v96 promotion path accounting
+
+- Agent: Codex
+- Reviewed correction: `cf0ecb43e55bc31481250b275e04921defa2d34b`
+- Verdict: `ACCEPT / MAIN_PUBLICATION_PLAN_V96_READY`
+- Source set: 34 unique paths = 6 product + 2 workflow/package + 26 validation
+- Final promotion diff: exact 33-path set matches staged evidence
+- Stale counts: no `27` or `24`; historical `35` references are correctly labelled superseded
+- Retained-main PR workflow test disposition: unchanged and previously proven 318/318
+- Release branch/PR/merge/deploy/migration/data changes: NONE
+- Next gate: separate Codex coordinator decision
 
 ### 2026-09-02 — Codex reconciles final promotion diff at 33 paths
 
