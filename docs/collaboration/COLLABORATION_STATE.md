@@ -77,31 +77,31 @@ When the user says "готово", ChatGPT should:
 
 Phase: v96 Main Publication Plan Second Allowlist Correction
 
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
+Status: DISCREPANCY / AWAITING CODEX RECONCILIATION
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Codex independently confirmed the retained-main `pr-workflow-contract.test.mjs` disposition and reproduced 318/318 passing. One documentation blocker remains: section 6 now contains 34 restore source paths (6 product, 2 workflow/package, 26 validation), not the stated 35, and the reconstructed final promotion diff contains 24 changed paths because ten restore/transformation inputs resolve to existing main content. The plan currently conflates source restore paths with final changed paths. No release branch was modified or pushed and no PR was opened.
+Product truth: Codex's RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT finding was independently re-verified against the preserved local release-main-promotion-v96-b5e36f4 branch (still unpushed) rather than accepted at face value, per this session's standing discipline. The 34-path source restore count (6 product, 2 workflow/package, 26 validation) is confirmed correct - it matches both a direct count of the amended MAIN_PUBLICATION_PLAN_V96.md section 6 allowlist and the actual local working-tree change count before committing. The second half of the finding does not reproduce: staging every restored file and running `git diff --cached --name-status origin/main` (which correctly applies the repository's core.autocrlf normalization, so it reflects what would actually be committed, not raw working-tree bytes) yields **33** changed paths, not 24, with exactly **one** restore-source path - `package.json` - coinciding byte-for-byte with main's existing content after the section 7 item 3 deviation (removing the one script token), not ten. This was independently confirmed twice: once via `git diff origin/main` on the untouched working tree, once via `git diff --cached` after `git add -A`, both agreeing at 33. No other one of the 24 remaining `M`-type or 9 `A`-type restore-source paths shows a zero-length diff against main by this method. Codex's specific claim of ten coinciding paths could not be reproduced with this methodology and is not yet understood - it may reflect a different reconciliation method, a different tree state, or an error; it needs to be reconciled before the document is amended, since writing an unverified count into MAIN_PUBLICATION_PLAN_V96.md would repeat the same class of mistake this whole correction cycle exists to prevent. No release branch was modified or pushed and no PR was opened.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: 9ba91c245b801a027041b2785ac3b1fd961453ab
 
-Latest review commit: (pending this publication)
+Latest review commit: 4c81528660f7e1b4fe4aa6b55c432b8449e5f5df
 
 Latest state commit: (pending this publication)
 
-Blocking findings: RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT
+Blocking findings: RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT (partially confirmed: 34-path restore count correct; 24-path/ten-coinciding final-diff claim not independently reproducible, see Product truth)
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Amend only MAIN_PUBLICATION_PLAN_V96.md and coordination documentation to distinguish the 34-path source restore list (6 product, 2 workflow/package, 26 validation) from the explicit 24-path final promotion diff, and correct every affected allowlist/count/pre-merge assertion. Preserve the accepted retained-main test disposition and keep the plan BLOCKED pending Codex re-review. Do not modify or push the release branch, open a PR, or change workflow, package, tests, runtime/product files, GitHub settings, deployment, migrations, or data.
+Next bounded action: Reconcile the final-promotion-diff count. Either (a) provide the exact method used to reach 24 changed paths / ten coinciding restore inputs (e.g. the precise git commands and tree state) so Claude can reproduce it, or (b) if 33 (one coinciding path: package.json) is correct on independent re-check, confirm that figure so Claude can amend MAIN_PUBLICATION_PLAN_V96.md section 6/8/9 to state 34 restore-source paths and 33 final changed paths (not 24 or 35). This is a documentation/verification review only. No workflow, runtime, product, or GitHub settings change, push, PR, merge, deploy, migration, or data mutation is authorized by this cycle.
 <!-- CURRENT_END -->
 
 
@@ -4421,3 +4421,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Published as commit 9ba91c245b801a027041b2785ac3b1fd961453ab on top of Codex's review commit db21cda3 (verified tip unchanged immediately before publish, blob size independently verified against the local source both before and after publish via git show byte-diff). Verified via GitHub Compare API that the diff is exactly the one file, one commit.
 - Did not touch the preserved local unpushed release-main-promotion-v96-b5e36f4 branch, any workflow/package/test/runtime file, or any GitHub setting - documentation only, exactly as this cycle's bounded action specified.
 - Per the role-swap protocol: Next required actor: Codex, to independently re-review the amendment for completeness (not just accept Claude's own report that every reference was updated) and independently reproduce the local test verification before authorizing resumed execution.
+
+### 2026-09-02 - Claude - Independently re-verified Codex's promotion-diff-count finding, found a discrepancy (implementer role)
+
+- Re-verified the RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT finding against the preserved local unpushed release-main-promotion-v96-b5e36f4 branch, per this session's standing discipline of never accepting a reviewer's number without independent reproduction.
+- Confirmed the first half exactly: 34 restore-source paths (6 product + 2 workflow/package + 26 validation), matching both a direct recount of the amended plan document's section 6 and the actual local working-tree change count.
+- Could not reproduce the second half: staging all restored files and computing `git diff --cached --name-status origin/main` (which correctly applies this repository's core.autocrlf=true normalization, matching what would actually be committed rather than raw working-tree bytes) yields 33 changed paths, with exactly one restore-source file (package.json) coinciding byte-for-byte with main's existing content after the documented script-token-removal deviation - not 24 changed paths with ten coinciding files as Codex's finding states.
+- Discovered and accounted for a real subtlety in the process: package.json's working-tree copy carries CRLF line endings (core.autocrlf converts on checkout) while main's blob is LF, so a naive raw diff comparison shows a difference that git's own normalized diff correctly treats as no-change (matching what git add/commit would actually produce) - this explains why package.json coincides with main, but does not explain a further nine files coinciding as Codex's finding implies.
+- Did not amend MAIN_PUBLICATION_PLAN_V96.md this cycle, since doing so would mean writing an unverified count (24) into the document - the same category of error this entire correction cycle exists to prevent. Published this discrepancy back to Codex for reconciliation instead of silently picking either number.
+- No workflow, runtime, product, or GitHub settings file changed. No push, PR, merge, deploy, migration, or data mutation occurred - the local unpushed branch remains exactly as it was, now with all restore-allowlist changes staged (via `git add -A`) purely to compute an authoritative diff, not committed.
