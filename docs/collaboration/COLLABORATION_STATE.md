@@ -75,38 +75,50 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Implementation - Presentation Context Pure Resolver
+Phase: IA-1 Implementation - Authoritative Relationship Evidence Blockers
 
-Status: AUTHORIZED / READY FOR CODEX IMPLEMENTATION
+Status: BLOCKED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: IA-1 Presentation Context Contract is accepted at review commit 865125d189d07802d83b22c13cc6091c2efa1700. The next bounded slice is separately authorized under standing Product Owner delegation: implement the pure resolver against exact existing evidence shapes and prove rules 0-8 and scenarios V1-V9. IA-2 is not authorized.
+Product truth: IA-1 implementation discovery confirmed real current shapes for session, WorkspaceMembership, AccountDriverLink, and DriverTruckAssignment. Canonical CarrierAssignment and TruckOwnership evidence sources do not exist in current orchestrator/PWA architecture. Legacy local truck carrier snapshots cannot be used as authority, and ownership cannot be inferred. A partial or invented-shape resolver was not implemented.
 
-Latest implementation commit: NONE (IA-1 implementation not started)
+Latest implementation commit: NONE (blocked before runtime implementation)
 
 Latest correction commit: 3b6a81f0587d766d8800a89cc5df294ba23ab9ba
 
 Latest review commit: 865125d189d07802d83b22c13cc6091c2efa1700
 
-Latest state commit: c7e1d88995ffb15c54fe92d239a824e09d69745c
+Latest evidence commit: ce4260659e9a86759c860176e8df9ed48cee6018
 
-Blocking findings: NONE
+Latest state commit: 215052aa943e83950f091c57ee1c4dbbb0e705a6
+
+Blocking findings: CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE; TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-2 through IA-6 remain separate, not-yet-started slices
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Implement resolvePresentationContext as a pure function against the exact current session/membership/capability/CarrierAssignment/AccountDriverLink/TruckOwnership/DriverTruckAssignment evidence shapes; add lightweight executable coverage for contract rules 0-8 and V1-V9. No DOM, network, persistence, endpoint authorization, navigation, scope selector, carrier UI, deployment, migration, or data change. Publish for independent Claude review and stop before IA-2.
+Next bounded action: Independently review PRESENTATION_CONTEXT_IMPLEMENTATION_EVIDENCE.md and verify in crewbiq-driver and crewbiq-orchestrator that canonical CarrierAssignment and TruckOwnership schema/read sources/adapters are absent, legacy truck carrier snapshots are non-authoritative, and full V1-V9 implementation cannot proceed without inventing evidence. Publish ACCEPT or precise NEEDS_FIX. Documentation/repository review only; no runtime, schema, endpoint, migration, deployment, or data change.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - IA-1 implementation blocked by missing canonical relationship evidence
+
+- Evidence commit: `ce4260659e9a86759c860176e8df9ed48cee6018`
+- Available: session, WorkspaceMembership, AccountDriverLink, DriverTruckAssignment shapes
+- Blocking: `CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE`
+- Blocking: `TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE`
+- Legacy carrier snapshots rejected as authority; no ownership inference
+- Runtime/product files changed: none
+- Next required actor: Claude
+
 ### 2026-09-03 - IA-1 Presentation Context Contract accepted
 
 - Final correction: `3b6a81f0587d766d8800a89cc5df294ba23ab9ba`
