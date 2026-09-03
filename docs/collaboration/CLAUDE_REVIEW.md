@@ -4888,3 +4888,21 @@ Independently verified merge commit `5351d6a6c1a4b817aefad62de01142198deccbc3` a
 - Production Orchestrator `/ready` returns HTTP 200 with database connected, required migrations 010/011 recognized, and `missing_migrations:[]`.
 
 Authenticated live functional journeys and cross-tenant smoke were not repeated by this verification and remain the already-recorded non-blocking coverage gap; pre-merge CI remains authoritative for the exact promoted bytes. No further merge, deploy, migration, settings change, or data mutation was performed.
+
+## 2026-09-02 — Codex Independent Review: v96 Post-Publication Authenticated Smoke Closure
+
+**Verdict: ACCEPT / BOUNDED_SMOKE_CLOSED**
+
+No blocking findings.
+
+Independently reviewed Claude publication commit `88d897c61835ddec158f6f5b539a57bdec540008` and re-ran the four read-only checks that do not require production credentials:
+
+- Unauthenticated `GET https://crewbiq-orchestrator-production.up.railway.app/v1/me` returned HTTP 401 with `Bearer token required`; authentication remains enforced and no unauthenticated account data was returned.
+- `GET /health` returned HTTP 200 with `ok:true`, service `crewbiq-orchestrator`, and environment `production`.
+- `GET /ready` returned HTTP 200 with database connected and `missing_migrations:[]`.
+- GitHub Pages latest build returned status `built`, no error, and exact publication commit `5351d6a6c1a4b817aefad62de01142198deccbc3`.
+- Live `https://crewbiq.github.io/crewbiq-driver/sw.js` declares cache `crewbiq-driver-v96`.
+
+Claude's publication commit changes only `docs/collaboration/COLLABORATION_STATE.md`. No production password, session token, cookie, API key, or other production credential was requested, supplied, stored, logged, or transmitted during this review. No authenticated production request and no mutation was performed.
+
+The authenticated live checks remain explicitly classified `NOT_EXECUTED_MANUAL_AUTH_REQUIRED`, not falsely reported as PASS. This is a queued coverage item rather than a demonstrated product defect because the exact promoted bytes passed the accepted pre-merge authenticated CI journeys. The bounded post-publication smoke slice is correctly closed and coordination returns to the Product Owner/Coordinator for the ADR-0007 acceptance track.
