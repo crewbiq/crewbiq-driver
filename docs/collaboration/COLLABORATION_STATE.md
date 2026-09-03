@@ -75,23 +75,24 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-3 accepted / Driver own-assignment read prerequisite design
-Status: IN_PROGRESS / COORDINATION AUTHORIZED
-Current owner: Codex
+Phase: Driver own-current-assignment read prerequisite design
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: IA-3 client integration is independently accepted. Canonical Driver authority remains server-derived and own-scope only; no workspace-wide read grant is authorized. Existing legacy graceful degradation remains required.
+Product truth: IA-3 accepted; own-current server read design is proposed, not implemented. Broad assignment-read access is not granted to Driver. No runtime or server permission changes in this publication.
 Latest implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
-Latest contract commit: ccdceee6f34de5c0dcde375445fb27622e48784f
 Latest review commit: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77
-Latest prior state commit: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77
-Validation: IA-3 independently confirmed 10/10 targeted and 366/366 tooling
+Latest prior state commit: 7dd427c64f6fb6e77887b33963736b85db4a0524
+Design artifact: docs/collaboration/DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md (this publication)
+Orchestrator source inspected: 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1
+Validation: source/ADR inspection only; no tests executed for documentation-only design
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: NONE for IA-3 correctness; CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED gates production readiness
+Blocking findings: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains open
 Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Documentation/design only: inspect accepted ADR-0007 and orchestrator session, AccountDriverLink and assignment-read authorization paths; specify the smallest server-derived own-current-assignment read contract, with cross-workspace, cross-driver, ambiguous-link and effective-date fail-closed checks. Identify exact proposed implementation/test boundaries and any unresolved policy question. Publish the design and hand to Claude for independent review before implementation. Do not grant a capability or modify runtime, roles, endpoints, migrations, data or deployment in this step. No IA-4 or unrelated work.
+Next required actor: Claude
+Next bounded action: Independently review DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md against ADR-0007 and the exact orchestrator/client source. Check current-only separate capability, authenticated Account link derivation, snapshot consistency, cross-driver/workspace denial, response projection and implementation/test boundaries. Publish ACCEPT or precise NEEDS_FIX. After ACCEPT return to Codex for bounded implementation authorization; do not implement during review. No deployment, migration/data action, broad permission grant, IA-4 or unrelated work.
 <!-- CURRENT_END -->
 
 
@@ -5055,3 +5056,15 @@ Reviewed state: 15e2d4f6900e7d5577a2d1fb5e71a5f659cabd77; IA-3 ACCEPT retained w
 Decision: choose the blocking own-assignment read prerequisite before browser smoke or IA-4, beginning with documentation/design only. This is not permission to widen server capabilities or change security ownership.
 Scope: only CURRENT replacement and this HISTORY entry. Runtime/product/server permissions and deployment are unchanged.
 Next required actor: Codex for the bounded design, then Claude for independent review. Production readiness remains NOT_READY_FOR_PRODUCTION.
+### Driver own-current-assignment prerequisite design publication
+
+Agent: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Authorization: 7dd427c64f6fb6e77887b33963736b85db4a0524
+Artifact: DRIVER_OWN_ASSIGNMENT_READ_CONTRACT.md
+Evidence: orchestrator 4c85fd41d90ec542b7b1c0c15c9e1ca80ec1dda1; IA-3 c0ec7d884f59f4eca91fee311a8b11cbfa98f628; accepted ADR-0007 d62cb51702d9007d7a289dc9c2b4330b2e95e3c8.
+Proposal: retain current endpoint/wire format; add separate own-current capability only after review; derive Driver from authenticated Account link and read assignment at one database snapshot/time. Existing broad, historical and mutation paths are not widened.
+Tests: not run; documentation/source inspection only. Required future PostgreSQL, endpoint and PWA compatibility evidence is specified, not claimed complete.
+Files changed: this state and the new contract only. No runtime, permissions, tests, deployment, migration or business data changes.
+Blocker: CANONICAL_DRIVER_ASSIGNMENT_READ_NOT_AUTHORIZED remains open; NOT_READY_FOR_PRODUCTION preserved.
+Next required actor: Claude for independent design review, then Codex if accepted. No IA-4.
