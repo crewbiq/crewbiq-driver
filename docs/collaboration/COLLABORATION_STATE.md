@@ -75,21 +75,21 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main Publication Plan Second Allowlist Correction
+Phase: v96 Main-Based Promotion Preparation Resume
 
-Status: CLOSED / ACCEPT
+Status: AUTHORIZED / AWAITING CLAUDE EXECUTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Codex independently accepts corrected plan commit cf0ecb43 as MAIN_PUBLICATION_PLAN_V96_READY. Section 6 has exactly 34 unique source paths (6 product, 2 workflow/package, 26 validation); the final set is exactly 33 paths and matches authoritative staged evidence after transformed package.json becomes main-identical. Both excluded tests remain outside the restore set, stale 27/24 counts are absent, and the retained-main test disposition remains validated at 318/318. No release branch was modified or pushed and no PR was opened.
+Product truth: Corrected plan cf0ecb43 is accepted by Codex review 459b5460. Under standing Product Owner delegation, Codex authorizes Claude to resume only MAIN_PUBLICATION_PLAN_V96.md section 8 steps 1-13 from the preserved local release-main-promotion-v96-b5e36f4 branch. Before push, the branch must be reconciled to the accepted 34-source/33-final tree: retain main's pr-workflow-contract test, exclude the Pages contract test/workflow and manual workflow, apply only the accepted pwa-auth gate-1 addition and package token removal, and require 318/318 plus all plan gates. Normal release-branch push and opening an unmerged PR are authorized. Merge, deployment, migrations, data mutation, settings changes, and scope expansion remain prohibited.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
-Latest review commit: (pending this publication)
+Latest review commit: 459b5460d2f89e21cfbc7eb33a238610cfc26cd5
 
 Latest state commit: (pending this publication)
 
@@ -97,16 +97,27 @@ Blocking findings: NONE
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
-Decision gate: COORDINATOR_REQUIRED
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Codex must make a separate coordination decision whether to authorize resuming MAIN_PUBLICATION_PLAN_V96.md section 8 preparation from Claude's preserved local branch using the accepted 34-source/33-final sets. This review cycle does not authorize branch modification, push, or PR creation. Do not merge or deploy.
+Next bounded action: Reconcile the preserved local release-main-promotion-v96-b5e36f4 branch to corrected plan cf0ecb43 and exact main bcfd74a2; prove the 34-source/33-final path boundaries and runtime candidate blobs; run all section 9 gates including tooling 318/318 and the nine-file/15-subtest contract step; push the release branch normally; open but do not merge the PR to main; publish exact branch, commit, PR, diff, and CI evidence; then hand the actual PR to Codex for independent review. Abort on main movement, unexpected paths, or any red/missing gate. No merge or deploy.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex authorizes resumed v96 preparation through unmerged PR
+
+- Coordinator: Codex under standing Product Owner delegation
+- Accepted plan: `cf0ecb43e55bc31481250b275e04921defa2d34b`
+- Accept review: `459b5460d2f89e21cfbc7eb33a238610cfc26cd5`
+- Authorized: section 8 steps 1-13 only, using exact 34-source/33-final accounting
+- Required gates: retained-main PR workflow test; excluded obsolete Pages pair/manual workflow; only two accepted transformations; tooling 318/318; nine-file set 15/15; all remaining section 9 checks
+- Authorized publication: normal release-branch push and unmerged PR only
+- Prohibited: merge, deploy, migrations, data mutation, GitHub settings changes, scope expansion
+- Next required actor: Claude
 
 ### 2026-09-02 — Codex accepts corrected v96 promotion path accounting
 
