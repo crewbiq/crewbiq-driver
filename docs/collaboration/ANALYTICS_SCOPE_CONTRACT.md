@@ -10,14 +10,18 @@ The central invariant is:
 
 An owner viewing their own driving work remains authenticated as the owner. The UI changes analytics scope, not account, session, or product role.
 
+Role and Scope are formally distinct concepts. `ADR-0007` (`crewbiq-docs`) is authoritative for Role — the closed `driver`/`fleet`/`carrier` `WorkspaceMembership` set and how authority is derived. This document is authoritative for Scope — which subject's data an already-authorized account is currently viewing. Changing scope never changes, widens, or substitutes for Role; every scope request is normalized and re-authorized server-side against the account's actual Role and relationships on every read, per ADR-0007 §7.
+
 ## Proposed value object
 
 ```js
 AnalyticsScope = {
-  type: 'self' | 'driver' | 'truck' | 'fleet',
+  type: 'self' | 'driver' | 'truck' | 'fleet' | 'carrier',
   workspaceId: 'stable-workspace-id',
   driverId: null | 'stable-driver-id',
   truckId: null | 'stable-truck-id',
+  carrierId: null | 'stable-carrier-workspace-id',
+  fleetWorkspaceId: null | 'stable-fleet-workspace-id',
   period: 'today' | 'week' | 'month' | 'quarter' | 'custom',
   dateFrom: 'YYYY-MM-DD',
   dateTo: 'YYYY-MM-DD',
@@ -27,14 +31,17 @@ AnalyticsScope = {
 
 `companyId` may be carried as workspace metadata, but `workspaceId` is the mandatory tenancy boundary because current authenticated membership and canonical company reads already expose a workspace identifier. A selector must receive a normalized, immutable scope whose dates have already been resolved. `dateFrom` and `dateTo` are inclusive local operational dates.
 
+`carrierId` and `fleetWorkspaceId` are added for the `carrier` type (below) and are `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`: no production selector, authorization resolver, or UI currently constructs or consumes them. Their exact shape may be refined when carrier scope implementation is actually undertaken; this contract fixes only their meaning, not a frozen wire format.
+
 ### Validation rules
 
 | Type | Required identifiers | Forbidden/empty identifiers | Meaning |
 | --- | --- | --- | --- |
-| `self` | `workspaceId`, resolved linked `driverId` | `truckId` | Personal operational activity of the authenticated account's explicitly linked Driver profile. |
-| `driver` | `workspaceId`, selected `driverId` | `truckId` | One authorized driver, independent of the actor's own profile. |
-| `truck` | `workspaceId`, selected `truckId` | `driverId` as a filter unless a future explicit composite scope is approved | Truck activity during the period, including every effective driver assignment. |
-| `fleet` | `workspaceId` | `driverId`, `truckId` | Authorized workspace aggregate. |
+| `self` | `workspaceId`, resolved linked `driverId` | `truckId`, `carrierId` | Personal operational activity of the authenticated account's explicitly linked Driver profile. |
+| `driver` | `workspaceId`, selected `driverId` | `truckId`, `carrierId` | One authorized driver, independent of the actor's own profile. |
+| `truck` | `workspaceId`, selected `truckId` | `driverId` as a filter unless a future explicit composite scope is approved; `carrierId` | Truck activity during the period, including every effective driver assignment. |
+| `fleet` | `workspaceId` | `driverId`, `truckId`, `carrierId` | Authorized workspace aggregate. |
+| `carrier` | `carrierId` (the carrier's own home workspace); optionally `fleetWorkspaceId`/`truckId`/`driverId` to narrow within an authorized `CarrierAssignment` | `carrierId` referring to a workspace the carrier has no active `CarrierAssignment` to (§ Read-scope permissions) | The carrier's authorized cross-fleet portfolio (`fleetWorkspaceId`/`truckId`/`driverId` unset), or a `CarrierAssignment`-filtered narrowing to one fleet/truck/driver. Never equivalent to `fleet`-type scope over `fleetWorkspaceId` — see Read-scope permissions. |
 
 Invalid, unauthorized, ambiguous, or unresolved scopes must fail closed with a structured reason. They must never fall back to the first driver, first truck, actor name, or all-fleet data.
 
@@ -121,11 +128,12 @@ UI visibility is not authorization. A trusted permission resolver must authorize
 
 | Actor capability | Candidate scopes |
 | --- | --- |
-| Driver | `self` only, unless explicitly granted another scope. |
-| Owner-operator | `self` when linked; owned/authorized trucks; authorized company aggregate. |
-| Fleet/carrier | Authorized drivers, authorized trucks, and fleet aggregate inside active workspace. |
+| Driver (`driver` role) | `self` only, unless explicitly granted another scope. |
+| Owner-operator (UI persona backed by a `fleet` role plus ownership relationships plus, optionally, its own `driver` role) | `self` when linked; owned/authorized trucks; authorized workspace aggregate — see ADR-0007 §7 for the full role-vs-scope walkthrough of this exact case. |
+| Fleet (`fleet` role) | Authorized drivers, authorized trucks, and `fleet` aggregate inside its own workspace only. |
+| Carrier (`carrier` role) | `carrier` (its full authorized cross-fleet `CarrierAssignment` portfolio), narrowable to one assigned fleet/truck/driver. `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`. A carrier's authorized `fleet`-type scope over another workspace's `workspaceId` **does not exist** — a carrier never receives `fleet`-type access to a delegated fleet's workspace; it only ever receives `carrier`-type access narrowed to that fleet, which exposes exclusively the fields an active `CarrierAssignment` authorizes, never the fleet's complete internal workspace (compensation terms, deduction rules, unrelated trucks/drivers/assignments). See ADR-0007 §4 and §7. |
 
-Permission output should be an explicit allow/deny decision with workspace and entity IDs. Selectors must not accept unverified IDs directly from DOM controls. Cross-workspace aggregation is outside this contract.
+Permission output should be an explicit allow/deny decision with workspace and entity IDs. Selectors must not accept unverified IDs directly from DOM controls. Cross-workspace aggregation is outside this contract, except for the carrier's own `CarrierAssignment`-scoped case above, which ADR-0007 explicitly authorizes and bounds.
 
 ## Scope selection and drill-down
 
@@ -140,6 +148,16 @@ Fleet -> Drivers -> Ranking -> Driver
                               |
                               `-> AnalyticsScope(type='driver', driverId=...)
 ```
+
+Carrier drill-down (`DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`) follows the identical drill-down-changes-scope pattern, one level deeper:
+
+```text
+Carrier -> Fleet (CarrierAssignment-filtered) -> Truck -> Driver
+        |                                     |
+        `-> AnalyticsScope(type='carrier')    `-> AnalyticsScope(type='carrier', fleetWorkspaceId=..., truckId=...)
+```
+
+Selecting a fleet from the carrier's portfolio narrows to that fleet's `CarrierAssignment`-authorized subset; it does not open a `fleet`-type scope over that workspace, per Read-scope permissions above.
 
 ## SIDR reuse
 
@@ -179,8 +197,9 @@ Current load miles and truck-linked fuel are useful foundations, but route/juris
 | Selected Truck | `PARTIAL` | Loads/fuel/service support `truckId`; PTI and historical assignments do not. |
 | Fleet aggregate | `PARTIAL` | Current truck finance rollups exist; compliance/evidence/utilization definitions are incomplete. |
 | Cross-surface PWA/website reuse | `READY` as architecture | Both must call the same scope/permission/selector contracts. |
+| Carrier scope (`carrier` type) | `DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED` | No production `CarrierAssignment` data, authorization resolver, selector, or UI exists yet. This row records the target architecture (ADR-0007 §4/§7), not shipped behavior; see `MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md` for the carrier IA blocker list. |
 
-Blocking data gaps for broad scope/ranking are `ACCOUNT_DRIVER_LINK`, `EFFECTIVE_DATED_DRIVER_TRUCK_ASSIGNMENT`, `NORMALIZED_RECORD_DRIVER_ID`, and `SCOPED_PTI_ENTITY_IDS`.
+Blocking data gaps for broad scope/ranking are `ACCOUNT_DRIVER_LINK`, `EFFECTIVE_DATED_DRIVER_TRUCK_ASSIGNMENT`, `NORMALIZED_RECORD_DRIVER_ID`, and `SCOPED_PTI_ENTITY_IDS`. Carrier scope additionally requires production `CarrierAssignment` records and a server-side authorization resolver before any `carrier`-type request can be authorized.
 
 ## Slice 4B.1b identity refinement
 
