@@ -75,33 +75,33 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: ADR-0007 Acceptance Documentation Correction
+Phase: MVP Information Architecture / Production UI Integration Preparation
 
-Status: PUBLISHED / AWAITING CODEX SEMANTIC REVIEW
+Status: AUTHORIZED / IN_PROGRESS
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: ADR-0007 (crewbiq/crewbiq-docs, branch claude/adr-0007-mvp-roles-and-phase4-backlog, file architecture/ADR/ADR-0007-organization-roles-and-delegated-scope-for-crewbiq-mvp.md) amended in commit d62cb517, published on top of the branch's prior tip 54fb0aec. Three precise, minimal changes, verified via full before/after diff before publishing: (1) header `Status: Proposed` -> `Status: Accepted`. (2) Migration item 5 reworded from "Cross-tenant and cross-role authorization tests are required before this ADR's status can move to Accepted" to state the same tests are a precondition for any *implementation* governed by this ADR to be production-ready, explicitly not a precondition for the ADR's own Accepted status. (3) One clarifying sentence added at the top of the Validation section stating explicitly that section governs implementation production-readiness, not ADR status. No validation requirement was weakened, removed, or reworded beyond this framing - every listed test bullet in Validation is byte-for-byte unchanged; independently re-diffed the full document to confirm only these three points changed. Published via blob/tree/commit against crewbiq-docs (tip re-checked immediately before publish, matching content verified via git show after), Compare API confirms exactly one file, one commit. This branch has not been opened as a PR or merged to crewbiq-docs main this cycle - the ADR-0007 architecture is approved and its documentation is now internally consistent, but formal integration into crewbiq-docs main (if desired) is a separate, not-yet-authorized step.
+Product truth: ADR-0007 is Accepted at `crewbiq-docs` commit `d62cb51702d9007d7a289dc9c2b4330b2e95e3c8` and independently accepted by Codex review `3943058`. MVP role semantics are frozen: exactly `driver`, `fleet`, `carrier`; `owner` is a relationship; authority is `WorkspaceMembership`-scoped and server-derived; carrier cross-fleet visibility derives only from active `CarrierAssignment`; Dispatcher, Safety, Mechanic, and Phase-4 roles remain deferred. Implementation remains not production-ready until every ADR validation requirement passes.
 
 Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
 
 Latest correction commit: d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (crewbiq-docs)
 
-Latest review commit: (pending this publication)
+Latest review commit: 3943058
 
 Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: Authenticated live smoke and live cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision; ADR-0007's integration (PR/merge) into crewbiq-docs main is not yet started - a separate decision from this documentation correction.
+Queued non-blocking findings: ADR-0007 integration into crewbiq-docs main; authenticated live smoke and cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
 Next required actor: Codex
 
-Next bounded action: Independently review crewbiq-docs commit d62cb51702d9007d7a289dc9c2b4330b2e95e3c8 (branch claude/adr-0007-mvp-roles-and-phase4-backlog) for semantic consistency: confirm the Status/Migration/Validation changes correctly separate "ADR Accepted = architecture decision accepted" from "implementation production-ready only after all listed tests pass," confirm no validation requirement was weakened or removed, and confirm no other part of the ADR was altered. Publish ACCEPT or precise NEEDS_FIX. On ACCEPT: (1) record ADR-0007 as formally Accepted in coordination state, (2) freeze MVP role semantics (driver/fleet/carrier; owner as relationship; WorkspaceMembership-scoped authority; server-derived access; single carrier home-workspace membership with CarrierAssignment-derived cross-fleet visibility; Dispatcher/Safety/Mechanic/Phase-4 deferred), (3) move to MVP Information Architecture / Production UI Integration preparation as the next task. Do not begin a broad RBAC rewrite before the UI architecture freeze. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, or e2e-harness-manual.yml promotion work. No production deployment, migration, or business-data mutation in this slice.
+Next bounded action: Documentation-only IA-0 preparation: inventory the exact v96 production navigation/shell and accepted product/role contracts, define role-specific information-architecture boundaries and the safest production UI integration sequence, and identify explicit blockers/unknowns. Do not change runtime, begin a broad RBAC rewrite, or start SIDR, Dispatch, Safety, Truckpedia, #206480, or workflow work. Publish the preparation artifact and hand it to Claude for independent review.
 <!-- CURRENT_END -->
 
 
@@ -4599,3 +4599,11 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Did not open a PR or merge this branch into crewbiq-docs main - that formal integration step was not part of this cycle's bounded authorization and remains a separate, not-yet-started decision.
 - Per the role-swap protocol: Next required actor: Codex, for independent semantic review of whether the correction is complete and consistent, before the Product Owner's own next steps (freeze MVP role semantics, move to MVP Information Architecture / Production UI Integration preparation) proceed.
 - No production deployment, migration, business-data mutation, workflow change, or unrelated work (SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, e2e-harness-manual.yml promotion) was performed or started, exactly as bounded.
+
+### 2026-09-03 — Codex accepted ADR-0007 and froze MVP role semantics
+
+- Reviewed `crewbiq-docs` correction `d62cb517`; review commit `3943058`.
+- Verdict: `ACCEPT / ADR-0007_ACCEPTED`; no validation requirement weakened or removed.
+- Frozen semantics: `driver`, `fleet`, `carrier`; relationship-based ownership; `WorkspaceMembership` authority; server-derived access; `CarrierAssignment`-only delegated carrier visibility; Phase-4 roles deferred.
+- Next phase authorized by Product Owner: documentation-only MVP Information Architecture / Production UI Integration preparation.
+- Runtime/workflow/deploy/migration/data changes: NONE.
