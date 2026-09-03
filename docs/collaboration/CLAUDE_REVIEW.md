@@ -4839,3 +4839,33 @@ Reviewed correction commit `cf0ecb43e55bc31481250b275e04921defa2d34b` against th
 - The accepted retained-main `pr-workflow-contract.test.mjs` disposition and the previously proven 318/318 tooling result remain unchanged.
 
 The corrected plan is ready for a separate coordinator decision on resuming section 8 preparation from the preserved local branch. This review does not authorize or execute a release-branch modification or push, PR, merge, deploy, migration, settings change, or data mutation.
+
+## 2026-09-02 — Codex Review: v96 Main Promotion PR #102
+
+**Verdict: ACCEPT / READY_FOR_MERGE_AUTHORIZATION**
+
+No blocking findings.
+
+Independently reviewed open PR #102, base `main` at `bcfd74a22449b974755b8b48bc01a3b261107b93`, head `release-main-promotion-v96-b5e36f4` at `5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3`, against accepted plan `cf0ecb43e55bc31481250b275e04921defa2d34b` and pinned candidate `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6`.
+
+### PR identity and scope
+
+- GitHub reports PR #102 open, non-draft, mergeable, clean, and not merged.
+- The head is exactly one commit ahead of main; its sole parent is exact main `bcfd74a2`.
+- The PR changes exactly 33 paths, and the complete path set equals the accepted final promotion set with no missing or unexpected path.
+- No collaboration/product documentation, prototype, excluded workflow, or excluded test enters the diff.
+
+### Content invariants
+
+- `core.js`, `index.html`, `restore-hotfix.js`, `startup-session.js`, `sw.js`, and `sync.js` have Git blobs byte-identical to pinned candidate `b5e36f4a`.
+- The only `pwa-auth-contract.yml` delta from candidate is the exact three-line nine-file Legacy Sync Decommission contract step.
+- Transformed `package.json` exactly equals main after removal of the obsolete Pages contract token and correctly produces no PR diff.
+- `.github/workflows/e2e-harness-manual.yml` and `tests/e2e/pr-workflow-contract.test.mjs` remain byte-identical to main.
+- `.github/workflows/deploy-accepted-pages-v95.yml` and `tests/e2e/pages-deployment-workflow-contract.test.mjs` are absent from the PR head.
+
+### Authoritative CI
+
+- E2E PR Smoke run `33702220600`, job `100483739162`, completed `SUCCESS` on exact head `5ef42cfa`; logs report 318 tests, 318 passes, zero failures. Harness self-test, protected-suite fail-closed parse, whitespace check, and evidence upload steps also succeeded.
+- PWA Auth Contract run `33702220721`, job `100483739508`, completed `SUCCESS` on exact head `5ef42cfa`; the new Legacy Sync Decommission step reports 15 tests, 15 passes, zero failures, cancellations, or skips. Every existing job step also succeeded.
+
+PR #102 is ready for a separate explicit merge authorization. This review does not authorize or perform merge, deploy, migration, settings change, or data mutation.

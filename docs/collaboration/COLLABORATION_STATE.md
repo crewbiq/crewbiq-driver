@@ -75,38 +75,52 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion PR Opened
+Phase: v96 Main-Based Promotion PR Review
 
-Status: PR OPEN / AWAITING CODEX REVIEW
+Status: CLOSED / ACCEPT / READY FOR MERGE AUTHORIZATION
 
 Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Section 8 steps 1-13 executed exactly as authorized (chat-confirmed once this session for this action class; this cycle is a direct, non-expanded resumption of that same authorized action after the intervening find-fix-reconcile cycles). origin/main independently re-verified as exactly bcfd74a2 immediately before both commit and push. The preserved local release-main-promotion-v96-b5e36f4 branch (already reconciled to the accepted 34-source/33-final tree from the prior correction cycle) was independently re-verified clean: git diff --cached --name-status origin/main shows exactly 33 paths; all 6 runtime files' blob IDs equal candidate b5e36f4a; git diff --check clean; both excluded workflow files and the excluded pages-deployment test absent; tests/e2e/pr-workflow-contract.test.mjs confirmed unchanged from main; the pwa-auth-contract.yml gate-1 step and package.json token removal both present. Re-ran the full required gates on this exact tree immediately before commit: npm run test:e2e:tooling 318/318 pass; the 9-file/15-subtest Legacy Sync Decommission contract set 15/15 pass. Committed as 5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3 on the release branch, re-verified main unchanged immediately before push, pushed normally (no force), and independently confirmed via GitHub Compare API that main...release-main-promotion-v96-b5e36f4 is exactly 1 commit ahead, 0 behind, 33 changed files. Opened PR #102 (https://github.com/crewbiq/crewbiq-driver/pull/102), base main, head release-main-promotion-v96-b5e36f4; independently confirmed via the PR API that it is open and merged:false. This PR has NOT been merged and is not authorized for merge by this cycle.
+Product truth: Codex independently accepts actual PR #102 at head 5ef42cfa against exact main bcfd74a2. It is open, clean, mergeable, one commit ahead, and changes exactly the accepted 33 paths. All six runtime blobs equal pinned candidate b5e36f4a; both content deviations are exact; all workflow/test exclusions and retained-main blobs are correct. GitHub Actions E2E PR Smoke run 33702220600 passes 318/318, and PWA Auth Contract run 33702220721 passes the nine-file gate at 15/15; both runs are SUCCESS on exact PR head. No merge or deployment was performed.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
-Latest review commit: 459b5460d2f89e21cfbc7eb33a238610cfc26cd5
+Latest review commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. PR #102's own CI checks have not yet been observed to complete (opened this cycle).
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
 Next required actor: Codex
 
-Next bounded action: Independently review PR #102 (https://github.com/crewbiq/crewbiq-driver/pull/102) - the actual PR diff (not the design document) - for exact conformance to MAIN_PUBLICATION_PLAN_V96.md (commit cf0ecb43): confirm the 33-file diff matches the approved allowlist exactly (no unexpected paths, no missing exclusions), confirm the two documented deviations (pwa-auth-contract.yml gate-1 step, package.json token removal) are present and contain no other unexpected delta, confirm all 6 runtime files are byte-identical to candidate b5e36f4a, and monitor/report the PR's CI check results once available. Publish a verdict: READY (confirmed, still requiring separate explicit merge authorization) or a precise correction request. This review is documentation/verification only. No merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - merging PR #102 requires its own separate, explicit future authorization (both in COLLABORATION_STATE.md and, per Claude's own operating rules, explicit in-chat confirmation from the Product Owner, since merge is an irreversible action on a shared repository distinct from opening the PR).
+Next bounded action: Separate coordinator decision whether to authorize exact PR #102 head 5ef42cfa for normal merge into unchanged main bcfd74a2. This review cycle does not authorize merge. Re-fetch main and PR state before any future decision or action; abort on movement or red/missing checks. No deploy is authorized.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex accepts actual v96 main promotion PR #102
+
+- Agent: Codex
+- PR: `#102`, base `main`, head `release-main-promotion-v96-b5e36f4`
+- Head SHA: `5ef42cfa2e5a7d624f4149f038c4fc7978fc38e3`
+- Verdict: `ACCEPT / READY_FOR_MERGE_AUTHORIZATION`
+- Diff: exact accepted 33 paths; one commit from exact main `bcfd74a2`
+- Runtime: six active blobs byte-identical to candidate `b5e36f4a`
+- Deviations/exclusions: exact and complete
+- E2E PR Smoke: run `33702220600`, job `100483739162`, SUCCESS, 318/318
+- PWA Auth Contract: run `33702220721`, job `100483739508`, SUCCESS, gate-1 15/15
+- Merge/deploy/migration/data changes: NONE
+- Next gate: separate explicit merge authorization
 
 ### 2026-09-02 — Codex authorizes resumed v96 preparation through unmerged PR
 
