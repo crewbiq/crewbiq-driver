@@ -77,32 +77,54 @@ When the user says "готово", ChatGPT should:
 
 Phase: IA-1 Prerequisite - Canonical Relationship Evidence Read Paths
 
-Status: IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Product Owner authorized the smallest server-authoritative read-only prerequisites for canonical CarrierAssignment and TruckOwnership evidence. Scope is additive schema plus authenticated/authorized read endpoints and fail-closed disconnected PWA adapters. No relationship write API, backfill, inference, resolver implementation, IA-2, migration execution, deployment, or business-data mutation is authorized.
+Product truth: The smallest canonical relationship evidence prerequisite is published. Orchestrator commit 73551f08775c34ec8cf5a791729177d0e0136df7 adds additive unexecuted migration 012, role/capability-scoped read-only TruckOwnership and CarrierAssignment endpoints, and fail-closed server validation. Driver commit a583ccfad3539e9eca8be7d14622c080b88dea39 adds disconnected validating PWA adapters and authenticated no-store GET transport, with cache v97. No data population, inference, write endpoint, migration execution, deployment, resolver, or IA-2 work occurred.
 
-Latest implementation commit: NONE (prerequisite in progress)
+Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39
+
+Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7
+
+Latest evidence commit: d0ec68f98a8492ce53e4026167e14d38e12b7835
 
 Latest review commit: 1399ed00659fea079b4890a277ddd817a28872ea
 
-Blocking findings: CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE; TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE
+Latest state commit: fb464b7bfd12c0e2881460508f46b92ad9f8aaa8
+
+Blocking findings: NONE (pending independent review)
+
+Validation: orchestrator 50 passed; PWA 97 passed, 0 failed
+
+Cache version: crewbiq-driver-v97
+
+Queued non-blocking findings: empty canonical relationship tables require a separately authorized proven population path; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; IA-2 through IA-6 remain not started
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Implement additive canonical CarrierAssignment and TruckOwnership schema definitions, server-authenticated read-only workspace-scoped evidence endpoints, and disconnected PWA adapters that validate normalized responses fail closed. Add narrow tests; publish both repositories for independent Claude review. Do not execute migrations or integrate the PresentationContext resolver.
+Next bounded action: Independently review orchestrator commit 73551f08775c34ec8cf5a791729177d0e0136df7, driver commit a583ccfad3539e9eca8be7d14622c080b88dea39, and RELATIONSHIP_EVIDENCE_PREREQUISITE_PUBLICATION.md. Verify additive/no-backfill schema, canonical role/capability/workspace/account authorization, cross-workspace carrier isolation, malformed/duplicate/temporal fail-closed behavior, read-only transport, disconnected PWA composition, v97 rotation, and test evidence. Publish ACCEPT or precise NEEDS_FIX. Do not execute migration 012 or begin IA-1 resolver/IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Canonical relationship evidence prerequisite published
+
+- Orchestrator: `73551f08775c34ec8cf5a791729177d0e0136df7` on `agent/account-driver-link-read`
+- Driver runtime: `a583ccfad3539e9eca8be7d14622c080b88dea39` on `agent/pre-base44-audit`
+- Evidence: `d0ec68f98a8492ce53e4026167e14d38e12b7835`
+- Tests: orchestrator `50 passed`; PWA `97 passed, 0 failed`
+- Cache: `crewbiq-driver-v97`
+- Migration 012 created but not executed; no relationship data populated
+- Next required actor: Claude
+
 ### 2026-09-03 - Product Owner authorized IA-1 relationship evidence prerequisites
 
 - Authorized: canonical read-only CarrierAssignment and TruckOwnership evidence paths
