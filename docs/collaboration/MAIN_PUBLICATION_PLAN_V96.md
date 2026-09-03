@@ -92,6 +92,21 @@ never pushed) and is fixed by this same revision:
    version is retained untouched — the same "exclude the test whose
    assertions outrun what's actually promoted" pattern already used for
    finding 1, applied to a second, independently-discovered file pair.
+6. **`RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT`** — the prior
+   revision stated "35 files" for the promotion's changed-file set
+   (§8 item 7), conflating two distinct counts. Reconciled by both
+   parties independently reproducing against the exact allowlist with
+   staged diffs (`git add -A` then `git diff --cached --name-status
+   origin/main`, which correctly applies `core.autocrlf` normalization —
+   an unstaged working-tree diff understates the count by missing real
+   blob differences masked by line-ending noise, as an initial
+   cross-check on both sides briefly showed): the restore-source set is
+   **34 paths** (6 product, 2 workflow/package, 26 validation — corrected
+   from "35" throughout §6/§8), and the resulting *final* promotion diff
+   against `main` is **33 changed paths** — one fewer, because the
+   transformed `package.json` (§7 item 3's deviation applied) becomes
+   byte-identical to `main`'s existing `package.json`, the sole
+   restore-source path that produces no diff.
 
 ## 1. Decision summary
 
@@ -491,10 +506,22 @@ deviations.
 5. Confirm the §7 item 1 cache assertion (`v95 -> v96`) is present
    (already true on the candidate; verify, do not re-author).
 6. Require `git diff --check` clean.
-7. Require the changed-file set to equal the allowlist exactly (§6, minus
-   the two excluded test files, plus the two §7 deviations) — this is 35
-   files: 6 product, 2 workflow/package (each carrying a documented
-   deviation), 27 validation files.
+7. Require the restore-source set to equal the allowlist exactly (§6,
+   minus the two excluded test files, plus the two §7 deviations) — this
+   is **34 source paths**: 6 product, 2 workflow/package (each carrying a
+   documented deviation), 26 validation files. Require the resulting
+   *final* promotion diff against `main` to contain exactly **33 changed
+   paths** — one fewer than the 34-path source count, because the
+   transformed `package.json` (candidate content minus the one removed
+   script token, §7 item 3) becomes byte-identical to `main`'s existing
+   `package.json` and so produces no diff; every other one of the 34
+   source paths does produce a real change. Compute this diff with
+   staged content (`git add -A` then `git diff --cached --name-status
+   origin/main`, or an equivalent method that applies the repository's
+   `core.autocrlf` line-ending normalization) — an unstaged working-tree
+   diff can understate the true change count by missing real blob
+   differences masked by line-ending noise, as happened during this
+   correction's own verification.
 8. Require every active runtime file's blob ID to equal candidate
    `b5e36f4a`.
 9. Require no `docs/**` or `prototype/**` path in the promotion diff,
