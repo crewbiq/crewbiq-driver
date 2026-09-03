@@ -75,36 +75,46 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Population Contract - Review
+Phase: IA-1 Prerequisite - Canonical Relationship Population Contract - Correction
 
-Status: NEEDS_FIX / AWAITING CODEX CORRECTION
+Status: PUBLISHED / AWAITING CLAUDE RE-REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Independently reviewed RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md against every item on the review checklist. Confirmed sound: same-workspace TruckOwnership authority (create requires the actor's independently-proven fleet membership in the exact workspace, the target account already a member there, and the target truck already a workspace resource - the requested accountId/truckId select a subject but grant nothing); genuine two-party CarrierAssignment activation (fleet proposal creates zero carrier visibility; only the addressed carrier's own active carrier-role membership in its own workspace can list/accept/reject; a carrier cannot propose or self-activate, a fleet cannot accept on its own behalf - each side's authorization is independently server-derived from its own active workspace, not delegated or inferable from the other's action); idempotency (Idempotency-Key with conflict-on-mismatch/replay-on-identical, matching the existing accepted orchestrator convention); immutable audit (reuses the existing relationship_audit_events trigger-enforced immutability from migration 009, explicitly bans secrets/free-form evidence in payloads); optimistic versioning (expectedVersion required and locked/rechecked in one transaction on every mutating command); no delete anywhere (close/end preserve history with a valid effectiveTo, revoke marks invalid without deleting); comprehensive no-inference rule (explicitly names and forbids every legacy/heuristic source this session has independently found to be a real anti-pattern: names, email, MC/USDOT, unit number, array order, legacy owner IDs, local truck carrier snapshots, AccountDriverLink, DriverTruckAssignment, or another relationship). One real gap found: the state machine explicitly allows a `pending` proposal to transition to `revoked` ("pending/active + authorized revocation: revoked"), but the "End and revoke" section frames `end` as applying only to `active` relationships and frames `revoke` as "reserved for invalid evidence" - an error-correction framing, not an ordinary withdrawal path. The document never states whether, or through which capability, a fleet actor may withdraw its own pending proposal before the carrier decides for a routine "changed our mind" reason (as opposed to correcting genuinely invalid/erroneous evidence). This is a real lifecycle-completeness gap the review checklist specifically asked to verify, not a security defect - nothing unsafe happens if a proposal simply sits pending indefinitely, but the contract should say so explicitly rather than leaving the withdrawal path ambiguous.
+Product truth: The sole review finding is corrected. A fleet actor may withdraw its own workspace's pending CarrierAssignment proposal through canonical.carrier_assignment.end; the server must prove the fleet workspace side, transition to ended, grant no visibility, and enforce reason/version/idempotency/audit. Routine withdrawal remains distinct from revoke for invalid evidence. All other accepted authority and lifecycle rules remain unchanged; no runtime/schema/data action occurred.
 
-Latest contract commit: 7d78f8a54604c033b62f2939943c779c4e2f7e96 (needs one clarification)
+Latest contract correction commit: 91a1804699f94d653ea058889ba4f6d45a9f00bb
 
 Latest read-prerequisite commits: driver a583ccfad3539e9eca8be7d14622c080b88dea39; orchestrator 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest review commit: (pending this publication)
+Latest review commit: d5d38b5d92e03fc0c20e9f3f629a405e6070e90d
 
 Latest state commit: b881565af40a84fbd9d89463db2215cf8c803c75
 
-Blocking findings: PENDING_PROPOSAL_WITHDRAWAL_PATH_UNSPECIFIED
+Blocking findings: NONE pending independent re-review
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Amend RELATIONSHIP_EVIDENCE_POPULATION_CONTRACT.md only, in the "End and revoke" section under CarrierAssignment: explicitly state whether a fleet actor may withdraw its own `pending` proposal before carrier decision, which capability authorizes it (`canonical.carrier_assignment.end` extended to cover pending withdrawal, or a documented decision that only `canonical.carrier_assignment.propose`-holders may withdraw their own pending row), and distinguish this routine-withdrawal case from the "invalid evidence" revoke framing already present. Preserve every other accepted rule, capability, and scenario unchanged. Documentation only - do not implement commands, execute migration 012, populate data, or begin IA-1 resolver/IA-2.
+Next bounded action: Independently re-review correction 91a1804699f94d653ea058889ba4f6d45a9f00bb only. Confirm pending withdrawal is authorized only from the proposing fleet workspace through canonical.carrier_assignment.end, grants no visibility, is audited/idempotent/versioned, and remains distinct from invalid-evidence revoke. Publish ACCEPT or precise NEEDS_FIX. Do not implement commands, execute migration 012, populate data, or begin IA-1 resolver/IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Pending CarrierAssignment withdrawal contract clarified
+
+- Correction commit: `91a1804699f94d653ea058889ba4f6d45a9f00bb`
+- Fleet-side pending withdrawal uses `canonical.carrier_assignment.end` and transitions to `ended`
+- Server must prove the proposing fleet workspace; withdrawal grants no visibility
+- Reason, expected version, idempotency, and immutable audit remain mandatory
+- Routine withdrawal is distinct from invalid-evidence revocation
+- Runtime/schema execution/data population/deployment: none
+- Next required actor: Claude for independent re-review
+
 ### 2026-09-03 - Canonical relationship population contract published
 
 - Contract commit: `7d78f8a54604c033b62f2939943c779c4e2f7e96`
