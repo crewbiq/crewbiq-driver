@@ -18,6 +18,8 @@ The frozen MVP authority roles are exactly:
 
 ADR acceptance does not certify an implementation. Every implementation governed by ADR-0007 remains not production-ready until all ADR authorization and cross-tenant validation requirements pass.
 
+ADR-0007 §7 additionally fixes a Role-vs-Scope distinction this preparation document relies on throughout: Role (`driver`/`fleet`/`carrier`) is who an account is authorized to act as; Scope (`SELF`/`DRIVER`/`TRUCK`/`FLEET`/`CARRIER`, defined in `ANALYTICS_SCOPE_CONTRACT.md` and `PRODUCTION_UI_INTEGRATION_CONTRACT.md`) is whose operational data an already-authorized account is currently viewing. The "Legacy presentation persona is not canonical authority" boundary below is the Role side of this distinction; Carrier IA's eventual scope/drill-down behavior (§ Carrier below) is the Scope side, and must reuse the canonical scope contract rather than defining its own.
+
 ## Authoritative inputs
 
 - Published production PWA: merge `5351d6a6c1a4b817aefad62de01142198deccbc3`, service-worker cache `crewbiq-driver-v96`.
