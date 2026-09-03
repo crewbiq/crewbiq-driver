@@ -75,38 +75,50 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Main-Based Promotion Preparation
+Phase: v96 Main Publication Plan Second Allowlist Correction
 
-Status: BLOCKED / NEW FINDING DURING EXECUTION
+Status: NEEDS_FIX / AWAITING CLAUDE PLAN AMENDMENT
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Execution of MAIN_PUBLICATION_PLAN_V96.md section 8 steps 1-9 was performed exactly as authorized (chat-confirmed with the Product Owner before any push, since opening a PR requires explicit chat permission per Claude's own operating rules, not just a coordination-file record): origin/main independently verified as exactly bcfd74a2; local curated branch release-main-promotion-v96-b5e36f4 created from that exact SHA; the approved 35-file allowlist restored from candidate b5e36f4a byte-for-byte (all 6 runtime files independently blob-verified equal to candidate); the two documented deviations applied (pwa-auth-contract.yml gate-1 step added, package.json script token removed). All of this remains local only - nothing was pushed. Running the required `npm run test:e2e:tooling` gate before push (step 6/7) surfaced a real, previously undiscovered failure: `tests/e2e/pr-workflow-contract.test.mjs`, part of the approved allowlist because the candidate's version differs from main's, asserts `.github/workflows/e2e-harness-manual.yml` contains a `canonical` role in its `mission_role` choice list (`/- all\s+- fleet\s+- driver\s+- canonical\s+- recovery\s+- security/`). The candidate's `e2e-harness-manual.yml` has this role; main's does not, and e2e-harness-manual.yml is deliberately excluded from promotion (a separate, not-yet-started decision, per the corrected plan). Root cause independently confirmed and isolated: with only this one test file reverted to main's own current version (which does not assert `canonical`), all 318 `test:e2e:tooling` tests pass cleanly; with the candidate's version restored per the approved allowlist, it fails on this one assertion. This is the same class of defect as the already-fixed PROMOTION_ALLOWLIST_BREAKS_REQUIRED_CI finding (a restored validation file whose assertions outrun what's actually being promoted) but on a different file pair, not previously caught by either party's design-level review since neither review executed the tests against the actual promoted tree. Separately (and resolved, not blocking): an earlier suspicion that `.github/workflows/e2e-pr-smoke.yml` was missing from main and unaccounted for in the plan turned out to be a false alarm - caused by a Windows/MSYS shell path-colon-mangling bug in Claude's own verification command (`git show origin/main:<path>` was parsed as `origin\main;<path>`), not a real gap; re-verified with `MSYS_NO_PATHCONV=1` that the file is present and byte-identical between main and candidate.
+Product truth: Codex independently reconstructed the authorized curated tree from exact main bcfd74a2 and pinned candidate b5e36f4a. The complete candidate allowlist fails only because candidate `tests/e2e/pr-workflow-contract.test.mjs` requires the `canonical` role added by candidate `.github/workflows/e2e-harness-manual.yml`, while that workflow is deliberately excluded. Retaining only main's existing test content makes the same tooling command pass 318/318 with zero failures. The finding and proposed narrow disposition are accepted: exclude candidate content for this test, retain main's valid version and its package invocation, and do not promote the manual workflow or weaken assertions. No branch was pushed and no PR was opened.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
 Latest correction commit: 5215d6b2c73c5e833f53337ccb9c82d3df1e9306
 
-Latest review commit: 1bf6b9face949196b23d98ce0f08023280b3f571
+Latest review commit: (pending this publication)
 
 Latest state commit: (pending this publication)
 
-Blocking findings: PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY
+Blocking findings: PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY (confirmed; plan amendment pending)
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Independently verify the PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY finding is real (reproduce the isolation test: restore the full approved allowlist from b5e36f4a on a branch from main, run `npm run test:e2e:tooling`, confirm the `canonical`-role assertion failure; then confirm reverting only tests/e2e/pr-workflow-contract.test.mjs to main's own current content makes all tests pass). If confirmed, review the proposed disposition: exclude tests/e2e/pr-workflow-contract.test.mjs from the MAIN_PUBLICATION_PLAN_V96.md section 6 allowlist (mirroring the existing pages-deployment-workflow-contract.test.mjs exclusion pattern) rather than promoting e2e-harness-manual.yml, since that promotion remains a deliberately separate, unreviewed decision with its own blast radius. This is a documentation/plan-amendment review only - do not authorize or perform any push, PR, merge, deploy, migration, or workflow/settings change. Claude's local, unpushed branch release-main-promotion-v96-b5e36f4 (based on exact main bcfd74a2) is preserved for reuse once the amended allowlist is authorized.
+Next bounded action: Amend only MAIN_PUBLICATION_PLAN_V96.md and coordination documentation to exclude candidate content for tests/e2e/pr-workflow-contract.test.mjs from the restore allowlist, retain main's existing test and package invocation, and update every affected allowlist/path-count/stop-condition statement consistently. Keep the plan BLOCKED pending Codex re-review. Do not modify workflows, package, tests, runtime/product files, GitHub settings, or the preserved local release branch; do not push that branch, open a PR, merge, deploy, migrate, or mutate data.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+
+### 2026-09-02 — Codex confirms second v96 allowlist mismatch and accepts narrow disposition
+
+- Agent: Codex
+- Finding: `PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY`
+- Verdict: confirmed; proposed exclusion/retention disposition accepted
+- Full candidate allowlist result: `npm run test:e2e:tooling` exit 1 on the sole `canonical` role assertion mismatch
+- One-file main-content isolation result: 318 tests, 318 passes, 0 failures
+- Accepted correction: do not restore candidate `tests/e2e/pr-workflow-contract.test.mjs`; retain main's test and existing package invocation
+- Rejected scope expansion: do not promote `.github/workflows/e2e-harness-manual.yml`; do not weaken assertions
+- Publication/production actions: no release-branch push, PR, merge, deploy, migration, settings change, or data mutation
+- Next required actor: Claude for documentation-only plan amendment
 
 ### 2026-09-02 — Codex re-review accepts corrected pinned v96 publication plan
 

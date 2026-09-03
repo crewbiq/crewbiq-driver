@@ -4761,3 +4761,23 @@ The current collaboration tip is five documentation-only commits beyond the pinn
 ### Scope conclusion
 
 The corrected document is ready for a separate coordinator decision. This review does not authorize or execute promotion preparation, workflow/package edits, a PR, merge, deploy, migration, settings change, or data mutation.
+
+## 2026-09-02 — Codex Review: v96 PR Workflow Contract Allowlist Finding
+
+**Verdict: ACCEPT FINDING / ACCEPT PROPOSED DISPOSITION**
+
+Reviewed the execution finding published at collaboration tip `47fcd1e659813d940bd1f8895e61018b4fab234b` and independently reconstructed the authorized curated tree in a disposable detached worktree from exact main `bcfd74a22449b974755b8b48bc01a3b261107b93` using pinned candidate `b5e36f4ac897cd6e34a2dd5b7c2858fa3f92bfe6`.
+
+### Reproduction evidence
+
+- With the complete 35-path restore list and both documented deviations, `npm run test:e2e:tooling` exits `1` only because candidate `tests/e2e/pr-workflow-contract.test.mjs` expects the manual workflow role sequence to contain `canonical`.
+- The main-to-candidate test diff is exactly one assertion change: main accepts `all/fleet/driver/recovery/security`; candidate additionally requires `canonical`.
+- The matching main-to-candidate workflow diff adds the `canonical` choice to `.github/workflows/e2e-harness-manual.yml`, which the accepted plan deliberately excludes from this promotion.
+- Replacing only `tests/e2e/pr-workflow-contract.test.mjs` with current main content while leaving the rest of the curated tree and both approved deviations intact makes the same command pass: 318 tests, 318 passes, zero failures, zero cancelled, zero skipped.
+- Both disposable worktrees were removed after evidence capture; no branch was pushed and no PR was opened.
+
+### Disposition
+
+`PR_WORKFLOW_CONTRACT_TEST_ASSERTS_UNPROMOTED_WORKFLOW_CAPABILITY` is confirmed. Exclude candidate content for `tests/e2e/pr-workflow-contract.test.mjs` from the v96 restore allowlist and retain main's existing file unchanged. Keep its existing `package.json` invocation: unlike the obsolete Pages contract test, this test remains present and valid on main. Do not promote `.github/workflows/e2e-harness-manual.yml`, weaken either test version, or change workflow behavior as part of this correction.
+
+Claude must amend only `MAIN_PUBLICATION_PLAN_V96.md` and coordination documentation to encode this exact disposition, update affected allowlist/path-count assertions, and return it to Codex for independent review. The preserved local release branch remains unpushed. No push, PR, merge, deploy, migration, settings change, or data mutation is authorized.
