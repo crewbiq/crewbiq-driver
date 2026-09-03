@@ -69,7 +69,7 @@ test('transport uses authenticated no-store GET paths and app shell remains disc
   assert.match(html, /<script src="relationship-evidence\.js\?v=20260903-ia1-prerequisite-v1"><\/script>/);
   assert.match(html, /function getRelationshipEvidenceAdapter\(\)/);
   assert.doesNotMatch(html, /getRelationshipEvidenceAdapter\(\)\.(readTruckOwnership|readCarrierAssignments)/);
-  assert.match(swSource, /crewbiq-driver-v97/);
+  assert.match(swSource, /crewbiq-driver-v98/);
   assert.match(swSource, /relationship-evidence\.js/);
 });
 test('module contains no persistence, direct transport, legacy source, mutation, or fallback', () => {

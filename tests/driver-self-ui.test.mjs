@@ -94,7 +94,7 @@ test('transport and app shell wire the read-only SELF composition',()=>{
   assert.match(runtime,/\/account-driver-link/);
   assert.match(index,/account-driver-link\.js/);
   assert.match(index,/driver-self\.js/);
-  assert.match(sw,/crewbiq-driver-v97/);
+  assert.match(sw,/crewbiq-driver-v98/);
   assert.match(sw,/account-driver-link\.js/);
   assert.match(sw,/driver-self\.js/);
 });

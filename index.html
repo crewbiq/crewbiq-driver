@@ -23,6 +23,9 @@
 <script src="startup-session.js?v=20260830-slice1b-v1"></script>
 <script src="links.js?v=20260830-slice2b-v1"></script>
 <script src="navigation-model.js?v=20260830-slice3b-v1"></script>
+<script src="presentation-context.js?v=20260903-ia3-v1"></script>
+<script src="navigation-projection.js?v=20260903-ia3-v1"></script>
+<script src="driver-presentation.js?v=20260903-ia3-v1"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--tx);max-width:480px;margin:0 auto;min-height:100vh}
@@ -1346,8 +1349,27 @@ function changeRole(role, btn){
   toast('Role: ' + (ROLE_CONFIG[role]?.icon || '') + ' ' + (ROLE_CONFIG[role]?.label || role));
 }
 
+let driverNavigationProjection = null;
+let driverNavigationProjectionKey = '';
+function driverPresentationSnapshotKey(){
+  try{
+    const session=loadOrchestratorSession();
+    if(!session || !session.sessionToken || !window.CrewBIQWorkspaceAttribution) return '';
+    const workspace=window.CrewBIQWorkspaceAttribution.resolveActiveWorkspace(session);
+    const accountId=canonicalOrchestratorAccountId(session);
+    return workspace && workspace.ok && accountId
+      ? [String(session.sessionToken).trim(),workspace.workspaceId,accountId].join('|') : '';
+  }catch(_error){ return ''; }
+}
+function getDriverShellPresentationRole(){
+  const projection=driverNavigationProjection;
+  const currentKey=driverPresentationSnapshotKey();
+  return currentKey && currentKey===driverNavigationProjectionKey
+    && projection && projection.status==='resolved' && projection.membershipRole==='driver'
+    && projection.presentationPersona==='driver' ? 'driver' : getUserRole();
+}
 function applyRoleUI(){
-  const role = getUserRole();
+  const role = getDriverShellPresentationRole();
   const cfg  = ROLE_CONFIG[role] || ROLE_CONFIG.driver;
   const roleRank = CrewBIQNavigationModel.ROLE_RANK;
 
@@ -1899,19 +1921,37 @@ function getRelationshipEvidenceAdapter(){
   }
   return relationshipEvidenceAdapter;
 }
-let driverSelfReader = null;
-let driverSelfRequestKey = '';
-let driverSelfRequest = null;
-function getDriverSelfReader(){
+let driverPresentationCoordinator = null;
+function getDriverPresentationCoordinator(){
   const linkAdapter=getAccountDriverLinkAdapter();
   const assignmentAdapter=getDriverTruckAssignmentAdapter();
-  if(!driverSelfReader && window.CrewBIQDriverSelf && linkAdapter && assignmentAdapter){
-    driverSelfReader=window.CrewBIQDriverSelf.create({
+  if(!driverPresentationCoordinator && window.CrewBIQDriverPresentation && window.CrewBIQPresentationContext
+    && window.CrewBIQNavigationProjection && window.CrewBIQDriverSelf && window.CrewBIQWorkspaceAttribution
+    && linkAdapter && assignmentAdapter){
+    driverPresentationCoordinator=window.CrewBIQDriverPresentation.create({
+      getSession:loadOrchestratorSession,
+      resolveWorkspace:(session)=>window.CrewBIQWorkspaceAttribution.resolveActiveWorkspace(session),
+      getAccountId:canonicalOrchestratorAccountId,
+      getLegacyPersona:getUserRole,
+      createSelfReader:(deps)=>window.CrewBIQDriverSelf.create(deps),
       readAccountDriverLink:(payload)=>linkAdapter.read(payload),
       readCurrentAssignment:(payload)=>assignmentAdapter.readCurrent(payload),
+      resolvePresentationContext:window.CrewBIQPresentationContext.resolvePresentationContext,
+      projectNavigation:window.CrewBIQNavigationProjection.projectNavigation,
+      navigationModel:CrewBIQNavigationModel,
+      onResult:(result)=>{
+        driverNavigationProjection=result.applyDriver ? result.projection : null;
+        driverNavigationProjectionKey=result.applyDriver ? result.snapshotKey : '';
+        renderDriverSelfState(result.selfState);
+        applyRoleUI();
+      },
     });
   }
-  return driverSelfReader;
+  return driverPresentationCoordinator;
+}
+function invalidateDriverPresentation(){
+  if(driverPresentationCoordinator) driverPresentationCoordinator.invalidate();
+  else { driverNavigationProjection=null; driverNavigationProjectionKey=''; renderDriverSelfState({status:'unavailable'}); applyRoleUI(); }
 }
 function canonicalOrchestratorAccountId(session){
   const me=(session&&session.me) || {};
@@ -1940,21 +1980,9 @@ function renderDriverSelfState(state){
   }
 }
 function refreshDriverSelfCard(force){
-  const session=loadOrchestratorSession();
-  const resolver=window.CrewBIQWorkspaceAttribution;
-  const reader=getDriverSelfReader();
-  if(!session || !session.sessionToken || !resolver || !reader){ renderDriverSelfState({status:'unavailable'}); return Promise.resolve(); }
-  const workspace=resolver.resolveActiveWorkspace(session);
-  const accountId=canonicalOrchestratorAccountId(session);
-  if(!workspace.ok || !accountId){ renderDriverSelfState({status:workspace.code==='workspace_unauthorized'?'unauthorized':'unavailable'}); return Promise.resolve(); }
-  const key=[session.sessionToken,workspace.workspaceId,accountId].join('|');
-  if(!force && driverSelfRequest && driverSelfRequestKey===key) return driverSelfRequest;
-  driverSelfRequestKey=key;
-  renderDriverSelfState({status:'unavailable'});
-  driverSelfRequest=reader.read({sessionToken:session.sessionToken, workspaceId:workspace.workspaceId, accountId, effectiveAt:new Date().toISOString()})
-    .then(function(state){ if(driverSelfRequestKey===key) renderDriverSelfState(state); return state; })
-    .catch(function(){ if(driverSelfRequestKey===key) renderDriverSelfState({status:'unavailable'}); });
-  return driverSelfRequest;
+  const coordinator=getDriverPresentationCoordinator();
+  if(!coordinator){ invalidateDriverPresentation(); return Promise.resolve(); }
+  return coordinator.refresh(!!force);
 }
 function currentAssignmentLabel(){
   const a=(driver&&driver.currentAssignment) || {};
@@ -2456,6 +2484,7 @@ function onOrchWorkspaceChange(){
   refreshDriverSelfCard(true);
 }
 async function onOrchDisconnectClick(){
+  invalidateDriverPresentation();
   var session = loadOrchestratorSession();
   if(session && session.sessionToken) await orchestratorAuthLogout(session.sessionToken);
   clearOrchestratorSession();
@@ -2689,7 +2718,7 @@ function renderStartupShell(){
 // ── APP ──
 function showApp(){ return getStartupCoordinator().showApp(); }
 function primaryDestinationForPage(name){
-  return CrewBIQNavigationModel.primaryDestinationForPage(name, getUserRole());
+  return CrewBIQNavigationModel.primaryDestinationForPage(name, getDriverShellPresentationRole());
 }
 const PRIMARY_NAV_PAGES = CrewBIQNavigationModel.PRIMARY_NAV_PAGES;
 let pageNavigationHistory = [];

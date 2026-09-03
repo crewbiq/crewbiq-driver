@@ -39,7 +39,7 @@ test('role adaptation swaps Truck and Team and filters owner actions', () => {
   assert.match(html, /teamNav\.style\.display = role === 'fleet' \? '' : 'none'/);
   assert.match(navigationModel, /const ROLE_RANK = \{driver:0,owner_op:1,fleet:2\}/);
   assert.match(html, /data-min-role="owner_op"/);
-  assert.match(html, /CrewBIQNavigationModel\.primaryDestinationForPage\(name, getUserRole\(\)\)/);
+  assert.match(html, /CrewBIQNavigationModel\.primaryDestinationForPage\(name, getDriverShellPresentationRole\(\)\)/);
   assert.match(navigationModel, /role === 'fleet' \? 'team' : 'truck'/);
 });
 
