@@ -75,17 +75,17 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Implementation - Authoritative Relationship Evidence Blockers
+Phase: IA-1 Implementation - Authoritative Relationship Evidence Blockers Confirmed
 
-Status: BLOCKED / AWAITING CLAUDE REVIEW
+Status: ACCEPT / EVIDENCE INDEPENDENTLY VERIFIED
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: IA-1 implementation discovery confirmed real current shapes for session, WorkspaceMembership, AccountDriverLink, and DriverTruckAssignment. Canonical CarrierAssignment and TruckOwnership evidence sources do not exist in current orchestrator/PWA architecture. Legacy local truck carrier snapshots cannot be used as authority, and ownership cannot be inferred. A partial or invented-shape resolver was not implemented.
+Product truth: Independently re-verified PRESENTATION_CONTEXT_IMPLEMENTATION_EVIDENCE.md's claims against the actual crewbiq-driver and crewbiq-orchestrator repositories rather than accepting them at face value. AVAILABLE claims confirmed: account-driver-link.js exists with a normalized read(); driver-truck-assignment.js exists with exactly readCurrent(); active_workspace_id is a real field present across multiple orchestrator files (auth.py, auth_service.py, canonical_registry.py, and their tests). BLOCKED claims confirmed exhaustively: grepped index.html and found truck.carrierAssignment/truck.carrierAssignmentHistory are exactly the legacy local business snapshot described (companyNameSnapshot/mcNumberSnapshot fields, mutable client-editable presentation state), not the ADR-0007 canonical relationship. Listed and read all 12 orchestrator migration files (001 through 009) and confirmed none creates a truck_ownership or carrier_assignments table anywhere in the schema history - not just the one migration the evidence document's own excerpt showed. Investigated the two most plausible-sounding alternative tables independently (not merely trusting their absence from the evidence doc): auth_owner_mappings (005) maps an auth_user_id to a legacy pre-workspace owner_crewbiq_id identity bridge, unrelated to truck ownership; company_authorities (008) verifies a carrier company's own MC/USDOT regulatory authority, unrelated to a CarrierAssignment relationship to another fleet's trucks. Found and read tests/test_canonical_claims.py, which independently and more strongly corroborates the finding: it contains an existing regression test asserting, as executable proof, that a specific migration does not create truck_ownership or carrier_assignments tables - meaning their absence is not merely undiscovered but actively guarded against in the current test suite. The evidence document's decision not to fabricate evidence shapes or ship a partial/weaker resolver is correct and consistent with the accepted IA-1 contract's fail-closed discipline.
 
-Latest implementation commit: NONE (blocked before runtime implementation)
+Latest implementation commit: NONE (blocked before runtime implementation, correctly)
 
 Latest correction commit: 3b6a81f0587d766d8800a89cc5df294ba23ab9ba
 
@@ -93,17 +93,19 @@ Latest review commit: 865125d189d07802d83b22c13cc6091c2efa1700
 
 Latest evidence commit: ce4260659e9a86759c860176e8df9ed48cee6018
 
-Latest state commit: 215052aa943e83950f091c57ee1c4dbbb0e705a6
+Latest state commit: (pending this publication)
 
-Blocking findings: CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE; TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE
+Blocking findings: CANONICAL_CARRIER_ASSIGNMENT_EVIDENCE_NOT_AVAILABLE (confirmed, independently verified); TRUCK_OWNERSHIP_EVIDENCE_NOT_AVAILABLE (confirmed, independently verified)
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-2 through IA-6 remain separate, not-yet-started slices
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-2 through IA-6 remain separate, not-yet-started slices; the required prerequisite (server-authoritative read-only CarrierAssignment and TruckOwnership evidence paths) is not yet defined or authorized.
 
-Decision gate: AUTO_CONTINUE_ALLOWED
+Decision gate: COORDINATOR_REQUIRED
 
-Next required actor: Claude
+Next required actor: Product Owner
 
-Next bounded action: Independently review PRESENTATION_CONTEXT_IMPLEMENTATION_EVIDENCE.md and verify in crewbiq-driver and crewbiq-orchestrator that canonical CarrierAssignment and TruckOwnership schema/read sources/adapters are absent, legacy truck carrier snapshots are non-authoritative, and full V1-V9 implementation cannot proceed without inventing evidence. Publish ACCEPT or precise NEEDS_FIX. Documentation/repository review only; no runtime, schema, endpoint, migration, deployment, or data change.
+Decision required: IA-1 implementation cannot proceed to a complete, contract-honoring resolver until canonical CarrierAssignment and TruckOwnership evidence sources exist. This is a genuine prerequisite decision, not a documentation task: define and authorize the smallest server-authoritative, read-only evidence path for (1) active CarrierAssignment relationships reachable from a carrier's home-workspace membership including authorized cross-workspace subject IDs, and (2) TruckOwnership relationships scoped to the authenticated account and active workspace, including PWA read adapters that validate those shapes fail-closed - or explicitly defer IA-1 implementation until a later phase and select a different next slice.
+
+Next bounded action: Await Product Owner decision on the CarrierAssignment/TruckOwnership evidence prerequisite. Do not implement a partial resolver, do not fabricate or infer evidence shapes, do not start IA-2, and do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480, or e2e-harness-manual.yml promotion work in the meantime.
 <!-- CURRENT_END -->
 
 
@@ -4797,3 +4799,15 @@ er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
 - Published as commit 3b6a81f0587d766d8800a89cc5df294ba23ab9ba (verified tip unchanged immediately before publish, blob size independently verified against local source, published content independently re-fetched via git show and byte-diffed after push, and the real +4/-4 diff stat pulled from the Commits API).
 - Per the role-swap protocol: Next required actor: Codex, for independent re-review confirming the fix is complete and no other stale reference remains.
 - No runtime, workflow, deploy, migration, or data change occurred - documentation/contract only.
+
+### 2026-09-03 - Claude - Independently verified IA-1 implementation evidence blockers, published ACCEPT (reviewer role)
+
+- Role-swapped for this cycle: Codex had performed IA-1-implementation discovery work and published PRESENTATION_CONTEXT_IMPLEMENTATION_EVIDENCE.md reporting two blocking findings; Claude's role this cycle was independent verifier, not implementer - consistent with the standing role-swap protocol applying in whichever direction the actual work happened.
+- Read the full evidence document, then independently re-derived every claim against the real repositories rather than accepting the document at face value, per this session's standing discipline.
+- Confirmed the AVAILABLE claims: account-driver-link.js and driver-truck-assignment.js both exist in crewbiq-driver with exactly the claimed read()/readCurrent() functions; active_workspace_id is a genuinely present field across multiple real orchestrator files (auth.py, auth_service.py, canonical_registry.py) and their test suites, not merely asserted.
+- Confirmed the BLOCKED claims exhaustively rather than spot-checking: grepped crewbiq-driver's index.html directly and found truck.carrierAssignment/truck.carrierAssignmentHistory are exactly the legacy, mutable, client-editable local business snapshot the evidence document described (companyNameSnapshot/mcNumberSnapshot fields) - not any canonical ADR-0007 relationship. Listed and individually checked all 12 orchestrator migration files (001 through 009, including every file the evidence document's own excerpt did not show) and confirmed none creates a truck_ownership or carrier_assignments table anywhere in the schema's full history.
+- Went beyond the evidence document's own citations: independently searched for and investigated the two most plausible-sounding alternative tables that might have been an overlooked canonical source - auth_owner_mappings (a legacy pre-workspace auth-to-owner-ID bridge, unrelated to truck ownership) and company_authorities (a carrier company's own MC/USDOT regulatory-authority verification, unrelated to a CarrierAssignment relationship to another fleet's trucks) - and confirmed both are genuinely different, unrelated concepts, not disguised evidence sources the document missed.
+- Found and read tests/test_canonical_claims.py, which the evidence document itself did not cite: it contains an existing regression test asserting, as executable proof, that a specific migration does not create truck_ownership or carrier_assignments tables - independently and more strongly corroborating the finding, since their absence is actively guarded against by the current test suite rather than merely unnoticed.
+- Published ACCEPT: the evidence document's classification is correct, and its decision not to fabricate evidence shapes or ship a partial/weaker resolver is the correct application of the IA-1 contract's own fail-closed discipline.
+- Escalated the actual next decision to the Product Owner rather than picking a workaround unilaterally: defining and authorizing a server-authoritative CarrierAssignment/TruckOwnership evidence path (or deciding to defer IA-1 implementation) is a genuine product/architecture prerequisite decision, not a documentation task Claude or Codex should resolve alone.
+- No runtime, schema, endpoint, migration, deployment, or data change occurred - documentation/repository review only.
