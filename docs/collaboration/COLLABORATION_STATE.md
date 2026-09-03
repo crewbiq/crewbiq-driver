@@ -75,23 +75,24 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Accepted Driver own-current integration / staging validation preparation
-Status: IN_PROGRESS / COORDINATION AUTHORIZED
-Current owner: Codex
+Phase: Driver own-current integration staging validation plan
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Own-current implementation independently accepted. No merge or deployment authorized in this step. Prepare exact-SHA staging validation using existing accepted procedures; do not infer production readiness from unit/SQL evidence.
+Product truth: Planning evidence published; Product Owner authorized disabling staging PWA auto-deploy only. Railway API confirms disabled; current staging deployment retained. No merge or runtime deployment performed.
 Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
 Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
 Latest review commit: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6
-Latest prior state commit: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6
-Validation: Claude independently reproduced backend 399/399 and PWA 29/29, including real PostgreSQL isolation
+Latest prior state commit: 68878e8f1aeb7e2e42a83126e3d20bcaef77e5d7
+Plan: docs/collaboration/DRIVER_OWN_ASSIGNMENT_STAGING_VALIDATION_PLAN.md
+Validation: read-only staging health/readiness 200; server CI 33794891841 success; staging auto-deploy false confirmed 2026-09-03T21:10:35.9928466Z
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: NONE in accepted implementation; deployed own-current access and authenticated integration remain unverified
-Queued coverage: authenticated browser/mobile/offline smoke; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Blocking findings: exact accepted server SHA not proven staged; canonical driver-only fixture not verified; authenticated browser/mobile/offline evidence outstanding
+Queued coverage: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Read-only discovery and documentation only: prepare the smallest exact-SHA staging integration validation plan for accepted orchestrator ce5a591a48f1733b4e21128dece0e0350ace41c2 and PWA c0ec7d884f59f4eca91fee311a8b11cbfa98f628. Inspect existing staging procedures, environment/revision/schema evidence and authorized synthetic account prerequisites; specify browser/mobile/offline, cross-principal denial and legacy graceful-degradation checks, recovery and exact missing prerequisites. Do not assume merge to main is necessary for staging. No merge, deploy, infrastructure/configuration changes, migration or data mutation, new runtime code or IA-4. Publish the bounded plan and hand to Claude for review before any execution.
+Next required actor: Claude
+Next bounded action: Independently review the staging validation plan, exact target identities, historical versus live evidence, driver-only fixture prerequisites and bounded read-only checks. Verify the authorized staging-only auto-deploy disable evidence. Publish ACCEPT or precise NEEDS_FIX and hand back to Codex. No test execution, fixture mutation, merge, deployment, migration, IA-4 or production change is authorized by this planning handoff.
 <!-- CURRENT_END -->
 
 
@@ -5110,3 +5111,13 @@ Decision under standing Product Owner delegation: prioritize closing authenticat
 Reason: standing monitor scope prohibits merge/deploy; a plan can identify exact staging prerequisites and safe exact-SHA routing without changing any environment. No direct Product Owner decision is needed for this documentation-only step.
 CURRENT ownership changed from routine Product Owner checkpoint to Codex. Claude's review remains preserved in HISTORY. Accepted code and NOT_READY_FOR_PRODUCTION remain unchanged.
 Next: Codex publishes bounded plan, Claude independently reviews. No runtime, configuration, workflow, migration or business-data change.
+### Staging publication trigger correction and plan handoff
+
+Agent: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Authorization: Product Owner explicitly approved disabling only staging PWA auto-deploy, preserving running deployment and production.
+Operation: serviceInstanceAutoDeployUpdate(enabled:false) for imaginative-flow / staging / sublime-learning, exact IDs recorded in DRIVER_OWN_ASSIGNMENT_STAGING_VALIDATION_PLAN.md.
+Result: authoritative staging auto-deploy enabled=false at 2026-09-03T21:10:35.9928466Z; production PWA toggle remained enabled=true. Staging deployment a50693f3-95c1-48fd-a5da-78bc439c8a69 remained SUCCESS at source 68878e8f1aeb7e2e42a83126e3d20bcaef77e5d7.
+Scope: one authorized staging trigger toggle and documentation only. No deployment/restart/source disconnect, production mutation, merge, migration or business-data operation.
+Plan: exact targets, server provenance gap, canonical Driver fixture gap, browser/mobile/offline and isolation checks, recovery and evidence limits. No tests executed in this planning step.
+Next required actor: Claude for independent plan review. NOT_READY_FOR_PRODUCTION and queued canonical staging coverage remain unchanged.
