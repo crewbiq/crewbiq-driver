@@ -36,20 +36,34 @@ PresentationContext = {
   relationshipScope: {
     carrierAssignmentIds: [],
     accountDriverLinkId: null | 'stable-link-id',
-    truckOwnershipIds: []
+    truckOwnershipIds: [],
+    currentDriverTruckAssignment: null | {
+      truckId: 'stable-truck-id',
+      driverId: 'stable-driver-id',
+      effectiveFrom: 'ISO-8601-timestamp'
+    }
   },
   legacyPersona: null | 'driver' | 'owner_op' | 'fleet'
 }
 ```
 
 `relationshipScope` is extended here (from the IA-0 preparation shape)
-with `accountDriverLinkId` and `truckOwnershipIds`, since the
-owner-who-drives scenario (ADR-0007 §7 scenario A) requires the resolver
-to surface these alongside `membershipRole` for the shell to reason about
-which Scope selections it may later offer — without itself granting or
-computing authority for any of them. This remains a preparation shape,
-not a frozen wire format: exact field names may be refined when IA-1 is
-actually implemented against real endpoint responses.
+with `accountDriverLinkId`, `truckOwnershipIds`, and
+`currentDriverTruckAssignment`, since the owner-who-drives scenario
+(ADR-0007 §7 scenario A) requires the resolver to surface all three
+alongside `membershipRole` for the shell to reason about which Scope
+selections it may later offer — without itself granting or computing
+authority for any of them. `truckOwnershipIds` alone is insufficient for
+this scenario: it identifies which trucks the account owns/has fleet
+authority over (Trucks A, B, C), but not which one, if any, the account's
+linked Driver profile is *currently assigned to drive* (Truck A) — that
+is a distinct fact carried only by the current effective
+`DriverTruckAssignment`, per `ANALYTICS_SCOPE_CONTRACT.md`'s own
+effective-dated-assignment model, and it is what the shell needs to
+default or highlight a `SELF`/`TRUCK` presentation correctly. This
+remains a preparation shape, not a frozen wire format: exact field names
+may be refined when IA-1's resolver is actually implemented against real
+endpoint responses.
 
 ## Multi-membership accounts
 
@@ -83,28 +97,42 @@ safe to memoize per session snapshot.
 
 ### Resolution rules
 
+0. **Fail-closed payload rule (applies to every rule below).** Whenever
+   `status` is anything other than `'resolved'`, every other field is
+   reset to its empty/absent value, with no exception:
+   `workspaceId: null`, `membershipRole: null`, `capabilities: []`,
+   `relationshipScope: { carrierAssignmentIds: [], accountDriverLinkId:
+   null, truckOwnershipIds: [], currentDriverTruckAssignment: null }`.
+   `legacyPersona` is the sole exception (rule 6) and may still be
+   populated for informational rendering even when `status` is not
+   `'resolved'`. A resolver implementation that leaves any other field
+   populated from a partial/stale evidence read while `status` is
+   `'unavailable'`/`'unauthorized'`/`'ambiguous'` violates this contract,
+   regardless of which specific rule below produced that `status`.
 1. No active session or no resolvable active `WorkspaceMembership` ->
-   `status: 'unavailable'`, `membershipRole: null`, empty
-   `relationshipScope`. The shell must present its existing
-   graceful-degradation/unauthenticated state, not a canonical role UI.
+   `status: 'unavailable'`; every other field per rule 0. The shell must
+   present its existing graceful-degradation/unauthenticated state, not
+   a canonical role UI.
 2. Exactly one active `WorkspaceMembership` for the active `workspaceId`,
    with a role in the closed ADR-0007 set (`driver`/`fleet`/`carrier`) ->
    `status: 'resolved'`, `membershipRole` set to that exact role,
    `capabilities` populated from the existing granted-capability
    evidence, `relationshipScope` populated from existing
-   `CarrierAssignment`/`AccountDriverLink`/`TruckOwnership` evidence for
-   that account within that workspace.
+   `CarrierAssignment`/`AccountDriverLink`/`TruckOwnership`/current
+   effective `DriverTruckAssignment` evidence for that account within
+   that workspace — this is the only rule that may populate any field
+   beyond `status` and `legacyPersona`.
 3. More than one active `WorkspaceMembership` resolves for the same
    `workspaceId` (a data inconsistency ADR-0007 does not permit in
-   steady state — see ADR-0007 §1) -> `status: 'ambiguous'`. The shell
-   must present an explicit ambiguous state; it must never guess by
-   picking the first result, the highest-rank role, or any other
-   heuristic.
+   steady state — see ADR-0007 §1) -> `status: 'ambiguous'`; every other
+   field per rule 0. The shell must present an explicit ambiguous state;
+   it must never guess by picking the first result, the highest-rank
+   role, or any other heuristic.
 4. An active `WorkspaceMembership` resolves with a role outside the
    closed ADR-0007 set (any legacy/unexpected value) -> `status:
-   'unauthorized'`, `membershipRole: null`. The resolver must not attempt
-   to coerce, map, or "best-guess" an unrecognized role value onto
-   `driver`/`fleet`/`carrier`.
+   'unauthorized'`; every other field per rule 0. The resolver must not
+   attempt to coerce, map, or "best-guess" an unrecognized role value
+   onto `driver`/`fleet`/`carrier`.
 5. `owner` never appears as a `membershipRole` value under any input,
    by construction — there is no code path in this resolver that
    produces it, since ADR-0007 §2 does not recognize it as a
@@ -158,7 +186,12 @@ do not replace, the ADR-0007 Validation and Role-vs-Scope acceptance
 scenarios.
 
 **V1. No session.** `sessionEvidence` has no authenticated session ->
-`status: 'unavailable'`.
+`status: 'unavailable'`, and every other field is exactly the rule-0
+empty payload: `workspaceId: null`, `membershipRole: null`,
+`capabilities: []`, `relationshipScope` with all four sub-fields
+empty/null. A resolver that leaks a stale `workspaceId` or cached
+`capabilities` from a prior session under this input fails this
+scenario, even if `status` is correctly `'unavailable'`.
 
 **V2. Clean single-role resolution.** One active `driver` (or `fleet`,
 or `carrier`) `WorkspaceMembership` for the active workspace, no
@@ -166,21 +199,30 @@ ambiguity -> `status: 'resolved'`, correct `membershipRole`.
 
 **V3. Owner-who-drives (matches ADR-0007 §7 scenario A).** An account
 with an active `fleet` `WorkspaceMembership`, a `TruckOwnership`/fleet
-authority over several trucks, an `AccountDriverLink`, and a current
-`DriverTruckAssignment` resolves `status: 'resolved'`,
-`membershipRole: 'fleet'`, with `relationshipScope.accountDriverLinkId`
-and `truckOwnershipIds` populated — `membershipRole` is never `'owner'`
-and is never anything other than `'fleet'` for this workspace, regardless
-of how many relationships are present.
+authority over Trucks A, B, and C, an `AccountDriverLink`, and a current
+effective `DriverTruckAssignment` of the linked Driver to Truck A
+resolves `status: 'resolved'`, `membershipRole: 'fleet'`, with
+`relationshipScope.accountDriverLinkId` set,
+`relationshipScope.truckOwnershipIds` containing all three trucks (A, B,
+C), and `relationshipScope.currentDriverTruckAssignment` set to exactly
+`{ truckId: A, driverId: <linked driver>, effectiveFrom: ... }` — not
+merely implied by `truckOwnershipIds` containing A. `membershipRole` is
+never `'owner'` and is never anything other than `'fleet'` for this
+workspace, regardless of how many relationships are present.
 
 **V4. Ambiguous membership.** Two active `WorkspaceMembership` records
-resolve for the same account and workspace -> `status: 'ambiguous'`; the
-resolver output contains no `membershipRole` guess.
+resolve for the same account and workspace -> `status: 'ambiguous'`, and
+every other field is exactly the rule-0 empty payload — not merely
+"contains no `membershipRole` guess" but `workspaceId`, `capabilities`,
+and every `relationshipScope` sub-field are also empty/null, even though
+both candidate memberships may have real relationship evidence attached.
 
 **V5. Unrecognized role value.** An active `WorkspaceMembership` carries
 a role value outside `driver`/`fleet`/`carrier` (e.g. stale/legacy data)
--> `status: 'unauthorized'`; the resolver does not coerce it to a
-recognized role.
+-> `status: 'unauthorized'`, and every other field is exactly the rule-0
+empty payload — the resolver does not coerce the role to a recognized
+value, and it does not surface that membership's `capabilities` or
+`relationshipScope` evidence despite the membership record existing.
 
 **V6. Legacy persona never promotes.** `legacyPersona: 'owner_op'` is
 present in local state while the actual active `WorkspaceMembership`
@@ -211,10 +253,27 @@ capabilities, and relationship evidence — never a union of both.
 
 ## Next bounded slice
 
-Per `MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md`, the next
-slice after this contract is independently accepted is **IA-2: Navigation
-projection adapter** — projecting a resolved `PresentationContext` onto a
-copy-free navigation view while retaining existing page IDs, `showPage()`
-ownership, render hooks, legacy persona compatibility, and both current
-model inventories. IA-2 is not authorized by this document and requires
-its own separate review.
+This document defines a contract, not a shipped resolver. Its own
+validation scenarios (V1-V8) are not yet executable against anything,
+because `resolvePresentationContext` is `NOT_YET_IMPLEMENTED` (see
+Readiness). IA-2 (Navigation projection adapter) *consumes* a resolved
+`PresentationContext` — it cannot be meaningfully built or reviewed
+against a resolver that does not exist yet.
+
+The next slice after this contract is independently accepted is
+therefore **IA-1-implementation: build `resolvePresentationContext`
+against the real, current session/membership/capability/relationship
+evidence shapes, and prove rules 0-8 and scenarios V1-V8 against it** —
+not IA-2 directly. This slice must pin the exact current evidence
+shapes it reads (superseding the "`ASSUMED_STABLE`" placeholder in
+Readiness below with the real shapes), implement the resolver as a pure
+function with no DOM/network/persistence side effects, and produce
+executable test evidence for every one of V1-V8 before any navigation
+work consumes its output. Only after IA-1-implementation is
+independently accepted does **IA-2: Navigation projection adapter** —
+projecting a resolved `PresentationContext` onto a copy-free navigation
+view while retaining existing page IDs, `showPage()` ownership, render
+hooks, legacy persona compatibility, and both current model inventories
+— become a meaningful next step. Neither IA-1-implementation nor IA-2 is
+authorized by this document; each requires its own separate review and
+authorization.
