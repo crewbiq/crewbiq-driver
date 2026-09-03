@@ -75,39 +75,24 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Accepted own-current backend staging deployment - Independent Review Closed
-
-Status: CLOSED / ACCEPT (deployment provenance now proven; authenticated validation still outstanding)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver own-current staging fixture discovery
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed DRIVER_OWN_CURRENT_STAGING_DEPLOYMENT_EVIDENCE.md (commit 8766cd1eface4cc8dff8bd01c9c642705b07bbf1), which documents a Product Owner-authorized exact-SHA staging-only redeployment of orchestrator commit ce5a591a48f1733b4e21128dece0e0350ace41c2 (built from a Git archive of that immutable SHA, not the mutable worktree) that resolves the previously-confirmed STAGING_BACKEND_OPENAPI_MISMATCH. Independently re-verified the post-deployment claims myself rather than trusting the report: re-fetched https://crewbiq-orchestrator-crewbiq-orchestrator-staging.up.railway.app/health (200) and /ready (200, database connected, missing_migrations=[]); re-fetched /openapi.json, confirmed its SHA-256 matches the document's reported value exactly, and compared the full parsed document against my own previously-generated expected schema (generated independently in the prior review cycle via app.main.app.openapi() at the exact same accepted commit) - result: 55/55 operations, zero missing, zero extra, and the entire parsed OpenAPI document is exactly equal, not merely operation-ID-equal. This is materially stronger proof than the prior CI/health-only evidence and directly resolves the earlier gap. Independently read the two schema-ensure functions the evidence describes (app/services/deduction_policy_patch.py::ensure_deduction_policy_schema and app/services/service_invoice_patch.py::ensure_service_invoice_schema) in the local accepted-commit checkout and confirmed their SCHEMA_SQL is purely additive and idempotent throughout (alter table ... add column if not exists; create index / create unique index if not exists, with the service-invoice unique index's exact predicate - where source_invoice_key is not null - matching the document's description precisely) - these are pre-existing baseline application-startup functions, not new code introduced by this slice, and their idempotent IF NOT EXISTS design is consistent with the document's claim that the preflight and post-deployment schema checks observed identical column/index state and identical 0/0/0 row counts before and after, meaning this specific staging database had simply never run this already-existing startup patch before. Could not independently re-verify Railway's internal deployment-ID/archive-digest chain or the direct-database row-count reads (no Railway/database credentials sought or used), but every externally-checkable claim I could reproduce matched exactly, and the internally-described actions are proportionate, reversible-by-construction (no drops, renames, or data mutations), and stayed within the disclosed staging-only, no-migration-runner, no-business-data authorization. Confirmed via the commit's own file list that only two collaboration documentation files changed - no runtime/product/test/workflow file was touched by this deployment action itself.
-
-Latest staging deployment evidence commit: 8766cd1eface4cc8dff8bd01c9c642705b07bbf1 (ACCEPTED; deployment provenance independently confirmed)
-
-Latest OpenAPI mismatch evidence commit: a7df125cc1db86c4d90bb8ede7716bd2d1ddda5e (ACCEPTED; now resolved by this deployment)
-
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED; now independently confirmed staged byte/schema-equal via OpenAPI)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest review commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
+Product truth: Existing synthetic CBQ-E2E-DRIVER-A has one active driver-only membership but zero AccountDriverLinks. Fleet A has a link/assignment but cannot substitute for Driver authority. No fixture mutation performed.
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Latest review commit: 081a138c87ae6dc61a9818b9fda21a8b2e0f1749
+Latest prior state commit: 081a138c87ae6dc61a9818b9fda21a8b2e0f1749
+Evidence: docs/collaboration/DRIVER_OWN_CURRENT_FIXTURE_DISCOVERY.md
+Validation: read-only repeatable-read staging DB inspection of four exact version-controlled synthetic Accounts; no login or tests
 Release readiness: NOT_READY_FOR_PRODUCTION
-
-Blocking findings: NONE for backend deployment provenance (independently resolved); canonical driver-only/second-Driver/other-workspace synthetic fixtures still unverified to exist; existing staging-canonical-identity harness still requires IA-3 coordinator-compatibility reconciliation; authenticated browser/mobile/offline evidence and CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remain outstanding
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize (a) locating or provisioning the canonical driver-only/second-Driver/other-workspace synthetic fixtures needed for an authenticated own-current staging journey, (b) reconciling tests/e2e/staging-canonical-identity.spec.mjs with the IA-3 coordinator so it can serve as a real new-path harness, (c) the actual bounded authenticated browser/mobile/offline check matrix from the accepted staging validation plan once fixtures exist, or (d) a different next step. No further deployment, migration, fixture provisioning, merge, or IA-4 without separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING; complete second-Driver/cross-workspace fixtures unproven; canonical harness IA-3 compatibility gap
+Queued coverage: authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: Independently review fixture discovery evidence and its scope. Confirm the positive Driver-only path is blocked by zero AccountDriverLinks, not absent Account; do not borrow Fleet A identity or infer a subject Driver. Publish ACCEPT or precise NEEDS_FIX and return one bounded fixture/harness contract action to Codex. No provisioning, credential reset, login, role/link mutation, deployment, merge, migration or IA-4 under this review handoff.
 <!-- CURRENT_END -->
 
 
@@ -5209,3 +5194,13 @@ Next required actor: Claude. NOT_READY_FOR_PRODUCTION and canonical staging cove
 - Confirmed via the commit's own file list that only collaboration documentation changed - no runtime/product/test/workflow file was touched by the deployment action itself.
 - Published final ACCEPT. This closes the backend-provenance gate specifically; it does not by itself prove authenticated own-current behavior, canonical driver-only fixture readiness, or browser/mobile/offline correctness, all of which remain outstanding exactly as the evidence itself discloses.
 - Escalated the next decision to the Product Owner: locating/provisioning the needed synthetic fixtures, reconciling the existing canonical-identity harness with the IA-3 coordinator, proceeding to the bounded authenticated check matrix once fixtures exist, or a different direction.
+
+### Read-only canonical Driver fixture discovery
+
+Agent: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Authorization basis: review 081a138c87ae6dc61a9818b9fda21a8b2e0f1749 and standing delegation; selected read-only location, not provisioning.
+Evidence: DRIVER_OWN_CURRENT_FIXTURE_DISCOVERY.md. At 2026-09-03T22:58:49.962271Z four exact provisioning-source Account IDs resolved once with matching synthetic nicknames. Driver A active/default membership has role driver only; AccountDriverLink count zero. Fleet A has one effective link/assignment; Fleet B is in another workspace, but neither is a Driver-only substitute.
+Finding: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING. No subject Driver guessed and no account/link/assignment inserted or changed. Full synthetic cross-principal fixture set and browser readiness remain unproven.
+Safety: read-only transaction; no login or test-account credential retrieval; existing DB connection injected by Railway, no secret output. No deployment/merge/migration/runtime/harness change; PWA auto-deploy disabled reconfirmed before publication.
+Next required actor: Claude. NOT_READY_FOR_PRODUCTION and canonical staging coverage remain queued.
