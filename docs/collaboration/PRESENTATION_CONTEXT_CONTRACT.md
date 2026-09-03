@@ -6,8 +6,9 @@ This is IA-1 of the Safe production integration sequence in
 `MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md`. It defines a
 fail-closed, pure resolver contract that maps existing authenticated
 membership/capability/relationship evidence to a canonical
-`PresentationContext`. It does not implement the resolver, does not
-change DOM, endpoint authorization, persisted roles, or navigation, and
+`PresentationContext`. The pure resolver is implemented in
+`presentation-context.js`; it is not connected to the application shell in
+this slice. It does not change DOM, endpoint authorization, persisted roles, or navigation, and
 does not introduce a carrier UI. `PresentationContext` is a read hint for
 the shell; it never substitutes for server-side request authorization,
 which ADR-0007 already requires independently on every request.
@@ -91,6 +92,27 @@ records, `AccountDriverLink`, `TruckOwnership`, and effective-dated
 `ANALYTICS_SCOPE_CONTRACT.md`'s effective-dated-assignment model) — this
 contract fixes the resolver's fail-closed behavior over that evidence; it
 does not invent new evidence sources or endpoints.
+
+The implementation pins `sessionEvidence` to the normalized shapes already
+produced by the accepted runtime boundaries:
+
+- `session`: authenticated session with canonical `activeWorkspaceId` and
+  `accountId` (the existing snake-case aliases are also accepted);
+- `memberships`: `/v1/me` membership objects with `status`, `workspace.id`,
+  `roles`, and server-granted `capabilities`;
+- `accountDriverLink`: successful `CrewBIQIdentityLink.read()` result;
+- `truckOwnership` and `carrierAssignments`: successful normalized results
+  from `CrewBIQRelationshipEvidence`;
+- `driverTruckAssignments`: successful normalized current-result or
+  assignment-list result from `CrewBIQDriverTruckAssignment`;
+- `effectiveAt`: explicit ISO-8601 evaluation timestamp, preserving resolver
+  purity; and
+- `legacyPersona`: the existing informational local persona value only.
+
+Missing, failed, malformed, cross-workspace, duplicate, or non-effective
+relationship evidence never grants scope. Membership/session resolution alone
+determines the top-level status; individual unavailable relationship inputs
+remain empty within an otherwise resolved context.
 
 The resolver is pure: given the same `sessionEvidence`, it always returns
 the same `PresentationContext`. It performs no network calls, no
@@ -300,33 +322,21 @@ scenario, even though every other field resolves correctly.
 | Item | Classification | Notes |
 | --- | --- | --- |
 | `PresentationContext` value object | `DEFINED_THIS_CONTRACT` | Preparation shape, not a frozen runtime schema. |
-| `resolvePresentationContext` resolver | `NOT_YET_IMPLEMENTED` | Contract only; implementation is a separate, future authorized step. |
-| Existing session/membership/capability evidence shapes | `ASSUMED_STABLE` | This contract composes existing evidence; it does not require new endpoints to exist before being written, but the resolver's actual implementation will need to pin the exact current response shapes it consumes. |
-| Validation scenarios V1-V9 | `DEFINED_THIS_CONTRACT` | Contract-level test scenarios; not yet executed against any implementation, since none exists yet. |
+| `resolvePresentationContext` resolver | `IMPLEMENTED_AWAITING_REVIEW` | Pure module in `presentation-context.js`; not loaded by the app shell. |
+| Existing session/membership/capability evidence shapes | `PINNED_THIS_IMPLEMENTATION` | Exact accepted normalized inputs are listed above; no direct endpoint or legacy-array input is used. |
+| Validation scenarios V1-V9 | `IMPLEMENTED_AWAITING_REVIEW` | `tests/presentation-context.test.mjs`, wired into `test:e2e:tooling`. |
 
 ## Next bounded slice
 
-This document defines a contract, not a shipped resolver. Its own
-validation scenarios (V1-V9) are not yet executable against anything,
-because `resolvePresentationContext` is `NOT_YET_IMPLEMENTED` (see
-Readiness). IA-2 (Navigation projection adapter) *consumes* a resolved
-`PresentationContext` — it cannot be meaningfully built or reviewed
-against a resolver that does not exist yet.
+The pure resolver and V1-V9 are now implemented but remain disconnected from
+the application shell pending independent review. IA-2 (Navigation projection
+adapter) consumes a resolved `PresentationContext` and remains a separate
+slice.
 
-The next slice after this contract is independently accepted is
-therefore **IA-1-implementation: build `resolvePresentationContext`
-against the real, current session/membership/capability/relationship
-evidence shapes, and prove rules 0-8 and scenarios V1-V9 against it** —
-not IA-2 directly. This slice must pin the exact current evidence
-shapes it reads (superseding the "`ASSUMED_STABLE`" placeholder in
-Readiness below with the real shapes), implement the resolver as a pure
-function with no DOM/network/persistence side effects, and produce
-executable test evidence for every one of V1-V9 before any navigation
-work consumes its output. Only after IA-1-implementation is
-independently accepted does **IA-2: Navigation projection adapter** —
+Only after IA-1 implementation is independently accepted does **IA-2:
+Navigation projection adapter** —
 projecting a resolved `PresentationContext` onto a copy-free navigation
 view while retaining existing page IDs, `showPage()` ownership, render
 hooks, legacy persona compatibility, and both current model inventories
-— become a meaningful next step. Neither IA-1-implementation nor IA-2 is
-authorized by this document; each requires its own separate review and
-authorization.
+— become a meaningful next step. IA-2 is not authorized by this implementation
+and requires its own separate review and authorization.
