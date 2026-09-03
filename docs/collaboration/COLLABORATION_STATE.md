@@ -75,37 +75,25 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver own-current integration staging validation plan - Independent Review Closed
-
-Status: CLOSED / ACCEPT (plan only; execution remains BLOCKED)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver own-current staging read-only prerequisite evidence
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed DRIVER_OWN_ASSIGNMENT_STAGING_VALIDATION_PLAN.md (commit aab642651d6733cd2f4eba2947f5a2f6adb1b286). Independently re-verified every externally-checkable factual claim in the plan against the live public endpoints and GitHub API myself, without relying on the document's own report: fetched https://crewbiq-orchestrator-crewbiq-orchestrator-staging.up.railway.app/health (200) and /ready directly - the JSON body exactly matches the plan's claim (env=staging, database connected, required_migrations=[010_driver_truck_assignments.sql, 011_account_driver_links.sql], missing_migrations=[]); fetched https://crewbiq-driver-staging.up.railway.app/sw.js (200) and confirmed CACHE_NAME is exactly crewbiq-driver-v98 as claimed; independently queried the GitHub Actions API for run 33794891841 and confirmed conclusion=success, head_sha=ce5a591a48f1733b4e21128dece0e0350ace41c2 exactly on branch agent/account-driver-link-read, matching the plan's CI claim precisely. Could not independently re-query Railway's internal deployment/auto-deploy-toggle API myself (no credentials sought or used, consistent with the standing no-credentials constraint), but every claim I could externally verify matched exactly, and the described narrow, reversible, staging-only serviceInstanceAutoDeployUpdate(enabled:false) toggle (explicitly confirmed to leave the production PWA service's corresponding state at enabled=true, with no GitHub source disconnect, branch change, runtime deployment, or restart) is consistent, proportionate to the stated operational problem (documentation-only pushes were triggering unwanted staging deployments, conflicting with the standing NO-DEPLOY instruction), and was reported as separately authorized by the Product Owner directly to Codex. Assessed the plan itself as sound and appropriately conservative: it correctly refuses to claim the accepted orchestrator SHA is proven staged (deployment metadata carries null commitHash), correctly refuses to equate the deployed PWA's documentation-descendant commit with byte-level equality to the accepted implementation commit, correctly identifies that no confirmed canonical driver-only synthetic fixture exists yet (blocking the own-only journey specifically), and correctly rejects reusing the existing Fleet A fixture from CANONICAL_STAGING_JOURNEY_EVIDENCE.md as proof - a fleet-role account would exercise the pre-existing broad-capability path, not the new own-current-only path, so its historical pass results cannot substitute for a driver-only test. The 11-item bounded check matrix requires explicit PASS/BLOCKED/NOT_EXECUTED_REQUIRES_MUTATION labeling per scenario, forbids fabricating test data or relabeling an unavailable state as success, and explicitly excludes any endpoint/fixture mutation, workflow dispatch, merge, deployment, or migration from this planning step's own authorization. No test execution, fixture mutation, merge, deployment, migration, or IA-4 occurred in this review cycle.
-
-Latest plan commit: aab642651d6733cd2f4eba2947f5a2f6adb1b286 (ACCEPTED as a plan; execution remains separately gated)
-
-Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest review commit: ee28bde274a6d9101adf7b47f0114cf2ac6c93d6
-
-Latest state commit: (pending this publication)
-
+Product truth: Ten served PWA artifacts exactly match accepted bytes; complete runtime and backend provenance remain unverified. No authenticated journey or fixture mutation performed.
+Latest orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Latest plan commit: aab642651d6733cd2f4eba2947f5a2f6adb1b286
+Latest review commit: a5989a1b4ed548057d6b1718b91d913c27bdc79e
+Latest prior state commit: a5989a1b4ed548057d6b1718b91d913c27bdc79e
+Evidence: docs/collaboration/DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md
+Validation: 10/10 served-byte comparisons; staging auto-deploy disabled reconfirmed before push; backend SSH diagnostic cancelled without result
 Release readiness: NOT_READY_FOR_PRODUCTION
-
-Blocking findings: exact accepted server SHA not proven staged (plan-acknowledged, not yet resolved); canonical driver-only fixture existence not yet confirmed (plan-acknowledged); authenticated browser/mobile/offline evidence outstanding
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize execution of the plan's "Minimum execution prerequisites" (exact-SHA staging provenance confirmation, PWA byte-equivalence proof, locating or provisioning the canonical driver-only/second-Driver/other-workspace synthetic fixtures, and only then the bounded read-only browser check matrix) - or a different next step. No fixture creation, merge, deployment, migration, or IA-4 without further separate authorization. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Blocking findings: accepted backend provenance unverified; driver-only fixtures unverified; canonical harness requires IA-3 compatibility reconciliation
+Queued coverage: authenticated browser/mobile/offline; full artifact/config equivalence; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Claude
+Next bounded action: Independently review read-only prerequisite evidence, byte-comparison scope, inconclusive SSH diagnostic and Fleet-only/old-accessor/service-worker-blocked harness limitations. Publish ACCEPT or precise NEEDS_FIX and return one bounded read-only diagnostic or harness-contract correction to Codex. No deployment, merge, fixture provisioning, migration, business-data action or IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5144,3 +5132,13 @@ Next required actor: Claude for independent plan review. NOT_READY_FOR_PRODUCTIO
 - Confirmed the bounded check matrix requires explicit PASS/BLOCKED/NOT_EXECUTED_REQUIRES_MUTATION labeling, forbids fabricating results, and that this planning document itself authorizes no execution, fixture mutation, merge, deployment, or migration.
 - Published final ACCEPT for the plan. Execution of its listed prerequisites remains separately gated and was not authorized by this review.
 - Escalated the next decision to the Product Owner: whether to authorize the plan's minimum execution prerequisites (exact-SHA staging confirmation, PWA byte-equivalence proof, fixture location/provisioning decision, then the bounded read-only browser checks) or a different direction.
+
+### Read-only staging prerequisites under standing coordination delegation
+
+Agent: Codex
+Authorization basis: accepted plan review a5989a1b4ed548057d6b1718b91d913c27bdc79e and standing Product Owner delegation. Selected only read-only prerequisites; no provisioning or rollout authority used.
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Evidence: DRIVER_OWN_ASSIGNMENT_STAGING_PREREQUISITE_EVIDENCE.md records ten exact SHA-256 matches to PWA c0ec7d884f59f4eca91fee311a8b11cbfa98f628, explicit backend SSH target and cancelled inconclusive diagnostic, and canonical harness limitations.
+Result: partial artifact proof, not end-to-end validation. Backend exact SHA and canonical Driver-only fixture existence remain unverified. Old Fleet A scenario is not a substitute for the new own-only path and blocks service workers.
+Safety: auto-deploy disabled reconfirmed before publication; no deployment, merge, credential retrieval, fixture/business writes, migration or runtime change. Existing staging SSH key was used for connection only, not modified or exposed.
+Next required actor: Claude for evidence review. Release remains NOT_READY_FOR_PRODUCTION; canonical staging coverage stays queued.
