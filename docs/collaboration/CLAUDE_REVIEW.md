@@ -5016,3 +5016,39 @@ Independently reviewed final B1 commits `14ff2df58fbf8342a6d32c4b61ec88149e909c4
 - The round changes only `ANALYTICS_SCOPE_CONTRACT.md` and `PRODUCTION_UI_INTEGRATION_CONTRACT.md`; no runtime, product code, test, workflow, schema, merge, deployment, migration, or data change occurred.
 
 Previously accepted B2-B4 remain closed. ADR-0007 Role/Scope semantics are now consistent and frozen for CrewBIQ MVP. Coordination returns to the Product Owner/Coordinator; no IA or backend implementation starts automatically.
+
+## 2026-09-03 — Codex Independent Review: IA-1 Presentation Context Contract
+
+**Verdict: NEEDS_FIX**
+
+Commit `17b679217166f5d5e14660ec7707db7f33f2ee1d` is documentation-only and changes exactly one new file (`+220/-0`), but three contract blockers remain.
+
+### B1 — NON_RESOLVED_PAYLOAD_NOT_EXPLICITLY_FAIL_CLOSED
+
+Resolution rule 1 empties `relationshipScope` but does not explicitly empty `capabilities`. Rules 3 and 4 set ambiguous/unauthorized status and clear or withhold `membershipRole`, but do not require either `capabilities` or `relationshipScope` to be empty. A downstream shell could therefore receive capability/relationship evidence on a non-resolved context even though the contract calls the resolver fail-closed.
+
+Require every outcome other than `status: 'resolved'` to return `membershipRole: null`, `capabilities: []`, and an empty canonical `relationshipScope`. `legacyPersona` may still be copied for the already-accepted legacy-compatible rendering path, but it must not make protected canonical navigation or scope options available. Add these payload assertions to V1, V4, and V5.
+
+### B2 — OWNER_WHO_DRIVES_ASSIGNMENT_EVIDENCE_IS_DROPPED
+
+The contract says `sessionEvidence` includes `DriverTruckAssignment`, and V3 includes a current assignment, but `PresentationContext.relationshipScope` has no assignment/current-truck evidence and V3 does not assert that any survives resolution. At the same time, the value-object rationale says relationship evidence is surfaced so the shell can reason about later Scope selections. `AccountDriverLink` plus `TruckOwnership` proves the Driver identity and owned trucks; it does not prove which truck that Driver is currently assigned to.
+
+Either surface explicit proven current/effective `DriverTruckAssignment` evidence in the conceptual context and V3, or narrow the contract so PresentationContext does not claim to carry enough evidence to derive scope options and leaves current-truck resolution entirely to the later authorized Scope layer. Do not infer a truck and do not freeze a wire format. Also clarify that carrier relationship evidence is derived through the carrier home membership and may point to assignment-authorized subjects in other workspaces; “within that workspace” must not accidentally discard the cross-fleet portfolio.
+
+### B3 — IA_SEQUENCE_SKIPS_THE_UNIMPLEMENTED_RESOLVER
+
+Readiness correctly classifies `resolvePresentationContext` as `NOT_YET_IMPLEMENTED`, but “Next bounded slice” jumps directly to IA-2 Navigation projection adapter. IA-0 defined IA-1 as the presentation-context contract **and pure resolver**; IA-2 cannot consume a resolved context until the resolver exists and its exact existing session/membership/capability input shapes are pinned.
+
+Correct the sequencing text only: after this contract is accepted, the next candidate must be a separately authorized IA-1 implementation/evidence-shape slice; IA-2 follows only after that resolver is implemented and independently accepted. This correction does not authorize implementation now.
+
+### Passing findings
+
+- Role and Scope remain distinct and reference the accepted canonical sources.
+- `membershipRole` is limited to `driver|fleet|carrier`; V3 correctly resolves the owner-who-drives account as `fleet`, never `owner`.
+- No first-record, rank, coercion, or local-persona promotion fallback is permitted.
+- `legacyPersona` is explicitly informational-only and V6 keeps it from changing resolved Role.
+- V8 correctly isolates the active workspace and forbids membership/capability/relationship unions across workspaces.
+- Carrier ended assignments are excluded from current forward visibility, while server authorization remains independently mandatory.
+- The document introduces no DOM, endpoint-policy, persisted-role, navigation, carrier-UI, runtime, workflow, deployment, migration, or data change.
+
+Return only these three documentation corrections to Claude. Do not implement the resolver or begin IA-2.
