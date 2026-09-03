@@ -302,12 +302,12 @@ scenario, even though every other field resolves correctly.
 | `PresentationContext` value object | `DEFINED_THIS_CONTRACT` | Preparation shape, not a frozen runtime schema. |
 | `resolvePresentationContext` resolver | `NOT_YET_IMPLEMENTED` | Contract only; implementation is a separate, future authorized step. |
 | Existing session/membership/capability evidence shapes | `ASSUMED_STABLE` | This contract composes existing evidence; it does not require new endpoints to exist before being written, but the resolver's actual implementation will need to pin the exact current response shapes it consumes. |
-| Validation scenarios V1-V8 | `DEFINED_THIS_CONTRACT` | Contract-level test scenarios; not yet executed against any implementation, since none exists yet. |
+| Validation scenarios V1-V9 | `DEFINED_THIS_CONTRACT` | Contract-level test scenarios; not yet executed against any implementation, since none exists yet. |
 
 ## Next bounded slice
 
 This document defines a contract, not a shipped resolver. Its own
-validation scenarios (V1-V8) are not yet executable against anything,
+validation scenarios (V1-V9) are not yet executable against anything,
 because `resolvePresentationContext` is `NOT_YET_IMPLEMENTED` (see
 Readiness). IA-2 (Navigation projection adapter) *consumes* a resolved
 `PresentationContext` — it cannot be meaningfully built or reviewed
@@ -316,12 +316,12 @@ against a resolver that does not exist yet.
 The next slice after this contract is independently accepted is
 therefore **IA-1-implementation: build `resolvePresentationContext`
 against the real, current session/membership/capability/relationship
-evidence shapes, and prove rules 0-8 and scenarios V1-V8 against it** —
+evidence shapes, and prove rules 0-8 and scenarios V1-V9 against it** —
 not IA-2 directly. This slice must pin the exact current evidence
 shapes it reads (superseding the "`ASSUMED_STABLE`" placeholder in
 Readiness below with the real shapes), implement the resolver as a pure
 function with no DOM/network/persistence side effects, and produce
-executable test evidence for every one of V1-V8 before any navigation
+executable test evidence for every one of V1-V9 before any navigation
 work consumes its output. Only after IA-1-implementation is
 independently accepted does **IA-2: Navigation projection adapter** —
 projecting a resolved `PresentationContext` onto a copy-free navigation
