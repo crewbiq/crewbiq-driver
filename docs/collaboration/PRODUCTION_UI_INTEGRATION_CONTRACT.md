@@ -29,6 +29,54 @@ Presentation components format and render view models. They do not read `localSt
 
 A future `analytics-engine.js` may own pure aggregation only. It must not own auth, PTI, Loads, forms, persistence, sync, Expenses, or domain mutation. Existing authoritative finance calculations should be wrapped or extracted once, not independently reimplemented.
 
+## Role vs Scope, and the shared selector engine
+
+`ADR-0007` (`crewbiq-docs`) is authoritative for **Role** — the closed
+`driver`/`fleet`/`carrier` `WorkspaceMembership` set and how authority is
+derived. This document and `ANALYTICS_SCOPE_CONTRACT.md` are authoritative
+for **Scope** — which subject's operational data an already-authorized
+account is currently viewing. The canonical scope set is exactly `SELF`,
+`DRIVER`, `TRUCK`, `FLEET`, `CARRIER` (`ANALYTICS_SCOPE_CONTRACT.md`'s
+`AnalyticsScope.type` enum, lower-cased). Selecting a scope never changes,
+widens, or substitutes for Role; every scope request is normalized and
+re-authorized server-side on every read (ADR-0007 §7).
+
+"Owner" is UI/product language for a **persona**, not a backend role: an
+account whose `fleet` `WorkspaceMembership` plus ownership relationships
+(and, optionally, its own `driver` role) let it act like an owner-operator
+in the product. It is never introduced as a `WorkspaceMembership` role.
+The **Owner-operator Today mapping** section below is presentation
+language for exactly this persona, backed entirely by `fleet`/`driver`
+Role plus ownership relationships plus Scope selection — never by a fourth
+role.
+
+**Owner-who-drives scope traversal (worked example, matches ADR-0007 §7
+scenario A).** An account with a `fleet` `WorkspaceMembership` owning/
+managing Trucks A, B, C, an `AccountDriverLink` to Driver D, and a current
+`DriverTruckAssignment` of D to Truck A can select, without logout or
+re-login and without any Role change: `SELF` (Driver D's own data),
+`TRUCK` (A, B, or C individually), `DRIVER` (any driver its `fleet` role
+authorizes), or `FLEET` (the full authorized-workspace aggregate). The
+Driver Today, Owner-operator Today, and Fleet Today mappings below are
+three *scope-driven presentations* of the same underlying selector engine,
+not three separate implementations — a dashboard must never fork into a
+parallel calculation path per persona.
+
+**Carrier drill-down (`DOCUMENTED_TARGET_NOT_YET_IMPLEMENTED`; matches
+ADR-0007 §7 scenario D).** `Carrier -> Fleet -> Truck -> Driver`, where
+selecting a `Fleet` inside the carrier's portfolio narrows to that fleet's
+active-`CarrierAssignment`-authorized subset only — never the fleet's
+complete internal workspace (private compensation terms, deduction rules,
+unrelated trucks/drivers/assignments). A carrier's `FLEET`-shaped
+aggregation is therefore always `CarrierAssignment`-filtered, never fleet
+`WorkspaceMembership` or full workspace authority (`ANALYTICS_SCOPE_CONTRACT.md`
+Read-scope permissions). No production `CarrierAssignment` data,
+authorization resolver, selector, or UI exists yet; see
+`MVP_INFORMATION_ARCHITECTURE_PRODUCTION_UI_PREPARATION.md` for the carrier
+IA readiness/blocker list. Driver, Fleet, and any future Carrier dashboards
+must reuse this same scope/selector/view-model engine — no persona may
+introduce its own parallel aggregation or authorization path.
+
 ## Canonical data inventory
 
 | Domain | Current source/shape | Canonical identifiers | Usable time | Scope/relationship evidence | Readiness |
