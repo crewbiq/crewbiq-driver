@@ -77,31 +77,31 @@ When the user says "готово", ChatGPT should:
 
 Phase: v96 Main Publication Plan Second Allowlist Correction
 
-Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
+Status: PUBLISHED / AWAITING CODEX RE-REVIEW
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: The discrepancy is resolved in Claude's favor. Codex reconstructed a fresh detached worktree, directly compared all 34 candidate/main source blobs, staged the exact transformed tree, and confirmed 34 differing source blobs and 33 final changed paths. Only transformed package.json becomes byte-identical to main. Codex withdraws the prior 24-path/ten-coinciding claim; it came from a non-authoritative unstaged working-tree diff that omitted nine real blob differences. The plan must state 34 source paths (6 product, 2 workflow/package, 26 validation) and 33 final promotion diff paths. No release branch was modified or pushed and no PR was opened.
+Product truth: MAIN_PUBLICATION_PLAN_V96.md amended (commit cf0ecb43) to state the reconciled counts: 34 restore-source paths (6 product, 2 workflow/package, 26 validation) and an explicit, separately-stated 33-path final promotion diff against main, with package.json identified as the sole restore-source path that becomes byte-identical to main's existing content after its documented section 7 deviation (the other 33 paths all produce a real change). Added correction record item 6 documenting the two-round discrepancy and its reconciliation (Claude's initial 33/one-coinciding figure, Codex's initial 24/ten-coinciding figure withdrawn after Codex's own fresh-worktree staged-diff re-verification matched Claude's), and corrected section 8 step 7 to state both counts explicitly with the staged-diff/core.autocrlf methodology noted so a future re-verification does not repeat the same unstaged-diff undercount either party hit initially. Result remains MAIN_PUBLICATION_PLAN_V96_BLOCKED pending this re-review. No workflow, package, test, runtime, or GitHub settings file changed on any remote branch this cycle; no push, PR, merge, deploy, migration, or data mutation. The local unpushed release-main-promotion-v96-b5e36f4 branch (based on exact main bcfd74a2) remains preserved, ready for reuse once this amendment is confirmed.
 
 Latest implementation commit: 5c6cfdaa117a6bd77c3b3461e5c76229ccda68bc
 
-Latest correction commit: 9ba91c245b801a027041b2785ac3b1fd961453ab
+Latest correction commit: cf0ecb43e55bc31481250b275e04921defa2d34b
 
-Latest review commit: (pending this publication)
+Latest review commit: 747a7bad5ff7a3b8b85ec1f374e519856632f00f
 
 Latest state commit: (pending this publication)
 
-Blocking findings: RESTORE_ALLOWLIST_AND_PROMOTION_DIFF_COUNTS_INCORRECT (resolved target: 34 source paths, 33 final diff paths; documentation amendment pending)
+Blocking findings: NONE (pending Codex re-review of this amendment)
 
 Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Amend only MAIN_PUBLICATION_PLAN_V96.md and coordination documentation to state 34 restore source paths (6 product, 2 workflow/package, 26 validation) and an explicit 33-path final promotion diff, with package.json the sole source path absent from the final diff after its approved transformation. Correct every affected count/allowlist/pre-merge assertion and keep the plan BLOCKED pending Codex re-review. Do not modify or push the release branch, open a PR, or change workflow, package, tests, runtime/product files, GitHub settings, deployment, migrations, or data.
+Next bounded action: Independently re-review the amended docs/collaboration/MAIN_PUBLICATION_PLAN_V96.md (commit cf0ecb43e55bc31481250b275e04921defa2d34b) for whether the reconciled 34-source/33-final-diff counts are stated completely and correctly everywhere the document references them (section 0 item 6, section 6, section 8 step 7), and whether any other count in the document is now inconsistent with this correction. If confirmed complete, publish a READY verdict so section 8 execution can resume from the preserved local branch; otherwise a precise correction request. This review is documentation-only. No workflow, runtime, product, or GitHub settings change, push, PR, merge, deploy, migration, or data mutation is authorized by this cycle regardless of verdict - resuming actual branch push/PR execution still requires the same explicit in-chat Product Owner confirmation Claude already obtained once this session (coordination-file authorization alone is insufficient per Claude's own operating rules for that class of action).
 <!-- CURRENT_END -->
 
 
@@ -4442,3 +4442,12 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Discovered and accounted for a real subtlety in the process: package.json's working-tree copy carries CRLF line endings (core.autocrlf converts on checkout) while main's blob is LF, so a naive raw diff comparison shows a difference that git's own normalized diff correctly treats as no-change (matching what git add/commit would actually produce) - this explains why package.json coincides with main, but does not explain a further nine files coinciding as Codex's finding implies.
 - Did not amend MAIN_PUBLICATION_PLAN_V96.md this cycle, since doing so would mean writing an unverified count (24) into the document - the same category of error this entire correction cycle exists to prevent. Published this discrepancy back to Codex for reconciliation instead of silently picking either number.
 - No workflow, runtime, product, or GitHub settings file changed. No push, PR, merge, deploy, migration, or data mutation occurred - the local unpushed branch remains exactly as it was, now with all restore-allowlist changes staged (via `git add -A`) purely to compute an authoritative diff, not committed.
+
+### 2026-09-02 - Claude - Corrected v96 plan restore/final-diff path counts, handed to Codex (implementer role)
+
+- Read Codex's reconciliation (review commit 747a7bad): Codex independently re-verified its own earlier 24-path/ten-coinciding claim using a fresh detached worktree and a properly staged diff, found it matched Claude's independently computed 34-source/33-final figures exactly, and withdrew the earlier claim - tracing its root cause to a non-authoritative unstaged working-tree diff on Codex's own side, the same class of methodological pitfall (line-ending normalization masking real diffs when comparing unstaged working-tree bytes) Claude had already flagged from its own side of the investigation.
+- Amended MAIN_PUBLICATION_PLAN_V96.md precisely: added correction record item 6 documenting the full two-round discrepancy and its reconciliation; corrected section 8 step 7 to state the restore-source count (34: 6 product, 2 workflow/package, 26 validation) and the final promotion-diff count (33, with package.json identified as the sole coinciding path) as two distinct, separately-labeled numbers rather than one conflated "35 files" figure; documented the staged-diff/core.autocrlf methodology needed to compute the final count correctly, so a future re-verification does not repeat either party's initial unstaged-diff undercount.
+- Grepped the full document for every other place a stale count ("35 files", "27 validation") could have been hiding and confirmed none remained after the edit.
+- Published as commit cf0ecb43e55bc31481250b275e04921defa2d34b on top of Codex's review commit 747a7bad (verified tip unchanged immediately before publish; blob size independently verified against the local source both before and after publish via git show byte-diff). Verified via GitHub Compare API that the diff is exactly the one file, one commit.
+- Did not touch the preserved local unpushed release-main-promotion-v96-b5e36f4 branch, any workflow/package/test/runtime file, or any GitHub setting - documentation only, exactly as this cycle's bounded action specified.
+- Per the role-swap protocol: Next required actor: Codex, to independently re-review the amendment for completeness before authorizing resumed execution.
