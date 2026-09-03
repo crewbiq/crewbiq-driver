@@ -75,15 +75,15 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: v96 Post-Publication Authenticated Smoke
+Phase: Post-Publication Authenticated Smoke (Bounded Slice) Closed
 
-Status: AUTHORIZED / AWAITING CLAUDE EXECUTION
+Status: CLOSED / UNAUTHENTICATED CHECKS PASS / AUTHENTICATED CHECKS DEFERRED
 
-Current owner: Claude
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
-Product truth: Product Owner authorizes one bounded, non-destructive authenticated production smoke against exact published v96 main 5351d6a6 using only an existing authorized test account/session. Claude must verify login/session startup, `/v1/me`, restore, workspace isolation, Driver roster read, Load read/open, PTI read/open, Driver SELF read, no cross-tenant leakage, and no legacy Google/Apps Script traffic. Prefer read-only checks. Any check requiring creation/edit/deletion of real business data must be reported `NOT_EXECUTED_REQUIRES_MUTATION`; no test data may be invented. No production data, settings, migrations, workflows, roles, ADR status, or deployment may change.
+Product truth: Product Owner authorized one bounded, non-destructive post-publication verification slice against exact published v96, explicitly directing that no password, session token, cookie, API key, or other authentication secret be requested from or provided by the Product Owner. Per Claude's own operating rules, entering a password to authenticate is prohibited regardless of authorization, so no login was attempted by any method (browser form or API call), and no credential of any kind was requested, received, stored, logged, or transmitted this cycle. Completed and independently re-verified the unauthenticated/read-only checks that are possible without credentials: production `https://crewbiq-orchestrator-production.up.railway.app/v1/me` without authentication correctly returns HTTP 401 (auth is enforced, no data leaks unauthenticated); production `/health` and `/ready` both return HTTP 200; the latest Pages build (`GET /repos/crewbiq/crewbiq-driver/pages/builds/latest`) remains status built at the exact merge commit 5351d6a6c1a4b817aefad62de01142198deccbc3; live `sw.js` still declares `crewbiq-driver-v96`. These four facts were re-confirmed fresh this cycle, not carried over from the prior verification pass. The eight authenticated checks (login/session startup, authenticated `/v1/me`, restore, workspace isolation, driver roster read, Load read/open, PTI read/open, Driver SELF read) and the live cross-tenant-leakage check are recorded as `NOT_EXECUTED_MANUAL_AUTH_REQUIRED` - not a release blocker, since the exact promoted v96 bytes already passed the accepted authenticated pre-merge CI journeys (318/318 test:e2e:tooling, 15/15 gate-1 contract set) before merge; this is a deferred manual verification item, not a defect. No production mutation, deploy, migration, settings change, workflow change, or ADR/SIDR work occurred.
 
 Latest implementation commit: 5351d6a6c1a4b817aefad62de01142198deccbc3
 
@@ -95,13 +95,13 @@ Latest state commit: (pending this publication)
 
 Blocking findings: NONE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480; e2e-harness-manual.yml promotion. SIDR, Dispatch, Safety, Truckpedia, ADR-0007 acceptance, and all queued work remain out of scope until this smoke is independently closed.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED; GitHub Discussion #206480. e2e-harness-manual.yml's promotion to main remains a separate, not-yet-started decision. Authenticated live smoke (login/session, authenticated /v1/me, restore, workspace isolation, roster, Load, PTI, Driver SELF) and live cross-tenant leakage checks are NOT_EXECUTED_MANUAL_AUTH_REQUIRED - deferred manual verification, not a blocking finding, since the exact promoted bytes already passed authenticated pre-merge CI.
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Claude
+Next required actor: Codex
 
-Next bounded action: Execute the authorized read-only authenticated production smoke against exact published v96 with an existing authorized test account/session. Record exact endpoints, status codes, served SHA/cache, and the test account/workspace scope used without exposing credentials. Verify every listed check and network destination; classify any mutation-dependent check as `NOT_EXECUTED_REQUIRES_MUTATION`. Publish PASS or BLOCKED evidence in collaboration documentation, replace CURRENT and append HISTORY, then hand to Codex for independent review. Do not start SIDR, Dispatch, Safety, Truckpedia, ADR-0007, e2e-harness-manual promotion, or GitHub #206480 work.
+Next bounded action: Independently re-verify the four unauthenticated facts recorded above (v1/me 401, health/ready 200, Pages build status/commit, live sw.js cache identity) rather than accepting them at face value, then confirm this bounded verification slice is correctly closed with no credentials having been requested or handled. On ACCEPT, return this coordination thread to the Product Owner/Coordinator for the next MVP architecture task: ADR-0007 review/acceptance. Do not start SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion work.
 <!-- CURRENT_END -->
 
 
@@ -4558,3 +4558,18 @@ Next bounded action: implement test-only RESTORE-ORCH-01 through actual auth/res
 - Explicitly did not claim full authenticated-session functional smoke coverage (startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF flows, live cross-tenant leakage) as independently re-verified post-publication, since that requires real user credentials not available to this automated verification pass - flagged this precisely as a coverage gap rather than silently treating it as done, while noting the exact promoted bytes were already proven correct by the pre-merge CI suites (318/318 and 15/15) before the merge occurred.
 - Per the role-swap protocol: Next required actor: Codex, to independently re-verify this evidence (re-download, re-hash, re-check) rather than accept Claude's report at face value, consistent with the discipline this entire session has followed in both directions.
 - No further merge, deploy, migration, or data mutation occurred or is contemplated - the promotion itself is complete; this cycle was verification only.
+er than assuming a URL) and confirmed both /health and /ready return HTTP 200.
+- Opened a real browser tab against the live site, confirmed zero console errors, confirmed via the page's own Service Worker/Cache Storage APIs that the registered worker is active and exactly one cache exists (crewbiq-driver-v96, no stale v95 cache left over from before the promotion), and took a screenshot confirming the login shell renders correctly.
+- Explicitly did not claim full authenticated-session functional smoke coverage (startup/auth/restore/workspace-isolation/roster/Load/PTI/Driver-SELF flows, live cross-tenant leakage) as independently re-verified post-publication, since that requires real user credentials not available to this automated verification pass - flagged this precisely as a coverage gap rather than silently treating it as done, while noting the exact promoted bytes were already proven correct by the pre-merge CI suites (318/318 and 15/15) before the merge occurred.
+- Per the role-swap protocol: Next required actor: Codex, to independently re-verify this evidence (re-download, re-hash, re-check) rather than accept Claude's report at face value, consistent with the discipline this entire session has followed in both directions.
+- No further merge, deploy, migration, or data mutation occurred or is contemplated - the promotion itself is complete; this cycle was verification only.
+
+### 2026-09-02 - Claude - Closed bounded post-publication authenticated-smoke slice; no credentials handled (implementer role)
+
+- Product Owner authorized one bounded, non-destructive production verification slice against published v96, explicitly directing that no password/session token/cookie/API key be requested from or provided by the Product Owner.
+- Identified before acting that Claude's own operating rules prohibit entering a password to authenticate by any method (browser form or API call) regardless of authorization - this is a hard constraint distinct from, and in addition to, the Product Owner's own no-credential-handling instruction. Confirmed this in chat with the Product Owner before proceeding, who then directed exactly the disposition applied here.
+- Performed only the unauthenticated/read-only checks possible without credentials, re-verifying each fresh this cycle rather than reusing the prior verification pass's results: production /v1/me without authentication correctly returns 401 (confirms auth enforcement, no unauthenticated data leak); production /health and /ready both return 200; the latest Pages build remains status built at the exact merge commit 5351d6a6; live sw.js still declares crewbiq-driver-v96.
+- Recorded the eight authenticated checks (login/session, authenticated /v1/me, restore, workspace isolation, roster, Load, PTI, Driver SELF) and the live cross-tenant-leakage check as NOT_EXECUTED_MANUAL_AUTH_REQUIRED, explicitly not a release blocker, since the exact promoted bytes already passed the accepted authenticated pre-merge CI journeys before merge.
+- No credential of any kind (password, session token, cookie, API key, or other authentication secret) was requested, received, stored, logged, or transmitted during this cycle.
+- No production mutation, deploy, migration, settings change, workflow change, or ADR/SIDR work occurred - this cycle was verification-recording only, exactly as bounded.
+- Per the role-swap protocol: Next required actor: Codex, to independently re-verify the four recorded unauthenticated facts and confirm the slice is correctly closed before returning this thread to the Product Owner/Coordinator for the next MVP architecture task (ADR-0007 review/acceptance).
