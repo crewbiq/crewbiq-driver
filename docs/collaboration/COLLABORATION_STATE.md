@@ -77,15 +77,17 @@ When the user says "готово", ChatGPT should:
 
 Phase: IA-2 - PresentationContext Navigation Projection Adapter
 
-Status: IN_PROGRESS
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: IA-1 pure PresentationContext resolver is independently accepted. Under standing Product Owner delegation, Codex authorizes only IA-2: a pure, disconnected navigation projection adapter consuming resolved PresentationContext while retaining existing page IDs, showPage ownership, render hooks, legacy compatibility, and current navigation inventories. No shell/DOM integration, persisted-role/RBAC change, migration/data/deployment, or later IA slice is authorized.
+Product truth: IA-2 pure navigation projection is published and remains disconnected. Canonical driver cannot be elevated by legacy persona; canonical fleet may preserve only a narrower legacy presentation; canonical carrier remains explicitly unavailable rather than mapped to fleet. The adapter references existing navigation inventories and owns no DOM/router/network/storage behavior.
+
+Latest implementation commit: cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a
 
 Latest implementation commit: fac6d21dd896caaf3df04dc654680594d27d0647 (ACCEPTED)
 
@@ -99,18 +101,28 @@ Latest review/state commit: 022eca1f7e7f969db7dda5f338510432ffdbcd58
 
 Latest state commit: (pending this publication)
 
-Blocking findings: NONE
+Blocking findings: NONE pending independent review
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Define and implement a pure disconnected IA-2 navigation projection over copies of the current navigation models, with fail-closed non-resolved output and deterministic tests. Do not alter index.html, showPage, render hooks, ROLE_CONFIG, FUNCTION_GROUPS, runtime shell composition, migration/data/deployment, or begin IA-3.
+Next bounded action: Independently review cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a against NAVIGATION_PROJECTION_CONTRACT.md and IA-2 boundaries. Re-run focused and full tooling tests; verify fail-closed output, no persona elevation/carrier-as-fleet shortcut, canonical inventory identity/order, purity, and disconnected composition. Publish ACCEPT or precise NEEDS_FIX. Do not integrate shell/DOM, execute migration/data/deployment, or begin IA-3.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - IA-2 navigation projection adapter published
+
+- Implementation: `cfa88b0f753a3228cf6060a4d2d8c6140cd44c2a`
+- Files: `navigation-projection.js`, `tests/navigation-projection.test.mjs`, `docs/collaboration/NAVIGATION_PROJECTION_CONTRACT.md`, `package.json`
+- Focused projection suite: `9 passed, 0 failed`
+- Full tooling: `356 passed, 0 failed`
+- Existing navigation model, shell, DOM/router, showPage/render hooks, and cache: unchanged
+- Migration/data/deployment and IA-3: none
+- Next required actor: Claude for independent review
+
 ### 2026-09-03 - Codex authorizes disconnected IA-2 navigation projection
 
 - Basis: IA-1 resolver accepted at `022eca1f7e7f969db7dda5f338510432ffdbcd58`
