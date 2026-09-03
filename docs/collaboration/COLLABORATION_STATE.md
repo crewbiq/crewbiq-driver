@@ -75,46 +75,42 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Prerequisite - Canonical Relationship Evidence Read Paths Closed
+Phase: IA-1 Prerequisite - Canonical Relationship Population Contract
 
-Status: CLOSED / ACCEPT
+Status: IN_PROGRESS
 
-Current owner: Product Owner / Coordinator
+Current owner: Codex
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: Independently re-verified correction commit 3728dae0579a49a96c5195d86ac35928d06ae878 before accepting it, not merely trusting the report. Confirmed via the Commits API that the diff is exactly one file (sidr-contract-resolver-integration-v1.test.mjs, +1/-1) and read the exact patch content, confirming it changes only the hardcoded assertion from `crewbiq-driver-v96` to `crewbiq-driver-v97`, matching sw.js's actual cache name. Checked out this exact commit into a local scratch branch and ran `npm run test:e2e:tooling` directly (not trusting the claimed count): 332 passed, 0 failed - matches the claim exactly. Combined with the already-independently-verified orchestrator side (329 passed via real CI job log) and the already-reviewed design (additive migration, fail-closed authorization, cross-workspace carrier isolation, defense-in-depth row validation, genuinely disconnected PWA adapter), the full IA-1 canonical relationship evidence prerequisite is now ACCEPT end to end. Runtime/schema/migration/deployment/data state is unchanged - migration 012 has not been executed, relationship tables remain empty, and the PresentationContext resolver has not been implemented or integrated.
+Product truth: Product Owner authorized a bounded proven population path for canonical truck_ownership and carrier_assignments. Before runtime mutation code, Codex is defining a separately reviewed fail-closed contract for server-derived authority, explicit provenance, idempotency, effective dating, audit, and carrier/fleet consent. No schema execution, endpoint implementation, relationship population, deployment, resolver, or IA-2 work is authorized in this contract step.
 
 Latest implementation commit: a583ccfad3539e9eca8be7d14622c080b88dea39
 
 Latest orchestrator commit: 73551f08775c34ec8cf5a791729177d0e0136df7
 
-Latest correction commit: 3728dae0579a49a96c5195d86ac35928d06ae878
+Latest review/state commit: f36b83c1792c87972171bd43fe7013e6dfa5234d
 
-Latest evidence commit: d0ec68f98a8492ce53e4026167e14d38e12b7835
+Blocking findings: POPULATION_AUTHORITY_AND_PROVENANCE_CONTRACT_NOT_YET_DEFINED
 
-Latest review/state commit: (pending this publication)
+Decision gate: AUTO_CONTINUE_ALLOWED
 
-Blocking findings: NONE
+Next required actor: Codex
 
-Validation: orchestrator full suite 329 passed (independently re-verified via real CI job log); PWA `npm run test:e2e:tooling` 332 passed, 0 failed (independently re-run locally on the exact correction commit, not merely trusted)
-
-Cache version: crewbiq-driver-v97 (confirmed in sw.js and now consistently asserted everywhere)
-
-Queued non-blocking findings: empty canonical relationship tables require a separately authorized proven population path before the IA-1 resolver can be implemented against real (non-empty) data; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; IA-2 through IA-6 remain not started; ADR-0007 default-branch integration into crewbiq-docs main remains a separate, not-yet-authorized decision.
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide the next step for IA-1: either (a) authorize a bounded, separately-reviewed proven population path for the now-empty canonical truck_ownership/carrier_assignments tables so real evidence exists to implement and prove the PresentationContext resolver against, or (b) defer full IA-1 resolver implementation and select a different next slice. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion in the meantime.
+Next bounded action: Inventory accepted canonical command/idempotency/audit patterns and publish a documentation-only population contract for TruckOwnership and CarrierAssignment. The contract must prevent client IDs from granting authority and prevent unilateral carrier access. Hand to Claude for independent review before any implementation.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Product Owner authorized relationship population path
+
+- Selected option: bounded proven population path for canonical TruckOwnership and CarrierAssignment
+- First gate: documentation-only authority/provenance/idempotency/audit contract
+- No runtime mutation, schema execution, deployment, or data population authorized before independent review
+
 ### 2026-09-03 - Relationship evidence prerequisite cache-test correction
 
 - Correction: `3728dae0579a49a96c5195d86ac35928d06ae878`
