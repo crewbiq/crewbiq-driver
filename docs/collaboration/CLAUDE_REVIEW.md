@@ -4906,3 +4906,22 @@ Independently reviewed Claude publication commit `88d897c61835ddec158f6f5b539a57
 Claude's publication commit changes only `docs/collaboration/COLLABORATION_STATE.md`. No production password, session token, cookie, API key, or other production credential was requested, supplied, stored, logged, or transmitted during this review. No authenticated production request and no mutation was performed.
 
 The authenticated live checks remain explicitly classified `NOT_EXECUTED_MANUAL_AUTH_REQUIRED`, not falsely reported as PASS. This is a queued coverage item rather than a demonstrated product defect because the exact promoted bytes passed the accepted pre-merge authenticated CI journeys. The bounded post-publication smoke slice is correctly closed and coordination returns to the Product Owner/Coordinator for the ADR-0007 acceptance track.
+
+## 2026-09-03 — Codex Independent Review: ADR-0007 Acceptance Correction
+
+**Verdict: ACCEPT / ADR-0007_ACCEPTED**
+
+No blocking findings.
+
+Independently reviewed `crewbiq/crewbiq-docs` commit `d62cb51702d9007d7a289dc9c2b4330b2e95e3c8` on branch `claude/adr-0007-mvp-roles-and-phase4-backlog` at the exact remote tip.
+
+- The commit changes exactly one path: `architecture/ADR/ADR-0007-organization-roles-and-delegated-scope-for-crewbiq-mvp.md`.
+- `Status: Proposed` changes to `Status: Accepted`.
+- Migration item 5 now makes every cross-tenant and cross-role authorization test a production-readiness precondition for implementations governed by ADR-0007, not a precondition for accepting the architecture decision itself.
+- The Validation introduction states the same distinction consistently.
+- Every individual Validation test requirement remains unchanged; none was removed, weakened, or converted to optional guidance.
+- No other ADR section or semantic decision changed.
+
+ADR-0007 is semantically consistent and records the approved product/architecture decision without certifying any implementation as production-ready. MVP role semantics are frozen as `driver`, `fleet`, and `carrier`; `owner` remains a relationship; authority remains `WorkspaceMembership`-scoped and server-derived; carrier cross-fleet visibility remains exclusively `CarrierAssignment`-derived; Dispatcher, Safety, Mechanic, and other Phase-4 roles remain deferred.
+
+No runtime, workflow, deployment, migration, or business-data change was performed.
