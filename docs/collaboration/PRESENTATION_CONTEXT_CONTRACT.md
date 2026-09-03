@@ -86,9 +86,11 @@ resolvePresentationContext(sessionEvidence) -> PresentationContext
 `sessionEvidence` is the existing authenticated membership/capability/
 relationship evidence already available to the runtime (session,
 active `WorkspaceMembership`, granted capabilities, `CarrierAssignment`
-records, `AccountDriverLink`, `TruckOwnership`) — this contract fixes the
-resolver's fail-closed behavior over that evidence; it does not invent
-new evidence sources or endpoints.
+records, `AccountDriverLink`, `TruckOwnership`, and effective-dated
+`DriverTruckAssignment` records for the linked Driver profile, per
+`ANALYTICS_SCOPE_CONTRACT.md`'s effective-dated-assignment model) — this
+contract fixes the resolver's fail-closed behavior over that evidence; it
+does not invent new evidence sources or endpoints.
 
 The resolver is pure: given the same `sessionEvidence`, it always returns
 the same `PresentationContext`. It performs no network calls, no
@@ -117,11 +119,47 @@ safe to memoize per session snapshot.
    with a role in the closed ADR-0007 set (`driver`/`fleet`/`carrier`) ->
    `status: 'resolved'`, `membershipRole` set to that exact role,
    `capabilities` populated from the existing granted-capability
-   evidence, `relationshipScope` populated from existing
-   `CarrierAssignment`/`AccountDriverLink`/`TruckOwnership`/current
-   effective `DriverTruckAssignment` evidence for that account within
-   that workspace — this is the only rule that may populate any field
-   beyond `status` and `legacyPersona`.
+   evidence — this is the only rule that may populate any field beyond
+   `status` and `legacyPersona`. `relationshipScope` is populated per
+   2a-2c below; the "within that workspace" qualifier applies only to
+   `AccountDriverLink` and `TruckOwnership`, which are workspace-scoped
+   relationships by definition (ADR-0007 §2), never to
+   `CarrierAssignment`, which by definition (ADR-0007 §4) targets trucks
+   in *other* fleet workspaces than the carrier's own home workspace
+   being resolved here.
+2a. `relationshipScope.accountDriverLinkId` and `.truckOwnershipIds` are
+   populated from `AccountDriverLink`/`TruckOwnership` evidence scoped to
+   this same `workspaceId` only — never from another workspace's
+   records, even if the account also holds relationships there (see
+   Multi-membership accounts).
+2b. `relationshipScope.carrierAssignmentIds` is populated from active
+   `CarrierAssignment` records belonging to this account's `carrier`-role
+   membership, regardless of which *other* workspace(s) each assignment's
+   target truck/fleet resides in — that cross-workspace reach is the
+   entire point of `CarrierAssignment` (ADR-0007 §4) and must not be
+   narrowed to "same workspace only." Surfacing these IDs in
+   `relationshipScope` is evidence only: it grants no fleet
+   `WorkspaceMembership`, no full delegated-workspace authority, and no
+   read access to any field the assignment does not itself authorize —
+   every actual read against a target workspace/truck/driver remains
+   independently authorized server-side per request (rule 7, ADR-0007
+   §3-§4), exactly as if this evidence had never been surfaced.
+2c. `relationshipScope.currentDriverTruckAssignment` is populated only
+   from a `DriverTruckAssignment` record that is: linked to this
+   account's own `AccountDriverLink`; currently effective (its
+   `effectiveFrom` is not in the future and its `effectiveTo` is null or
+   not yet past); and unambiguous (at most one such record; team/co-driver
+   assignments producing more than one simultaneously effective record
+   for this driver resolve `currentDriverTruckAssignment: null`, not a
+   guessed pick). Missing, malformed (unparsable dates, absent required
+   IDs), ended (`effectiveTo` in the past), future-dated
+   (`effectiveFrom` in the future), or ambiguous assignment evidence all
+   resolve `currentDriverTruckAssignment: null` — never a stale, partial,
+   or best-guessed value. A `null` here does not change `status`: the
+   overall context can still be `'resolved'` with a real
+   `membershipRole` while `currentDriverTruckAssignment` is `null` (e.g.
+   a `fleet`-role owner who is linked to a Driver profile but not
+   currently assigned to any truck).
 3. More than one active `WorkspaceMembership` resolves for the same
    `workspaceId` (a data inconsistency ADR-0007 does not permit in
    steady state — see ADR-0007 §1) -> `status: 'ambiguous'`; every other
@@ -241,6 +279,21 @@ a `driver`-role membership in workspace A and a `fleet`-role membership
 in workspace B resolves a `PresentationContext` for whichever workspace
 is the active session workspace, using only that workspace's membership,
 capabilities, and relationship evidence — never a union of both.
+
+**V9. DriverTruckAssignment fail-closed edge cases (matches rule 2c).**
+Each of the following independently resolves
+`currentDriverTruckAssignment: null` while `status` remains `'resolved'`
+with the account's real `membershipRole` — none of them fail the whole
+context or drop the account to `'unavailable'`/`'unauthorized'`:
+no `DriverTruckAssignment` record exists for the linked driver; the only
+record present is malformed (unparsable `effectiveFrom`, or missing
+`truckId`/`driverId`); the only record present has an `effectiveTo` in
+the past (ended); the only record present has an `effectiveFrom` in the
+future (not yet effective); or two or more records are simultaneously
+effective for the same driver (ambiguous — e.g. an in-progress
+team/co-driver handoff). A resolver that instead returns the most
+recent/nearest/first such record for any of these cases fails this
+scenario, even though every other field resolves correctly.
 
 ## Readiness
 
