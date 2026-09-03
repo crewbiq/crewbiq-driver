@@ -75,38 +75,48 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-1 Presentation Context Contract - Residual Correction Published
+Phase: IA-1 Presentation Context Contract - V9 Gate Correction
 
-Status: CORRECTIONS PUBLISHED / AWAITING CODEX RE-REVIEW
+Status: NEEDS_FIX / AWAITING CLAUDE CORRECTION
 
-Current owner: Codex
+Current owner: Claude
 
 Branch: agent/pre-base44-audit
 
-Product truth: Both findings from Codex review 61008161 independently reproduced before being fixed, then re-verified via git show byte-diff and the exact Commits-API diff stats. (1) DriverTruckAssignment was required by the output (relationshipScope.currentDriverTruckAssignment, added in the prior correction round) but never declared as a sessionEvidence input - fixed by adding it explicitly to the input list. (2) Rule 2's "populated... within that workspace" qualifier is correct for AccountDriverLink/TruckOwnership (workspace-scoped relationships by definition) but was self-contradictory for CarrierAssignment, which by definition (ADR-0007 §4) targets trucks in other fleet workspaces than the carrier's own home workspace being resolved - a literal reading made carrierAssignmentIds population impossible. Fixed by splitting rule 2 into 2a (workspace-scoped link/ownership evidence), 2b (CarrierAssignment evidence explicitly spanning other workspaces, restated as evidence-only granting no fleet membership or full delegated-workspace authority), and 2c (explicit fail-closed handling for missing/malformed/ended/future/ambiguous DriverTruckAssignment evidence, all resolving currentDriverTruckAssignment:null without affecting overall status). Added V9 covering the five DriverTruckAssignment fail-closed edge cases. Published as commit e384a109 (+61/-8, API-confirmed).
+Product truth: DriverTruckAssignment input/fail-closed semantics and carrier cross-workspace relationship evidence are now correct. One stale documentation range remains: Readiness and Next bounded slice still gate IA-1 implementation on V1-V8 instead of the complete V1-V9 contract.
 
 Latest implementation commit: NONE (documentation-only contract slice)
 
 Latest correction commit: e384a1097069f0b568ab647c5ec1f562f8a97eb9
 
-Latest review commit: 610081619aa4b3cbb0be7564e9e0b1dc73e3b014
+Latest review commit: ae0fe67dcc673d617a0a1b8959e6b7e52b1c86ec
 
-Latest state commit: (pending this publication)
+Latest state commit: b22245b6527ce041c2238411b88dcc4d43cd1eaf
 
-Blocking findings: NONE (pending Codex re-review)
+Blocking findings: V9_NOT_INCLUDED_IN_IMPLEMENTATION_GATE
 
-Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1-implementation and IA-2 through IA-6 remain separate, not-yet-started slices; authenticated live smoke/cross-tenant check (`NOT_EXECUTED_MANUAL_AUTH_REQUIRED`); GitHub Discussion #206480; e2e-harness-manual.yml promotion decision.
+Queued non-blocking findings: CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED remains queued; ADR-0007 default-branch integration into crewbiq-docs main; IA-1 implementation and IA-2 through IA-6 remain separate, not-yet-started slices
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex
+Next required actor: Claude
 
-Next bounded action: Independently re-review docs/collaboration/PRESENTATION_CONTEXT_CONTRACT.md (commit e384a1097069f0b568ab647c5ec1f562f8a97eb9) against the actual published diff: confirm DriverTruckAssignment is now correctly declared as a sessionEvidence input; confirm rules 2a-2c correctly separate workspace-scoped evidence from CarrierAssignment's necessarily cross-workspace evidence without granting fleet membership or delegated-workspace authority anywhere; confirm 2c's fail-closed handling is complete (missing/malformed/ended/future/ambiguous) and V9 asserts it. Publish ACCEPT or precise NEEDS_FIX. Documentation-only review; no runtime, workflow, deploy, migration, or data change is authorized by this cycle regardless of verdict. On ACCEPT, the next candidate remains IA-1-implementation (not IA-2), which requires its own separate future authorization.
+Next bounded action: Correct PRESENTATION_CONTEXT_CONTRACT.md only by replacing stale V1-V8 implementation/readiness ranges with V1-V9 so V9 is mandatory for the future IA-1 implementation. Preserve all accepted semantics. Documentation only; do not implement the resolver or IA-2.
 <!-- CURRENT_END -->
 
 
 <!-- HISTORY_START -->
 ## HISTORY
+### 2026-09-03 - Codex IA-1 residual correction re-review
+
+- Reviewed correction: `e384a1097069f0b568ab647c5ec1f562f8a97eb9`
+- Review commit: `ae0fe67dcc673d617a0a1b8959e6b7e52b1c86ec`
+- Verdict: `NEEDS_FIX`
+- Closed: assignment input/fail-closed semantics and carrier cross-workspace topology
+- Blocking finding: `V9_NOT_INCLUDED_IN_IMPLEMENTATION_GATE`
+- Runtime/product files changed: none
+- Next required actor: Claude
+
 ### 2026-09-03 - Codex IA-1 correction re-review
 
 - Reviewed correction: `98bacedbde65300eaadfa044bfc26877b2e6fa76`
