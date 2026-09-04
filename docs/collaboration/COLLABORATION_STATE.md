@@ -76,24 +76,26 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Driver A staging execution adapter / implementation and local proof
-Status: IN_PROGRESS / IMPLEMENTATION AUTHORIZED
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Design independently accepted. Standing Product Owner delegation authorizes implementation and fake-Railway/disposable-PostgreSQL tests only; staging credentials, preflight and execution remain separately gated.
+Product truth: Bounded adapter implemented and tested only with fake Railway metadata and disposable PostgreSQL. No live provider wiring or staging acceptance is claimed; real preflight and insert require separate authorizations.
+Latest staging adapter implementation commit: d1c13cdfefe2f6db6644f72363f365863fceab0c
 Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159
 Latest fixture link local-proof commit: 15f28b19ae017dc5e6e42f83701648f0e63996be
-Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
 Latest review commit: d1bbbcbbc268de6792b78ef7bfc97b53ab791f29
-Latest prior state commit: d1bbbcbbc268de6792b78ef7bfc97b53ab791f29
+Latest prior state commit: c9a298f0901f338e193dffead38ebaa843cc5164
 Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
 Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Evidence: docs/collaboration/DRIVER_A_STAGING_ADAPTER_LOCAL_EVIDENCE.md
+Validation: targeted 65 passed; full backend 463 passed; zero failures; fake authority/disposable DB only
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; adapter implementation/review and staging preflight/execution incomplete
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; live provider/preflight/insert remain unproven and separately gated
 Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Implement accepted DRIVER_A_STAGING_ADAPTER_PLAN.md. Allow orchestrator app/testing/driver_a_staging_fixture_link.py, tests/test_driver_a_staging_fixture_link.py, tests/test_driver_a_staging_fixture_link_postgres.py, plus narrowly extracting shared validators to app/testing/driver_a_fixture_guards.py from app/testing/driver_a_fixture_link.py if needed; preserve its local-only boundary. Implement target-bound fresh attestation, read-only preflight, approved one-row apply, exact receipt/rerun, UNKNOWN-commit read-only reconciliation and separately gated rollback assessment with fail-closed use limits. Test with fake Railway responses and disposable local PostgreSQL only, including all accepted local/link regressions and full backend pytest. Publish implementation/evidence and CURRENT/HISTORY to Claude. No real staging credentials/DB access/login/preflight/write, migration remotely, runtime route/auth/schema change, deploy, merge or IA-4.
+Next required actor: Claude
+Next bounded action: Independently review orchestrator d1c13cdfefe2f6db6644f72363f365863fceab0c and DRIVER_A_STAGING_ADAPTER_LOCAL_EVIDENCE.md against the accepted design. Reproduce fake-authority/disposable tests; assess shared guards, attestation trust boundary, approval, concurrency, durable receipts, UNKNOWN-commit reconciliation and rollback refusal. No real staging access/credentials/preflight/write, migrations, deployment or production mutation. After ACCEPT hand routine technical continuation to Codex; live read-only preflight and guarded insert each require separate explicit authorization. No unrelated work or IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5297,3 +5299,14 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Real staging credential access, target preflight and one-row execution remain separate, ungranted gates. No production/deployment/merge authorization implied.
 - Claude handoff rule reminder: after ACCEPT, routine technical coordination belongs to Codex under the standing delegation, not Product Owner. Escalate to Product Owner only for the expressly reserved high-risk/product-policy decisions.
 - CURRENT updated before implementation; next actor Codex. Existing queued coverage retained.
+
+### Driver A staging adapter implementation - local evidence published
+
+- Orchestrator commit d1c13cdfefe2f6db6644f72363f365863fceab0c on agent/account-driver-link-read; five allowed testing/helper files only, no runtime/auth/schema/workflow change.
+- Shared validators preserve the accepted local-only utility. Added target-bound adapter, original intent journal, read-only reconciliation and separately gated rollback assessment.
+- Corrected PostgreSQL tgenabled bytes/text handling with user approval; strict disabled-trigger rejection retained.
+- Targeted suite: 65 passed in 36.23s. Full backend: 463 passed in 55.27s. No failures.
+- Tests used fake authority metadata and pre-existing disposable PostgreSQL. Both local migration prechecks returned pending=[]; no new SQL migration execution after the latest authorization.
+- Evidence: DRIVER_A_STAGING_ADAPTER_LOCAL_EVIDENCE.md. Live Railway provider wiring, actual target/TLS/provenance and no-use rollback proof are explicitly not claimed.
+- No real staging access/credentials/preflight/write, deployment or production mutation in this authorized continuation.
+- CURRENT replaced; next actor Claude for independent implementation review. Real read-only preflight and single-row insert remain separately authorized gates. IA-3 and all queued coverage retained.
