@@ -76,23 +76,25 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Driver A RailwayAuthority provider / implementation and fake-response proof
-Status: IN_PROGRESS / IMPLEMENTATION AUTHORIZED
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Adapter independently accepted. Default delegated authority permits bounded technical continuation without Product Owner interruption; production, business data and security ownership remain untouched. Live provider use remains gated on independent implementation review.
+Product truth: Concrete read-only provider implemented using official unauthenticated Railway schema discovery and fake-response tests only. No live provider/credentials/DB use. Default delegated authority applies within its safety boundaries.
+Latest RailwayAuthority implementation commit: 010dffe29c10d0d5d2a11f35c640eda20c4a9927
 Latest staging adapter implementation commit: d1c13cdfefe2f6db6644f72363f365863fceab0c
-Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159
 Latest review commit: 386832ab1b8f8990fdf9e9fe45bb2e74729c7edc
-Latest prior state commit: 386832ab1b8f8990fdf9e9fe45bb2e74729c7edc
+Latest prior state commit: 380e073ed810423cdc78dead57c6e566dd08ad24
 Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
 Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+Evidence: docs/collaboration/DRIVER_A_RAILWAY_AUTHORITY_EVIDENCE.md
+Validation: 106 targeted passed; 504 full backend passed; zero failures
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING; live provider wiring/review and staging preflight/insert outstanding
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING; independent provider review and live staging preflight/insert outstanding
 Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Implement a concrete read-only RailwayAuthority provider for the accepted adapter in app/testing/driver_a_railway_authority.py with tests/test_driver_a_railway_authority.py and collaboration evidence/state only. Establish actual Railway query/response conventions from official schema/docs or existing local evidence, not invented transport. Bind exact project/environment/Postgres service and endpoint/credentials, reject inconsistent/stale/ambiguous responses, redact secrets/errors and never mutate Railway state. Test entirely with fake responses plus existing adapter/local regressions and full backend suite on already prepared disposable DBs; no migration execution. Publish to Claude before live provider/credential/DB use. No staging fixture write, deployment, production access, security ownership change or unrelated work.
+Next required actor: Claude
+Next bounded action: Independently review orchestrator 010dffe29c10d0d5d2a11f35c640eda20c4a9927 and DRIVER_A_RAILWAY_AUTHORITY_EVIDENCE.md, reproduce fake-response/provider and existing adapter tests; inspect exact target/proxy/credential binding and redaction. No live provider/credential/DB use during review. If ACCEPT, hand to Codex for a separately recorded bounded read-only staging preflight authorization under delegated authority, not a routine Product Owner checkpoint. Synthetic insert remains separate and requires proven scope/reversibility. No production/deploy/merge/migration or unrelated work.
 <!-- CURRENT_END -->
 
 
@@ -5330,3 +5332,12 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - A separate recorded coordinator decision remains required for live read-only preflight, and another for any uniquely bounded reversible synthetic insert; Codex may issue those decisions under delegation when evidence proves all boundaries. They are not automatically authorized by this implementation step.
 - No production, real business data, security ownership, destructive migration/history, deployment or scope expansion is permitted. Unknown reversibility must not be assumed.
 - CURRENT replaced before work; next actor Codex. Provider must receive independent Claude review before live use.
+
+### Codex - concrete RailwayAuthority provider published for independent review
+
+- Orchestrator 010dffe29c10d0d5d2a11f35c640eda20c4a9927 on agent/account-driver-link-read; only app/testing/driver_a_railway_authority.py and tests/test_driver_a_railway_authority.py added.
+- Official unauthenticated GraphQL introspection established actual read-only field/argument/enum shapes. No project records, service variables or credentials were retrieved during discovery.
+- Implemented fixed HTTPS/allowlisted queries, exact metadata/proxy binding, one-use fresh attestations, scoped credential/URL checks and redacted failures. No live provider invocation.
+- 41 new provider tests; combined targeted suite 106 passed in 36.88s; full backend 504 passed in 55.02s, zero failures. Existing disposable DBs only; no new SQL migration execution.
+- Evidence: DRIVER_A_RAILWAY_AUTHORITY_EVIDENCE.md. Actual staging connectivity/TLS/variables/preflight explicitly remain unproven.
+- CURRENT replaced; Claude independently reviews before live use. Delegated Codex may then record the separate bounded read-only preflight authorization. No production, staging fixture write, deployment, merge or scope expansion.
