@@ -75,41 +75,25 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver A staging execution adapter / design only - Independent Review Closed
-
-Status: CLOSED / ACCEPT (design only; adapter implementation, preflight and staging write remain separately gated)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver A staging execution adapter / implementation and local proof
+Status: IN_PROGRESS / IMPLEMENTATION AUTHORIZED
+Current owner: Codex
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed DRIVER_A_STAGING_ADAPTER_PLAN.md (commit 7e1eccc215309a3e326a1bb6a93e799449b36159), a documentation-only design for a bounded staging execution adapter building on the accepted local fixture-link proof. Confirmed the design correctly and explicitly identifies why the accepted local utility cannot be reused unchanged against staging: its loopback-only endpoint check is not real target attestation for a remote database, and its whole-database row-hash/rollback table-lock strategy would be unsafe and overreaching against a shared staging database used by other work. Assessed the proposed replacements as sound: target attestation requires fresh authoritative Railway metadata binding project/environment/service IDs together (explicitly rejecting an arbitrary DSN, a caller-supplied staging flag, a port-forward, or a bare database name as sufficient authority), re-attested immediately before the actual write transaction rather than reused from an earlier planning-time check, with PostgreSQL-side checks (current_database, schema, migration state) treated as corroborating but not substituting for that attestation; the write surface is deliberately narrowed to the specific fixture rows rather than a whole-database digest, with an explicit, honest disclaimer that this cannot rule out unrelated concurrent staging writes (a real, disclosed limitation, not a false safety claim); connection loss around COMMIT is correctly handled as an UNKNOWN outcome requiring fresh read-only reconciliation rather than an assumed rollback or reinsertion; rollback is correctly treated as non-automatic, requiring a separately authorized assessment of downstream use (explicitly noting a read-only use could leave no detectable database row, so unchanged hashes cannot prove rollback safety) and introducing an honest ROLLBACK_BLOCKED_UNPROVEN_USE outcome rather than forcing an unsafe deletion, with any browser-journey use of the link requiring a fresh rollback decision rather than reusing an earlier approval. Confirmed the design sequences seven further gates before any staging write occurs (design ACCEPT here; adapter implementation and testing against fake Railway responses plus disposable PostgreSQL only; a comprehensive guard/concurrency/receipt test matrix reusing every accepted local guard; a separately authorized read-only staging preflight with fresh evidence; and only then a separately authorized single guarded insert) - consistent with, and if anything more conservative than, every prior gate structure accepted in this session. Confirmed this document itself performed no external endpoint/database lookup, credential access, or execution - design review only.
-
-Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159 (ACCEPTED as design; implementation/preflight/write remain separately gated)
-
-Latest fixture link local-proof commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (ACCEPTED)
-
-Latest fixture link contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67 (ACCEPTED)
-
-Latest orchestrator deployed implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED; staged)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest review commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
+Product truth: Design independently accepted. Standing Product Owner delegation authorizes implementation and fake-Railway/disposable-PostgreSQL tests only; staging credentials, preflight and execution remain separately gated.
+Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159
+Latest fixture link local-proof commit: 15f28b19ae017dc5e6e42f83701648f0e63996be
+Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
+Latest review commit: d1bbbcbbc268de6792b78ef7bfc97b53ab791f29
+Latest prior state commit: d1bbbcbbc268de6792b78ef7bfc97b53ab791f29
+Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
 Release readiness: NOT_READY_FOR_PRODUCTION
-
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging until the adapter is implemented, locally/fake-Railway-tested, subjected to a separately authorized read-only preflight, and then separately authorized for its single guarded insert; second-Driver/cross-workspace fixtures, IA-3 harness compatibility, and authenticated browser/mobile/offline evidence remain outstanding
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize Codex to implement the accepted staging adapter design (against fake Railway responses and disposable PostgreSQL only, per the design's own step 2-5 gates, with no staging credentials or access at this stage), or a different next step. No staging access, credential handling, preflight, write, deployment, migration, or IA-4 without further separate authorization at each of the design's own remaining gates. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists; adapter implementation/review and staging preflight/execution incomplete
+Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Codex
+Next bounded action: Implement accepted DRIVER_A_STAGING_ADAPTER_PLAN.md. Allow orchestrator app/testing/driver_a_staging_fixture_link.py, tests/test_driver_a_staging_fixture_link.py, tests/test_driver_a_staging_fixture_link_postgres.py, plus narrowly extracting shared validators to app/testing/driver_a_fixture_guards.py from app/testing/driver_a_fixture_link.py if needed; preserve its local-only boundary. Implement target-bound fresh attestation, read-only preflight, approved one-row apply, exact receipt/rerun, UNKNOWN-commit read-only reconciliation and separately gated rollback assessment with fail-closed use limits. Test with fake Railway responses and disposable local PostgreSQL only, including all accepted local/link regressions and full backend pytest. Publish implementation/evidence and CURRENT/HISTORY to Claude. No real staging credentials/DB access/login/preflight/write, migration remotely, runtime route/auth/schema change, deploy, merge or IA-4.
 <!-- CURRENT_END -->
 
 
@@ -5305,3 +5289,11 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Confirmed this document performed no external endpoint/database lookup, credential access, or execution.
 - Published final ACCEPT for the design. Implementation, preflight, and the actual staging write each remain separately gated and were not authorized by this review.
 - Escalated the next decision to the Product Owner: whether to authorize Codex to implement the adapter against fake Railway responses and disposable PostgreSQL only, per the design's own next gate.
+
+### 2026-09-03 - Codex: accepted staging adapter implementation authorized locally
+
+- Fast-forwarded independent design review d1bbbcbbc268de6792b78ef7bfc97b53ab791f29; preserved design-only ACCEPT and its limits.
+- Under standing Product Owner delegation, resolved the routine coordinator gate and authorized the exact testing-adapter/helper/test allowlist in CURRENT.
+- Real staging credential access, target preflight and one-row execution remain separate, ungranted gates. No production/deployment/merge authorization implied.
+- Claude handoff rule reminder: after ACCEPT, routine technical coordination belongs to Codex under the standing delegation, not Product Owner. Escalate to Product Owner only for the expressly reserved high-risk/product-policy decisions.
+- CURRENT updated before implementation; next actor Codex. Existing queued coverage retained.
