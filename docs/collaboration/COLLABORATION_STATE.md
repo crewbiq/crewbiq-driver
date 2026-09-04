@@ -76,23 +76,24 @@ When the user says "готово", ChatGPT should:
 ## CURRENT
 
 Phase: Driver A staging execution adapter / design only
-Status: IN_PROGRESS / DESIGN AUTHORIZED
-Current owner: Codex
+Status: PUBLISHED / AWAITING CLAUDE REVIEW
+Current owner: Claude
 Branch: agent/pre-base44-audit
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 Product truth: Claude accepted the local fixture proof. Standing Product Owner delegation authorizes only a bounded staging-adapter design for independent review; it does not authorize adapter execution or remote access.
 Latest fixture link implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (local proof ACCEPTED)
 Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
 Latest review commit: 5043e8ed640f2887e526674e5c44a47cb7a5c560
-Latest prior state commit: 5043e8ed640f2887e526674e5c44a47cb7a5c560
+Latest prior state commit: d7e289374dd8d4e90d0058477e0d21d01496060e
+Design document: docs/collaboration/DRIVER_A_STAGING_ADAPTER_PLAN.md
 Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
 Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
 Release readiness: NOT_READY_FOR_PRODUCTION
 Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging; remote adapter design/implementation/execution not yet accepted
 Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Codex
-Next bounded action: Produce only docs/collaboration/DRIVER_A_STAGING_ADAPTER_PLAN.md plus CURRENT/HISTORY. Derive a narrow adapter design from accepted contract/local proof: exact Railway project/environment/service/database binding, independently verified protected provenance, read-only preflight, explicit execution approval, one-row transaction, original receipt/idempotency, concurrency guards, bounded rollback with downstream-use checks and explicit limits of local whole-database fingerprints in staging. Define validation and separate implementation/execution gates. Use existing repository evidence only, no staging credentials/login/DB connection/write or runtime changes. Publish design to Claude for independent review. No deploy, merge, migrations or IA-4.
+Next required actor: Claude
+Next bounded action: Independently review DRIVER_A_STAGING_ADAPTER_PLAN.md against the accepted fixture contract/local proof. Check target attestation, exact provenance, validator reuse, one-row write boundary, uncertain-commit handling, receipt/rerun and rollback-use limitations. Design review only: no credentials, staging DB access/write, implementation, deployment, migrations, merge or IA-4. If ACCEPT, hand to Codex for bounded local-tested adapter implementation authorization, not staging execution.
 <!-- CURRENT_END -->
 
 
@@ -5269,3 +5270,12 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Authorized one documentation-only staging-adapter design; implementation and execution remain separate review/authorization gates.
 - Next actor Codex to write DRIVER_A_STAGING_ADAPTER_PLAN.md, then Claude independently reviews. No staging DB access, credentials, fixture writes, migration, runtime edit, deployment or merge authorized here.
 - CURRENT condensed to the authoritative bounded state; historical evidence remains unchanged.
+
+### 2026-09-03 - Codex: bounded staging adapter design published
+
+- Added DRIVER_A_STAGING_ADAPTER_PLAN.md using accepted repository evidence only; no runtime implementation or remote database access.
+- Design separates exact Railway target attestation, local-tested adapter implementation, read-only staging preflight and separately approved one-row execution.
+- Protected provenance must come from real fixture evidence, not synthetic test values. Loopback restrictions and local whole-database hashes are not claimed as staging identity/use proof.
+- Uncertain COMMIT requires read-only reconciliation; rollback is refused when downstream or read-only fixture use cannot be ruled out. No automatic destructive cleanup.
+- Tests not run for this documentation-only step. Existing local proof remains 26 targeted / 425 full backend passed.
+- CURRENT updated to Claude for independent design review. Staging write, credentials/login, deployment, migration, merge and IA-4 remain prohibited.
