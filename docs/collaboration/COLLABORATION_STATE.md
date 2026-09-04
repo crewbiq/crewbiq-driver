@@ -75,25 +75,41 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver A staging execution adapter / design only
-Status: PUBLISHED / AWAITING CLAUDE REVIEW
-Current owner: Claude
+Phase: Driver A staging execution adapter / design only - Independent Review Closed
+
+Status: CLOSED / ACCEPT (design only; adapter implementation, preflight and staging write remain separately gated)
+
+Current owner: Product Owner / Coordinator
+
 Branch: agent/pre-base44-audit
+
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-Product truth: Claude accepted the local fixture proof. Standing Product Owner delegation authorizes only a bounded staging-adapter design for independent review; it does not authorize adapter execution or remote access.
-Latest fixture link implementation commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (local proof ACCEPTED)
-Latest fixture contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67
-Latest review commit: 5043e8ed640f2887e526674e5c44a47cb7a5c560
-Latest prior state commit: d7e289374dd8d4e90d0058477e0d21d01496060e
-Design document: docs/collaboration/DRIVER_A_STAGING_ADAPTER_PLAN.md
-Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
+
+Product truth: Independently reviewed DRIVER_A_STAGING_ADAPTER_PLAN.md (commit 7e1eccc215309a3e326a1bb6a93e799449b36159), a documentation-only design for a bounded staging execution adapter building on the accepted local fixture-link proof. Confirmed the design correctly and explicitly identifies why the accepted local utility cannot be reused unchanged against staging: its loopback-only endpoint check is not real target attestation for a remote database, and its whole-database row-hash/rollback table-lock strategy would be unsafe and overreaching against a shared staging database used by other work. Assessed the proposed replacements as sound: target attestation requires fresh authoritative Railway metadata binding project/environment/service IDs together (explicitly rejecting an arbitrary DSN, a caller-supplied staging flag, a port-forward, or a bare database name as sufficient authority), re-attested immediately before the actual write transaction rather than reused from an earlier planning-time check, with PostgreSQL-side checks (current_database, schema, migration state) treated as corroborating but not substituting for that attestation; the write surface is deliberately narrowed to the specific fixture rows rather than a whole-database digest, with an explicit, honest disclaimer that this cannot rule out unrelated concurrent staging writes (a real, disclosed limitation, not a false safety claim); connection loss around COMMIT is correctly handled as an UNKNOWN outcome requiring fresh read-only reconciliation rather than an assumed rollback or reinsertion; rollback is correctly treated as non-automatic, requiring a separately authorized assessment of downstream use (explicitly noting a read-only use could leave no detectable database row, so unchanged hashes cannot prove rollback safety) and introducing an honest ROLLBACK_BLOCKED_UNPROVEN_USE outcome rather than forcing an unsafe deletion, with any browser-journey use of the link requiring a fresh rollback decision rather than reusing an earlier approval. Confirmed the design sequences seven further gates before any staging write occurs (design ACCEPT here; adapter implementation and testing against fake Railway responses plus disposable PostgreSQL only; a comprehensive guard/concurrency/receipt test matrix reusing every accepted local guard; a separately authorized read-only staging preflight with fresh evidence; and only then a separately authorized single guarded insert) - consistent with, and if anything more conservative than, every prior gate structure accepted in this session. Confirmed this document itself performed no external endpoint/database lookup, credential access, or execution - design review only.
+
+Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159 (ACCEPTED as design; implementation/preflight/write remain separately gated)
+
+Latest fixture link local-proof commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (ACCEPTED)
+
+Latest fixture link contract commit: ab41ad4e1e5ab09e0916736e2d7b9d7eda8fef67 (ACCEPTED)
+
+Latest orchestrator deployed implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED; staged)
+
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
+
+Latest review commit: (pending this publication)
+
+Latest state commit: (pending this publication)
+
 Release readiness: NOT_READY_FOR_PRODUCTION
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging; remote adapter design/implementation/execution not yet accepted
-Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
-Decision gate: AUTO_CONTINUE_ALLOWED
-Next required actor: Claude
-Next bounded action: Independently review DRIVER_A_STAGING_ADAPTER_PLAN.md against the accepted fixture contract/local proof. Check target attestation, exact provenance, validator reuse, one-row write boundary, uncertain-commit handling, receipt/rerun and rollback-use limitations. Design review only: no credentials, staging DB access/write, implementation, deployment, migrations, merge or IA-4. If ACCEPT, hand to Codex for bounded local-tested adapter implementation authorization, not staging execution.
+
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging until the adapter is implemented, locally/fake-Railway-tested, subjected to a separately authorized read-only preflight, and then separately authorized for its single guarded insert; second-Driver/cross-workspace fixtures, IA-3 harness compatibility, and authenticated browser/mobile/offline evidence remain outstanding
+
+Decision gate: COORDINATOR_REQUIRED
+
+Next required actor: Product Owner
+
+Next bounded action: Decide whether to authorize Codex to implement the accepted staging adapter design (against fake Railway responses and disposable PostgreSQL only, per the design's own step 2-5 gates, with no staging credentials or access at this stage), or a different next step. No staging access, credential handling, preflight, write, deployment, migration, or IA-4 without further separate authorization at each of the design's own remaining gates. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
 <!-- CURRENT_END -->
 
 
@@ -5279,3 +5295,13 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Uncertain COMMIT requires read-only reconciliation; rollback is refused when downstream or read-only fixture use cannot be ruled out. No automatic destructive cleanup.
 - Tests not run for this documentation-only step. Existing local proof remains 26 targeted / 425 full backend passed.
 - CURRENT updated to Claude for independent design review. Staging write, credentials/login, deployment, migration, merge and IA-4 remain prohibited.
+
+### 2026-09-03 - Claude - Independently reviewed and accepted the Driver A staging execution adapter design (reviewer role)
+
+- Read DRIVER_A_STAGING_ADAPTER_PLAN.md (commit 7e1eccc215309a3e326a1bb6a93e799449b36159) in full - a documentation-only design, explicitly authorizing no staging access, implementation, or execution.
+- Confirmed the design correctly identifies why the accepted local fixture-link utility cannot be reused unchanged for staging: its loopback-only check is not real remote-target attestation, and its whole-database hash/rollback table-lock strategy would be unsafe against a shared staging database.
+- Assessed the proposed replacements as sound: fresh Railway metadata attestation binding project/environment/service together (rejecting a bare DSN, staging flag, port-forward, or database name alone as sufficient), re-attested immediately before the write transaction rather than reused from planning time; a deliberately narrowed write surface (specific fixture rows, not a whole-database digest) with an honest disclosure that this cannot rule out unrelated concurrent staging writes; UNKNOWN-outcome handling for connection loss around COMMIT requiring fresh read-only reconciliation rather than an assumption; and a non-automatic rollback design that explicitly accounts for undetectable read-only downstream use via a new ROLLBACK_BLOCKED_UNPROVEN_USE outcome, with any browser-journey use of the link invalidating a prior rollback approval.
+- Confirmed the design sequences seven further gates (this design ACCEPT; adapter implementation and testing against fake Railway responses plus disposable PostgreSQL only; a comprehensive guard/concurrency test matrix reusing every accepted local guard; a separately authorized read-only staging preflight; then a separately authorized single guarded insert) before any staging write - consistent with, and arguably exceeding, the rigor of every prior gate structure in this session.
+- Confirmed this document performed no external endpoint/database lookup, credential access, or execution.
+- Published final ACCEPT for the design. Implementation, preflight, and the actual staging write each remain separately gated and were not authorized by this review.
+- Escalated the next decision to the Product Owner: whether to authorize Codex to implement the adapter against fake Railway responses and disposable PostgreSQL only, per the design's own next gate.
