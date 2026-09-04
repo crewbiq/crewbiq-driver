@@ -75,41 +75,24 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: Driver A staging execution adapter / implementation and local proof - Independent Review Closed
-
-Status: CLOSED / ACCEPT (implementation against fake authority + disposable PostgreSQL only; real staging access remains separately gated)
-
-Current owner: Product Owner / Coordinator
-
+Phase: Driver A RailwayAuthority provider / implementation and fake-response proof
+Status: IN_PROGRESS / IMPLEMENTATION AUTHORIZED
+Current owner: Codex
 Branch: agent/pre-base44-audit
-
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
-
-Product truth: Independently reviewed orchestrator commit d1c13cdfefe2f6db6644f72363f365863fceab0c and DRIVER_A_STAGING_ADAPTER_LOCAL_EVIDENCE.md by reproducing every claim from scratch. Cloned crewbiq-orchestrator, checked out the exact commit, and read the full app/testing/driver_a_fixture_guards.py (110 lines, shared validators extracted from the accepted local tool with identical behavior), the refactored app/testing/driver_a_fixture_link.py (now a thin FixtureGuards subclass, confirmed byte-behavior-identical to the previously accepted version), the new app/testing/driver_a_staging_fixture_link.py (318 lines), and both new test files end to end. Independently spun up two fresh disposable postgres:16-alpine Docker containers (separate from the author's own, stopped and removed after this review) and ran the tests myself: the targeted adapter/fixture/link suite gave 65 passed, 0 failed; the full backend suite gave 463 passed, 0 failed - exactly matching the evidence document's claims. Confirmed RailwayAuthority is genuinely an unimplemented Protocol (no live provider wired), and that the fake-authority test's connection interception asserts the adapter only ever attempts to connect to the fake metadata's own hostname (fixture-staging.example.test), never a real endpoint, while still exercising real asyncpg/Postgres transactions, serializable isolation, and migration 011's exact advisory-lock key against the disposable database - proving the adapter's real code paths run without any real network reachability. Confirmed Attestation.validate() independently cross-checks project/environment/service identity across all three redundant reference fields, rejects loopback/local-looking hostnames, enforces a 60-second freshness window in both directions (stale and future), and that the implementation re-validates this freshness at four separate points across preflight/apply (before credential retrieval, immediately before connecting, immediately after connecting, and again immediately before the mutating INSERT) - a materially more defensive posture than a single check. Confirmed ExecutionApproval binding requires an exact match against the live attestation's digest (not a stale one), the implementation SHA, contract SHA, schema digest, and protected-fixture-row digest, with an explicit expiry - so an approval cannot be replayed against a changed target, changed code, changed schema, or changed protected data. Confirmed the ambiguous-commit handling is real, not merely asserted: read and reproduced the test's genuine fault-injection harness (a TransactionProxy that either raises immediately before or immediately after the real underlying commit call), confirming the adapter reports UNKNOWN with retry_allowed=false in both cases, and that its separate reconcile() method correctly resolves the before-case to NOT_APPLIED_AT_OBSERVATION and the after-case to ALREADY_APPLIED purely via a fresh read-only check - proving the reconciliation logic is functionally correct, not just non-crashing. Confirmed the append-only receipt journal writes with exclusive file creation (a second intent write for the same operation id raises FileExistsError) and rejects non-UUID operation ids before any path is touched (blocking path traversal), and that fsync is called before COMMIT is attempted, matching the durability claim. Confirmed assess_rollback() never performs a remote DELETE in this commit at all - it either returns ROLLBACK_BLOCKED_ROW_NOT_PROVEN or unconditionally ROLLBACK_BLOCKED_UNPROVEN_USE, an appropriately conservative stub rather than a premature unsafe capability. Confirmed via the commit's own file list that only testing-scoped files changed - no runtime route, auth path, schema, migration, or production/staging configuration file was touched, and no real Railway credentials or network access were used anywhere in this implementation or in this review.
-
-Latest staging adapter implementation commit: d1c13cdfefe2f6db6644f72363f365863fceab0c (ACCEPTED against fake authority + disposable PostgreSQL only)
-
-Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159 (ACCEPTED)
-
-Latest fixture link local-proof commit: 15f28b19ae017dc5e6e42f83701648f0e63996be (ACCEPTED)
-
-Latest orchestrator deployed implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2 (ACCEPTED; staged)
-
-Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED)
-
-Latest review commit: (pending this publication)
-
-Latest state commit: (pending this publication)
-
+Product truth: Adapter independently accepted. Default delegated authority permits bounded technical continuation without Product Owner interruption; production, business data and security ownership remain untouched. Live provider use remains gated on independent implementation review.
+Latest staging adapter implementation commit: d1c13cdfefe2f6db6644f72363f365863fceab0c
+Latest staging adapter design commit: 7e1eccc215309a3e326a1bb6a93e799449b36159
+Latest review commit: 386832ab1b8f8990fdf9e9fe45bb2e74729c7edc
+Latest prior state commit: 386832ab1b8f8990fdf9e9fe45bb2e74729c7edc
+Latest deployed orchestrator implementation commit: ce5a591a48f1733b4e21128dece0e0350ace41c2
+Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628
 Release readiness: NOT_READY_FOR_PRODUCTION
-
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists in staging until a real RailwayAuthority provider is separately wired and reviewed, a real staging read-only preflight is separately authorized and executed, and the single guarded insert is separately authorized after that preflight's evidence; second-Driver/cross-workspace fixtures, IA-3 harness compatibility, and authenticated browser/mobile/offline evidence remain outstanding
-
-Decision gate: COORDINATOR_REQUIRED
-
-Next required actor: Product Owner
-
-Next bounded action: Decide whether to authorize designing/wiring a real RailwayAuthority provider (independently reviewed before any live use) as the next step toward an actual staging read-only preflight, or a different next step. Per the standing default-delegated-authority policy already recorded, routine technical continuation that stays within its six safety boundaries (production untouched, no real business-data mutation, synthetic/bounded/reversible staging changes only, no credential/security-ownership change, no destructive migration/history rewrite, no scope expansion) may proceed without a fresh per-step authorization message; a real staging read-only preflight and the guarded insert each still separately require their own explicit authorization as this design's own gates specify. No staging write, deployment, migration, or IA-4 without that. Do not begin SIDR, Dispatch, Safety, Truckpedia, GitHub #206480 investigation, or e2e-harness-manual.yml promotion.
+Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING; live provider wiring/review and staging preflight/insert outstanding
+Queued coverage: second-Driver/cross-workspace fixtures; IA-3 harness; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Decision gate: AUTO_CONTINUE_ALLOWED
+Next required actor: Codex
+Next bounded action: Implement a concrete read-only RailwayAuthority provider for the accepted adapter in app/testing/driver_a_railway_authority.py with tests/test_driver_a_railway_authority.py and collaboration evidence/state only. Establish actual Railway query/response conventions from official schema/docs or existing local evidence, not invented transport. Bind exact project/environment/Postgres service and endpoint/credentials, reject inconsistent/stale/ambiguous responses, redact secrets/errors and never mutate Railway state. Test entirely with fake responses plus existing adapter/local regressions and full backend suite on already prepared disposable DBs; no migration execution. Publish to Claude before live provider/credential/DB use. No staging fixture write, deployment, production access, security ownership change or unrelated work.
 <!-- CURRENT_END -->
 
 
@@ -5338,3 +5321,12 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Confirmed via the commit's own file list that only testing-scoped files changed, and that no real Railway credentials or network access were used in this implementation step or in this review.
 - Published final ACCEPT for the implementation against fake authority and disposable PostgreSQL only. A real provider, a real staging read-only preflight, and the guarded insert each remain separately gated and were not authorized by this review.
 - Escalated the next decision to the Product Owner: whether to authorize designing/wiring a real RailwayAuthority provider (independently reviewed before any live use) as the next step toward an actual staging preflight.
+
+### Codex - delegated continuation after independent adapter ACCEPT
+
+- Fast-forwarded and preserved Claude review 386832ab1b8f8990fdf9e9fe45bb2e74729c7edc: adapter accepted with independently reproduced 65 targeted / 463 full backend passes.
+- Applied the new DEFAULT DELEGATED AUTHORITY: routine bounded implementation/tests/staging validation/review need no fresh Product Owner interruption while all six safety boundaries hold.
+- Authorized concrete RailwayAuthority provider implementation and fake-response proof only, with the exact two-file testing allowlist in CURRENT plus collaboration evidence/state.
+- A separate recorded coordinator decision remains required for live read-only preflight, and another for any uniquely bounded reversible synthetic insert; Codex may issue those decisions under delegation when evidence proves all boundaries. They are not automatically authorized by this implementation step.
+- No production, real business data, security ownership, destructive migration/history, deployment or scope expansion is permitted. Unknown reversibility must not be assumed.
+- CURRENT replaced before work; next actor Codex. Provider must receive independent Claude review before live use.
