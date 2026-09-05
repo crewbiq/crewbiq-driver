@@ -75,23 +75,25 @@ When the user says "готово", ChatGPT should:
 <!-- CURRENT_START -->
 ## CURRENT
 
-Phase: IA-3 canonical-identity harness reconciliation - corrected per independent review
+Phase: IA-3 canonical-identity harness reconciliation - CLOSED / ACCEPTED
 
-Status: PUBLISHED / AWAITING RE-REVIEW
+Status: CLOSED / ACCEPT
 
-Current owner: independent reviewer (Codex, when usage limit resets, or whoever picks this up)
+Current owner: Product Owner / Coordinator
 
 Branch: agent/pre-base44-audit
 
 Cross-repository branch: crewbiq-orchestrator/agent/account-driver-link-read
 
-Product truth: A ChatGPT independent review of Claude's first harness fix (184e1b9) found two real defects: (1) the harness still asserted a stale rendered-result shape that would be undefined after IA-3 made refreshDriverSelfCard(true) a thin wrapper over the coordinator, and (2) asserting only applyDriver===false does not prove Fleet A's canonical membership actually resolved, since applyDriver is also false for unresolved/unavailable/unauthorized/ambiguous projection states. Claude independently re-verified both findings against the actual current source (refreshDriverSelfCard in index.html, driver-presentation.js) before correcting: removed the redundant refresh call (one coordinator.refresh(true) now covers both the returned result and the DOM render via its existing onResult callback), and added projectionStatus==='resolved' plus projectionRole==='fleet' assertions alongside applyDriver===false, so the test now positively proves Driver-only narrowing is withheld from Fleet A because the membership resolved as Fleet, not because resolution failed. No staging access, credentials, or unrelated file was touched.
+Product truth: ChatGPT independent re-review accepted the corrected IA-3 canonical-identity harness fix. Both prior blocking findings (RENDERED_RESULT_SHAPE_STALE_AFTER_IA3; FLEET_ROLE_ASSERTION_DOES_NOT_PROVE_RESOLVED_FLEET_CONTEXT) are closed: the harness now uses one coordinator.refresh(true) call, reads SELF status from its returned selfState, verifies the DOM the coordinator's own onResult path renders, and requires projectionStatus==='resolved' plus projectionRole==='fleet' alongside applyDriver===false - positively proving Driver-only narrowing is withheld from a successfully-resolved Fleet membership, not merely absent because resolution failed. Scope was exactly one test file in the correction commit plus a documentation-only follow-up; no runtime/product/auth/schema/migration/deployment/data change occurred. This closes one named coverage gap only; it does not touch CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING or any staging/credential-gated work.
 
-Latest harness correction commit: 0d44894881a787ab0b62c66d5ebeb257301f8540
+Accepted harness correction commit: 0d44894881a787ab0b62c66d5ebeb257301f8540 (ACCEPTED)
 
-Prior (superseded) harness fix commit: 184e1b910066625db56464a74e3ff5afe4a26163
+Accepted evidence commit: aaf6880a87ad5b40497c40a35837ced01a2ed564 (ACCEPTED)
 
-Latest RailwayAuthority implementation commit: 010dffe29c10d0d5d2a11f35c640eda20c4a9927 (ACCEPTED; unchanged by this work)
+Superseded (fixed) harness commit: 184e1b910066625db56464a74e3ff5afe4a26163
+
+Latest RailwayAuthority implementation commit: 010dffe29c10d0d5d2a11f35c640eda20c4a9927 (ACCEPTED; unchanged)
 
 Latest staging adapter implementation commit: d1c13cdfefe2f6db6644f72363f365863fceab0c (ACCEPTED; unchanged)
 
@@ -99,21 +101,17 @@ Latest orchestrator deployed implementation commit: ce5a591a48f1733b4e21128dece0
 
 Latest PWA implementation commit: c0ec7d884f59f4eca91fee311a8b11cbfa98f628 (ACCEPTED; unchanged)
 
-Evidence: docs/collaboration/IA3_HARNESS_RECONCILIATION_EVIDENCE.md (updated to reflect the corrected state and no longer claims the superseded commit proved Fleet-role behavior)
-
-Validation: node --check syntax valid (re-run); npm run test:e2e:tooling 366/366 passed, 0 failed (re-run); Playwright --list attempt failed on the same pre-existing, change-unrelated local environment issue already documented; no live staging execution attempted or possible without credentials Claude does not hold.
-
 Release readiness: NOT_READY_FOR_PRODUCTION
 
-Blocking findings: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING persists, gated on the separately-authorized real staging preflight; second-Driver/cross-workspace fixtures and authenticated browser/mobile/offline evidence remain outstanding; this corrected harness fix awaits independent re-review
+Blocking findings: none from this harness-fix cycle (closed). Remaining, pre-existing and unrelated to this change: CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING (gated on the separately-authorized real staging preflight); real read-only staging preflight not yet executed; second-Driver/cross-workspace fixtures not yet designed or provisioned; authenticated browser/mobile/offline evidence outstanding
 
-Queued coverage: real staging read-only preflight (Codex, when limit resets, under standing default delegated authority); second-Driver/cross-workspace fixtures; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
+Queued coverage: real staging read-only preflight (Codex, when limit resets, under standing default delegated authority - requires a real Railway bearer token Claude will not request/receive/handle); second-Driver/cross-workspace fixture design and review; authenticated browser/mobile/offline; CANONICAL_STAGING_JOURNEYS_NOT_EXECUTED
 
 Decision gate: AUTO_CONTINUE_ALLOWED
 
-Next required actor: Codex (or independent reviewer available in the meantime)
+Next required actor: Claude (continuing available, credential-free work under Product Owner instruction while Codex's usage limit remains exhausted) or Codex once its limit resets
 
-Next bounded action: Re-review commit 0d44894881a787ab0b62c66d5ebeb257301f8540 and the updated IA3_HARNESS_RECONCILIATION_EVIDENCE.md against the accepted IA-3A contract and the actual coordinator/driver-self source; confirm both corrections are accurate and complete; reproduce available local verification; publish ACCEPT or precise NEEDS_FIX. Separately, when ready, execute the previously-authorized bounded real read-only staging preflight using the accepted RailwayAuthority provider under standing default delegated authority, and publish redacted evidence for independent review. No staging write, deployment, migration, or unrelated work.
+Next bounded action: Continue bounded, credential-free technical work under the standing default-delegated-authority policy. A candidate next slice: draft (not implement) a second-Driver/cross-workspace synthetic fixture design analogous to the accepted DRIVER_A_FIXTURE_LINK_CONTRACT.md, publish it for independent review (ChatGPT or Codex) before any implementation - this is a genuine identity-design judgment call and must not be unilaterally implemented without a counter-review. Separately, when Codex's limit resets, execute the previously-authorized bounded real read-only staging preflight using the accepted RailwayAuthority provider, and publish redacted evidence for independent review. No staging write, deployment, migration, credential use, or unrelated work.
 <!-- CURRENT_END -->
 
 
@@ -5392,3 +5390,12 @@ Boundaries: no runtime/auth/route/schema/provisioning-module changes; no remote 
 - Updated IA3_HARNESS_RECONCILIATION_EVIDENCE.md to add a "Correction after independent re-review" section documenting both findings and their fixes, and revised the "Change" section so it describes only the final corrected state rather than repeating the superseded claim that the first commit already proved Fleet-role behavior.
 - Published the correction commit (0d44894881a787ab0b62c66d5ebeb257301f8540) and the updated evidence, again explicitly marked PUBLISHED / AWAITING RE-REVIEW rather than self-declaring ACCEPT, preserving the independent-verification property this coordination has relied on throughout even while acting as implementer.
 - No staging access, credential use, live Railway/database connection, Driver A insert, migration, deployment, or unrelated work occurred.
+
+### 2026-09-03 - ChatGPT (independent reviewer) - ACCEPT: IA-3 canonical-identity harness reconciliation closed
+
+- Independently re-reviewed correction commit 0d44894881a787ab0b62c66d5ebeb257301f8540 and documentation commit aaf6880a87ad5b40497c40a35837ced01a2ed564 against the accepted IA-3A contract and the actual driver-presentation.js/presentation-context.js/navigation-projection.js/driver-self.js behavior.
+- Confirmed both prior blocking findings (RENDERED_RESULT_SHAPE_STALE_AFTER_IA3; FLEET_ROLE_ASSERTION_DOES_NOT_PROVE_RESOLVED_FLEET_CONTEXT) are closed: one coordinator refresh only, DOM verified through its existing onResult render path, and projectionStatus/projectionRole/applyDriver together now positively prove Driver-only narrowing is withheld from a successfully-resolved Fleet membership rather than from a failed resolution.
+- Confirmed scope discipline: exactly one test file in the correction, a documentation-only follow-up commit, no runtime/product/auth/schema/migration/deployment/data change.
+- Confirmed recorded validation (syntax PASS, tooling 366/366 PASS) and accepted the separately-documented Playwright local --list environment limitation as unrelated to this source-level correction.
+- Verdict: ACCEPT. IA-3 canonical-identity harness reconciliation is closed and removed from blocking findings. Remaining blockers (CANONICAL_DRIVER_A_ACCOUNT_LINK_MISSING, real staging preflight, second-Driver/cross-workspace fixtures, authenticated browser/mobile/offline evidence) are pre-existing and not regressions from this change.
+- Instructed continuation under existing bounded mission/delegated-authority rules without waiting for a duplicate Codex review of this already-accepted correction, unless Codex later surfaces new evidence.
