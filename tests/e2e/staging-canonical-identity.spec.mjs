@@ -29,11 +29,11 @@ test(
   'CANONICAL-IDENTITY-01 roster, link, assignment, and Driver SELF compose from authoritative staging reads',
   {
     annotation: [
-      { type: 'expected_result', description: 'The authenticated workspace roster, account link, current assignment, and Driver SELF card agree on canonical IDs without fallback or mutation.' },
+      { type: 'expected_result', description: 'The authenticated workspace roster, account link, current assignment, and Driver SELF card agree on canonical IDs without fallback or mutation; the IA-3 presentation coordinator composes the same SELF evidence and correctly withholds Driver-only navigation narrowing for this non-driver Fleet A account.' },
       { type: 'step', description: 'Login as the protected Fleet A identity and resolve canonical account/workspace IDs from /v1/me.' },
       { type: 'step', description: 'Compare the direct authorized Driver roster with the PWA roster adapter.' },
       { type: 'step', description: 'Read the explicit AccountDriverLink and current DriverTruckAssignment through production adapters.' },
-      { type: 'step', description: 'Compose Driver SELF and verify its rendered read-only card uses the same proven IDs.' },
+      { type: 'step', description: 'Refresh the IA-3 Driver presentation coordinator and verify its composed SELF evidence and rendered read-only card use the same proven IDs, and that applyDriver is false for this fleet-role account.' },
       { type: 'step', description: 'Revoke the session; perform no business-record mutation.' },
     ],
   },
@@ -85,8 +85,11 @@ test(
         const roster = await readAuthorizedWorkspaceDriverRoster();
         const linkAdapter = getAccountDriverLinkAdapter();
         const assignmentAdapter = getDriverTruckAssignmentAdapter();
-        const selfReader = getDriverSelfReader();
-        if (!linkAdapter || !assignmentAdapter || !selfReader) {
+        // getDriverSelfReader() was replaced by the IA-3 presentation coordinator
+        // (driver-presentation.js); reuse the app's own coordinator instance so
+        // this composes SELF evidence exactly the way the running app does.
+        const coordinator = getDriverPresentationCoordinator();
+        if (!linkAdapter || !assignmentAdapter || !coordinator) {
           throw new Error('Canonical identity adapters are unavailable');
         }
 
@@ -102,19 +105,17 @@ test(
           workspaceId: expectedWorkspaceId,
           driverId,
         }) : null;
-        const self = await selfReader.read({
-          sessionToken,
-          workspaceId: expectedWorkspaceId,
-          accountId: expectedAccountId,
-          effectiveAt: new Date().toISOString(),
-        });
+        const composed = await coordinator.refresh(true);
         const rendered = await refreshDriverSelfCard(true);
 
         return {
           roster,
           link,
           assignment,
-          self,
+          self: composed.selfState,
+          applyDriver: composed.applyDriver,
+          projectionStatus: composed.projection ? composed.projection.status : null,
+          projectionRole: composed.projection ? composed.projection.membershipRole : null,
           rendered,
           card: {
             status: document.getElementById('driverSelfStatus')?.textContent || '',
@@ -150,6 +151,11 @@ test(
       expect(state.card.detail.trim()).toBeTruthy();
       expect(state.card.editableControls).toBe(0);
 
+      // Fleet A holds broad capability, not the canonical driver-only membership
+      // role; the IA-3 coordinator must never apply Driver-only navigation
+      // narrowing to it, regardless of how much SELF evidence composes cleanly.
+      expect(state.applyDriver).toBe(false);
+
       observations.push({
         journey: 'CANONICAL-IDENTITY-01',
         roster_status: wireRoster.status,
@@ -159,6 +165,9 @@ test(
         assignment_proven: state.assignment.ok === true,
         self_status: state.self.status,
         card_read_only: state.card.editableControls === 0,
+        coordinator_apply_driver: state.applyDriver === true,
+        coordinator_projection_status: state.projectionStatus,
+        coordinator_projection_role: state.projectionRole,
         mutation_count: 0,
       });
     } finally {
