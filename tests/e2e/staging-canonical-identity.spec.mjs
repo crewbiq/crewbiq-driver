@@ -33,7 +33,7 @@ test(
       { type: 'step', description: 'Login as the protected Fleet A identity and resolve canonical account/workspace IDs from /v1/me.' },
       { type: 'step', description: 'Compare the direct authorized Driver roster with the PWA roster adapter.' },
       { type: 'step', description: 'Read the explicit AccountDriverLink and current DriverTruckAssignment through production adapters.' },
-      { type: 'step', description: 'Refresh the IA-3 Driver presentation coordinator and verify its composed SELF evidence and rendered read-only card use the same proven IDs, and that applyDriver is false for this fleet-role account.' },
+      { type: 'step', description: 'Refresh the IA-3 Driver presentation coordinator once and verify its composed SELF evidence and the coordinator-rendered read-only card use the same proven IDs, that the projection resolves canonical fleet authority, and that Driver-only narrowing is withheld specifically because the membership is Fleet rather than because resolution failed.' },
       { type: 'step', description: 'Revoke the session; perform no business-record mutation.' },
     ],
   },
@@ -105,8 +105,13 @@ test(
           workspaceId: expectedWorkspaceId,
           driverId,
         }) : null;
+        // One refresh only: refreshDriverSelfCard(true) is now a thin wrapper
+        // over this same coordinator instance (both resolve the identical
+        // {context, projection, selfState, applyDriver, snapshotKey} shape),
+        // and its onResult callback already renders the DOM card as a side
+        // effect. Calling both would duplicate canonical relationship reads
+        // under two different evaluation timestamps for no added coverage.
         const composed = await coordinator.refresh(true);
-        const rendered = await refreshDriverSelfCard(true);
 
         return {
           roster,
@@ -116,7 +121,6 @@ test(
           applyDriver: composed.applyDriver,
           projectionStatus: composed.projection ? composed.projection.status : null,
           projectionRole: composed.projection ? composed.projection.membershipRole : null,
-          rendered,
           card: {
             status: document.getElementById('driverSelfStatus')?.textContent || '',
             detail: document.getElementById('driverSelfDetail')?.textContent || '',
@@ -145,15 +149,19 @@ test(
       expect(state.self.accountId).toBe(accountId);
       expect(state.self.driverId).toBe(state.link.link.driverId);
       expect(state.self.truckId).toBe(state.assignment.assignment.truckId);
-      expect(state.rendered?.status).toBe('success');
       expect(state.card.status.trim()).toBeTruthy();
       expect(state.card.status.toLowerCase()).not.toContain('unavailable');
       expect(state.card.detail.trim()).toBeTruthy();
       expect(state.card.editableControls).toBe(0);
 
-      // Fleet A holds broad capability, not the canonical driver-only membership
-      // role; the IA-3 coordinator must never apply Driver-only navigation
-      // narrowing to it, regardless of how much SELF evidence composes cleanly.
+      // Fleet A must resolve as an actually-authorized canonical fleet
+      // membership - not merely fail to resolve at all - before withholding
+      // Driver-only narrowing proves anything about role-based behavior.
+      // applyDriver is also false for unresolved/unavailable/unauthorized/
+      // ambiguous projection states, so asserting it alone cannot distinguish
+      // "correctly recognized as Fleet" from "failed to resolve".
+      expect(state.projectionStatus).toBe('resolved');
+      expect(state.projectionRole).toBe('fleet');
       expect(state.applyDriver).toBe(false);
 
       observations.push({
